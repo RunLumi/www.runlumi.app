@@ -2,6 +2,21 @@
 
 Bilingual Astro website for [runlumi.app](https://runlumi.app), deployed as an Astro SSR application on Cloudflare Workers.
 
+## Dependency install policy
+
+npm 11 resolves version ranges through a release-age filter (`--before` / `min-release-age`), and the npm wrapper on Lumi dev machines injects a 7-day window into every `install`, `ci`, and `update`. Fresh resolution of a package published within the last few days fails with `ETARGET ... with a date before ...` even though the version exists. Because CLI flags take precedence over project `.npmrc`, this cannot be overridden from the repo — the guardrail is lockfile discipline:
+
+- **Install from the lockfile.** Run `npm ci` for setup and CI. `npm ci` never re-resolves version ranges, so the age filter can neither fail nor change the dependency tree.
+- **The lockfile is the source of truth.** Commit `package-lock.json` changes. With a complete lockfile, even `npm install` is a no-op (verified: zero drift); the filter only bites when npm must resolve a range — new or bumped dependencies.
+- **Adding or upgrading a dependency:** resolve explicitly with a fresh window, then commit the lockfile:
+
+  ```bash
+  PKG_MIN_AGE_DAYS=0 npm install <package>
+  ```
+
+- **Machine-level guard:** `PKG_AGE_BYPASS=1` disables the injected window entirely (it prints a warning). Do not wire it into scripts; keep it for one-off maintenance.
+- **`npx` is blocked without `--no-install`** by the same wrapper. Use package scripts (`npm run ...`) or `./node_modules/.bin/<tool>`, or pass `--no-install` to run a binary already in `node_modules`.
+
 ## Routes
 
 Public:
@@ -33,7 +48,7 @@ The public apply flow works without client JavaScript.
 Install dependencies:
 
 ```bash
-npm install
+npm ci
 ```
 
 Create the D1 database:
@@ -109,9 +124,16 @@ Allow only Lumi hiring-team identities. Do not protect public `/jobs*` or `/api/
 ## Development
 
 ```bash
-npm run check
-npm run build
+npm run typecheck   # astro check (also runs as part of build)
+npm run lint        # AGENTS.md policy checks (hype copy, remote deps, D1 blobs, locale peers)
+npm run test        # node:test suites over src/lib (no test framework dependency)
+npm run check       # alias for typecheck
+npm run build       # astro check && astro build
 ```
+
+The `lint`, `typecheck`, and `test` scripts are run by the ECC pre-push hook. Policy linter findings on deliberate lines can be suppressed with a trailing `// !# policy: <rule-id>` comment.
+
+Tests use Node's built-in test runner with type stripping (Node 26+). The `cloudflare:workers` module — which only exists inside workerd — is resolved to a stub backed by `process.env` via `scripts/test-setup.mjs`, so `src/lib` modules are tested directly without a workers runtime.
 
 Useful commands:
 
