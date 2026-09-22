@@ -5,7 +5,8 @@ import {
   getJobBySlug,
   getQuestions,
   nowIso,
-  safeFilename
+  safeFilename,
+  safeHttpUrl
 } from "../../../../lib/ats";
 import { badRequest, redirect303, sameOrigin } from "../../../../lib/http";
 
@@ -53,8 +54,8 @@ export const POST: APIRoute = async (context) => {
   const fullName = formText(form, "full_name", 160);
   const email = formText(form, "email", 254).toLowerCase();
   const phone = formText(form, "phone", 80);
-  const linkedin = formText(form, "linkedin_url", 500);
-  const portfolio = formText(form, "portfolio_url", 500);
+  const linkedin = safeHttpUrl(formText(form, "linkedin_url", 500));
+  const portfolio = safeHttpUrl(formText(form, "portfolio_url", 500));
   const coverLetter = formText(form, "cover_letter", 10_000);
   const consent = form.get("consent") === "1";
   const resume = form.get("resume");
