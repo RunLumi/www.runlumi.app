@@ -202,9 +202,9 @@ button {
 }
 
 .brand-mark {
-  width: 25px;
   height: 25px;
-  fill: var(--color-lumi-blue);
+  width: auto;
+  display: block;
 }
 
 .main-nav {
@@ -1024,9 +1024,9 @@ h2 {
   box-shadow: inset 0 1px 0 white, 0 14px 36px -18px rgba(0,0,0,.5);
 }
 
-.context-center svg {
+.context-center .context-logo {
   width: 42px;
-  fill: var(--color-lumi-blue);
+  height: 42px;
 }
 
 .context-center strong {

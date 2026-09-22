@@ -8,11 +8,7 @@ const { copy } = Astro.props;
   <header class="site-header">
     <div class="shell header-inner">
       <a href={copy.path} class="brand" aria-label="Lumi home">
-        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
-          <path d="M5 4h10v16l7 8H12l-7-8V4Z"></path>
-          <path d="M17 4h10v24h-3.6L17 20.7V4Z" opacity=".72"></path>
-        </svg>
-        <span>Lumi</span>
+        <img class="brand-mark" src="/brand/lumi-fulltext.svg" alt="Lumi" width="196" height="100" />
       </a>
       <nav class="main-nav" aria-label="Main navigation">
         <a href="#products">{copy.nav.products}</a>
@@ -208,10 +204,7 @@ const { copy } = Astro.props;
           </div>
           <div class="context-flow" aria-hidden="true"><span></span><span></span><span></span></div>
           <div class="context-center">
-            <svg viewBox="0 0 32 32" aria-hidden="true">
-              <path d="M5 4h10v16l7 8H12l-7-8V4Z"></path>
-              <path d="M17 4h10v24h-3.6L17 20.7V4Z" opacity=".72"></path>
-            </svg>
+            <img class="context-logo" src="/brand/lumi-logo.svg" alt="" width="84" height="84" aria-hidden="true" />
             <strong>{copy.context.center}</strong>
           </div>
           <div class="context-flow context-flow-out" aria-hidden="true"><span></span><span></span><span></span></div>
@@ -327,11 +320,7 @@ const { copy } = Astro.props;
     <div class="shell footer-grid">
       <div>
         <a href={copy.path} class="brand footer-brand" aria-label="Lumi home">
-          <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
-            <path d="M5 4h10v16l7 8H12l-7-8V4Z"></path>
-            <path d="M17 4h10v24h-3.6L17 20.7V4Z" opacity=".72"></path>
-          </svg>
-          <span>Lumi</span>
+          <img class="brand-mark" src="/brand/lumi-fulltext.svg" alt="Lumi" width="196" height="100" />
         </a>
         <p>{copy.footer.line}</p>
       </div>
