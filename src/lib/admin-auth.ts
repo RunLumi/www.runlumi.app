@@ -44,15 +44,15 @@ export async function verifyAdminSession(secret: string, token: string | undefin
 export function setAdminCookie(context: APIContext, token: string) {
   context.cookies.set(COOKIE, token, {
     httpOnly: true,
-    secure: true,
+    secure: context.url.protocol === "https:",
     sameSite: "strict",
-    path: "/admin/jobs",
+    path: "/",
     maxAge: MAX_AGE
   });
 }
 
 export function clearAdminCookie(context: APIContext) {
-  context.cookies.delete(COOKIE, { path: "/admin/jobs" });
+  context.cookies.delete(COOKIE, { path: "/" });
 }
 
 export async function isAdmin(context: Pick<APIContext, "cookies" | "locals"> | AstroGlobal): Promise<boolean> {
