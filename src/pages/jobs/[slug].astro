@@ -1,0 +1,191 @@
+---
+import JobsLayout from "../../layouts/JobsLayout.astro";
+import { envFromLocals, getJobBySlug, getQuestions, splitLines } from "../../lib/ats";
+
+export const prerender = false;
+
+const slug = Astro.params.slug ?? "";
+const { DB } = envFromLocals(Astro.locals);
+const job = await getJobBySlug(DB, slug);
+
+if (!job) {
+  Astro.response.status = 404;
+}
+
+const questions = job ? await getQuestions(DB, job.id) : [];
+const responsibilities = job ? splitLines(job.responsibilities) : [];
+const requirements = job ? splitLines(job.requirements) : [];
+const applied = Astro.url.searchParams.get("applied");
+const applyError = Astro.url.searchParams.get("error");
+const startedAt = Date.now();
+---
+<JobsLayout
+  title={job ? `${job.title} — Lumi Jobs` : "Role not found — Lumi Jobs"}
+  description={job?.summary ?? "This role is not available."}
+>
+  <section class="ats-page">
+    <div class="ats-shell">
+      {!job ? (
+        <div class="ats-card ats-empty">
+          <h1>That role is no longer open.</h1>
+          <p>It may have been filled or closed. See the roles that are open now.</p>
+          <p><a class="ats-button" href="/jobs">View open roles</a></p>
+        </div>
+      ) : (
+        <>
+          {applied && (
+            <div class="ats-notice" style="margin-bottom: 28px">
+              <strong>Application received.</strong> Thank you. Your reference is <code>{applied}</code>.
+              We will review the work, not how loudly it was presented.
+            </div>
+          )}
+          {applyError && (
+            <div class="ats-notice danger" style="margin-bottom: 28px">
+              We could not submit that application. Please check the required fields and file sizes, then try again.
+            </div>
+          )}
+
+          <a class="text-link" href="/jobs">← All open roles</a>
+          <div class="ats-eyebrow" style="margin-top:32px">{job.team || "LUMI"} / OPEN ROLE</div>
+          <h1 class="ats-title">{job.title}</h1>
+          <div class="job-meta" style="margin-top:18px">
+            {job.location && <span>{job.location}</span>}
+            {job.workplace_type && <span>{job.workplace_type}</span>}
+            {job.employment_type && <span>{job.employment_type}</span>}
+          </div>
+          <p class="ats-lede">{job.summary}</p>
+          <hr class="ats-rule" />
+
+          <div class="job-detail-grid" style="margin-top:46px">
+            <article class="job-copy">
+              {job.description && (
+                <>
+                  <h2>The work</h2>
+                  <p>{job.description}</p>
+                </>
+              )}
+
+              {responsibilities.length > 0 && (
+                <>
+                  <h2>What you will own</h2>
+                  <ul class="ats-list">
+                    {responsibilities.map((item) => <li>{item}</li>)}
+                  </ul>
+                </>
+              )}
+
+              {requirements.length > 0 && (
+                <>
+                  <h2>What matters here</h2>
+                  <ul class="ats-list">
+                    {requirements.map((item) => <li>{item}</li>)}
+                  </ul>
+                </>
+              )}
+
+              {job.application_note && (
+                <>
+                  <h2>Before you apply</h2>
+                  <p>{job.application_note}</p>
+                </>
+              )}
+            </article>
+
+            <aside class="ats-card apply-aside">
+              <h2>Interested?</h2>
+              <p>Apply on this page. No account, no recruiter maze.</p>
+              <a class="ats-button" href="#apply">Apply for this role</a>
+            </aside>
+          </div>
+
+          <hr class="ats-rule" style="margin-top:70px" />
+
+          <section id="apply" style="padding-top:54px; max-width:760px">
+            <div class="ats-eyebrow">APPLICATION</div>
+            <h2 style="margin:0;color:var(--ats-navy);font-size:clamp(30px,4vw,44px);letter-spacing:-.04em">Tell us what we should know.</h2>
+            <p class="ats-lede" style="font-size:17px;margin-top:14px">
+              Clear and specific is better than polished. Your CV and test files stay private.
+            </p>
+
+            <form class="ats-form" method="post" action={`/api/jobs/${job.slug}/apply`} enctype="multipart/form-data" style="margin-top:34px">
+              <input type="hidden" name="started_at" value={String(startedAt)} />
+              <div style="position:absolute;left:-9999px" aria-hidden="true">
+                <label>Website <input name="website" tabindex="-1" autocomplete="off" /></label>
+              </div>
+
+              <div class="ats-field">
+                <label for="full_name">Full name *</label>
+                <input class="ats-input" id="full_name" name="full_name" autocomplete="name" required maxlength="160" />
+              </div>
+
+              <div class="ats-field">
+                <label for="email">Email *</label>
+                <input class="ats-input" id="email" name="email" type="email" autocomplete="email" required maxlength="254" />
+              </div>
+
+              <div class="ats-field">
+                <label for="phone">Phone</label>
+                <input class="ats-input" id="phone" name="phone" autocomplete="tel" maxlength="80" />
+              </div>
+
+              <div class="ats-field">
+                <label for="linkedin_url">LinkedIn</label>
+                <input class="ats-input" id="linkedin_url" name="linkedin_url" type="url" placeholder="https://…" maxlength="500" />
+              </div>
+
+              <div class="ats-field">
+                <label for="portfolio_url">Portfolio / GitHub / work sample</label>
+                <input class="ats-input" id="portfolio_url" name="portfolio_url" type="url" placeholder="https://…" maxlength="500" />
+              </div>
+
+              <div class="ats-field">
+                <label for="cover_letter">Cover letter *</label>
+                <textarea class="ats-textarea" id="cover_letter" name="cover_letter" required maxlength="10000" placeholder="Why this work, why Lumi, and what should we pay attention to in your experience?"></textarea>
+                <span class="ats-help">A few thoughtful paragraphs are enough.</span>
+              </div>
+
+              <div class="ats-field">
+                <label for="resume">CV / résumé *</label>
+                <input class="ats-input" id="resume" name="resume" type="file" required accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+                <span class="ats-help">PDF, DOC or DOCX. Maximum 10 MB.</span>
+              </div>
+
+              {questions.length > 0 && (
+                <div class="ats-form-section">
+                  <h3>Small work sample</h3>
+                  <p>These questions are part of the application, not a hidden second round.</p>
+
+                  {questions.map((q) => (
+                    <div class="ats-field" style="margin-top:22px">
+                      <label for={`question_${q.id}`}>{q.prompt}{q.required ? " *" : ""}</label>
+                      {q.help_text && <span class="ats-help">{q.help_text}</span>}
+                      {q.kind === "long" ? (
+                        <textarea class="ats-textarea" id={`question_${q.id}`} name={`question_${q.id}`} required={Boolean(q.required)} maxlength="12000"></textarea>
+                      ) : q.kind === "file" ? (
+                        <>
+                          <input class="ats-input" id={`question_${q.id}`} name={`question_${q.id}`} type="file" required={Boolean(q.required)} accept=".pdf,.doc,.docx,.txt,.md,.csv,.xlsx,.pptx,.png,.jpg,.jpeg,.zip" />
+                          <span class="ats-help">Maximum 15 MB. Do not upload secrets or client-confidential material.</span>
+                        </>
+                      ) : (
+                        <input class="ats-input" id={`question_${q.id}`} name={`question_${q.id}`} required={Boolean(q.required)} maxlength="3000" />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <label class="ats-check">
+                <input type="checkbox" name="consent" value="1" required />
+                <span>I agree that Lumi may use the information I submit to assess this application and contact me about this role.</span>
+              </label>
+
+              <div>
+                <button class="ats-button" type="submit">Submit application</button>
+              </div>
+            </form>
+          </section>
+        </>
+      )}
+    </div>
+  </section>
+</JobsLayout>
