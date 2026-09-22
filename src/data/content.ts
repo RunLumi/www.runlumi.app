@@ -51,11 +51,11 @@ export const content = {
           href: "https://unsplash.com/photos/sf6YUxvCoro"
         },
         {
-          src: "https://images.unsplash.com/photo-1758873272714-4106a439de5c?auto=format&fit=crop&w=1600&q=82",
-          alt: "Two colleagues reviewing data together on a laptop",
-          caption: "Decisions & follow-through",
-          credit: "Vitaly Gariev",
-          href: "https://unsplash.com/photos/9mQutIWKYKE"
+          src: "https://images.unsplash.com/photo-1772588627373-729b0f47e5bb?auto=format&fit=crop&w=1600&q=82",
+          alt: "Hands reviewing paperwork with a calculator and laptop",
+          caption: "Numbers & decisions",
+          credit: "Kelly Sikkema",
+          href: "https://unsplash.com/photos/tLqtcDZltPs"
         }
       ]
     },
@@ -251,9 +251,9 @@ export const content = {
           href: "https://unsplash.com/photos/sf6YUxvCoro"
         },
         {
-          src: "https://images.unsplash.com/photo-1758873272714-4106a439de5c?auto=format&fit=crop&w=1600&q=82",
-          alt: "Hai đồng nghiệp cùng xem dữ liệu trên laptop",
-          caption: "Quyết định & theo việc",
+          src: "https://images.unsplash.com/photo-1772588627373-729b0f47e5bb?auto=format&fit=crop&w=1600&q=82",
+          alt: "Đôi tay đang xem giấy tờ bên cạnh máy tính và laptop",
+          caption: "Số liệu & quyết định",
           credit: "Vitaly Gariev",
           href: "https://unsplash.com/photos/9mQutIWKYKE"
         }
