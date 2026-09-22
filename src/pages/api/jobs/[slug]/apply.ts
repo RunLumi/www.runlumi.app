@@ -30,6 +30,10 @@ function resumeAllowed(file: File): boolean {
   return /\.(pdf|doc|docx)$/i.test(file.name);
 }
 
+function testFileAllowed(file: File): boolean {
+  return /\.(pdf|doc|docx|txt|md|csv|xlsx|pptx|png|jpe?g|zip)$/i.test(file.name);
+}
+
 export const POST: APIRoute = async (context) => {
   const slug = context.params.slug ?? "";
   const fallback = `/jobs/${slug}?error=1`;
@@ -69,7 +73,7 @@ export const POST: APIRoute = async (context) => {
     const value = form.get(`question_${question.id}`);
     if (question.kind === "file") {
       if (isFile(value)) {
-        if (value.size > TEST_MAX) return redirect303(fallback);
+        if (!testFileAllowed(value) || value.size > TEST_MAX) return redirect303(fallback);
         totalBytes += value.size;
         testFiles.push({ questionId: question.id, file: value });
       } else if (question.required) {
