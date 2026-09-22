@@ -4,6 +4,9 @@ import cloudflare from "@astrojs/cloudflare";
 export default defineConfig({
   site: "https://runlumi.app",
   output: "server",
-  adapter: cloudflare(),
+  session: false,
+  adapter: cloudflare({
+    imageService: "compile"
+  }),
   trailingSlash: "never"
 });
