@@ -1,3 +1,4 @@
+import { env } from "cloudflare:workers";
 import type { APIContext, AstroGlobal } from "astro";
 
 const COOKIE = "lumi_ats_admin";
@@ -56,7 +57,7 @@ export function clearAdminCookie(context: APIContext) {
 }
 
 export async function isAdmin(context: Pick<APIContext, "cookies" | "locals"> | AstroGlobal): Promise<boolean> {
-  const secret = context.locals.runtime.env.ADMIN_SESSION_SECRET;
+  const secret = env.ADMIN_SESSION_SECRET;
   const token = context.cookies.get(COOKIE)?.value;
   return verifyAdminSession(secret, token);
 }
