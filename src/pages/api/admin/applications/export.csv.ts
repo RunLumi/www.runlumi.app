@@ -4,7 +4,8 @@ import { envFromLocals, getApplications } from "../../../../lib/ats";
 export const prerender = false;
 
 function csv(value: unknown): string {
-  const text = String(value ?? "");
+  const raw = String(value ?? "");
+  const text = /^[=+\-@]/.test(raw) ? `'${raw}` : raw;
   return `"${text.replace(/"/g, '""')}"`;
 }
 
