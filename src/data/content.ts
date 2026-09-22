@@ -252,10 +252,10 @@ export const content = {
         },
         {
           src: "https://images.unsplash.com/photo-1772588627373-729b0f47e5bb?auto=format&fit=crop&w=1600&q=82",
-          alt: "Đôi tay đang xem giấy tờ bên cạnh máy tính và laptop",
+          alt: "Đôi tay đang xem giấy tờ bên cạnh máy tính cầm tay và laptop",
           caption: "Số liệu & quyết định",
-          credit: "Vitaly Gariev",
-          href: "https://unsplash.com/photos/9mQutIWKYKE"
+          credit: "Kelly Sikkema",
+          href: "https://unsplash.com/photos/tLqtcDZltPs"
         }
       ]
     },
