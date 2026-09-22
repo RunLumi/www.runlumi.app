@@ -118,15 +118,6 @@ export const content = {
         demo: {
           label: "AGENT RUN",
           rows: [
-            { key: "MỤC TIÊU", value: "Một công việc có ranh giới", meta: "Phạm vi · điều kiện thành công" },
-            { key: "CÔNG CỤ", value: "Chỉ những gì vai trò cần", meta: "Browser · file · ứng dụng" },
-            { key: "WORKLOG", value: "Mọi bước quan trọng", meta: "Đã thử · thực thi · xác minh" },
-            { key: "PHÊ DUYỆT", value: "Con người khi cần", meta: "Từ chối an toàn · hiệu ứng rõ" }
-          ]
-        },
-        demo: {
-          label: "AGENT RUN",
-          rows: [
             { key: "GOAL", value: "A bounded job", meta: "Scope · success condition" },
             { key: "TOOLS", value: "Only what the role needs", meta: "Browser · files · apps" },
             { key: "WORKLOG", value: "Every material step", meta: "Attempted · executed · verified" },
@@ -295,7 +286,16 @@ export const content = {
         index: "03", name: "Lumi Agents", kicker: "THỰC THI",
         title: "Thêm nhân sự AI vào đội ngũ.",
         body: "Giao cho AI vai trò, công cụ và mục tiêu có ranh giới rõ. Agent thực hiện công việc số lặp lại, lưu worklog, đưa ngoại lệ lên cho người phụ trách và xin phê duyệt trước hành động quan trọng.",
-        examples: ["Sales operations", "Ads operations", "Finance workflows", "Research & back office"]
+        examples: ["Sales operations", "Ads operations", "Finance workflows", "Research & back office"],
+        demo: {
+          label: "AGENT RUN",
+          rows: [
+            { key: "MỤC TIÊU", value: "Một công việc có ranh giới", meta: "Phạm vi · điều kiện thành công" },
+            { key: "CÔNG CỤ", value: "Chỉ những gì vai trò cần", meta: "Browser · file · ứng dụng" },
+            { key: "WORKLOG", value: "Mọi bước quan trọng", meta: "Đã thử · thực thi · xác minh" },
+            { key: "PHÊ DUYỆT", value: "Con người khi cần", meta: "Từ chối an toàn · hiệu ứng rõ" }
+          ]
+        }
       },
       {
         index: "04", name: "Lumi Autonomous Assistant", kicker: "GIAO VIỆC",
