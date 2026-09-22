@@ -16,12 +16,29 @@ export const content = {
       body: "Lumi works across the tools, data and workflows you already depend on. Understand the business, coordinate work, delegate to AI staff, and keep people in control.",
       primary: "Explore the Lumi stack",
       secondary: "Talk to us",
-      note: "Keep your systems. Add an intelligence layer."
+      note: "Keep your systems. Add an intelligence layer.",
+      systemLabel: "LUMI / OPERATING SYSTEM",
+      systemItems: [
+        { n: "01", role: "Front door", name: "Autonomous Assistant" },
+        { n: "02", role: "Coordinate", name: "AI Workspace" },
+        { n: "03", role: "Understand", name: "Lumi BI" },
+        { n: "04", role: "Execute", name: "Lumi Agents" }
+      ],
+      systemFoot: "One context · many tools · human judgment"
     },
     thesis: {
       label: "THE THESIS",
       title: "One operating layer. Four ways to work.",
       body: "AI should not become another isolated app. Lumi gives people a shared place to work with AI, a way to understand the business, agentic staff that can execute, and one assistant that can reach across the whole system."
+    },
+    loop: {
+      label: "THE OPERATING LOOP",
+      items: [
+        { n: "01", title: "Connect", body: "Bring in the systems and evidence where work already lives." },
+        { n: "02", title: "Understand", body: "Turn fragmented signals into shared business context." },
+        { n: "03", title: "Decide", body: "Put the right evidence, options and limits in front of a person." },
+        { n: "04", title: "Act", body: "Let people and agents execute with permissions, approvals and a worklog." }
+      ]
     },
     stack: {
       label: "THE LUMI STACK",
@@ -69,25 +86,58 @@ export const content = {
         index: "01", name: "Lumi AI Workspace", kicker: "WORK TOGETHER",
         title: "Where people and AI run the company together.",
         body: "Turn daily operating signals into clear decisions, commitments, risks and next actions. Keep leadership informed without turning the company into a surveillance dashboard.",
-        examples: ["CEO operating brief", "Decisions & commitments", "Projects & recurring work", "Source-linked AI insight"]
+        examples: ["CEO operating brief", "Decisions & commitments", "Projects & recurring work", "Source-linked AI insight"],
+        demo: {
+          label: "OPERATING BRIEF",
+          rows: [
+            { key: "DECISION", value: "Next action is waiting", meta: "Owner · due · source" },
+            { key: "RISK", value: "Customer signal needs review", meta: "Evidence attached" },
+            { key: "COMMITMENT", value: "Follow-up is overdue", meta: "Age · owner · next step" }
+          ]
+        }
       },
       {
         index: "02", name: "Lumi BI", kicker: "UNDERSTAND",
         title: "Ask the business. See the evidence.",
         body: "Connect commerce and operational data, ask questions in plain language and move from a metric to the records behind it. Dashboards become a starting point, not the end of analysis.",
-        examples: ["Commerce intelligence", "Natural-language analysis", "Custom dashboards", "Source & freshness trace"]
+        examples: ["Commerce intelligence", "Natural-language analysis", "Custom dashboards", "Source & freshness trace"],
+        demo: {
+          label: "TRACE THE ANSWER",
+          rows: [
+            { key: "METRIC", value: "What changed?", meta: "Revenue · margin · orders" },
+            { key: "DRIVERS", value: "Why did it change?", meta: "Products · channels · campaigns" },
+            { key: "RECORDS", value: "Show the evidence", meta: "Source · freshness · rows" }
+          ]
+        }
       },
       {
         index: "03", name: "Lumi Agents", kicker: "EXECUTE",
         title: "Add agentic staff to the team.",
         body: "Give AI workers bounded roles, tools and goals. They can perform repeatable digital work, keep a worklog, surface exceptions and ask for approval before consequential actions.",
-        examples: ["Sales operations", "Ads operations", "Finance workflows", "Research & back office"]
+        examples: ["Sales operations", "Ads operations", "Finance workflows", "Research & back office"],
+        demo: {
+          label: "AGENT RUN",
+          rows: [
+            { key: "GOAL", value: "A bounded job", meta: "Scope · success condition" },
+            { key: "TOOLS", value: "Only what the role needs", meta: "Browser · files · apps" },
+            { key: "WORKLOG", value: "Every material step", meta: "Attempted · executed · verified" },
+            { key: "APPROVAL", value: "Human when it matters", meta: "Safe reject · clear effect" }
+          ]
+        }
       },
       {
         index: "04", name: "Lumi Autonomous Assistant", kicker: "DELEGATE",
         title: "Give it a job. It uses the tools.",
         body: "The assistant is the front door to the Lumi stack: a direct way to delegate multi-step work across browser, desktop, files and connected systems without needing to know which product should handle each step.",
-        examples: ["Browser work", "Desktop & files", "Connected tools", "Human approval"]
+        examples: ["Browser work", "Desktop & files", "Connected tools", "Human approval"],
+        demo: {
+          label: "DELEGATE",
+          rows: [
+            { key: "REQUEST", value: "“Find the cause. Fix the report.”", meta: "Plain language" },
+            { key: "ROUTE", value: "BI → Agent → Files", meta: "Lumi chooses the path" },
+            { key: "RESULT", value: "Prepared for review", meta: "Evidence · changes · exceptions" }
+          ]
+        }
       }
     ],
     existing: {
@@ -96,8 +146,9 @@ export const content = {
       body: "Lumi is designed to sit across the tools a company already depends on. Start with one painful workflow, connect the minimum context needed, prove the result, then expand.",
       steps: [
         { n: "01", t: "Connect", d: "Use the existing systems, files and APIs that already contain the work." },
-        { n: "02", t: "Understand", d: "Build the business context, definitions and evidence needed for reliable decisions." },
-        { n: "03", t: "Act", d: "Let people and agents execute with explicit permissions, approvals and an audit trail." }
+        { n: "02", t: "Understand", d: "Build the business context, definitions and evidence needed to see clearly." },
+        { n: "03", t: "Decide", d: "Bring options, limits and source-backed recommendations to the accountable person." },
+        { n: "04", t: "Act", d: "Let people and agents execute with explicit permissions, approvals and an audit trail." }
       ]
     },
     trust: {
@@ -137,12 +188,29 @@ export const content = {
       body: "Lumi làm việc trên những công cụ, dữ liệu và quy trình doanh nghiệp đang dùng. Hiểu tình hình, phối hợp công việc, giao việc cho nhân sự AI và vẫn để con người kiểm soát.",
       primary: "Khám phá Lumi stack",
       secondary: "Trao đổi với Lumi",
-      note: "Giữ hệ thống hiện tại. Thêm một lớp trí tuệ."
+      note: "Giữ hệ thống hiện tại. Thêm một lớp trí tuệ.",
+      systemLabel: "LUMI / HỆ VẬN HÀNH",
+      systemItems: [
+        { n: "01", role: "Cửa vào", name: "Autonomous Assistant" },
+        { n: "02", role: "Phối hợp", name: "AI Workspace" },
+        { n: "03", role: "Hiểu", name: "Lumi BI" },
+        { n: "04", role: "Thực thi", name: "Lumi Agents" }
+      ],
+      systemFoot: "Một ngữ cảnh · nhiều công cụ · con người phán đoán"
     },
     thesis: {
       label: "LUẬN ĐIỂM",
       title: "Một lớp vận hành. Bốn cách làm việc.",
       body: "AI không nên trở thành thêm một ứng dụng rời rạc. Lumi tạo một nơi chung để con người làm việc cùng AI, một cách để hiểu doanh nghiệp, đội ngũ agent có thể thực thi, và một trợ lý có thể đi xuyên suốt toàn hệ thống."
+    },
+    loop: {
+      label: "VÒNG VẬN HÀNH",
+      items: [
+        { n: "01", title: "Kết nối", body: "Đưa vào những hệ thống và bằng chứng nơi công việc vốn đang tồn tại." },
+        { n: "02", title: "Hiểu", body: "Biến tín hiệu rời rạc thành business context chung." },
+        { n: "03", title: "Quyết định", body: "Đưa đúng bằng chứng, lựa chọn và giới hạn đến người chịu trách nhiệm." },
+        { n: "04", title: "Hành động", body: "Cho con người và agent thực thi với quyền hạn, phê duyệt và worklog." }
+      ]
     },
     stack: {
       label: "LUMI STACK",
@@ -190,25 +258,58 @@ export const content = {
         index: "01", name: "Lumi AI Workspace", kicker: "PHỐI HỢP",
         title: "Nơi con người và AI cùng điều hành công việc.",
         body: "Biến tín hiệu vận hành hằng ngày thành quyết định, cam kết, rủi ro và bước tiếp theo rõ ràng. Giúp lãnh đạo nắm tình hình mà không biến công ty thành dashboard giám sát.",
-        examples: ["CEO operating brief", "Quyết định & cam kết", "Dự án & công việc định kỳ", "AI insight có nguồn"]
+        examples: ["CEO operating brief", "Quyết định & cam kết", "Dự án & công việc định kỳ", "AI insight có nguồn"],
+        demo: {
+          label: "OPERATING BRIEF",
+          rows: [
+            { key: "QUYẾT ĐỊNH", value: "Bước tiếp theo đang chờ", meta: "Owner · hạn · nguồn" },
+            { key: "RỦI RO", value: "Tín hiệu khách hàng cần xem", meta: "Có bằng chứng" },
+            { key: "CAM KẾT", value: "Follow-up đã quá hạn", meta: "Tuổi · owner · bước tiếp" }
+          ]
+        }
       },
       {
         index: "02", name: "Lumi BI", kicker: "HIỂU",
         title: "Hỏi doanh nghiệp. Xem bằng chứng.",
         body: "Kết nối dữ liệu thương mại và vận hành, đặt câu hỏi bằng ngôn ngữ tự nhiên và đi từ một chỉ số về tận những bản ghi tạo ra nó. Dashboard là điểm bắt đầu, không phải điểm kết thúc của phân tích.",
-        examples: ["Commerce intelligence", "Phân tích bằng ngôn ngữ tự nhiên", "Dashboard tùy biến", "Nguồn & độ mới dữ liệu"]
+        examples: ["Commerce intelligence", "Phân tích bằng ngôn ngữ tự nhiên", "Dashboard tùy biến", "Nguồn & độ mới dữ liệu"],
+        demo: {
+          label: "TRUY NGƯỢC CÂU TRẢ LỜI",
+          rows: [
+            { key: "CHỈ SỐ", value: "Điều gì thay đổi?", meta: "Doanh thu · biên · đơn hàng" },
+            { key: "ĐỘNG LỰC", value: "Vì sao thay đổi?", meta: "Sản phẩm · kênh · chiến dịch" },
+            { key: "BẢN GHI", value: "Xem bằng chứng", meta: "Nguồn · độ mới · dữ liệu" }
+          ]
+        }
       },
       {
         index: "03", name: "Lumi Agents", kicker: "THỰC THI",
         title: "Thêm nhân sự AI vào đội ngũ.",
         body: "Giao cho AI vai trò, công cụ và mục tiêu có ranh giới rõ. Agent thực hiện công việc số lặp lại, lưu worklog, đưa ngoại lệ lên cho người phụ trách và xin phê duyệt trước hành động quan trọng.",
-        examples: ["Sales operations", "Ads operations", "Finance workflows", "Research & back office"]
+        examples: ["Sales operations", "Ads operations", "Finance workflows", "Research & back office"],
+        demo: {
+          label: "AGENT RUN",
+          rows: [
+            { key: "MỤC TIÊU", value: "Một công việc có ranh giới", meta: "Phạm vi · điều kiện thành công" },
+            { key: "CÔNG CỤ", value: "Chỉ những gì vai trò cần", meta: "Browser · file · ứng dụng" },
+            { key: "WORKLOG", value: "Mọi bước quan trọng", meta: "Đã thử · thực thi · xác minh" },
+            { key: "PHÊ DUYỆT", value: "Con người khi cần", meta: "Từ chối an toàn · hiệu ứng rõ" }
+          ]
+        }
       },
       {
         index: "04", name: "Lumi Autonomous Assistant", kicker: "GIAO VIỆC",
         title: "Giao một việc. Lumi tự dùng công cụ phù hợp.",
         body: "Assistant là cửa vào của toàn bộ Lumi stack: cách trực tiếp để giao công việc nhiều bước trên trình duyệt, máy tính, tệp và hệ thống kết nối mà người dùng không cần biết mỗi bước thuộc sản phẩm nào.",
-        examples: ["Trình duyệt", "Máy tính & tệp", "Công cụ kết nối", "Phê duyệt của con người"]
+        examples: ["Trình duyệt", "Máy tính & tệp", "Công cụ kết nối", "Phê duyệt của con người"],
+        demo: {
+          label: "GIAO VIỆC",
+          rows: [
+            { key: "YÊU CẦU", value: "“Tìm nguyên nhân. Sửa báo cáo.”", meta: "Ngôn ngữ bình thường" },
+            { key: "ĐỊNH TUYẾN", value: "BI → Agent → Files", meta: "Lumi chọn đường đi" },
+            { key: "KẾT QUẢ", value: "Sẵn sàng để rà soát", meta: "Bằng chứng · thay đổi · ngoại lệ" }
+          ]
+        }
       }
     ],
     existing: {
@@ -217,8 +318,9 @@ export const content = {
       body: "Lumi được thiết kế để nằm trên các công cụ doanh nghiệp đang phụ thuộc. Bắt đầu từ một workflow đau thật, kết nối lượng ngữ cảnh tối thiểu cần thiết, chứng minh kết quả rồi mới mở rộng.",
       steps: [
         { n: "01", t: "Kết nối", d: "Dùng chính hệ thống, tệp và API đang chứa công việc." },
-        { n: "02", t: "Hiểu", d: "Xây business context, định nghĩa và bằng chứng cần thiết cho quyết định đáng tin." },
-        { n: "03", t: "Hành động", d: "Cho con người và agent thực thi với quyền hạn, phê duyệt và audit trail rõ ràng." }
+        { n: "02", t: "Hiểu", d: "Xây business context, định nghĩa và bằng chứng cần thiết để nhìn rõ tình hình." },
+        { n: "03", t: "Quyết định", d: "Đưa lựa chọn, giới hạn và đề xuất có nguồn đến đúng người chịu trách nhiệm." },
+        { n: "04", t: "Hành động", d: "Cho con người và agent thực thi với quyền hạn, phê duyệt và audit trail rõ ràng." }
       ]
     },
     trust: {
