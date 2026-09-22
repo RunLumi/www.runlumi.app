@@ -9,6 +9,7 @@ const job = await getJobById(DB, id);
 if (!job) Astro.response.status = 404;
 const questions = job ? await getQuestions(DB, job.id) : [];
 const questionError = Astro.url.searchParams.get("question_error");
+const deleteError = Astro.url.searchParams.get("delete_error");
 ---
 <JobsLayout title={job ? `Manage ${job.title} — Lumi hiring desk` : "Job not found"} admin>
   <section class="ats-page">
@@ -173,6 +174,18 @@ const questionError = Astro.url.searchParams.get("question_error");
                     <input class="ats-input" id="sort_order_q" name="sort_order" type="number" value={questions.length * 10} />
                   </div>
                   <button class="ats-button secondary" type="submit">Add question</button>
+                </form>
+              </div>
+              <div class="ats-card admin-panel" style="margin-top:18px">
+                <h3>Danger zone</h3>
+                {deleteError === "applications" && (
+                  <div class="ats-notice danger" style="margin-bottom:14px">
+                    This role has applications. Close it instead of deleting it.
+                  </div>
+                )}
+                <p class="ats-help">A role can only be deleted before anyone has applied.</p>
+                <form method="post" action={`/api/admin/jobs/${job.id}/delete`} onsubmit="return confirm('Delete this role permanently?')">
+                  <button class="ats-button danger" type="submit">Delete role</button>
                 </form>
               </div>
             </aside>
