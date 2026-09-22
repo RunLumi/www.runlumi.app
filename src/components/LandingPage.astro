@@ -93,6 +93,38 @@ const { copy } = Astro.props;
       </div>
     </section>
 
+    <section class="reality-section section-rule">
+      <div class="shell">
+        <div class="reality-head">
+          <div class="section-label">{copy.reality.label}</div>
+          <div>
+            <h2>{copy.reality.title}</h2>
+            <p>{copy.reality.body}</p>
+          </div>
+        </div>
+
+        <div class="reality-grid">
+          {copy.reality.images.map((image: any, index: number) => (
+            <figure class:list={["reality-figure", index === 1 && "reality-figure-tall"]}>
+              <div class="reality-image-wrap">
+                <img
+                  src={image.src}
+                  alt={image.alt}
+                  loading="lazy"
+                  decoding="async"
+                  referrerpolicy="no-referrer"
+                />
+              </div>
+              <figcaption>
+                <span>{image.caption}</span>
+                <a href={image.href} target="_blank" rel="noreferrer">Photo · {image.credit} ↗</a>
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+      </div>
+    </section>
+
     <section class="stack-section" id="stack">
       <div class="shell">
         <div class="section-heading">

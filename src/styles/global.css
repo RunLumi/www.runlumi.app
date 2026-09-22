@@ -603,6 +603,102 @@ h2 {
   max-width: 760px;
 }
 
+/* Real work photography */
+.reality-section {
+  padding-block: 112px 128px;
+}
+
+.reality-head {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: var(--space-10);
+  align-items: start;
+  margin-bottom: var(--space-12);
+}
+
+.reality-head h2 {
+  max-width: 760px;
+}
+
+.reality-head p {
+  max-width: 660px;
+  margin: var(--space-5) 0 0;
+  color: var(--color-soft-slate);
+  font-size: 18px;
+  line-height: 1.65;
+}
+
+.reality-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr 1fr;
+  gap: var(--space-4);
+  align-items: end;
+}
+
+.reality-figure {
+  margin: 0;
+}
+
+.reality-image-wrap {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 4 / 5;
+  background: var(--color-archive-gray);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.reality-figure-tall .reality-image-wrap {
+  aspect-ratio: 4 / 5.45;
+}
+
+.reality-image-wrap::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: inset 0 1px 0 color-mix(in oklch, white 45%, transparent);
+}
+
+.reality-image-wrap img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  filter: saturate(.82) contrast(.98);
+  transition: transform var(--motion-normal) var(--ease-out), filter var(--motion-normal) var(--ease-out);
+}
+
+.reality-figure:hover img {
+  transform: scale(1.012);
+  filter: saturate(.92) contrast(1);
+}
+
+.reality-figure figcaption {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+  color: var(--color-soft-slate);
+  font-size: 12px;
+}
+
+.reality-figure figcaption > span {
+  color: var(--color-civic-navy);
+  font-weight: 600;
+}
+
+.reality-figure figcaption a {
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+.reality-figure figcaption a:hover {
+  color: var(--color-lumi-blue);
+}
+
 /* Stack as system blueprint */
 .stack-section {
   padding-block: 120px 144px;
@@ -1362,6 +1458,20 @@ h2 {
     gap: var(--space-4);
   }
 
+  .reality-head {
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+  }
+
+  .reality-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .reality-figure:last-child {
+    grid-column: 1 / -1;
+    width: min(68%, 520px);
+  }
+
   .stack-foundation {
     grid-template-columns: 1fr;
     gap: var(--space-2);
@@ -1492,8 +1602,24 @@ h2 {
   }
 
   .stack-section,
-  .context-section {
+  .context-section,
+  .reality-section {
     padding-block: var(--space-24);
+  }
+
+  .reality-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-8);
+  }
+
+  .reality-figure:last-child {
+    grid-column: auto;
+    width: 100%;
+  }
+
+  .reality-image-wrap,
+  .reality-figure-tall .reality-image-wrap {
+    aspect-ratio: 4 / 3;
   }
 
   h2 {
