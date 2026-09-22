@@ -1,0 +1,80 @@
+---
+import JobsLayout from "../../../layouts/JobsLayout.astro";
+import { envFromLocals, getAdminJobs, statusLabel } from "../../../lib/ats";
+
+export const prerender = false;
+const { DB } = envFromLocals(Astro.locals);
+const jobs = await getAdminJobs(DB);
+const error = Astro.url.searchParams.get("error");
+---
+<JobsLayout title="Lumi hiring desk — Jobs" admin>
+  <section class="ats-page">
+    <div class="ats-shell">
+      <div class="ats-eyebrow">HIRING DESK / JOBS</div>
+      <h1 class="ats-title">Open the role. Keep the bar clear.</h1>
+      <p class="ats-lede">Publish only roles we are ready to hire for. Tests should be small, relevant and visible from the start.</p>
+
+      {error === "slug" && <div class="ats-notice danger" style="margin-top:28px">That slug is already in use. Choose another.</div>}
+
+      <div class="admin-grid" style="margin-top:46px">
+        <div class="ats-card admin-panel">
+          <div class="ats-toolbar" style="margin-top:0">
+            <h2 style="margin:0">Jobs</h2>
+            <a class="ats-button secondary" href="/admin/jobs/applications">All applications</a>
+          </div>
+
+          {jobs.length ? jobs.map((job: any) => (
+            <div class="admin-job-row">
+              <div>
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                  <span class:list={["ats-badge", job.status]}>{statusLabel(job.status)}</span>
+                  <span class="ats-count">{job.team || "No team"}</span>
+                </div>
+                <h3>{job.title}</h3>
+                <p>/{job.slug} · {job.location || "Location not set"}</p>
+              </div>
+              <div>
+                <div class="admin-number">{job.application_count ?? 0}</div>
+                <div class="ats-count">applications</div>
+              </div>
+              <a class="ats-button secondary" href={`/admin/jobs/${job.id}`}>Manage</a>
+            </div>
+          )) : (
+            <div class="ats-empty">
+              <h2>No jobs yet.</h2>
+              <p>Create the first role on the right. It will stay private until you publish it.</p>
+            </div>
+          )}
+        </div>
+
+        <aside class="ats-card admin-panel">
+          <h2>New role</h2>
+          <form class="ats-form" method="post" action="/api/admin/jobs/create">
+            <div class="ats-field">
+              <label for="title">Title *</label>
+              <input class="ats-input" id="title" name="title" required maxlength="160" />
+            </div>
+            <div class="ats-field">
+              <label for="slug">Slug</label>
+              <input class="ats-input" id="slug" name="slug" placeholder="gtm-specialist" maxlength="80" />
+              <span class="ats-help">Leave blank to generate from the title.</span>
+            </div>
+            <div class="ats-field">
+              <label for="team">Team</label>
+              <input class="ats-input" id="team" name="team" placeholder="Sales" maxlength="120" />
+            </div>
+            <div class="ats-field">
+              <label for="location">Location</label>
+              <input class="ats-input" id="location" name="location" placeholder="Ho Chi Minh City / Remote" maxlength="160" />
+            </div>
+            <div class="ats-field">
+              <label for="summary">One-line summary *</label>
+              <textarea class="ats-textarea" id="summary" name="summary" required maxlength="500" style="min-height:90px"></textarea>
+            </div>
+            <button class="ats-button" type="submit">Create draft</button>
+          </form>
+        </aside>
+      </div>
+    </div>
+  </section>
+</JobsLayout>

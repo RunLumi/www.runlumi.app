@@ -1,0 +1,74 @@
+---
+import JobsLayout from "../../../../layouts/JobsLayout.astro";
+import {
+  applicationStatuses,
+  envFromLocals,
+  formatDate,
+  getAdminJobs,
+  getApplications,
+  statusLabel
+} from "../../../../lib/ats";
+
+export const prerender = false;
+const { DB } = envFromLocals(Astro.locals);
+const jobId = Astro.url.searchParams.get("job") ?? "";
+const status = Astro.url.searchParams.get("status") ?? "";
+const [jobs, applications] = await Promise.all([
+  getAdminJobs(DB),
+  getApplications(DB, jobId, status)
+]);
+---
+<JobsLayout title="Applications — Lumi hiring desk" admin>
+  <section class="ats-page">
+    <div class="ats-shell">
+      <div class="ats-eyebrow">HIRING DESK / APPLICATIONS</div>
+      <h1 class="ats-title">Read the work. Make the decision.</h1>
+      <p class="ats-lede">One queue across every open role. Use stages as a shared language, not as a substitute for judgment.</p>
+
+      <form class="ats-toolbar" method="get">
+        <div class="ats-toolbar-group">
+          <select class="ats-select" name="job" style="min-width:220px;font-size:14px" onchange="this.form.submit()">
+            <option value="">All jobs</option>
+            {jobs.map((job: any) => <option value={job.id} selected={jobId === job.id}>{job.title}</option>)}
+          </select>
+          <select class="ats-select" name="status" style="min-width:160px;font-size:14px" onchange="this.form.submit()">
+            <option value="">All stages</option>
+            {applicationStatuses.map((value) => <option value={value} selected={status === value}>{statusLabel(value)}</option>)}
+          </select>
+          <span class="ats-count">{applications.length} shown</span>
+        </div>
+        <a class="ats-button secondary" href={`/api/admin/applications/export.csv?job=${encodeURIComponent(jobId)}&status=${encodeURIComponent(status)}`}>Export CSV</a>
+      </form>
+
+      <div class="ats-table-wrap">
+        <table class="ats-table">
+          <thead>
+            <tr>
+              <th>Candidate</th>
+              <th>Role</th>
+              <th>Stage</th>
+              <th>Applied</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {applications.length ? applications.map((app) => (
+              <tr>
+                <td>
+                  <strong style="color:var(--ats-navy)">{app.full_name}</strong><br />
+                  <span class="ats-count">{app.email}</span>
+                </td>
+                <td>{app.job_title}</td>
+                <td><span class:list={["ats-badge", app.status]}>{statusLabel(app.status)}</span></td>
+                <td>{formatDate(app.created_at)}</td>
+                <td><a href={`/admin/jobs/applications/${app.id}`}>Review →</a></td>
+              </tr>
+            )) : (
+              <tr><td colspan="5" style="text-align:center;padding:36px;color:var(--ats-slate)">No applications match this view.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</JobsLayout>

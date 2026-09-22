@@ -1,0 +1,25 @@
+---
+import JobsLayout from "../../../layouts/JobsLayout.astro";
+
+export const prerender = false;
+const error = Astro.url.searchParams.get("error");
+const next = Astro.url.searchParams.get("next") ?? "/admin/jobs";
+---
+<JobsLayout title="Lumi hiring desk — Sign in">
+  <div class="login-shell">
+    <div class="ats-card login-card">
+      <div class="ats-eyebrow">LUMI / HIRING DESK</div>
+      <h1>Sign in</h1>
+      <p>This area is for the Lumi hiring team.</p>
+      {error && <div class="ats-notice danger" style="margin-bottom:18px">That password was not accepted.</div>}
+      <form class="ats-form" method="post" action="/api/admin/login">
+        <input type="hidden" name="next" value={next} />
+        <div class="ats-field">
+          <label for="password">Admin password</label>
+          <input class="ats-input" id="password" name="password" type="password" autocomplete="current-password" required autofocus />
+        </div>
+        <button class="ats-button" type="submit">Open hiring desk</button>
+      </form>
+    </div>
+  </div>
+</JobsLayout>
