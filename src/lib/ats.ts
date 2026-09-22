@@ -92,6 +92,18 @@ export function slugify(input: string): string {
   return slug || `job-${Date.now()}`;
 }
 
+export function safeHttpUrl(input: string): string {
+  const value = input.trim();
+  if (!value) return "";
+  try {
+    const url = new URL(value);
+    if (url.protocol !== "https:" && url.protocol !== "http:") return "";
+    return url.toString().slice(0, 500);
+  } catch {
+    return "";
+  }
+}
+
 export function safeFilename(input: string): string {
   const clean = input
     .normalize("NFKC")
