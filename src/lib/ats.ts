@@ -1,3 +1,5 @@
+import { env } from "cloudflare:workers";
+
 export type JobStatus = "draft" | "published" | "closed";
 export type ApplicationStatus =
   | "new"
@@ -65,8 +67,8 @@ export interface AdminApplicationRow extends ApplicationRow {
   job_slug: string;
 }
 
-export function envFromLocals(locals: App.Locals): Env {
-  return locals.runtime.env;
+export function envFromLocals(_locals?: App.Locals): Env {
+  return env as Env;
 }
 
 export function nowIso(): string {
