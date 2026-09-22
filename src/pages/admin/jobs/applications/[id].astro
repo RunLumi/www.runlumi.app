@@ -140,6 +140,14 @@ const events = application ? (await DB.prepare(
                   ))}
                 </ul>
               </section>
+
+              <section class="ats-card application-section">
+                <h2>Data & privacy</h2>
+                <p class="ats-help">Deletes the application record, notes, answers and every uploaded file from private storage.</p>
+                <form method="post" action={`/api/admin/applications/${application.id}/delete`} onsubmit="return confirm('Delete this application and all uploaded files permanently?')">
+                  <button class="ats-button danger" type="submit">Delete application</button>
+                </form>
+              </section>
             </aside>
           </div>
         </>
