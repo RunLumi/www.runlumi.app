@@ -436,7 +436,76 @@ Use it rarely.
 
 ---
 
-# 11. Motion
+# 11. Photography
+
+Photography exists to make Lumi feel grounded in real work, not to decorate the page.
+
+Use:
+- real shops, counters, warehouses, desks, paperwork, laptops, stock, tools;
+- natural or available light;
+- editorial framing;
+- people absorbed in work rather than posing at camera;
+- muted, believable color;
+- images that reveal a real operating environment.
+
+Avoid:
+- handshake imagery;
+- staged executive portraits;
+- fake diversity collages;
+- smiling call-center teams;
+- futuristic blue rooms;
+- generic “business success” stock photography;
+- photos whose only message is “people in an office.”
+
+Photography should appear as an editorial interruption between conceptual sections.
+Do not place a full-bleed photo behind the hero headline.
+
+When using Unsplash:
+- use free-license images only, not Unsplash+;
+- link the photographer/source in the caption;
+- preserve meaningful alt text;
+- crop with CSS rather than distorting the image;
+- keep saturation slightly restrained so photographs live inside the Lumi paper system.
+
+---
+
+# 12. Language
+
+The best Lumi copy sounds like a capable person explaining the product across a table.
+
+Prefer:
+- plain verbs;
+- short sentences;
+- familiar business words;
+- one claim at a time;
+- concrete effects on daily work;
+- quiet confidence.
+
+Replace abstract technology language whenever ordinary language says the same thing.
+
+Prefer:
+> Keep the systems that work. Make them work together.
+
+Over:
+> Add an intelligent orchestration layer to your existing technology stack.
+
+Prefer:
+> Hỏi doanh nghiệp. Lần theo bằng chứng.
+
+Over:
+> Khai thác dữ liệu bằng nền tảng AI thông minh đa tác tử.
+
+Product names may contain “AI”, “Agents”, or “Autonomous” where those are the actual names.
+Do not repeat those terms in surrounding copy merely to signal modernity.
+
+Vietnamese should be chân phương, tự nhiên, mềm và chắc:
+- tránh dịch sát tiếng Anh;
+- tránh “tối ưu hóa”, “đột phá”, “nâng tầm”, “cách mạng hóa” nếu không có nghĩa cụ thể;
+- ưu tiên cách nói một người chủ doanh nghiệp có thể nói lại cho người khác ngay sau khi đọc.
+
+---
+
+# 13. Motion
 
 No video dependency.
 
@@ -457,7 +526,7 @@ Honor `prefers-reduced-motion`.
 
 ---
 
-# 12. Copy
+# 14. Copy
 
 Lumi speaks like:
 - a precise operating assistant;
@@ -484,7 +553,7 @@ English and Vietnamese should communicate the same idea, not translate word-for-
 
 ---
 
-# 13. Anti-patterns
+# 15. Anti-patterns
 
 Never ship:
 
@@ -505,7 +574,7 @@ Never ship:
 
 ---
 
-# 14. Accessibility and quality
+# 16. Accessibility and quality
 
 - WCAG AA body text.
 - 16px minimum body.
@@ -520,7 +589,7 @@ Never ship:
 
 ---
 
-# 15. Review gate
+# 17. Review gate
 
 Before merging a visual change:
 
