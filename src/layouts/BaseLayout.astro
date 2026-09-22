@@ -1,0 +1,42 @@
+---
+import "../styles/global.css";
+
+interface Props {
+  lang: "en" | "vi";
+  title: string;
+  description: string;
+  canonicalPath: string;
+}
+
+const { lang, title, description, canonicalPath } = Astro.props;
+const canonical = new URL(canonicalPath, Astro.site);
+---
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="theme-color" content="#F4F0E8" />
+    <meta name="description" content={description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="canonical" href={canonical} />
+    <link rel="alternate" hreflang="en" href={new URL("/", Astro.site)} />
+    <link rel="alternate" hreflang="vi" href={new URL("/vi", Astro.site)} />
+    <link rel="alternate" hreflang="x-default" href={new URL("/", Astro.site)} />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Lumi" />
+    <meta property="og:locale" content={lang === "vi" ? "vi_VN" : "en_US"} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <title>{title}</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">{lang === "vi" ? "Bỏ qua đến nội dung" : "Skip to content"}</a>
+    <slot />
+  </body>
+</html>

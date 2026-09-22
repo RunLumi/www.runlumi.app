@@ -1,0 +1,259 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+interface Props { copy: any; }
+const { copy } = Astro.props;
+---
+<BaseLayout lang={copy.lang} title={copy.meta.title} description={copy.meta.description} canonicalPath={copy.path}>
+  <header class="site-header">
+    <div class="shell header-inner">
+      <a href={copy.path} class="brand" aria-label="Lumi home">
+        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+          <path d="M5 4h10v16l7 8H12l-7-8V4Z"></path>
+          <path d="M17 4h10v24h-3.6L17 20.7V4Z" opacity=".72"></path>
+        </svg>
+        <span>Lumi</span>
+      </a>
+      <nav class="main-nav" aria-label="Main navigation">
+        <a href="#products">{copy.nav.products}</a>
+        <a href="#how">{copy.nav.how}</a>
+        <a href="#trust">{copy.nav.trust}</a>
+      </nav>
+      <div class="header-actions">
+        <a class="language-link" href={copy.switchPath}>{copy.switchLabel}</a>
+        <a class="button button-sm" href="mailto:hello@runlumi.app">{copy.nav.contact}</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero shell">
+      <div class="hero-copy">
+        <div class="eyebrow">{copy.hero.eyebrow}</div>
+        <h1>
+          <span>{copy.hero.titleA}</span>
+          <span class="hero-accent">{copy.hero.titleB}</span>
+        </h1>
+        <p class="hero-body">{copy.hero.body}</p>
+        <div class="hero-actions">
+          <a class="button button-lg" href="#stack">{copy.hero.primary}</a>
+          <a class="text-link" href="mailto:hello@runlumi.app">{copy.hero.secondary} <span aria-hidden="true">↗</span></a>
+        </div>
+      </div>
+      <aside class="hero-note">
+        <span class="annotation-dot"></span>
+        <p>{copy.hero.note}</p>
+      </aside>
+    </section>
+
+    <section class="thesis section-rule">
+      <div class="shell two-col-section">
+        <div class="section-label">{copy.thesis.label}</div>
+        <div>
+          <h2>{copy.thesis.title}</h2>
+          <p class="lede">{copy.thesis.body}</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="stack-section" id="stack">
+      <div class="shell">
+        <div class="section-heading">
+          <div class="section-label">{copy.stack.label}</div>
+          <h2>{copy.stack.title}</h2>
+        </div>
+
+        <div class="stack-map" aria-label="Lumi AI operating stack">
+          <article class="stack-assistant sheet">
+            <div class="stack-node-meta">INTERFACE</div>
+            <h3>{copy.stack.assistant.name}</h3>
+            <strong>{copy.stack.assistant.role}</strong>
+            <p>{copy.stack.assistant.desc}</p>
+          </article>
+
+          <div class="stack-connector stack-connector-short" aria-hidden="true"></div>
+
+          <div class="stack-products">
+            {copy.stack.products.map((product: any, index: number) => (
+              <article class="stack-product sheet">
+                <div class="stack-node-meta">0{index + 1} / {product.role}</div>
+                <h3>{product.name}</h3>
+                <p>{product.desc}</p>
+              </article>
+            ))}
+          </div>
+
+          <div class="stack-connector" aria-hidden="true"></div>
+
+          <article class="stack-foundation">
+            <span>SHARED LAYER</span>
+            <h3>{copy.stack.foundationTitle}</h3>
+            <p>{copy.stack.foundation}</p>
+          </article>
+
+          <div class="stack-connector" aria-hidden="true"></div>
+
+          <article class="stack-systems">
+            <span>{copy.stack.systems}</span>
+            <p>{copy.stack.systemsList}</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="day-section section-rule" id="how">
+      <div class="shell two-col-section">
+        <div>
+          <div class="section-label">{copy.day.label}</div>
+          <h2>{copy.day.title}</h2>
+          <p class="section-intro">{copy.day.body}</p>
+        </div>
+        <ol class="day-timeline">
+          {copy.day.moments.map((moment: any, index: number) => (
+            <li class="day-moment">
+              <div class="timeline-time">
+                <span>{moment.time}</span>
+                <span class="timeline-index">0{index + 1}</span>
+              </div>
+              <div class="timeline-copy">
+                <h3>{moment.title}</h3>
+                <p>{moment.body}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
+
+    <section class="context-section">
+      <div class="shell">
+        <div class="context-header">
+          <div class="section-label">{copy.context.label}</div>
+          <h2>{copy.context.title}</h2>
+          <p>{copy.context.body}</p>
+        </div>
+
+        <div class="context-graph" role="img" aria-label="Business inputs become shared company context used to understand, decide and act">
+          <div class="context-inputs">
+            {copy.context.inputs.map((input: string) => <span class="context-chip">{input}</span>)}
+          </div>
+          <div class="context-flow" aria-hidden="true"><span></span><span></span><span></span></div>
+          <div class="context-center">
+            <svg viewBox="0 0 32 32" aria-hidden="true">
+              <path d="M5 4h10v16l7 8H12l-7-8V4Z"></path>
+              <path d="M17 4h10v24h-3.6L17 20.7V4Z" opacity=".72"></path>
+            </svg>
+            <strong>{copy.context.center}</strong>
+          </div>
+          <div class="context-flow context-flow-out" aria-hidden="true"><span></span><span></span><span></span></div>
+          <div class="context-outputs">
+            {copy.context.outputs.map((output: string) => <span class="context-output">{output}</span>)}
+          </div>
+        </div>
+
+        <div class="evidence-callout">
+          <span class="evidence-star" aria-hidden="true">✦</span>
+          <div>
+            <strong>{copy.context.proofTitle}</strong>
+            <p>{copy.context.proofBody}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="products-section section-rule" id="products">
+      <div class="shell">
+        <div class="section-heading products-heading">
+          <div class="section-label">{copy.productsLabel}</div>
+          <h2>{copy.productsTitle}</h2>
+        </div>
+        <div class="product-list">
+          {copy.products.map((product: any) => (
+            <article class="product-chapter">
+              <div class="product-number">{product.index}</div>
+              <div class="product-heading">
+                <div class="eyebrow">{product.kicker}</div>
+                <div class="product-name">{product.name}</div>
+              </div>
+              <div class="product-story">
+                <h3>{product.title}</h3>
+                <p>{product.body}</p>
+              </div>
+              <ul class="product-examples" aria-label={product.name + " capabilities"}>
+                {product.examples.map((item: string) => <li>{item}</li>)}
+              </ul>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="existing-section">
+      <div class="shell two-col-section">
+        <div>
+          <div class="section-label">{copy.existing.label}</div>
+          <h2>{copy.existing.title}</h2>
+          <p class="section-intro">{copy.existing.body}</p>
+        </div>
+        <ol class="operating-steps">
+          {copy.existing.steps.map((step: any) => (
+            <li>
+              <span class="step-n">{step.n}</span>
+              <div><h3>{step.t}</h3><p>{step.d}</p></div>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
+
+    <section class="trust-section section-rule" id="trust">
+      <div class="shell">
+        <div class="section-heading trust-heading">
+          <div class="section-label">{copy.trust.label}</div>
+          <h2>{copy.trust.title}</h2>
+        </div>
+        <div class="trust-grid">
+          {copy.trust.items.map((item: any, index: number) => (
+            <article>
+              <span>0{index + 1}</span>
+              <h3>{item.title}</h3>
+              <p>{item.body}</p>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="cta-section">
+      <div class="shell cta-sheet">
+        <div class="section-label">{copy.cta.label}</div>
+        <h2>{copy.cta.title}</h2>
+        <p>{copy.cta.body}</p>
+        <div class="cta-actions">
+          <a class="button button-lg" href="mailto:hello@runlumi.app">{copy.cta.primary}</a>
+          <a class="text-link" href="mailto:hello@runlumi.app">{copy.cta.secondary}</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="shell footer-grid">
+      <div>
+        <a href={copy.path} class="brand footer-brand" aria-label="Lumi home">
+          <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+            <path d="M5 4h10v16l7 8H12l-7-8V4Z"></path>
+            <path d="M17 4h10v24h-3.6L17 20.7V4Z" opacity=".72"></path>
+          </svg>
+          <span>Lumi</span>
+        </a>
+        <p>{copy.footer.line}</p>
+      </div>
+      <div class="footer-links">
+        <a href="mailto:hello@runlumi.app">hello@runlumi.app</a>
+        <a href="https://github.com/RunLumi">GitHub</a>
+      </div>
+      <div class="footer-legal">{copy.footer.rights}</div>
+    </div>
+  </footer>
+</BaseLayout>
