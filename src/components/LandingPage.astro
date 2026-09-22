@@ -135,7 +135,7 @@ const { copy } = Astro.props;
 
         <div class="stack-map" aria-label="Lumi operating stack">
           <article class="stack-assistant sheet">
-            <div class="stack-node-meta">INTERFACE</div>
+            <div class="stack-node-meta">{copy.lang === "vi" ? "CỬA VÀO" : "FRONT DOOR"}</div>
             <h3>{copy.stack.assistant.name}</h3>
             <strong>{copy.stack.assistant.role}</strong>
             <p>{copy.stack.assistant.desc}</p>
