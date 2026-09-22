@@ -46,6 +46,11 @@ const { copy } = Astro.props;
           <span class="route-line"></span>
           <span class="route-lumi">L</span>
         </div>
+        <div class="hero-system-assistant">
+          <span>{copy.lang === "vi" ? "CỬA VÀO" : "FRONT DOOR"}</span>
+          <strong>{copy.stack.assistant.name}</strong>
+          <small>{copy.stack.assistant.role}</small>
+        </div>
         <ol class="hero-system-list">
           {copy.hero.systemItems.map((item: any) => (
             <li>
@@ -128,7 +133,7 @@ const { copy } = Astro.props;
           <h2>{copy.stack.title}</h2>
         </div>
 
-        <div class="stack-map" aria-label="Lumi AI operating stack">
+        <div class="stack-map" aria-label="Lumi operating stack">
           <article class="stack-assistant sheet">
             <div class="stack-node-meta">INTERFACE</div>
             <h3>{copy.stack.assistant.name}</h3>
@@ -151,12 +156,20 @@ const { copy } = Astro.props;
           <div class="stack-connector" aria-hidden="true"></div>
 
           <article class="stack-foundation">
-            <span>SHARED LAYER</span>
+            <span>{copy.lang === "vi" ? "NGỮ CẢNH CHUNG" : "SHARED CONTEXT"}</span>
             <h3>{copy.stack.foundationTitle}</h3>
             <p>{copy.stack.foundation}</p>
           </article>
 
-          <div class="stack-connector" aria-hidden="true"></div>
+          <div class="stack-connector stack-connector-compact" aria-hidden="true"></div>
+
+          <article class="stack-gateway">
+            <span>{copy.lang === "vi" ? "HÀNH ĐỘNG" : "ACTIONS"}</span>
+            <h3>{copy.stack.gatewayTitle}</h3>
+            <p>{copy.stack.gateway}</p>
+          </article>
+
+          <div class="stack-connector stack-connector-compact" aria-hidden="true"></div>
 
           <article class="stack-systems">
             <span>{copy.stack.systems}</span>
