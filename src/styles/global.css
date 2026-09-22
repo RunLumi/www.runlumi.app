@@ -453,6 +453,39 @@ button {
   font-size: 18px;
 }
 
+.hero-system-assistant {
+  min-height: 68px;
+  display: grid;
+  grid-template-columns: 88px 1fr;
+  grid-template-rows: auto auto;
+  column-gap: var(--space-3);
+  align-content: center;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-lumi-blue-soft);
+  border-bottom: 1px solid color-mix(in oklch, var(--color-lumi-blue) 20%, var(--color-border));
+}
+
+.hero-system-assistant > span {
+  grid-row: 1 / span 2;
+  align-self: center;
+  color: var(--color-lumi-blue);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: .1em;
+}
+
+.hero-system-assistant strong {
+  color: var(--color-civic-navy);
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: -.01em;
+}
+
+.hero-system-assistant small {
+  color: var(--color-soft-slate);
+  font-size: 11px;
+}
+
 .hero-system-list {
   list-style: none;
   margin: 0;
@@ -788,6 +821,14 @@ h2 {
   height: 58px;
 }
 
+.stack-connector-compact {
+  height: 28px;
+}
+
+.stack-connector-compact::after {
+  display: none;
+}
+
 .stack-products {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -830,6 +871,7 @@ h2 {
 }
 
 .stack-foundation > span,
+.stack-gateway > span,
 .stack-systems > span {
   color: var(--color-lumi-blue);
   font-size: 11px;
@@ -840,12 +882,49 @@ h2 {
 
 .stack-foundation h3,
 .stack-foundation p,
+.stack-gateway h3,
+.stack-gateway p,
 .stack-systems p {
   margin: 0;
 }
 
 .stack-foundation p,
+.stack-gateway p,
 .stack-systems p {
+  color: var(--color-soft-slate);
+  font-size: 13px;
+}
+
+.stack-gateway {
+  width: calc(100% - 110px);
+  margin: 0 auto;
+  padding: var(--space-4) var(--space-5);
+  display: grid;
+  grid-template-columns: 160px 1fr 1.45fr;
+  align-items: center;
+  gap: var(--space-5);
+  background: var(--color-surface-white);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.stack-gateway > span {
+  color: var(--color-lumi-blue);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.stack-gateway h3 {
+  color: var(--color-civic-navy);
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -.02em;
+}
+
+.stack-gateway p {
   color: var(--color-soft-slate);
   font-size: 13px;
 }
@@ -1472,7 +1551,8 @@ h2 {
     width: min(68%, 520px);
   }
 
-  .stack-foundation {
+  .stack-foundation,
+  .stack-gateway {
     grid-template-columns: 1fr;
     gap: var(--space-2);
   }
@@ -1653,6 +1733,7 @@ h2 {
   }
 
   .stack-foundation,
+  .stack-gateway,
   .stack-systems {
     width: 100%;
   }
