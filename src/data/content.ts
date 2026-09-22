@@ -93,7 +93,7 @@ export const content = {
       moments: [
         { time: "08:05", title: "See what needs attention.", body: "The CEO opens Lumi AI Workspace. Decisions, customer risks and an overdue payment are ranked with sources." },
         { time: "10:20", title: "Understand what changed.", body: "Lumi BI notices margin erosion in an ecommerce channel and traces the change to affected products, promotions and order mix." },
-        { time: "10:22", title: "Give the investigation away.", body: "A Lumi Agent checks the relevant records, reconciles the numbers and prepares the exception list for review." },
+        { time: "10:22", title: "Hand off the investigation.", body: "A Lumi Agent checks the records, reconciles the numbers and brings back only the exceptions." },
         { time: "14:40", title: "Delegate in plain language.", body: "“Fix the report and send Nga the updated file.” Lumi Assistant works across files and connected tools, with approval where it matters." }
       ]
     },
@@ -114,7 +114,7 @@ export const content = {
         index: "01", name: "Lumi AI Workspace", kicker: "WORK TOGETHER",
         title: "Know what needs attention.",
         body: "Bring decisions, commitments, risks and next actions into one clear operating view.",
-        examples: ["CEO operating brief", "Decisions & commitments", "Projects & recurring work", "Source-linked AI insight"],
+        examples: ["CEO operating brief", "Decisions & commitments", "Projects & recurring work", "Source-linked insight"],
         demo: {
           label: "OPERATING BRIEF",
           rows: [
@@ -140,8 +140,8 @@ export const content = {
       },
       {
         index: "03", name: "Lumi Agents", kicker: "EXECUTE",
-        title: "Give repeatable work a reliable owner.",
-        body: "Give agents a clear job, the tools they need and firm boundaries. Review the worklog and step in when it matters.",
+        title: "Give repeatable work a clear owner.",
+        body: "Give agents a clear job, the right tools and firm boundaries. Review the worklog and approve when needed.",
         examples: ["Sales operations", "Ads operations", "Finance workflows", "Research & back office"],
         demo: {
           label: "AGENT RUN",
@@ -293,7 +293,7 @@ export const content = {
       moments: [
         { time: "08:05", title: "Biết việc gì cần chú ý.", body: "CEO mở Lumi AI Workspace. Các quyết định, rủi ro khách hàng và một khoản thanh toán quá hạn đã được xếp ưu tiên kèm nguồn." },
         { time: "10:20", title: "Hiểu điều gì vừa thay đổi.", body: "Lumi BI phát hiện biên lợi nhuận của một kênh ecommerce giảm và truy nguyên về nhóm sản phẩm, khuyến mãi và cơ cấu đơn hàng." },
-        { time: "10:22", title: "Giao phần điều tra cho AI.", body: "Một Lumi Agent kiểm tra dữ liệu liên quan, đối soát số liệu và chuẩn bị danh sách ngoại lệ để con người rà soát." },
+        { time: "10:22", title: "Giao phần kiểm tra cho agent.", body: "Lumi Agent kiểm tra dữ liệu, đối soát số liệu và chỉ đưa những ngoại lệ cần người xem." },
         { time: "14:40", title: "Giao việc bằng ngôn ngữ bình thường.", body: "“Sửa báo cáo và gửi file mới cho Nga.” Lumi Assistant làm việc trên tệp và các công cụ đã kết nối, yêu cầu phê duyệt ở nơi cần thiết." }
       ]
     },
@@ -314,7 +314,7 @@ export const content = {
         index: "01", name: "Lumi AI Workspace", kicker: "PHỐI HỢP",
         title: "Biết ngay việc gì cần chú ý.",
         body: "Gom quyết định, cam kết, rủi ro và bước tiếp theo vào một góc nhìn vận hành rõ ràng.",
-        examples: ["CEO operating brief", "Quyết định & cam kết", "Dự án & công việc định kỳ", "AI insight có nguồn"],
+        examples: ["CEO operating brief", "Quyết định & cam kết", "Dự án & công việc định kỳ", "Kết luận có nguồn"],
         demo: {
           label: "OPERATING BRIEF",
           rows: [
@@ -340,8 +340,8 @@ export const content = {
       },
       {
         index: "03", name: "Lumi Agents", kicker: "THỰC THI",
-        title: "Giao việc lặp lại cho một người làm đáng tin.",
-        body: "Giao cho agent một việc rõ ràng, đúng công cụ và phạm vi. Xem lại worklog và can thiệp khi cần.",
+        title: "Giao việc lặp lại cho agent. Luôn biết việc đang đến đâu.",
+        body: "Giao việc rõ, đúng công cụ, đúng phạm vi. Xem worklog và duyệt khi cần.",
         examples: ["Sales operations", "Ads operations", "Finance workflows", "Research & back office"],
         demo: {
           label: "AGENT RUN",
