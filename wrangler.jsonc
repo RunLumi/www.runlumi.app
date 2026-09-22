@@ -6,8 +6,8 @@
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "routes": [
     {
-      "pattern": "landing.runlumi.app",
-      "custom_domain": true
+      "pattern": "landing.runlumi.app/*",
+      "zone_name": "runlumi.app"
     }
   ],
   "assets": {
