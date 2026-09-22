@@ -8,8 +8,8 @@
 
 The landing page has one job:
 
-> Make a serious operator understand, in under a minute, that Lumi is an AI operating
-> layer that works across the software, data, and workflows a company already uses.
+> Make a serious operator understand, in under a minute, that Lumi helps the tools
+> and work a company already has move together as one operating system.
 
 It must communicate **vision + system + evidence + a concrete next step** without becoming
 an AI spectacle, a four-product catalogue, or a consulting brochure.
@@ -48,26 +48,34 @@ The system is:
 ```text
 People
   ↕
-Lumi Autonomous Assistant
+Lumi Assistant — one front door
   ↕
-AI Workspace · Lumi BI · Lumi Agents
+Workspace · Lumi BI · Lumi Agents
+coordinate · understand · act
   ↕
-Company Context
-(memory · evidence · permissions · workflows · models · audit)
+Shared company context
+(memory · evidence · permissions · workflow state)
   ↕
-The software the company already uses
+Controlled actions
+(permissions · approvals · verification)
+  ↕
+The systems the company already uses
 ```
 
 The page therefore sells a **new operating model for the company**, not a collection of features.
 
 ## 2.2 Product roles
 
-- **Lumi AI Workspace** — coordinate people, decisions, commitments, risks, and operating work.
-- **Lumi BI** — understand the business and trace conclusions to evidence.
-- **Lumi Agents** — execute bounded digital jobs with tools, worklogs, and approvals.
-- **Lumi Autonomous Assistant** — the universal front door for delegation across the stack.
+- **Lumi Assistant** — the universal front door: ask, delegate, follow through.
+- **Lumi AI Workspace** — coordinate decisions, commitments, risks, and operating work.
+- **Lumi BI** — understand what changed and trace conclusions to evidence.
+- **Lumi Agents** — carry out bounded digital jobs with tools, worklogs, approvals, and verification.
 
-The Assistant is the interface across the system, not merely a fourth equal tile.
+**Customer taxonomy:** one way in, three core capabilities.
+
+The Assistant is not a fourth equal product card. Shared context, permissions, model routing,
+tool access, approvals, verification, and audit are platform capabilities and should remain
+largely invisible until they explain trust or a buying requirement.
 
 ---
 
@@ -336,9 +344,11 @@ Assistant
    ↓
 Workspace · BI · Agents
    ↓
-Company Context
+Shared company context
    ↓
-Existing Software
+Controlled actions
+   ↓
+Existing systems
 ```
 
 Use system lines and sheets, not a feature-card wall.
@@ -365,7 +375,8 @@ It must remain editorial, not a dark mode:
 
 ## 9.6 Product chapters
 
-Products are **editorial chapters**, not four equal cards.
+The three core capabilities are **editorial chapters**, not equal SaaS cards.
+Assistant has already been established as the front door and should not reappear as a fourth chapter.
 
 Each chapter contains:
 1. role;
@@ -378,7 +389,7 @@ The artifact should look like real work:
 - Workspace → ranked brief / decision;
 - BI → metric → driver → records;
 - Agents → goal → tools → worklog → approval;
-- Assistant → request → routing → result.
+Assistant routing may appear in the hero/system map rather than as a fourth product chapter.
 
 Avoid fabricated customer data and fake vanity metrics.
 
@@ -386,7 +397,7 @@ Avoid fabricated customer data and fake vanity metrics.
 
 Say the strategic truth plainly:
 
-> Don't replace the SME software stack. Make it intelligent.
+> Keep the systems that work. Make them work together.
 
 Show the adoption loop:
 
@@ -600,7 +611,7 @@ Before merging a visual change:
 - [ ] Does each section answer one question?
 - [ ] Does the hero explain the operating model before listing products?
 - [ ] Does the stack read as one system?
-- [ ] Does Assistant read as the front door rather than an isolated fourth tile?
+- [ ] Does Assistant read as the front door, with Workspace/BI/Agents as the three core capabilities?
 - [ ] Are product visuals inspectable work rather than fake screenshots?
 - [ ] Are evidence, permissions, approvals, and worklogs treated as product value?
 - [ ] Is the page strong without video?
