@@ -103,7 +103,7 @@ export const content = {
       title: "One company context. Every answer can show its source.",
       body: "Customers, orders, projects, messages and documents stay connected, so Lumi can answer with context and act with evidence.",
       inputs: ["Customers", "Orders", "Projects", "Messages", "Documents", "Software", "People"],
-      center: "Company context",
+      center: "Shared context",
       outputs: ["Understand", "Decide", "Act"],
       proofTitle: "Evidence stays attached.",
       proofBody: "See where an answer came from, how fresh it is, and when a person should review it."
@@ -258,7 +258,7 @@ export const content = {
       label: "LUMI HOẠT ĐỘNG THẾ NÀO",
       title: "Một cửa vào. Ba cách đưa công việc đi tiếp.",
       assistant: {
-        name: "Lumi Autonomous Assistant",
+        name: "Lumi Assistant",
         role: "Hỏi. Giao việc. Theo đến cùng.",
         desc: "Cửa vào của Lumi. Cứ nói việc cần làm, Lumi tự chuyển đến đúng phần."
       },
@@ -290,7 +290,7 @@ export const content = {
       title: "Một ngữ cảnh chung. Mỗi câu trả lời đều có thể lần về nguồn.",
       body: "Khách hàng, đơn hàng, dự án, tin nhắn và tài liệu được nối lại, để Lumi hiểu đúng ngữ cảnh và hành động có căn cứ.",
       inputs: ["Khách hàng", "Đơn hàng", "Dự án", "Tin nhắn", "Tài liệu", "Phần mềm", "Con người"],
-      center: "Company context",
+      center: "Ngữ cảnh chung",
       outputs: ["Hiểu", "Quyết định", "Hành động"],
       proofTitle: "Bằng chứng luôn đi cùng kết luận.",
       proofBody: "Luôn thấy câu trả lời đến từ đâu, dữ liệu mới đến mức nào và khi nào cần người kiểm tra."
@@ -344,7 +344,7 @@ export const content = {
     ],
     existing: {
       label: "LÀM VIỆC VỚI HỆ THỐNG HIỆN CÓ",
-      title: "Giữ những hệ thống đang chạy tốt. Giúp chúng làm việc cùng nhau.",
+      title: "Giữ những hệ thống đang dùng tốt. Giúp chúng làm việc cùng nhau.",
       body: "Bắt đầu từ một việc đang tốn thời gian. Chỉ kết nối những gì cần. Chứng minh kết quả rồi mới mở rộng.",
       steps: [
         { n: "01", t: "Kết nối", d: "Dùng chính những hệ thống đang giữ công việc." },
