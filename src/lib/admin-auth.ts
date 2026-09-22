@@ -57,7 +57,7 @@ export function clearAdminCookie(context: APIContext) {
 }
 
 export async function isAdmin(context: Pick<APIContext, "cookies" | "locals"> | AstroGlobal): Promise<boolean> {
-  const secret = env.ADMIN_SESSION_SECRET;
+  const secret = (env as unknown as { ADMIN_SESSION_SECRET: string }).ADMIN_SESSION_SECRET;
   const token = context.cookies.get(COOKIE)?.value;
   return verifyAdminSession(secret, token);
 }
