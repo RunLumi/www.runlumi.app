@@ -4,6 +4,12 @@
   "main": "@astrojs/cloudflare/entrypoints/server",
   "compatibility_date": "2026-09-22",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "routes": [
+    {
+      "pattern": "landing.runlumi.app",
+      "custom_domain": true
+    }
+  ],
   "assets": {
     "binding": "ASSETS",
     "directory": "./dist"
@@ -15,7 +21,7 @@
     {
       "binding": "DB",
       "database_name": "lumi-jobs",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "baffed60-2a53-4a8a-b680-684852edbb81",
       "migrations_dir": "migrations"
     }
   ],
