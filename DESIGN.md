@@ -1,5 +1,7 @@
 # Lumi Landing Design System
 
+Revision: Civic Editorial Intelligence + restrained liquid glass · September 2026
+
 > Marketing adaptation of the canonical Lumi design language in
 > `RunLumi/lumi-agents/DESIGN.md`. The shared Lumi identity is authoritative.
 > This file narrows that system for `runlumi.app`; it does not invent a second brand.
@@ -28,7 +30,7 @@ Preserve these ideas from the canonical design system:
 - **Light only** — no dark theme. One intentional Civic Navy editorial inversion is allowed.
 - **One type family** — Geist for display/body, Geist Mono only for technical fragments.
 - **Folded-L geometry** — precise corners, brackets, rails, negative space, handoff lines.
-- **Restrained material depth** — navy-tinted shadows, lit top edges, no generic floating SaaS cards.
+- **Restrained material depth** — warm paper, opaque evidence sheets, and a separate liquid-glass control layer with navy-tinted depth.
 - **Evidence before performance** — sources, freshness, permissions, approvals, worklogs.
 - **Unconventional restraint** — fewer things, better ordered, with stronger meaning.
 
@@ -88,6 +90,7 @@ A first-time visitor should immediately feel:
 > “This is clear, useful, and trustworthy.”
 
 Require:
+
 - obvious hierarchy;
 - readable type;
 - familiar navigation;
@@ -101,6 +104,7 @@ A strong designer should notice:
 > “This is restrained, consistent, unusually well edited.”
 
 Require:
+
 - intentional whitespace;
 - precise grid;
 - strong typographic rhythm;
@@ -127,16 +131,16 @@ Visual polish that does not improve one of those six outcomes is not completion.
 
 Lumi is a **lit operating desk**.
 
-| Cue | Meaning | Landing expression |
-|---|---|---|
-| Paper | calm reading surface | warm page canvas |
-| Sheet | product/evidence/work | white surface, 1px border, lit top edge |
-| Ink | authority | Civic Navy / Ink, never pure black |
-| Mark | provenance/attention | small blue rail, dot, bracket, clarity mark |
-| Lift | interaction | navy-tinted elevation only |
-| Glass | floating chrome | header only; never marketing content |
-| Seal | authority | primary Lumi Blue CTA |
-| Inversion | one editorial interruption | Civic Navy context section only |
+| Cue       | Meaning                    | Landing expression                                                       |
+| --------- | -------------------------- | ------------------------------------------------------------------------ |
+| Paper     | calm reading surface       | warm page canvas                                                         |
+| Sheet     | product/evidence/work      | white surface, 1px border, lit top edge                                  |
+| Ink       | authority                  | Civic Navy / Ink, never pure black                                       |
+| Mark      | provenance/attention       | small blue rail, dot, bracket, clarity mark                              |
+| Lift      | interaction                | navy-tinted elevation only                                               |
+| Glass     | navigation above the work  | floating header and one workflow navigation dock; never reading surfaces |
+| Seal      | authority                  | primary Lumi Blue CTA                                                    |
+| Inversion | one editorial interruption | Civic Navy context section only                                          |
 
 Every visible material needs a physical reason. Remove decoration that does not explain
 hierarchy, state, affordance, provenance, or system structure.
@@ -149,27 +153,27 @@ Use the shared Lumi values exactly.
 
 ```css
 --color-lumi-blue: #006093;
---color-lumi-blue-hover: #004F80;
---color-lumi-blue-active: #003E6A;
---color-lumi-blue-soft: #E4F3FC;
+--color-lumi-blue-hover: #004f80;
+--color-lumi-blue-active: #003e6a;
+--color-lumi-blue-soft: #e4f3fc;
 
---color-civic-navy: #102A43;
+--color-civic-navy: #102a43;
 --color-ink: #172033;
---color-soft-slate: #5E6677;
+--color-soft-slate: #5e6677;
 
---color-paper-white: #F4F0E8;
---color-surface-white: #FFFFFF;
---color-archive-gray: #E7EAF0;
---color-border-subtle: #E7EAF0;
---color-border: #D9DEE8;
---color-border-strong: #C8D0DE;
+--color-paper-white: #f4f0e8;
+--color-surface-white: #ffffff;
+--color-archive-gray: #e7eaf0;
+--color-border-subtle: #e7eaf0;
+--color-border: #d9dee8;
+--color-border-strong: #c8d0de;
 
---color-signal-amber: #F4A62A;
---color-amber-soft: #FFF4DC;
---color-risk-red: #C2410C;
---color-red-soft: #FFF1EC;
---color-success-green: #1F7A4D;
---color-green-soft: #E9F7EF;
+--color-signal-amber: #f4a62a;
+--color-amber-soft: #fff4dc;
+--color-risk-red: #c2410c;
+--color-red-soft: #fff1ec;
+--color-success-green: #1f7a4d;
+--color-green-soft: #e9f7ef;
 ```
 
 Color temperament:
@@ -189,9 +193,10 @@ Blue is authority, not wallpaper. A whole hero line does not need to be blue to 
 
 ```css
 --font-sans:
-  Geist, "Noto Sans", "Noto Sans Thai", "Noto Sans Arabic", "Noto Sans Devanagari",
-  "Noto Sans JP", "Noto Sans KR", "Noto Sans SC", "Noto Sans TC",
-  ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  Geist, "Noto Sans", "Noto Sans Thai", "Noto Sans Arabic",
+  "Noto Sans Devanagari", "Noto Sans JP", "Noto Sans KR", "Noto Sans SC",
+  "Noto Sans TC", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+  "Segoe UI", sans-serif;
 
 --font-mono:
   "Geist Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
@@ -204,11 +209,16 @@ One family. Authority comes from weight and tracking, not a second display face.
 Hero:
 
 ```css
-font-size: clamp(42px, 7vw, 88px);
-line-height: .96;
-font-weight: 700;
-letter-spacing: -.055em;
+font-size: clamp(56px, 6.1vw, 82px);
+line-height: 1.08;
+font-weight: 560;
+letter-spacing: -0.065em;
 ```
+
+Vietnamese display uses `line-height: 1.14` (1.13 on mobile), lighter tracking
+and natural wrapping. Never clip diacritics or shrink Vietnamese body text.
+Self-host the variable Geist Latin and Vietnamese subsets with `font-display: swap`;
+include the SIL Open Font License. Do not depend on a visitor request to a font CDN.
 
 Hero body:
 
@@ -221,6 +231,7 @@ font-weight: 400;
 Section headings should be large enough to read editorially but must not compete with the hero.
 
 Rules:
+
 - Civic Navy headings, never black.
 - Body copy 16px minimum.
 - Metadata 12px minimum.
@@ -272,7 +283,9 @@ If a section answers two unrelated questions, split it.
 4px  compact detail
 8px  cards, buttons, inputs
 12px popovers
-16px large CTA / editorial sheet
+12px large editorial sheet
+14px workflow navigation dock
+16–20px floating header only
 999px true chips only
 ```
 
@@ -293,139 +306,124 @@ Use navy-tinted shadows from the canonical system.
 ```css
 --shadow-card:
   inset 0 1px 0 0 color-mix(in oklch, white 60%, transparent),
-  0 1px 2px -1px color-mix(in oklch, #102A43 8%, transparent),
-  0 8px 20px -10px color-mix(in oklch, #102A43 10%, transparent);
+  0 1px 2px -1px color-mix(in oklch, #102a43 8%, transparent),
+  0 8px 20px -10px color-mix(in oklch, #102a43 10%, transparent);
 
 --shadow-button:
   inset 0 1px 0 0 color-mix(in oklch, white 22%, transparent),
-  0 1px 2px 0 color-mix(in oklch, #102A43 22%, transparent);
+  0 1px 2px 0 color-mix(in oklch, #102a43 22%, transparent);
 ```
 
 No black drop shadows. No colored glow.
+
+## 8.4 Liquid glass, translated for Lumi
+
+Reference: [Apple Human Interface Guidelines — Materials](https://developer.apple.com/design/human-interface-guidelines/materials).
+Apple places glass in the navigation/control layer and recommends restraint for custom controls.
+This is a CSS interpretation of that hierarchy, not a claim to reproduce native optical refraction.
+
+**Paper is the content. Glass is how you move through it.**
+
+Use glass only for the floating header and the link dock attached to the hero's example.
+Both must be genuine navigation, with keyboard focus and a meaningful destination.
+Keep the system diagram, evidence, body text and product chapters opaque.
+Never nest glass inside glass or blur a whole section.
+
+```css
+/* Opaque first: browsers without filters still get a complete material. */
+background: #f9f7f2;
+border: 1px solid rgba(255, 255, 255, 0.85);
+box-shadow:
+  inset 0 1px 0 #fff,
+  inset 0 -1px 0 rgba(16, 42, 67, 0.08),
+  0 8px 24px -16px rgba(16, 42, 67, 0.28),
+  0 0 0 1px rgba(16, 42, 67, 0.07);
+/* Within @supports only */
+background: rgba(249, 247, 242, 0.84);
+backdrop-filter: blur(24px) saturate(1.2);
+```
+
+The white edge suggests light from above; the navy edge grounds the control.
+Tint comes from the existing paper and ink palette. No spectral rims, rainbow highlights,
+animated distortion, pointer spotlights or extra accent colors.
+
+- Keep opaque-enough material for text contrast over every section, including navy.
+- Support the prefixed filter for Safari.
+- `prefers-reduced-transparency: reduce` and `prefers-contrast: more` use opaque paper.
+- Forced colors retain explicit borders and system button colors.
+- Hover moves a control at most 1px; reduced motion removes transitions.
+- At 320px, preserve the logo, language switch and contact action.
+- This layer requires no JavaScript, canvas, WebGL or image generation.
 
 ---
 
 # 9. Landing-page composition
 
-The page should read as a **field guide to the AI-native company**.
+The page is an edited explanation of how work moves, not a catalogue.
 
-## 9.1 Hero — declare the new operating model
+## 9.1 Hero — company first
 
-Do not use:
-- product screenshot collage;
-- video;
-- orb;
-- abstract 3D AI object.
+A short two-part thesis: “Your company. Working as one.” / “Cả doanh nghiệp. Cùng một nhịp.”
+The supporting paragraph must name the AI operating layer and connect people, data and tools.
+A visitor must understand the proposition without interpreting the illustration.
 
-Use:
-- large thesis headline;
-- short explanatory body;
-- one primary CTA + one quiet secondary CTA;
-- a compact **system index** showing how Assistant / Workspace / BI / Agents fit together.
+Use one question-led example on an opaque white sheet. Label it **Illustrative / Minh họa**.
+Assistant is the entry point; Workspace, BI and Agents appear as connected capabilities.
+The attached glass dock links to the workflow below. Never simulate a live run, chat input,
+completed job or verified result. No invented numbers or customer names.
 
-The right side of the hero should already prove that Lumi is a system.
+## 9.2 The work between tools
 
-## 9.2 Operating verbs
+A compact editorial bridge describes a recognizable cost: finding a number,
+repeating context, chasing the next step. Avoid a second manifesto or repeated feature grid.
 
-Immediately after the hero, establish the conceptual loop:
+## 9.3 Follow one workflow
 
-> **Connect → Understand → Decide → Act**
+Show a sales-review question moving through four stages: ask, trace, decide, act.
+The workflow is an illustration of the operating model, not a customer case study.
+Do not use invented timestamps to imply an observed execution or promise a completion time.
 
-These are not feature labels. They are the company-level operating loop that the products support.
+## 9.4 Explain the system
 
-## 9.3 Stack — architecture is the product story
+People → Assistant → Workspace / BI / Agents → company context → controlled actions → existing systems.
+Use a quiet dotted document grid, thin connectors and legible sheets.
+State that deployment scope, features and connections are confirmed per use case.
+Software categories are not a list of verified integrations.
 
-The stack diagram is the visual centerpiece.
+## 9.5 Product chapters
 
-Hierarchy:
+Three editorial chapters, each with a distinct job, a clear explanation and an inspectable,
+explicitly illustrative artifact. No four equal product cards. No fabricated dashboards.
+Retain sources, ownership, limits and approval as the vocabulary of real work.
 
-```text
-Assistant
-   ↓
-Workspace · BI · Agents
-   ↓
-Shared company context
-   ↓
-Controlled actions
-   ↓
-Existing systems
-```
+## 9.6 Company context
 
-Use system lines and sheets, not a feature-card wall.
+One Civic Navy inversion explains why the next question should not start from zero.
+Use linked inputs and outputs; preserve readable contrast. No glass text panels in this section.
 
-## 9.4 A day with Lumi
+## 9.7 Trust and the first workflow
 
-Show one continuous workday across products.
+Present evidence, authority, human judgment and verification as design standards.
+Explain how to start: choose one recurring job, check fit, define the evaluation, review the result.
+Do not imply every roadmap capability is generally available.
 
-The visitor should see that people do not need to think:
+## 9.8 A reason to begin
 
-> “Which Lumi app do I open?”
+The final question is specific: which recurring report, handoff or unresolved question
+will come around again next week? Invite the visitor to bring that work to Lumi.
+The CTA opens an email draft with prompts for workflow, systems, bottleneck and desired result.
+It must say that it opens email. No invisible form submission or invented response-time promise.
 
-The work moves through the system naturally.
-
-## 9.5 One company context
-
-One intentional Civic Navy inversion may explain the shared context layer.
-
-It must remain editorial, not a dark mode:
-- no neon;
-- no glow;
-- no cyber grid;
-- no colorful nodes.
-
-## 9.6 Product chapters
-
-The three core capabilities are **editorial chapters**, not equal SaaS cards.
-Assistant has already been established as the front door and should not reappear as a fourth chapter.
-
-Each chapter contains:
-1. role;
-2. product name;
-3. one strong proposition;
-4. concise explanation;
-5. a small inspectable product artifact / schematic.
-
-The artifact should look like real work:
-- Workspace → ranked brief / decision;
-- BI → metric → driver → records;
-- Agents → goal → tools → worklog → approval;
-Assistant routing may appear in the hero/system map rather than as a fourth product chapter.
-
-Avoid fabricated customer data and fake vanity metrics.
-
-## 9.7 Existing stack
-
-Say the strategic truth plainly:
-
-> Keep the systems that work. Make them work together.
-
-Show the adoption loop:
-
-> Connect → Understand → Decide → Act
-
-## 9.8 Trust
-
-Trust is not a footer compliance strip.
-
-Make these first-class product concepts:
-- evidence;
-- permissions;
-- human judgment;
-- inspectable execution.
-
-## 9.9 CTA
-
-One concrete next step:
-
-> Start with one real workflow.
-
-No countdown, no urgency theatre, no “book a demo” boilerplate if a more human action works.
+Desire comes from recognizing a better way to work. Urgency comes from a real recurring cost.
+Never manufacture urgency with countdowns, limited places, competitive threats, fake adoption,
+unsupported ROI or claims about what “every leading company” is doing.
 
 ---
 
 # 10. Iconography
 
 Use minimal line geometry that feels related to the folded-L mark:
+
 - brackets;
 - rails;
 - annotation dots;
@@ -435,6 +433,7 @@ Use minimal line geometry that feels related to the folded-L mark:
 Stroke: 1.75–2px.
 
 Avoid:
+
 - emoji;
 - cartoon icons;
 - 3D icons;
@@ -452,6 +451,7 @@ Use it rarely.
 Photography exists to make Lumi feel grounded in real work, not to decorate the page.
 
 Use:
+
 - real shops, counters, warehouses, desks, paperwork, laptops, stock, tools;
 - natural or available light;
 - editorial framing;
@@ -460,6 +460,7 @@ Use:
 - images that reveal a real operating environment.
 
 Avoid:
+
 - handshake imagery;
 - staged executive portraits;
 - fake diversity collages;
@@ -472,6 +473,7 @@ Photography should appear as an editorial interruption between conceptual sectio
 Do not place a full-bleed photo behind the hero headline.
 
 When using Unsplash:
+
 - use free-license images only, not Unsplash+;
 - link the photographer/source in the caption;
 - preserve meaningful alt text;
@@ -485,6 +487,7 @@ When using Unsplash:
 The best Lumi copy sounds like a capable person explaining the product across a table.
 
 Prefer:
+
 - plain verbs;
 - short sentences;
 - familiar business words;
@@ -495,21 +498,26 @@ Prefer:
 Replace abstract technology language whenever ordinary language says the same thing.
 
 Prefer:
+
 > Keep the systems that work. Make them work together.
 
 Over:
+
 > Add an intelligent orchestration layer to your existing technology stack.
 
 Prefer:
+
 > Hỏi doanh nghiệp. Lần theo bằng chứng.
 
 Over:
+
 > Khai thác dữ liệu bằng nền tảng AI thông minh đa tác tử.
 
 Product names may contain “AI”, “Agents”, or “Autonomous” where those are the actual names.
 Do not repeat those terms in surrounding copy merely to signal modernity.
 
 Vietnamese should be chân phương, tự nhiên, mềm và chắc:
+
 - tránh dịch sát tiếng Anh;
 - tránh “tối ưu hóa”, “đột phá”, “nâng tầm”, “cách mạng hóa” nếu không có nghĩa cụ thể;
 - ưu tiên cách nói một người chủ doanh nghiệp có thể nói lại cho người khác ngay sau khi đọc.
@@ -521,12 +529,14 @@ Vietnamese should be chân phương, tự nhiên, mềm và chắc:
 No video dependency.
 
 Allowed:
+
 - 120–180ms hover/focus transitions;
 - 1px sheet lift;
 - subtle line/rail state changes;
 - no motion required to understand any content.
 
 Forbidden:
+
 - looping decorative motion;
 - AI typing theatre;
 - sparkle animation;
@@ -540,12 +550,14 @@ Honor `prefers-reduced-motion`.
 # 14. Copy
 
 Lumi speaks like:
+
 - a precise operating assistant;
 - a calm chief of staff;
 - a trustworthy analyst;
 - a clear editor.
 
 Use:
+
 - short sentences;
 - specific nouns;
 - action verbs;
@@ -553,6 +565,7 @@ Use:
 - evidence-based claims.
 
 Avoid:
+
 - “unlock productivity”;
 - “supercharge your team”;
 - “10x your workflow”;
@@ -594,7 +607,7 @@ Never ship:
 - 320px reflow without horizontal page scroll.
 - Vietnamese tested without shrinking type.
 - Reduced motion respected.
-- Header glass must have an opaque fallback.
+- Every glass control must have an opaque fallback and a reduced-transparency treatment.
 - The page must remain fully understandable with CSS motion disabled.
 - Product claims must match actual or intentionally stated roadmap capability.
 
@@ -604,6 +617,9 @@ Never ship:
 
 Before merging a visual change:
 
+- [ ] Is glass confined to useful navigation, with opaque and reduced-transparency fallbacks?
+- [ ] Are examples clearly labeled and capability scope stated?
+- [ ] Does the CTA describe the actual email action?
 - [ ] Is the page still unmistakably Lumi?
 - [ ] Are canonical colors unchanged?
 - [ ] Is blue used as authority rather than decoration?
