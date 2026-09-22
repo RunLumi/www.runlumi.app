@@ -14,6 +14,13 @@ jobs:
         with:
           node-version: 22
           package-manager-cache: false
-      - run: npm install
+          cache: npm
+      # npm ci installs exactly what package-lock.json pins; it never
+      # re-resolves version ranges, so npm 11's release-age filter
+      # (see README "Dependency install policy") cannot change the
+      # dependency tree or fail on freshly published versions.
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
       - run: npm run db:migrate:local
       - run: npm run build
