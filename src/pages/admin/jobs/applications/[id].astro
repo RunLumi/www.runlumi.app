@@ -1,0 +1,149 @@
+---
+import JobsLayout from "../../../../layouts/JobsLayout.astro";
+import {
+  applicationStatuses,
+  envFromLocals,
+  formatDate,
+  getApplication,
+  statusLabel
+} from "../../../../lib/ats";
+
+export const prerender = false;
+const id = Astro.params.id ?? "";
+const { DB } = envFromLocals(Astro.locals);
+const application = await getApplication(DB, id);
+if (!application) Astro.response.status = 404;
+
+const answers = application ? (await DB.prepare(
+  `SELECT aa.*, q.prompt, q.kind
+   FROM application_answers aa
+   JOIN job_questions q ON q.id = aa.question_id
+   WHERE aa.application_id = ?
+   ORDER BY q.sort_order ASC, q.created_at ASC`
+).bind(application.id).all<any>()).results : [];
+
+const files = application ? (await DB.prepare(
+  `SELECT af.*, q.prompt
+   FROM application_files af
+   LEFT JOIN job_questions q ON q.id = af.question_id
+   WHERE af.application_id = ?
+   ORDER BY CASE af.kind WHEN 'resume' THEN 0 ELSE 1 END, af.created_at ASC`
+).bind(application.id).all<any>()).results : [];
+
+const notes = application ? (await DB.prepare(
+  "SELECT * FROM application_notes WHERE application_id = ? ORDER BY created_at DESC"
+).bind(application.id).all<any>()).results : [];
+
+const events = application ? (await DB.prepare(
+  "SELECT * FROM application_events WHERE application_id = ? ORDER BY created_at DESC LIMIT 30"
+).bind(application.id).all<any>()).results : [];
+---
+<JobsLayout title={application ? `${application.full_name} — Lumi hiring desk` : "Application not found"} admin>
+  <section class="ats-page">
+    <div class="ats-shell">
+      {!application ? (
+        <div class="ats-card ats-empty">
+          <h1>Application not found.</h1>
+          <p><a class="ats-button" href="/admin/jobs/applications">Back to applications</a></p>
+        </div>
+      ) : (
+        <>
+          <a class="text-link" href="/admin/jobs/applications">← Applications</a>
+          <div class="application-head" style="margin-top:28px">
+            <div>
+              <div class="ats-eyebrow">{application.job_title} / {application.public_id}</div>
+              <h1 class="ats-title" style="font-size:clamp(38px,5vw,60px)">{application.full_name}</h1>
+              <div class="job-meta">
+                <span class:list={["ats-badge", application.status]}>{statusLabel(application.status)}</span>
+                <span>Applied {formatDate(application.created_at)}</span>
+              </div>
+            </div>
+            <form class="ats-toolbar-group" method="post" action={`/api/admin/applications/${application.id}/status`}>
+              <select class="ats-select" name="status" style="font-size:14px;min-width:150px">
+                {applicationStatuses.map((value) => <option value={value} selected={application.status === value}>{statusLabel(value)}</option>)}
+              </select>
+              <button class="ats-button" type="submit">Update stage</button>
+            </form>
+          </div>
+
+          <div class="application-columns">
+            <div>
+              <section class="ats-card application-section">
+                <h2>Candidate</h2>
+                <dl class="application-meta">
+                  <div><dt>Email</dt><dd><a href={`mailto:${application.email}`}>{application.email}</a></dd></div>
+                  <div><dt>Phone</dt><dd>{application.phone || "—"}</dd></div>
+                  <div><dt>LinkedIn</dt><dd>{application.linkedin_url ? <a href={application.linkedin_url} target="_blank">Open ↗</a> : "—"}</dd></div>
+                  <div><dt>Portfolio</dt><dd>{application.portfolio_url ? <a href={application.portfolio_url} target="_blank">Open ↗</a> : "—"}</dd></div>
+                </dl>
+              </section>
+
+              <section class="ats-card application-section">
+                <h2>Cover letter</h2>
+                <p>{application.cover_letter}</p>
+              </section>
+
+              {answers.length > 0 && (
+                <section class="ats-card application-section">
+                  <h2>Work sample</h2>
+                  {answers.map((answer: any) => (
+                    <div style="padding:14px 0;border-bottom:1px solid var(--ats-border-soft)">
+                      <strong style="color:var(--ats-navy);font-size:13px">{answer.prompt}</strong>
+                      <p style="margin:8px 0 0">{answer.answer_text || "—"}</p>
+                    </div>
+                  ))}
+                </section>
+              )}
+
+              <section class="ats-card application-section">
+                <h2>Files</h2>
+                <ul class="file-list">
+                  {files.length ? files.map((file: any) => (
+                    <li>
+                      <a href={`/api/admin/files/${file.id}`}>{file.filename}</a>
+                      <div class="ats-help">{file.kind === "resume" ? "CV / résumé" : file.prompt || "Test file"} · {Math.ceil(file.size_bytes / 1024)} KB</div>
+                    </li>
+                  )) : <li class="ats-help">No files.</li>}
+                </ul>
+              </section>
+            </div>
+
+            <aside>
+              <section class="ats-card application-section">
+                <h2>Private notes</h2>
+                <form class="ats-form" method="post" action={`/api/admin/applications/${application.id}/notes`}>
+                  <div class="ats-field">
+                    <textarea class="ats-textarea" name="body" required maxlength="4000" placeholder="Evidence, concern, next question…"></textarea>
+                  </div>
+                  <button class="ats-button secondary" type="submit">Add note</button>
+                </form>
+                <ul class="note-list" style="margin-top:18px">
+                  {notes.map((note: any) => (
+                    <li>
+                      <div style="white-space:pre-wrap">{note.body}</div>
+                      <div class="note-meta">{note.author} · {formatDate(note.created_at)}</div>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+
+              <section class="ats-card application-section">
+                <h2>History</h2>
+                <ul class="note-list">
+                  {events.map((event: any) => (
+                    <li>
+                      <strong style="color:var(--ats-navy);font-size:12px">{event.event_type.replace(/_/g," ")}</strong>
+                      {event.to_status && <div class="ats-help">{event.from_status || "—"} → {event.to_status}</div>}
+                      {event.detail && <div class="ats-help">{event.detail}</div>}
+                      <div class="note-meta">{formatDate(event.created_at)}</div>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            </aside>
+          </div>
+        </>
+      )}
+    </div>
+  </section>
+</JobsLayout>
