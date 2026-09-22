@@ -40,10 +40,47 @@ const { copy } = Astro.props;
           <a class="text-link" href="mailto:hello@runlumi.app">{copy.hero.secondary} <span aria-hidden="true">↗</span></a>
         </div>
       </div>
-      <aside class="hero-note">
-        <span class="annotation-dot"></span>
-        <p>{copy.hero.note}</p>
+      <aside class="hero-system sheet" aria-label={copy.hero.systemLabel}>
+        <div class="hero-system-head">
+          <span>{copy.hero.systemLabel}</span>
+          <span class="system-status"><i></i> {copy.lang === "vi" ? "HỆ THỐNG" : "SYSTEM"}</span>
+        </div>
+        <div class="hero-system-route" aria-hidden="true">
+          <span class="route-person">YOU</span>
+          <span class="route-line"></span>
+          <span class="route-lumi">L</span>
+        </div>
+        <ol class="hero-system-list">
+          {copy.hero.systemItems.map((item: any) => (
+            <li>
+              <span class="system-n">{item.n}</span>
+              <span class="system-role">{item.role}</span>
+              <strong>{item.name}</strong>
+            </li>
+          ))}
+        </ol>
+        <div class="hero-system-foot">
+          <span class="clarity-mark" aria-hidden="true">✦</span>
+          <span>{copy.hero.systemFoot}</span>
+        </div>
       </aside>
+    </section>
+
+    <section class="operating-loop section-rule" aria-label={copy.loop.label}>
+      <div class="shell">
+        <div class="loop-label">{copy.loop.label}</div>
+        <ol class="loop-grid">
+          {copy.loop.items.map((item: any) => (
+            <li>
+              <span class="loop-n">{item.n}</span>
+              <div>
+                <strong>{item.title}</strong>
+                <p>{item.body}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
     </section>
 
     <section class="thesis section-rule">
@@ -178,6 +215,23 @@ const { copy } = Astro.props;
               <div class="product-story">
                 <h3>{product.title}</h3>
                 <p>{product.body}</p>
+              </div>
+              <div class="product-artifact sheet" aria-label={product.demo.label}>
+                <div class="artifact-head">
+                  <span>{product.demo.label}</span>
+                  <span class="artifact-source"><i></i> {copy.lang === "vi" ? "CÓ THỂ KIỂM TRA" : "INSPECTABLE"}</span>
+                </div>
+                <div class="artifact-rows">
+                  {product.demo.rows.map((row: any) => (
+                    <div class="artifact-row">
+                      <span class="artifact-key">{row.key}</span>
+                      <div>
+                        <strong>{row.value}</strong>
+                        <small>{row.meta}</small>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
               <ul class="product-examples" aria-label={product.name + " capabilities"}>
                 {product.examples.map((item: string) => <li>{item}</li>)}
