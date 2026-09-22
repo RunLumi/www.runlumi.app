@@ -2,6 +2,9 @@
 
 Bilingual Astro website for [runlumi.app](https://runlumi.app), deployed as an Astro SSR application on Cloudflare Workers.
 
+For production architecture, routing, secrets, deploy procedure, and the
+currently handled failure modes, read [DEPLOYMENT.md](./DEPLOYMENT.md).
+
 ## Dependency install policy
 
 npm 11 resolves version ranges through a release-age filter (`--before` / `min-release-age`), and the npm wrapper on Lumi dev machines injects a 7-day window into every `install`, `ci`, and `update`. Fresh resolution of a package published within the last few days fails with `ETARGET ... with a date before ...` even though the version exists. Because CLI flags take precedence over project `.npmrc`, this cannot be overridden from the repo — the guardrail is lockfile discipline:
