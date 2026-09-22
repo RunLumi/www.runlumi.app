@@ -12,10 +12,16 @@ export const POST: APIRoute = async (context) => {
   const jobId = formText(form, "job_id", 100);
   if (!id || !jobId) return badRequest("Invalid question.");
 
-  try {
-    await DB.prepare("DELETE FROM job_questions WHERE id = ? AND job_id = ?").bind(id, jobId).run();
-    return redirect303(`/admin/jobs/${jobId}`);
-  } catch {
+  const usage = await DB.prepare(
+    `SELECT
+       (SELECT COUNT(*) FROM application_answers WHERE question_id = ?) +
+       (SELECT COUNT(*) FROM application_files WHERE question_id = ?) AS count`
+  ).bind(id, id).first<{ count: number }>();
+
+  if ((usage?.count ?? 0) > 0) {
     return redirect303(`/admin/jobs/${jobId}?question_error=1`);
   }
+
+  await DB.prepare("DELETE FROM job_questions WHERE id = ? AND job_id = ?").bind(id, jobId).run();
+  return redirect303(`/admin/jobs/${jobId}`);
 };
