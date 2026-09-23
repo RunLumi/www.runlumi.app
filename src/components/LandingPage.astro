@@ -17,6 +17,7 @@ const contact = `mailto:hello@runlumi.app?subject=${encodeURIComponent(vi ? "Tra
         <a href="#products">{copy.nav.products}</a>
         <a href="#how">{copy.nav.how}</a>
         <a href="#trust">{copy.nav.trust}</a>
+        <a href={vi ? "/vi/blog" : "/blog"}>{copy.nav.blog}</a>
       </nav>
       <div class="header-actions">
         <a class="language-link" href={copy.switchPath} lang={vi ? "en" : "vi"} aria-label={vi ? "Read in English" : "Đọc bằng tiếng Việt"}>{copy.switchLabel}</a>
@@ -246,6 +247,17 @@ const contact = `mailto:hello@runlumi.app?subject=${encodeURIComponent(vi ? "Tra
             </article>
           ))}
         </div>
+      </div>
+    </section>
+
+    <section class="journal-section section-rule">
+      <div class="shell journal-section-inner">
+        <div>
+          <div class="section-label">{copy.blog.label}</div>
+          <h2>{copy.blog.title}</h2>
+          <p>{copy.blog.body}</p>
+        </div>
+        <a class="button button-lg" href={vi ? "/vi/blog" : "/blog"}>{copy.blog.cta} <span aria-hidden="true">↗</span></a>
       </div>
     </section>
 

@@ -1,0 +1,45 @@
+---
+import BlogLayout from "../layouts/BlogLayout.astro";
+import type { BlogPost } from "../data/blog";
+
+interface Props {
+  lang: "en" | "vi";
+  posts: BlogPost[];
+}
+
+const { lang, posts } = Astro.props;
+const vi = lang === "vi";
+const title = vi ? "Góc nhìn Lumi — AI cho công việc thật" : "Lumi Journal — AI for real work";
+const description = vi
+  ? "Những ghi chép thực tế về lớp vận hành AI, business intelligence và AI agent có giới hạn cho doanh nghiệp."
+  : "Practical writing about AI operating layers, evidence-led business intelligence and bounded AI agents for real companies.";
+---
+<BlogLayout
+  lang={lang}
+  title={title}
+  description={description}
+  canonicalPath={vi ? "/vi/blog" : "/blog"}
+  alternateEnPath="/blog"
+  alternateViPath="/vi/blog"
+>
+  <section class="blog-index-hero blog-shell">
+    <div class="eyebrow">{vi ? "LUMI / GÓC NHÌN" : "LUMI / JOURNAL"}</div>
+    <h1>{vi ? "Những việc nằm giữa con người, dữ liệu và công cụ." : "The work between people, data and tools."}</h1>
+    <p>{description}</p>
+  </section>
+  <section class="blog-index-list blog-shell" aria-label={vi ? "Danh sách bài viết" : "Article list"}>
+    {posts.map((post, index) => (
+      <article class:list={["blog-card", index === 0 && "blog-card-featured"]}>
+        <div class="blog-card-index">0{index + 1}</div>
+        <div>
+          <div class="blog-card-meta"><span>{post.category}</span><time datetime={post.date}>{post.date}</time><span>{post.readTime}</span></div>
+          <h2><a href={`${vi ? "/vi/blog" : "/blog"}/${post.slug}`}>{post.title}</a></h2>
+          <p>{post.description}</p>
+          <a class="blog-read-link" href={`${vi ? "/vi/blog" : "/blog"}/${post.slug}`}>
+            {vi ? "Đọc bài viết" : "Read article"} <span aria-hidden="true">↗</span>
+          </a>
+        </div>
+      </article>
+    ))}
+  </section>
+</BlogLayout>

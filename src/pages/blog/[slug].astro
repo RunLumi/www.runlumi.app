@@ -1,0 +1,14 @@
+---
+import BlogArticle from "../../components/BlogArticle.astro";
+import { getBlogPost } from "../../data/blog";
+import { loadBlogPost } from "../../lib/blog-source";
+
+export const prerender = false;
+const slug = Astro.params.slug ?? "";
+const { post, cmsContent } = await loadBlogPost("en", slug);
+if (!post) return Astro.redirect("/blog");
+const relatedPosts = post.related
+  .map((relatedSlug) => getBlogPost("en", relatedSlug))
+  .filter((related): related is NonNullable<typeof related> => Boolean(related));
+---
+<BlogArticle post={post} relatedPosts={relatedPosts} cmsContent={cmsContent} />

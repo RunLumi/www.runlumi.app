@@ -1,0 +1,25 @@
+# Lumi
+
+> Lumi is an AI operating layer for real companies. It connects company context, evidence, decisions and bounded work across the systems a company already uses.
+
+## Start here
+
+- [Lumi home](https://runlumi.app/): what Lumi is and how the operating layer fits together.
+- [Lumi Journal](https://runlumi.app/blog): practical writing about AI operating layers, evidence-led business intelligence and bounded AI agents.
+- [Lumi Journal in Vietnamese](https://runlumi.app/vi/blog): Vietnamese articles for operators building with AI.
+- [Lumi Journal RSS](https://runlumi.app/rss.xml): machine-readable updates from the editorial archive.
+- [Lumi jobs](https://runlumi.app/jobs): current roles and the candidate-first application flow.
+
+## Products
+
+- [Lumi AI Workspace](https://workspace.runlumi.app): coordinate decisions, commitments, risks and operating work.
+- [Lumi BI](https://about.bi.runlumi.app): understand what changed and trace conclusions to evidence.
+- [Lumi Agents](https://agents.runlumi.app): carry out bounded digital jobs with tools, worklogs, approvals and verification.
+
+## Editorial principles
+
+Lumi writes about practical adoption. We distinguish evidence from inference, keep people responsible for consequential decisions, and prefer a small workflow that can be judged over a broad promise that cannot.
+
+## Full context
+
+- [Expanded Lumi context](https://runlumi.app/llms-full.txt)

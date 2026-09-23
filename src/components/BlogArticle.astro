@@ -1,0 +1,105 @@
+---
+import BlogLayout from "../layouts/BlogLayout.astro";
+import type { BlogPost } from "../data/blog";
+import { PortableText } from "emdash/ui";
+import type { PortableTextBlock } from "emdash";
+
+interface Props {
+  post: BlogPost;
+  relatedPosts: BlogPost[];
+  cmsContent?: unknown;
+}
+
+const { post, relatedPosts, cmsContent } = Astro.props;
+const hasCmsContent = Array.isArray(cmsContent) && cmsContent.length > 0;
+const vi = post.lang === "vi";
+const base = vi ? "/vi/blog" : "/blog";
+const canonicalPath = `${base}/${post.slug}`;
+const articleSchema = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: post.title,
+  description: post.description,
+  datePublished: post.date,
+  dateModified: post.updated,
+  author: { "@type": "Organization", name: "Lumi" },
+  publisher: { "@type": "Organization", name: "Lumi", url: "https://runlumi.app" },
+  mainEntityOfPage: `https://runlumi.app${canonicalPath}`,
+  inLanguage: vi ? "vi-VN" : "en-US",
+};
+const breadcrumbSchema = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    { "@type": "ListItem", position: 1, name: "Lumi", item: "https://runlumi.app" },
+    { "@type": "ListItem", position: 2, name: vi ? "Góc nhìn" : "Journal", item: `https://runlumi.app${base}` },
+    { "@type": "ListItem", position: 3, name: post.title, item: `https://runlumi.app${canonicalPath}` },
+  ],
+};
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: post.faq.map((item) => ({
+    "@type": "Question",
+    name: item.question,
+    acceptedAnswer: { "@type": "Answer", text: item.answer },
+  })),
+};
+---
+<BlogLayout
+  lang={post.lang}
+  title={`${post.title} — Lumi`}
+  description={post.description}
+  canonicalPath={canonicalPath}
+  alternateEnPath={post.lang === "vi" ? `/blog/${post.alternateSlug}` : canonicalPath}
+  alternateViPath={post.lang === "vi" ? canonicalPath : `/vi/blog/${post.alternateSlug}`}
+>
+  <script type="application/ld+json" set:html={JSON.stringify(articleSchema)} />
+  <script type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)} />
+  <script type="application/ld+json" set:html={JSON.stringify(faqSchema)} />
+  <article class="blog-article blog-shell">
+    <header class="blog-article-header">
+      <div class="blog-card-meta"><span>{post.category}</span><time datetime={post.date}>{post.date}</time><span>{post.readTime}</span></div>
+      <h1>{post.title}</h1>
+      <p class="blog-article-intro">{post.intro}</p>
+      <div class="blog-byline"><span>{post.author}</span><span>·</span><span>{vi ? "Lumi" : "Lumi"}</span></div>
+    </header>
+    <div class="blog-article-body">
+      {hasCmsContent ? (
+        <section class="blog-cms-content">
+          <PortableText value={cmsContent as PortableTextBlock[]} />
+        </section>
+      ) : (
+        post.sections.map((section) => (
+          <section>
+            <h2>{section.heading}</h2>
+            {section.paragraphs.map((paragraph) => <p>{paragraph}</p>)}
+            {section.quote && <blockquote>{section.quote}</blockquote>}
+            {section.bullets && <ul>{section.bullets.map((bullet) => <li>{bullet}</li>)}</ul>}
+          </section>
+        ))
+      )}
+      <section class="blog-faq">
+        <h2>{vi ? "Câu hỏi thường gặp" : "Frequently asked questions"}</h2>
+        {post.faq.map((item) => (
+          <details>
+            <summary>{item.question}</summary>
+            <p>{item.answer}</p>
+          </details>
+        ))}
+      </section>
+    </div>
+  </article>
+  <section class="blog-related blog-shell" aria-label={vi ? "Bài viết liên quan" : "Related articles"}>
+    <div class="blog-related-heading"><span class="eyebrow">{vi ? "ĐỌC TIẾP" : "KEEP READING"}</span><h2>{vi ? "Thêm một góc nhìn." : "Another useful angle."}</h2></div>
+    <div class="blog-related-grid">
+      {relatedPosts.map((related) => (
+        <a class="blog-related-card" href={`${base}/${related.slug}`}>
+          <span>{related.category}</span>
+          <h3>{related.title}</h3>
+          <small>{vi ? "Đọc bài viết" : "Read article"} ↗</small>
+        </a>
+      ))}
+    </div>
+  </section>
+</BlogLayout>

@@ -21,11 +21,12 @@ Deploy (manual): npm run deploy
    preflight → astro check + build → wrangler deploy
    ▼
 Cloudflare Worker "runlumi"
-   route: landing.runlumi.app/* (zone: runlumi.app)
+   routes: runlumi.app/* · www.runlumi.app/* (primary)
+           landing.runlumi.app/* (compatibility alias)
    bindings: D1 (lumi-jobs) · R2 (lumi-job-files) · ASSETS
-   secrets: ADMIN_PASSWORD · ADMIN_SESSION_SECRET
+   secrets: ADMIN_PASSWORD · ADMIN_SESSION_SECRET · EMDASH_ENCRYPTION_KEY
    ▼
-https://landing.runlumi.app
+https://runlumi.app · https://www.runlumi.app
    /            prerendered landing pages
    /jobs        Astro SSR ← D1
    /admin/jobs* Astro SSR, session-gated ← D1/R2
@@ -43,6 +44,8 @@ only deployment path.
 
 ```jsonc
 "routes": [
+  { "pattern": "runlumi.app/*", "zone_name": "runlumi.app" },
+  { "pattern": "www.runlumi.app/*", "zone_name": "runlumi.app" },
   { "pattern": "landing.runlumi.app/*", "zone_name": "runlumi.app" }
 ]
 ```
@@ -50,8 +53,8 @@ only deployment path.
 A Worker **custom domain** (`"custom_domain": true`) cannot attach to a
 hostname that already has DNS records — Cloudflare rejects it with error
 `100117: Hostname already has externally managed DNS records`. The
-`landing.runlumi.app` A/CNAME records predate the Worker (they used to
-point at the Pages project), and the wrangler OAuth session does not have
+The hostname records predate the Worker (they used to point at the Pages
+project), and the wrangler OAuth session does not have
 DNS-edit permission to delete them. A **zone route** is the correct tool:
 it takes over an already-proxied hostname without touching DNS. Do not
 switch back to `custom_domain` unless the DNS records are deleted first.
@@ -65,7 +68,8 @@ npm run deploy
 Sequence: preflight → `astro check` + `astro build` → `wrangler deploy`.
 
 - **Preflight** (`scripts/preflight.mjs`) lists the Worker's secrets and
-  aborts before building if `ADMIN_PASSWORD` or `ADMIN_SESSION_SECRET`
+  aborts before building if `ADMIN_PASSWORD`, `ADMIN_SESSION_SECRET` or
+  `EMDASH_ENCRYPTION_KEY`
   are missing, with the exact `wrangler secret put` commands to run.
   Without those secrets the admin login silently rejects every attempt,
   which is expensive to discover after a deploy.
@@ -77,6 +81,7 @@ Secrets are **only** stored via Cloudflare, never in the repo:
 ```bash
 printf '%s' '<value>' | ./node_modules/.bin/wrangler secret put ADMIN_PASSWORD
 printf '%s' '<value>' | ./node_modules/.bin/wrangler secret put ADMIN_SESSION_SECRET
+printf '%s' '<value>' | ./node_modules/.bin/wrangler secret put EMDASH_ENCRYPTION_KEY
 ```
 
 Pipe from stdin (or run `wrangler secret put` interactively). Never pass
