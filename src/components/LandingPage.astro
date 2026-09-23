@@ -22,9 +22,38 @@ const contact = `mailto:hello@runlumi.app?subject=${encodeURIComponent(vi ? "Tra
       <div class="header-actions">
         <a class="language-link" href={copy.switchPath} lang={vi ? "en" : "vi"} aria-label={vi ? "Read in English" : "Đọc bằng tiếng Việt"}>{copy.switchLabel}</a>
         <a class="button button-sm" href={contact}>{copy.nav.contact}</a>
+        <details class="mobile-menu">
+          <summary aria-label={vi ? "Menu điều hướng" : "Navigation menu"}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18" /></svg>
+          </summary>
+          <nav class="mobile-nav" aria-label={vi ? "Điều hướng trên di động" : "Mobile navigation"}>
+            <a href="#products">{copy.nav.products}</a>
+            <a href="#how">{copy.nav.how}</a>
+            <a href="#trust">{copy.nav.trust}</a>
+            <a href={vi ? "/vi/blog" : "/blog"}>{copy.nav.blog}</a>
+            <a href={contact}>{copy.nav.contact}</a>
+          </nav>
+        </details>
       </div>
     </div>
   </header>
+  <script>
+    document.querySelectorAll<HTMLDetailsElement>(".mobile-menu").forEach((menu) => {
+      menu.querySelectorAll("a").forEach((link) => {
+        link.addEventListener("click", () => { menu.open = false; });
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && menu.open) {
+          menu.open = false;
+          menu.querySelector("summary")?.focus();
+        }
+      });
+      document.addEventListener("click", (event) => {
+        if (event.target instanceof Node && !menu.contains(event.target)) menu.open = false;
+      });
+      window.matchMedia("(max-width: 900px)").addEventListener("change", () => { menu.open = false; });
+    });
+  </script>
 
   <main id="main">
     <section class="hero shell">
