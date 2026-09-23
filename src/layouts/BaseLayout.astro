@@ -21,6 +21,14 @@ const canonical = new URL(canonicalPath, Astro.site);
     <meta name="generator" content={Astro.generator} />
     <meta name="theme-color" content="#F4F0E8" />
     <meta name="description" content={description} />
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-V8Y0WNBFML"></script>
+    <script is:inline>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() { window.dataLayer.push(arguments); }
+      gtag("js", new Date());
+      gtag("config", "G-V8Y0WNBFML");
+    </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="canonical" href={canonical} />
     <link rel="alternate" hreflang="en" href={new URL("/", Astro.site)} />
