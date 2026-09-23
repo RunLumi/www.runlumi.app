@@ -116,6 +116,10 @@ const contact = `mailto:hello@runlumi.app?subject=${encodeURIComponent(vi ? "Tra
                 <div class="stack-node-meta">0{index + 1} / {product.role}</div>
                 <h3>{product.name}</h3>
                 <p>{product.desc}</p>
+                <a class="stack-product-link" href={product.href}>
+                  <span>{vi ? `Mở ${product.name}` : `Visit ${product.name}`}</span>
+                  <span aria-hidden="true">↗</span>
+                </a>
               </article>
             ))}
           </div>
@@ -159,6 +163,10 @@ const contact = `mailto:hello@runlumi.app?subject=${encodeURIComponent(vi ? "Tra
               <div class="product-heading">
                 <div class="eyebrow">{product.kicker}</div>
                 <div class="product-name">{product.name}</div>
+                <a class="product-link" href={product.href}>
+                  <span>{product.linkLabel}</span>
+                  <span aria-hidden="true">↗</span>
+                </a>
               </div>
               <div class="product-story">
                 <h3>{product.title}</h3>

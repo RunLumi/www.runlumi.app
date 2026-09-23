@@ -49,16 +49,19 @@ export const content = {
           name: "Lumi AI Workspace",
           role: "Coordinate",
           desc: "Keep priorities, decisions and commitments clear.",
+          href: "https://workspace.runlumi.app",
         },
         {
           name: "Lumi BI",
           role: "Understand",
           desc: "See what changed, why, and the records behind it.",
+          href: "https://about.bi.runlumi.app",
         },
         {
           name: "Lumi Agents",
           role: "Act",
           desc: "Run repeatable work within clear limits, with review when needed.",
+          href: "https://agents.runlumi.app",
         },
       ],
       foundationTitle: "Shared company context",
@@ -120,6 +123,8 @@ export const content = {
       {
         index: "01",
         name: "Lumi AI Workspace",
+        href: "https://workspace.runlumi.app",
+        linkLabel: "Visit Workspace",
         kicker: "WORK TOGETHER",
         title: "Know what needs attention.",
         body: "Bring the decision, its owner and the next step into the same view. Keep the reason for a commitment close to the work it creates.",
@@ -153,6 +158,8 @@ export const content = {
       {
         index: "02",
         name: "Lumi BI",
+        href: "https://about.bi.runlumi.app",
+        linkLabel: "Explore Lumi BI",
         kicker: "UNDERSTAND",
         title: "Ask the business. Follow the evidence.",
         body: "Explore a business question in plain language, then inspect the data behind the answer. A useful explanation should stand up to a second look.",
@@ -186,6 +193,8 @@ export const content = {
       {
         index: "03",
         name: "Lumi Agents",
+        href: "https://agents.runlumi.app",
+        linkLabel: "Explore Lumi Agents",
         kicker: "EXECUTE",
         title: "Give repeatable work a clear owner.",
         body: "Define the job, the permitted tools and what success means. Review the worklog and the result, with approval for consequential actions.",
@@ -334,16 +343,19 @@ export const content = {
           name: "Lumi AI Workspace",
           role: "Phối hợp",
           desc: "Giữ ưu tiên, quyết định và cam kết rõ ràng.",
+          href: "https://workspace.runlumi.app",
         },
         {
           name: "Lumi BI",
           role: "Hiểu",
           desc: "Biết điều gì thay đổi, vì sao và dữ liệu nào đứng sau.",
+          href: "https://about.bi.runlumi.app",
         },
         {
           name: "Lumi Agents",
           role: "Hành động",
           desc: "Làm việc lặp lại trong phạm vi rõ, luôn có thể kiểm tra.",
+          href: "https://agents.runlumi.app",
         },
       ],
       foundationTitle: "Ngữ cảnh chung của doanh nghiệp",
@@ -405,6 +417,8 @@ export const content = {
       {
         index: "01",
         name: "Lumi AI Workspace",
+        href: "https://workspace.runlumi.app",
+        linkLabel: "Mở Workspace",
         kicker: "PHỐI HỢP",
         title: "Biết ngay việc gì cần chú ý.",
         body: "Đặt quyết định, người phụ trách và bước tiếp theo vào cùng một nơi. Giữ lại lý do đằng sau mỗi cam kết để người làm tiếp hiểu đúng.",
@@ -438,6 +452,8 @@ export const content = {
       {
         index: "02",
         name: "Lumi BI",
+        href: "https://about.bi.runlumi.app",
+        linkLabel: "Khám phá Lumi BI",
         kicker: "HIỂU",
         title: "Hiểu con số. Kiểm tra căn cứ.",
         body: "Đặt câu hỏi bằng ngôn ngữ hằng ngày, rồi kiểm tra dữ liệu đứng sau câu trả lời. Một lời giải thích hữu ích phải chịu được việc xem xét lại.",
@@ -471,6 +487,8 @@ export const content = {
       {
         index: "03",
         name: "Lumi Agents",
+        href: "https://agents.runlumi.app",
+        linkLabel: "Khám phá Lumi Agents",
         kicker: "THỰC THI",
         title: "Giao được việc. Kiểm tra được kết quả.",
         body: "Xác định việc cần làm, công cụ được dùng và thế nào là hoàn thành. Xem lại nhật ký, kiểm tra kết quả và phê duyệt những hành động quan trọng.",
