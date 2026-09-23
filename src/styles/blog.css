@@ -190,6 +190,27 @@
   font-size: 13px;
 }
 
+.blog-featured-image {
+  max-width: 930px;
+  margin: 52px auto 0;
+}
+
+.blog-featured-image img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+}
+
+.blog-featured-image figcaption {
+  max-width: 720px;
+  margin: 12px auto 0;
+  color: var(--color-soft-slate);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .blog-article-body {
   max-width: 720px;
   margin: 72px auto 0;

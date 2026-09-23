@@ -1,11 +1,12 @@
 ---
 import BlogLayout from "../layouts/BlogLayout.astro";
 import type { BlogPost } from "../data/blog";
-import { PortableText } from "emdash/ui";
+import type { JournalPost } from "../lib/blog-source";
+import { Image, PortableText } from "emdash/ui";
 import type { PortableTextBlock } from "emdash";
 
 interface Props {
-  post: BlogPost;
+  post: JournalPost;
   relatedPosts: BlogPost[];
   cmsContent?: unknown;
 }
@@ -14,61 +15,74 @@ const { post, relatedPosts, cmsContent } = Astro.props;
 const hasCmsContent = Array.isArray(cmsContent) && cmsContent.length > 0;
 const vi = post.lang === "vi";
 const base = vi ? "/vi/blog" : "/blog";
-const canonicalPath = `${base}/${post.slug}`;
+const articlePath = base + "/" + post.slug;
+const canonical = new URL(post.seo?.canonical || articlePath, "https://runlumi.app").href;
+const title = (post.seo?.title || post.title) + " — Lumi";
+const description = post.seo?.description || post.description;
+const imageUrl = post.seo?.image
+  ? new URL(post.seo.image, "https://runlumi.app").href
+  : undefined;
+const imageAlt = post.featuredImage?.alt || post.title;
+const safeJson = (value: unknown) => JSON.stringify(value).replace(/</g, "\\u003c");
 const articleSchema = {
   "@context": "https://schema.org",
-  "@type": "Article",
+  "@type": "BlogPosting",
   headline: post.title,
-  description: post.description,
-  datePublished: post.date,
-  dateModified: post.updated,
-  author: { "@type": "Organization", name: "Lumi" },
+  description,
+  ...(post.publishedAt || post.date ? { datePublished: post.publishedAt || post.date } : {}),
+  ...(post.updatedAt || post.updated ? { dateModified: post.updatedAt || post.updated } : {}),
+  author: { "@type": "Organization", name: post.author },
   publisher: { "@type": "Organization", name: "Lumi", url: "https://runlumi.app" },
-  mainEntityOfPage: `https://runlumi.app${canonicalPath}`,
+  mainEntityOfPage: canonical,
   inLanguage: vi ? "vi-VN" : "en-US",
+  ...(imageUrl ? { image: { "@type": "ImageObject", url: imageUrl, width: 1600, height: 900, caption: post.imageCaption } } : {}),
 };
 const breadcrumbSchema = {
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
   itemListElement: [
     { "@type": "ListItem", position: 1, name: "Lumi", item: "https://runlumi.app" },
-    { "@type": "ListItem", position: 2, name: vi ? "Góc nhìn" : "Journal", item: `https://runlumi.app${base}` },
-    { "@type": "ListItem", position: 3, name: post.title, item: `https://runlumi.app${canonicalPath}` },
+    { "@type": "ListItem", position: 2, name: vi ? "Góc nhìn" : "Journal", item: "https://runlumi.app" + base },
+    { "@type": "ListItem", position: 3, name: post.title, item: canonical },
   ],
-};
-const faqSchema = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: post.faq.map((item) => ({
-    "@type": "Question",
-    name: item.question,
-    acceptedAnswer: { "@type": "Answer", text: item.answer },
-  })),
 };
 ---
 <BlogLayout
   lang={post.lang}
-  title={`${post.title} — Lumi`}
-  description={post.description}
-  canonicalPath={canonicalPath}
-  alternateEnPath={post.lang === "vi" ? `/blog/${post.alternateSlug}` : canonicalPath}
-  alternateViPath={post.lang === "vi" ? canonicalPath : `/vi/blog/${post.alternateSlug}`}
+  title={title}
+  description={description}
+  canonicalPath={canonical}
+  alternateEnPath={post.alternateEnPath ?? null}
+  alternateViPath={post.alternateViPath ?? null}
+  image={imageUrl}
+  imageAlt={imageAlt}
+  ogType="article"
+  noIndex={post.seo?.noIndex}
 >
-  <script type="application/ld+json" set:html={JSON.stringify(articleSchema)} />
-  <script type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)} />
-  <script type="application/ld+json" set:html={JSON.stringify(faqSchema)} />
+  <script type="application/ld+json" set:html={safeJson(articleSchema)} />
+  <script type="application/ld+json" set:html={safeJson(breadcrumbSchema)} />
   <article class="blog-article blog-shell">
     <header class="blog-article-header">
-      <div class="blog-card-meta"><span>{post.category}</span><time datetime={post.date}>{post.date}</time><span>{post.readTime}</span></div>
+      <div class="blog-card-meta">
+        <span>{post.category}</span>
+        {post.date && <time datetime={post.date}>{post.date}</time>}
+        {post.readTime && <span>{post.readTime}</span>}
+      </div>
       <h1>{post.title}</h1>
-      <p class="blog-article-intro">{post.intro}</p>
-      <div class="blog-byline"><span>{post.author}</span><span>·</span><span>{vi ? "Lumi" : "Lumi"}</span></div>
+      {post.intro && <p class="blog-article-intro">{post.intro}</p>}
+      <div class="blog-byline"><span>{post.author}</span></div>
     </header>
+    {post.featuredImage && (
+      <figure class="blog-featured-image">
+        <Image image={post.featuredImage} width={1600} height={900} alt={imageAlt} priority />
+        {post.imageCaption && <figcaption>{post.imageCaption}</figcaption>}
+      </figure>
+    )}
     <div class="blog-article-body">
       {hasCmsContent ? (
-        <section class="blog-cms-content">
+        <div class="blog-cms-content">
           <PortableText value={cmsContent as PortableTextBlock[]} />
-        </section>
+        </div>
       ) : (
         post.sections.map((section) => (
           <section>
@@ -79,35 +93,37 @@ const faqSchema = {
           </section>
         ))
       )}
-      <section class="blog-faq">
-        <h2>{vi ? "Câu hỏi thường gặp" : "Frequently asked questions"}</h2>
-        {post.faq.map((item) => (
-          <details>
-            <summary>{item.question}</summary>
-            <p>{item.answer}</p>
-          </details>
-        ))}
-      </section>
-      {post.sources && post.sources.length > 0 && (
+      {!hasCmsContent && post.faq.length > 0 && (
+        <section class="blog-faq">
+          <h2>{vi ? "Câu hỏi thường gặp" : "Frequently asked questions"}</h2>
+          {post.faq.map((item) => (
+            <details>
+              <summary>{item.question}</summary>
+              <p>{item.answer}</p>
+            </details>
+          ))}
+        </section>
+      )}
+      {!hasCmsContent && post.sources && post.sources.length > 0 && (
         <section class="blog-sources">
           <h2>{vi ? "Nguồn tham khảo" : "Sources"}</h2>
-          <ul>
-            {post.sources.map((source) => <li><a href={source.url} rel="noreferrer">{source.title} ↗</a></li>)}
-          </ul>
+          <ul>{post.sources.map((source) => <li><a href={source.url} rel="noreferrer">{source.title} ↗</a></li>)}</ul>
         </section>
       )}
     </div>
   </article>
-  <section class="blog-related blog-shell" aria-label={vi ? "Bài viết liên quan" : "Related articles"}>
-    <div class="blog-related-heading"><span class="eyebrow">{vi ? "ĐỌC TIẾP" : "KEEP READING"}</span><h2>{vi ? "Thêm một góc nhìn." : "Another useful angle."}</h2></div>
-    <div class="blog-related-grid">
-      {relatedPosts.map((related) => (
-        <a class="blog-related-card" href={`${base}/${related.slug}`}>
-          <span>{related.category}</span>
-          <h3>{related.title}</h3>
-          <small>{vi ? "Đọc bài viết" : "Read article"} ↗</small>
-        </a>
-      ))}
-    </div>
-  </section>
+  {relatedPosts.length > 0 && (
+    <section class="blog-related blog-shell" aria-label={vi ? "Bài viết liên quan" : "Related articles"}>
+      <div class="blog-related-heading"><span class="eyebrow">{vi ? "ĐỌC TIẾP" : "KEEP READING"}</span><h2>{vi ? "Thêm một góc nhìn." : "Another useful angle."}</h2></div>
+      <div class="blog-related-grid">
+        {relatedPosts.map((related) => (
+          <a class="blog-related-card" href={base + "/" + related.slug}>
+            <span>{related.category}</span>
+            <h3>{related.title}</h3>
+            <small>{vi ? "Đọc bài viết" : "Read article"} ↗</small>
+          </a>
+        ))}
+      </div>
+    </section>
+  )}
 </BlogLayout>
