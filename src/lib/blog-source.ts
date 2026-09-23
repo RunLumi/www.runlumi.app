@@ -109,7 +109,21 @@ export async function loadBlogPosts(lang: "en" | "vi"): Promise<JournalPost[]> {
 
 export async function loadBlogPost(lang: "en" | "vi", slug: string) {
   const result = await getEmDashEntry("posts", slug, { locale: lang });
-  if (result.error) return { post: undefined, cmsContent: undefined, error: result.error };
+  if (result.error) {
+    // Some missing-slug lookups fail in the live loader instead of returning
+    // null. Confirm absence with a published collection query; keep a real
+    // loader failure as 503 when that query finds the requested article.
+    const check = await getEmDashCollection("posts", {
+      status: "published",
+      locale: lang,
+      where: { slug },
+      limit: 1,
+    });
+    if (!check.error && !check.entries.some((item) => (item.data as CmsEntry["data"]).slug === slug)) {
+      return { post: undefined, cmsContent: undefined, error: undefined };
+    }
+    return { post: undefined, cmsContent: undefined, error: result.error };
+  }
   const entry = result.entry as CmsEntry | null;
   if (!entry || entry.data.locale !== lang || entry.data.slug !== slug ||
       (entry.data.status !== "published" && !result.isPreview)) {
