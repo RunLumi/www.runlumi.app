@@ -261,6 +261,27 @@
   color: var(--color-soft-slate);
 }
 
+.blog-sources {
+  padding-top: 42px;
+  border-top: 1px solid var(--color-border);
+}
+
+.blog-sources ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+.blog-sources li + li {
+  margin-top: 8px;
+}
+
+.blog-sources a {
+  color: var(--color-lumi-blue);
+  font-size: 15px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
 .blog-related {
   padding-block: 72px 120px;
   border-top: 1px solid var(--color-border);
