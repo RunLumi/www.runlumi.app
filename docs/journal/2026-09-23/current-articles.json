@@ -1,0 +1,72 @@
+[
+  {
+    "locale": "en",
+    "slug": "ai-operating-layer-for-business",
+    "image": "ai-operating-layer-for-business",
+    "title": "What an AI operating layer actually does for a growing company",
+    "excerpt": "A useful AI operating layer connects company context, inspectable evidence and bounded work across the software a business already uses."
+  },
+  {
+    "locale": "vi",
+    "slug": "lop-van-hanh-ai-cho-doanh-nghiep",
+    "image": "ai-operating-layer-for-business",
+    "title": "Lớp vận hành AI giải quyết việc gì trong doanh nghiệp?",
+    "excerpt": "Một lớp vận hành hữu ích nối ngữ cảnh, bằng chứng và bước bàn giao giữa những phần mềm doanh nghiệp đã dùng, với quyền hành động rõ ràng."
+  },
+  {
+    "locale": "en",
+    "slug": "business-intelligence-with-evidence",
+    "image": "business-intelligence-with-evidence",
+    "title": "Business intelligence should show the reason, not only the number",
+    "excerpt": "A changed metric needs a definition, driver, source record and owner. Here is a practical way to investigate business questions without losing the evidence."
+  },
+  {
+    "locale": "vi",
+    "slug": "tri-tue-kinh-doanh-co-bang-chung",
+    "image": "business-intelligence-with-evidence",
+    "title": "BI tốt phải chỉ ra lý do, không chỉ đưa ra con số",
+    "excerpt": "Từ chỉ số biến động tới bản ghi gốc, định nghĩa và quyết định: cách làm BI có thể kiểm tra, kể cả khi câu trả lời được viết bằng AI."
+  },
+  {
+    "locale": "en",
+    "slug": "bounded-ai-agents-for-business",
+    "image": "bounded-ai-agents-for-business",
+    "title": "Where to set the permission boundary for AI agents",
+    "excerpt": "Separate reading, drafting and consequential actions, with approval at the tool boundary and a worklog that shows what actually happened."
+  },
+  {
+    "locale": "vi",
+    "slug": "agent-ai-co-gioi-han",
+    "image": "bounded-ai-agents-for-business",
+    "title": "Giao việc cho AI agent đến đâu là an toàn?",
+    "excerpt": "Tách quyền đọc, soạn nháp, sửa và hành động quan trọng; đặt phê duyệt đúng nơi tạo hậu quả để agent giúp việc mà trách nhiệm vẫn rõ."
+  },
+  {
+    "locale": "en",
+    "slug": "long-running-ai-agents-runtime",
+    "image": "long-running-ai-agents-runtime",
+    "title": "What a long-running AI agent needs to resume safely",
+    "excerpt": "Long-running agent work needs checkpoints, narrow authority and verified retries. Design the state that survives interruptions."
+  },
+  {
+    "locale": "vi",
+    "slug": "agent-ai-chay-dai-va-ha-tang",
+    "image": "long-running-ai-agents-runtime",
+    "title": "Agent chạy dài cần nhớ gì để tiếp tục đúng việc?",
+    "excerpt": "Công việc kéo dài cần trạng thái, ngữ cảnh và nhật ký riêng; điểm dừng, quyền còn hiệu lực và bước xác minh giúp tránh làm trùng."
+  },
+  {
+    "locale": "en",
+    "slug": "evaluating-ai-agents-before-production",
+    "image": "evaluating-ai-agents-before-production",
+    "title": "How to evaluate an AI agent before production",
+    "excerpt": "Test the full workflow: tools, permissions, handoffs, external effects and recovery. Use a small, hard case set before granting more autonomy."
+  },
+  {
+    "locale": "vi",
+    "slug": "danh-gia-ai-agent-truoc-production",
+    "image": "evaluating-ai-agents-before-production",
+    "title": "Đánh giá AI agent trước khi đưa vào vận hành",
+    "excerpt": "Hãy thử cả quy trình, ngoại lệ, quyền công cụ, bước duyệt và khả năng khôi phục trước khi mở thêm quyền cho agent."
+  }
+]
