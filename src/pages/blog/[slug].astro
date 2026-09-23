@@ -5,8 +5,9 @@ import { loadBlogPost } from "../../lib/blog-source";
 
 export const prerender = false;
 const slug = Astro.params.slug ?? "";
-const { post, cmsContent } = await loadBlogPost("en", slug);
-if (!post) return Astro.redirect("/blog");
+const { post, cmsContent, error } = await loadBlogPost("en", slug);
+if (error) return new Response("Journal temporarily unavailable", { status: 503 });
+if (!post) return new Response("Article not found", { status: 404 });
 const relatedPosts = post.related
   .map((relatedSlug) => getBlogPost("en", relatedSlug))
   .filter((related): related is NonNullable<typeof related> => Boolean(related));

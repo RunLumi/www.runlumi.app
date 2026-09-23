@@ -7,14 +7,18 @@ interface Props {
   title: string;
   description: string;
   canonicalPath: string;
-  alternateEnPath?: string;
-  alternateViPath?: string;
+  alternateEnPath?: string | null;
+  alternateViPath?: string | null;
+  image?: string;
+  imageAlt?: string;
+  ogType?: "article" | "website";
+  noIndex?: boolean;
 }
 
-const { lang, title, description, canonicalPath, alternateEnPath, alternateViPath } = Astro.props;
+const { lang, title, description, canonicalPath, alternateEnPath, alternateViPath, image, imageAlt, ogType, noIndex } = Astro.props;
 const vi = lang === "vi";
 ---
-<BaseLayout lang={lang} title={title} description={description} canonicalPath={canonicalPath} alternateEnPath={alternateEnPath} alternateViPath={alternateViPath}>
+<BaseLayout lang={lang} title={title} description={description} canonicalPath={canonicalPath} alternateEnPath={alternateEnPath} alternateViPath={alternateViPath} image={image} imageAlt={imageAlt} ogType={ogType} noIndex={noIndex}>
   <header class="blog-header">
     <div class="blog-shell blog-header-inner">
       <a class="blog-brand" href={vi ? "/vi" : "/"} aria-label={vi ? "Trang chủ Lumi" : "Lumi home"}>
@@ -23,7 +27,7 @@ const vi = lang === "vi";
       </a>
       <nav aria-label={vi ? "Điều hướng bài viết" : "Journal navigation"}>
       <a href={vi ? "/vi/blog" : "/blog"}>{vi ? "Bài viết" : "Articles"}</a>
-        <a href={vi ? "/" : "/vi"}>{vi ? "EN" : "VI"}</a>
+        <a href={vi ? (alternateEnPath || "/blog") : (alternateViPath || "/vi/blog")}>{vi ? "EN" : "VI"}</a>
         <a class="blog-header-cta" href={vi ? "/vi#contact" : "/#contact"}>{vi ? "Trao đổi" : "Talk to Lumi"}</a>
       </nav>
     </div>
@@ -37,7 +41,7 @@ const vi = lang === "vi";
         <img src="/brand/lumi-fulltext.svg" alt="Lumi" width="98" height="50" />
       </a>
       <p>{vi ? "Những ghi chép về cách doanh nghiệp hiểu, quyết định và làm việc cùng AI." : "Notes on how companies understand, decide and work with AI."}</p>
-      <a href="https://runlumi.app/rss.xml">RSS</a>
+      <a href={vi ? "/vi/rss.xml" : "/rss.xml"}>RSS</a>
       <a href="mailto:hello@runlumi.app">hello@runlumi.app</a>
     </div>
   </footer>

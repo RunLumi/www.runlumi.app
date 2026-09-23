@@ -371,24 +371,24 @@ Keep the original publication date. Update `dateModified` for meaningful revisio
 record material corrections visibly, and repair both languages. Consolidate pages
 that compete for the same intent instead of manufacturing more thin articles.
 
-## 11. Current repository gaps: verify before publishing
+## 11. Renderer and publication gates
 
-Code inspection on 2026-09-23 found the following. This document sets the target;
-it does **not** implement these repairs or certify existing articles.
+The repository code now reads Journal entries directly from EmDash, maps image
+and SEO fields, resolves published translations, and builds sitemap and RSS
+routes from published CMS entries. This implementation is not a certification
+of the live page or of existing articles. Check the following against the
+deployed Worker and every revised edition before publishing:
 
-| Location | Observed gap | Required acceptance evidence |
-| --- | --- | --- |
-| [.emdash/seed.json](../.emdash/seed.json), [blog-source.ts](../src/lib/blog-source.ts), [BlogArticle.astro](../src/components/BlogArticle.astro) | `featured_image` exists in the CMS schema but is not mapped/rendered by the article path. | A CMS-only article displays its attached image and localized caption/alt. |
-| [blog-source.ts](../src/lib/blog-source.ts) | Unknown CMS entries can inherit the first fallback article's slug/metadata; archive dates can be generated from the current clock. Detail queries do not explicitly pass locale. | A newly created EN/VI pair has its own dates, URLs and body, with no locale substitution. |
-| [BlogArticle.astro](../src/components/BlogArticle.astro), [BaseLayout.astro](../src/layouts/BaseLayout.astro) | CMS SEO fields and featured images are not propagated; article schema/source/FAQ values depend on fallback data; JSON-LD uses raw JSON serialization. | Visible content, escaped JSON-LD and social metadata agree for a CMS-only article; no duplicate FAQ. |
-| [BlogLayout.astro](../src/layouts/BlogLayout.astro), [BaseLayout.astro](../src/layouts/BaseLayout.astro) | The language switch goes to home; x-default always points to home. | Each switch and alternate opens the corresponding article. |
-| [sitemap.xml.ts](../src/pages/sitemap.xml.ts), [rss.xml.ts](../src/pages/rss.xml.ts), [llms-full.txt](../public/llms-full.txt) | Discovery files are driven by static repository data, not all published CMS entries. | A CMS-only publication becomes discoverable; drafts and withdrawn posts stay excluded. |
-| [blog routes](../src/pages/blog/[slug].astro) | Missing articles redirect to the archive; fallback reads can hide CMS failures. | Missing URLs return 404; drafts/withdrawals cannot silently serve an old fallback. |
+| Area | Required acceptance evidence |
+| --- | --- |
+| [blog-source.ts](../src/lib/blog-source.ts), [BlogArticle.astro](../src/components/BlogArticle.astro) | A CMS-only article shows its own title, original date, body, relevant featured image, localized alt and caption; no first-post fallback metadata appears. |
+| [BlogArticle.astro](../src/components/BlogArticle.astro), [BaseLayout.astro](../src/layouts/BaseLayout.astro) | Canonical, social image, escaped Article JSON-LD and visible content agree; sources remain in the CMS body and FAQ/source appendices are not duplicated. |
+| [BlogLayout.astro](../src/layouts/BlogLayout.astro), [BaseLayout.astro](../src/layouts/BaseLayout.astro) | Each language switch and reciprocal alternate opens the actual published counterpart, while an unpublished translation receives no public alternate link. |
+| [sitemap.xml.ts](../src/pages/sitemap.xml.ts), [RSS routes](../src/pages/rss.xml.ts), [llms-full.txt](../public/llms-full.txt) | Every newly published CMS URL appears in the sitemap and correct language feed. Keep the supplementary static LLMS file aligned when its article map changes. Drafts and withdrawn posts stay excluded. |
+| [blog routes](../src/pages/blog/[slug].astro) | Unknown slugs return 404; a CMS failure does not silently resurrect stale fallback content. |
 
-Do not use successful builds or the existing ATS test suite as proof of these
-content contracts. Technical repairs need targeted CMS fixtures and public
-rendering checks. Documentation-only edits need link/diff review and the repository
-build gate, not new tests that merely repeat the document.
+A successful build or the ATS test suite cannot prove these public contracts.
+Check actual CMS revisions, rendered pages, images and discovery responses.
 
 ## 12. Editorial record template
 
