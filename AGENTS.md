@@ -31,6 +31,23 @@ existing business software
 9. Learn from Vercel's information architecture, not its visual identity.
 10. Avoid hype copy such as “10x”, “revolutionize”, “supercharge”, or unsupported claims.
 
+## Journal writing and publication
+
+Read and follow [docs/writing-standard.md](docs/writing-standard.md) before
+researching, writing, translating, illustrating or publishing Journal content,
+including CMS-only changes through EmDash API/MCP.
+
+- Every article needs a relevant visible illustration from ChatGPT Images or a
+  verified free Unsplash photograph, with provenance, caption and localized alt text.
+- EN/VI editions must preserve the same evidence and limitations, use natural
+  language, and link to their real translated counterpart.
+- Keep material claims traceable to checked sources. Never promise rankings or
+  AI citations, invent experience, or fabricate publication/reading-time metadata.
+- Create drafts explicitly. Publish only after the writing standard's rubric and
+  hard gates pass; read back each CMS revision and its rendered public page.
+- Existing articles and fallback content are not automatically compliant. Track
+  renderer/schema gaps honestly; a green build alone is not editorial verification.
+
 ## Jobs / ATS contract
 
 - `/jobs` is public and candidate-first.
@@ -56,5 +73,25 @@ the repository but does not publish production.
 The Journal is backed by EmDash for editorial content management. Public routes
 may keep reviewed, prerendered fallback content, but EmDash schema, migrations,
 media and `EMDASH_ENCRYPTION_KEY` must remain separate from the ATS data and files.
+
+## EmDash editor login
+
+Use the repository-local CLI to connect to the production EmDash instance:
+
+```bash
+node_modules/.bin/emdash login --url https://runlumi.app
+```
+
+The CLI prints a device URL and one-time code. Open the URL in Firefox, complete
+the passkey or email-link authentication, and leave the CLI running until it
+reports that the token was saved. Verify the session without printing credentials:
+
+```bash
+node_modules/.bin/emdash whoami --url https://runlumi.app
+```
+
+Use the authenticated CLI or EmDash MCP/API for content changes. Never commit
+`~/.config/emdash/auth.json`, print bearer tokens, or place EmDash credentials in
+source files, `.env` files, logs, PR bodies or `llms.txt`.
 
 Review mobile 320–430px, laptop 1280px, large desktop, both locales, keyboard focus, reduced motion, overflow, and factual claims.
