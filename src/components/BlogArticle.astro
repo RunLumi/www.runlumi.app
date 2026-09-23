@@ -88,6 +88,14 @@ const faqSchema = {
           </details>
         ))}
       </section>
+      {post.sources && post.sources.length > 0 && (
+        <section class="blog-sources">
+          <h2>{vi ? "Nguồn tham khảo" : "Sources"}</h2>
+          <ul>
+            {post.sources.map((source) => <li><a href={source.url} rel="noreferrer">{source.title} ↗</a></li>)}
+          </ul>
+        </section>
+      )}
     </div>
   </article>
   <section class="blog-related blog-shell" aria-label={vi ? "Bài viết liên quan" : "Related articles"}>

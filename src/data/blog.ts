@@ -20,6 +20,7 @@ export type BlogPost = {
   sections: BlogSection[];
   faq: Array<{ question: string; answer: string }>;
   related: string[];
+  sources?: Array<{ title: string; url: string }>;
 };
 
 const enPosts: BlogPost[] = [
@@ -230,6 +231,117 @@ const enPosts: BlogPost[] = [
     ],
     related: ["ai-operating-layer-for-business", "business-intelligence-with-evidence"],
   },
+  {
+    lang: "en",
+    slug: "long-running-ai-agents-runtime",
+    alternateSlug: "agent-ai-chay-dai-va-ha-tang",
+    title: "The agent runtime is becoming part of the product",
+    description:
+      "The latest agent platforms are moving beyond one-turn calls toward durable sessions, sandboxes, subagents and recovery. That changes what teams must design.",
+    category: "Agentic AI trends",
+    date: "2026-09-23",
+    updated: "2026-09-23",
+    readTime: "9 min read",
+    author: "Lumi editorial",
+    intro:
+      "The visible trend in agentic AI is longer work. The less visible trend is that the runtime around the model is becoming a product decision of its own. Sessions, files, tools, retries, approvals and recovery now determine whether an agent can finish useful work without turning a business process into a fragile demo.",
+    sections: [
+      {
+        heading: "One-turn intelligence is no longer the whole interface",
+        paragraphs: [
+          "OpenAI’s September 2026 Agents API describes managed harnesses, durable sessions, context compaction, subagents and sandbox environments as the infrastructure needed for agents that run for longer periods. Anthropic’s recent work describes a similar shift in practice: sessions are becoming longer, more autonomous and more dependent on persistent context than ordinary chat transcripts.",
+          "The practical implication is simple. A company does not only choose a model. It chooses where intermediate work lives, how a run resumes, which tools are available after a pause, and how a human can inspect what happened while the agent was away.",
+        ],
+        quote: "The model is one component of the agent. The runtime decides whether the work can survive the next hour.",
+      },
+      {
+        heading: "Durability creates operational questions",
+        paragraphs: [
+          "Long-running work raises questions that a short prompt can hide. What happens when an API times out? Which context is safe to retain? Can a person revoke a pending action? Does a retry duplicate an order or send the same message twice? A useful runtime makes these states explicit instead of treating them as implementation details.",
+        ],
+        bullets: [
+          "Persist the job state and the material evidence needed to resume it.",
+          "Separate a planned action from an attempted, completed or verified action.",
+          "Make retries idempotent where a tool can cause an external side effect.",
+          "Keep approval and cancellation available while the run is active.",
+        ],
+      },
+      {
+        heading: "The business case is continuity, not spectacle",
+        paragraphs: [
+          "A multi-hour agent run is not automatically valuable. The work still needs a clear owner, a bounded objective and a useful definition of done. The strongest use cases are tasks where the agent can gather context, perform repeatable checks and return exceptions while a person keeps responsibility for the decision.",
+          "That is why the runtime belongs in the operating model. It should be possible to ask which tool was used, which permissions applied and why the agent stopped. Without those answers, more autonomy mostly creates a larger review burden.",
+        ],
+      },
+    ],
+    faq: [
+      { question: "What is a long-running AI agent?", answer: "It is an agent workflow that persists context and job state across multiple steps or sessions instead of completing in one model response." },
+      { question: "What infrastructure does a long-running agent need?", answer: "It needs durable state, controlled tools, a safe execution environment, retries, approvals, cancellation and a record of material work." },
+      { question: "Does a longer agent run mean more autonomy is always better?", answer: "No. Longer runs increase the need for boundaries, observability and human review. Duration is useful only when the job itself is well-defined." },
+    ],
+    related: ["bounded-ai-agents-for-business", "evaluating-ai-agents-before-production"],
+    sources: [
+      { title: "Introducing the Agents API — OpenAI", url: "https://openai.com/index/introducing-the-agents-api/" },
+      { title: "The next evolution of the Agents SDK — OpenAI", url: "https://openai.com/index/the-next-evolution-of-the-agents-sdk/" },
+      { title: "Anthropic Economic Index: Cadences", url: "https://www.anthropic.com/research/economic-index-june-2026-report" },
+      { title: "Long-running Claude for scientific computing — Anthropic", url: "https://www.anthropic.com/research/long-running-Claude" },
+    ],
+  },
+  {
+    lang: "en",
+    slug: "evaluating-ai-agents-before-production",
+    alternateSlug: "danh-gia-ai-agent-truoc-production",
+    title: "Before an AI agent reaches production, evaluate the workflow—not the demo",
+    description:
+      "Agent quality depends on tools, prompts, permissions, handoffs and environment. A production evaluation must test the whole workflow, not only the model answer.",
+    category: "Agent reliability",
+    date: "2026-09-23",
+    updated: "2026-09-23",
+    readTime: "9 min read",
+    author: "Lumi editorial",
+    intro:
+      "An agent demo proves that a path is possible once. Production asks a harder question: does the workflow produce acceptable outcomes across representative cases, with the right approvals, under the same constraints people will actually face? The difference is evaluation design.",
+    sections: [
+      {
+        heading: "The unit of quality is the workflow",
+        paragraphs: [
+          "OpenAI’s current evaluation guidance separates traces, graders, datasets and eval runs. That sequence is useful because a workflow can fail even when the model’s text looks good. The agent might choose the wrong tool, skip a handoff, violate a permission or claim completion before the external system confirms it.",
+          "Anthropic’s trustworthy-agent work makes the same point from the security side: an agent is a model inside a harness, with tools and an environment. Testing the model alone leaves the most consequential failure modes outside the test.",
+        ],
+        quote: "A passing answer is weak evidence when the real task includes tools, state and side effects.",
+      },
+      {
+        heading: "Build a test set from actual work",
+        paragraphs: [
+          "A useful dataset starts with the cases a team already sees, not only the happy path chosen for a launch demo. Include incomplete records, ambiguous instructions, stale data, permission boundaries, duplicate requests and actions that should pause for approval.",
+        ],
+        bullets: [
+          "Define the accepted outcome before the agent runs.",
+          "Score both the result and the path taken to reach it.",
+          "Record tool choice, handoff, approval and verification failures separately.",
+          "Keep a small human-reviewed set that remains stable as prompts and models change.",
+        ],
+      },
+      {
+        heading: "Measure accepted work, not raw activity",
+        paragraphs: [
+          "Agent usage can grow while the business gets no better. A more honest measure is the cost per accepted outcome: work that passes the relevant check, reaches the responsible person with enough evidence and does not create hidden repair work. Pair that with latency, retries, human review time and the consequences of an incorrect action.",
+          "This also makes model choice less ideological. A smaller model may be right for a classification step. A stronger model may be right for an ambiguous investigation. The workflow should show where each choice earns its cost.",
+        ],
+      },
+    ],
+    faq: [
+      { question: "What should an AI agent evaluation test?", answer: "Test the full workflow: model output, tool selection, permissions, handoffs, approvals, retries, external side effects and verification." },
+      { question: "How do traces help evaluate agents?", answer: "A trace records the end-to-end model, tool, guardrail and handoff sequence so teams can identify workflow failures that a final answer hides." },
+      { question: "What is a useful production metric?", answer: "Cost per accepted outcome is stronger than raw completion count because it includes correctness, review and repair work." },
+    ],
+    related: ["bounded-ai-agents-for-business", "long-running-ai-agents-runtime"],
+    sources: [
+      { title: "Evaluate agent workflows — OpenAI", url: "https://developers.openai.com/api/docs/guides/agent-evals" },
+      { title: "A shared playbook for trustworthy third-party evaluations — OpenAI", url: "https://openai.com/index/trustworthy-third-party-evaluations-foundations/" },
+      { title: "Trustworthy agents in practice — Anthropic", url: "https://www.anthropic.com/research/trustworthy-agents" },
+    ],
+  },
 ];
 
 const viPosts: BlogPost[] = [
@@ -403,6 +515,117 @@ const viPosts: BlogPost[] = [
       { question: "Nhật ký agent cần ghi gì?", answer: "Mục tiêu, công cụ đã dùng, kết quả quan trọng, bước đã thử và đã hoàn thành, ngoại lệ cùng trạng thái kiểm chứng." },
     ],
     related: ["lop-van-hanh-ai-cho-doanh-nghiep", "tri-tue-kinh-doanh-co-bang-chung"],
+  },
+  {
+    lang: "vi",
+    slug: "agent-ai-chay-dai-va-ha-tang",
+    alternateSlug: "long-running-ai-agents-runtime",
+    title: "Hạ tầng chạy agent đang trở thành một phần của sản phẩm",
+    description:
+      "Các nền tảng agent mới chuyển từ một lần gọi sang session bền vững, sandbox, subagent và khả năng phục hồi. Điều đó làm thay đổi cách doanh nghiệp thiết kế hệ thống.",
+    category: "Xu hướng agentic AI",
+    date: "2026-09-23",
+    updated: "2026-09-23",
+    readTime: "9 phút đọc",
+    author: "Ban biên tập Lumi",
+    intro:
+      "Xu hướng dễ thấy của agentic AI là công việc kéo dài hơn. Xu hướng ít được nói hơn là lớp runtime quanh model đang trở thành một quyết định sản phẩm. Session, tệp, công cụ, retry, phê duyệt và khả năng phục hồi quyết định agent có hoàn thành được việc hữu ích hay chỉ tạo ra một demo khó lặp lại.",
+    sections: [
+      {
+        heading: "Trí tuệ một lượt không còn là toàn bộ giao diện",
+        paragraphs: [
+          "Agents API của OpenAI tháng 9/2026 mô tả harness quản lý, session bền vững, nén ngữ cảnh, subagent và sandbox như hạ tầng cho agent chạy dài. Nghiên cứu gần đây của Anthropic cũng cho thấy session ngày càng dài hơn, tự chủ hơn và phụ thuộc vào ngữ cảnh được lưu giữ nhiều hơn một cuộc trò chuyện thông thường.",
+          "Hệ quả thực tế rất rõ. Doanh nghiệp không chỉ chọn model. Họ chọn nơi lưu công việc dở dang, cách một run tiếp tục sau khi dừng, công cụ nào còn được dùng và người nào có thể kiểm tra những gì agent đã làm.",
+        ],
+        quote: "Model là một thành phần của agent. Runtime quyết định công việc có sống được qua giờ tiếp theo hay không.",
+      },
+      {
+        heading: "Công việc bền vững kéo theo câu hỏi vận hành",
+        paragraphs: [
+          "Một công việc dài ngày làm lộ ra những câu hỏi mà prompt ngắn có thể che đi. Nếu API timeout thì sao? Ngữ cảnh nào được phép giữ lại? Người phụ trách có thể hủy hành động đang chờ không? Retry có tạo ra đơn hàng hoặc tin nhắn trùng không? Runtime tốt biến các trạng thái này thành thứ có thể nhìn thấy.",
+        ],
+        bullets: [
+          "Lưu trạng thái và bằng chứng cần thiết để tiếp tục công việc.",
+          "Tách rõ dự kiến, đã thử, đã hoàn thành và đã kiểm chứng.",
+          "Thiết kế retry idempotent cho công cụ có tác động bên ngoài.",
+          "Giữ quyền phê duyệt và hủy trong khi run còn hoạt động.",
+        ],
+      },
+      {
+        heading: "Giá trị nằm ở tính liên tục, không nằm ở màn trình diễn",
+        paragraphs: [
+          "Một agent chạy nhiều giờ không tự động tạo ra giá trị. Công việc vẫn cần chủ sở hữu, mục tiêu có giới hạn và định nghĩa hoàn thành. Use case mạnh nhất là nơi agent gom ngữ cảnh, thực hiện kiểm tra lặp lại và trả về ngoại lệ, còn con người giữ trách nhiệm với quyết định.",
+          "Đó là lý do runtime thuộc về mô hình vận hành. Người dùng cần biết công cụ nào đã được dùng, quyền nào đã áp dụng và vì sao agent dừng. Nếu không, tự chủ nhiều hơn chỉ làm tăng gánh nặng kiểm tra.",
+        ],
+      },
+    ],
+    faq: [
+      { question: "Agent chạy dài là gì?", answer: "Đó là workflow agent lưu được ngữ cảnh và trạng thái qua nhiều bước hoặc session thay vì hoàn tất trong một phản hồi." },
+      { question: "Agent chạy dài cần hạ tầng gì?", answer: "Cần trạng thái bền vững, công cụ có kiểm soát, môi trường thực thi an toàn, retry, phê duyệt, hủy và hồ sơ công việc." },
+      { question: "Chạy lâu hơn có nghĩa là tự chủ luôn tốt hơn không?", answer: "Không. Run càng dài càng cần ranh giới, quan sát và điểm người kiểm tra. Thời lượng chỉ có ích khi công việc được định nghĩa rõ." },
+    ],
+    related: ["agent-ai-co-gioi-han", "danh-gia-ai-agent-truoc-production"],
+    sources: [
+      { title: "Introducing the Agents API — OpenAI", url: "https://openai.com/index/introducing-the-agents-api/" },
+      { title: "The next evolution of the Agents SDK — OpenAI", url: "https://openai.com/index/the-next-evolution-of-the-agents-sdk/" },
+      { title: "Anthropic Economic Index: Cadences", url: "https://www.anthropic.com/research/economic-index-june-2026-report" },
+      { title: "Long-running Claude for scientific computing — Anthropic", url: "https://www.anthropic.com/research/long-running-Claude" },
+    ],
+  },
+  {
+    lang: "vi",
+    slug: "danh-gia-ai-agent-truoc-production",
+    alternateSlug: "evaluating-ai-agents-before-production",
+    title: "Trước khi đưa AI agent vào production, hãy đánh giá workflow chứ không chỉ demo",
+    description:
+      "Chất lượng agent phụ thuộc vào công cụ, prompt, quyền hạn, handoff và môi trường. Đánh giá production phải kiểm tra toàn bộ workflow.",
+    category: "Độ tin cậy của agent",
+    date: "2026-09-23",
+    updated: "2026-09-23",
+    readTime: "9 phút đọc",
+    author: "Ban biên tập Lumi",
+    intro:
+      "Một demo agent chứng minh một đường đi có thể xảy ra một lần. Production đặt câu hỏi khó hơn: workflow có tạo ra kết quả chấp nhận được trên các trường hợp đại diện, với đúng phê duyệt và giới hạn mà đội ngũ sẽ gặp hằng ngày không? Câu trả lời nằm ở thiết kế đánh giá.",
+    sections: [
+      {
+        heading: "Đơn vị chất lượng là workflow",
+        paragraphs: [
+          "Hướng dẫn đánh giá agent hiện tại của OpenAI tách trace, grader, dataset và eval run. Trình tự này quan trọng vì workflow có thể thất bại dù câu trả lời cuối trông rất tốt. Agent có thể chọn sai công cụ, bỏ qua handoff, vi phạm quyền hoặc nhận đã hoàn thành trước khi hệ thống bên ngoài xác nhận.",
+          "Nghiên cứu về trustworthy agents của Anthropic nhìn cùng vấn đề từ phía an toàn: agent là model nằm trong harness, có công cụ và môi trường. Chỉ kiểm tra model sẽ bỏ lại những lỗi có hậu quả lớn nhất ngoài bài test.",
+        ],
+        quote: "Một câu trả lời pass là bằng chứng yếu nếu công việc thật có công cụ, trạng thái và tác động bên ngoài.",
+      },
+      {
+        heading: "Xây bộ test từ công việc thật",
+        paragraphs: [
+          "Dataset tốt bắt đầu từ những trường hợp đội ngũ đã gặp, không chỉ happy path được chọn cho demo. Hãy đưa vào bản ghi thiếu, chỉ thị mơ hồ, dữ liệu cũ, ranh giới quyền, yêu cầu trùng và hành động phải dừng để phê duyệt.",
+        ],
+        bullets: [
+          "Định nghĩa kết quả chấp nhận được trước khi agent chạy.",
+          "Chấm cả kết quả lẫn đường đi để có kết quả đó.",
+          "Tách riêng lỗi chọn công cụ, handoff, phê duyệt và kiểm chứng.",
+          "Giữ một bộ test nhỏ do người xem để làm mốc khi prompt hoặc model đổi.",
+        ],
+      },
+      {
+        heading: "Đo công việc được chấp nhận, không đo hoạt động thô",
+        paragraphs: [
+          "Usage của agent có thể tăng mà doanh nghiệp không tốt hơn. Thước đo trung thực hơn là chi phí trên một kết quả được chấp nhận: công việc qua kiểm tra, đến đúng người với đủ bằng chứng và không tạo ra phần sửa chữa ẩn. Đặt cạnh đó là latency, retry, thời gian người xem và hậu quả của hành động sai.",
+          "Cách đo này cũng giúp chọn model bớt mang tính niềm tin. Model nhỏ có thể đủ cho bước phân loại. Model mạnh hơn có thể đáng dùng cho điều tra mơ hồ. Workflow phải cho thấy mỗi lựa chọn kiếm được chi phí của nó ở đâu.",
+        ],
+      },
+    ],
+    faq: [
+      { question: "Đánh giá AI agent cần test gì?", answer: "Test toàn workflow: output, chọn công cụ, quyền, handoff, phê duyệt, retry, tác động bên ngoài và kiểm chứng." },
+      { question: "Trace giúp đánh giá agent thế nào?", answer: "Trace ghi lại chuỗi model, tool, guardrail và handoff để tìm lỗi workflow mà câu trả lời cuối che mất." },
+      { question: "Một chỉ số production hữu ích là gì?", answer: "Chi phí trên một kết quả được chấp nhận mạnh hơn số lần hoàn thành thô vì nó tính cả độ đúng, review và công việc sửa lỗi." },
+    ],
+    related: ["agent-ai-co-gioi-han", "agent-ai-chay-dai-va-ha-tang"],
+    sources: [
+      { title: "Evaluate agent workflows — OpenAI", url: "https://developers.openai.com/api/docs/guides/agent-evals" },
+      { title: "A shared playbook for trustworthy third-party evaluations — OpenAI", url: "https://openai.com/index/trustworthy-third-party-evaluations-foundations/" },
+      { title: "Trustworthy agents in practice — Anthropic", url: "https://www.anthropic.com/research/trustworthy-agents" },
+    ],
   },
 ];
 
