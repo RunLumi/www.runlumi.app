@@ -6,9 +6,11 @@ interface Props {
   title: string;
   description: string;
   canonicalPath: string;
+  alternateEnPath?: string;
+  alternateViPath?: string;
 }
 
-const { lang, title, description, canonicalPath } = Astro.props;
+const { lang, title, description, canonicalPath, alternateEnPath = "/", alternateViPath = "/vi" } = Astro.props;
 const canonical = new URL(canonicalPath, Astro.site);
 ---
 <!doctype html>
@@ -31,8 +33,8 @@ const canonical = new URL(canonicalPath, Astro.site);
     </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="canonical" href={canonical} />
-    <link rel="alternate" hreflang="en" href={new URL("/", Astro.site)} />
-    <link rel="alternate" hreflang="vi" href={new URL("/vi", Astro.site)} />
+    <link rel="alternate" hreflang="en" href={new URL(alternateEnPath, Astro.site)} />
+    <link rel="alternate" hreflang="vi" href={new URL(alternateViPath, Astro.site)} />
     <link rel="alternate" hreflang="x-default" href={new URL("/", Astro.site)} />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Lumi" />

@@ -1,0 +1,26 @@
+# Lumi — expanded context
+
+## Entity
+
+Lumi is the AI operating layer for a company. The public site is the primary source for Lumi's positioning, product roles and editorial material. The canonical public host is `https://runlumi.app`; `https://www.runlumi.app` serves the same primary site, and `https://landing.runlumi.app` remains a compatibility alias.
+
+## Product model
+
+People ask Lumi in plain language. Lumi Assistant is the front door. Lumi AI Workspace coordinates priorities, decisions, commitments and risks. Lumi BI moves from a business question to a metric, its drivers and source records. Lumi Agents execute repeatable jobs within explicit scope, tools, permissions, approvals and verification.
+
+## Trust model
+
+Lumi treats evidence, authority, human judgment and verified work as product requirements. A planned action is not an attempted action. An attempted action is not a completed action. A completed action is not verified until the relevant check has happened.
+
+## Adoption model
+
+Start with one recurring workflow. Connect only the systems it needs. Agree on the useful result and the person who owns it. Review the output with the team. Expand only when the first workflow earns another boundary.
+
+## Sources
+
+- [AI operating layer for business](https://runlumi.app/blog/ai-operating-layer-for-business)
+- [Business intelligence with evidence](https://runlumi.app/blog/business-intelligence-with-evidence)
+- [Bounded AI agents for business](https://runlumi.app/blog/bounded-ai-agents-for-business)
+- [Lớp vận hành AI cho doanh nghiệp](https://runlumi.app/vi/blog/lop-van-hanh-ai-cho-doanh-nghiep)
+- [Trí tuệ kinh doanh có bằng chứng](https://runlumi.app/vi/blog/tri-tue-kinh-doanh-co-bang-chung)
+- [Agent AI có giới hạn](https://runlumi.app/vi/blog/agent-ai-co-gioi-han)

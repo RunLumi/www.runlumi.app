@@ -13,6 +13,7 @@ export const content = {
       products: "What Lumi does",
       how: "How it works",
       trust: "Trust",
+      blog: "Journal",
       contact: "Talk to us",
     },
     hero: {
@@ -280,6 +281,12 @@ export const content = {
         },
       ],
     },
+    blog: {
+      label: "THE LUMI JOURNAL",
+      title: "Practical notes for the work between systems.",
+      body: "Clear writing about AI operating layers, evidence-led business intelligence and bounded agents for real companies.",
+      cta: "Read the journal",
+    },
     cta: {
       label: "YOUR NEXT WORKING WEEK",
       title: "What would you stop chasing?",
@@ -307,6 +314,7 @@ export const content = {
       products: "Lumi làm gì",
       how: "Cách hoạt động",
       trust: "Tin cậy",
+      blog: "Góc nhìn",
       contact: "Trao đổi với Lumi",
     },
     hero: {
@@ -573,6 +581,12 @@ export const content = {
           body: "Dự kiến làm, đã thử, đã hoàn thành và đã kiểm chứng là những trạng thái khác nhau. Nhật ký cần phân biệt rõ.",
         },
       ],
+    },
+    blog: {
+      label: "GÓC NHÌN LUMI",
+      title: "Những ghi chép về công việc nằm giữa các hệ thống.",
+      body: "Bài viết thực tế về lớp vận hành AI, business intelligence có bằng chứng và agent có giới hạn.",
+      cta: "Đọc các bài viết",
     },
     cta: {
       label: "CHO TUẦN LÀM VIỆC SẮP TỚI",

@@ -48,4 +48,13 @@ existing business software
 
 Run `npm run build`.
 
+Production deployment for this repository is manual. After the requested changes
+are merged to `main`, deploy the Cloudflare Worker with `npm run deploy` (the script
+runs preflight, builds the Astro app, and invokes Wrangler). GitHub Actions validates
+the repository but does not publish production.
+
+The Journal is backed by EmDash for editorial content management. Public routes
+may keep reviewed, prerendered fallback content, but EmDash schema, migrations,
+media and `EMDASH_ENCRYPTION_KEY` must remain separate from the ATS data and files.
+
 Review mobile 320–430px, laptop 1280px, large desktop, both locales, keyboard focus, reduced motion, overflow, and factual claims.

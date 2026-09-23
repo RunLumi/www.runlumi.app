@@ -1,0 +1,8 @@
+---
+import BlogIndex from "../../../components/BlogIndex.astro";
+import { loadBlogPosts } from "../../../lib/blog-source";
+
+export const prerender = false;
+const posts = await loadBlogPosts("vi");
+---
+<BlogIndex lang="vi" posts={posts} />
