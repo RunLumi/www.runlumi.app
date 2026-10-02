@@ -3,11 +3,12 @@
 const env = new Proxy(
   {},
   {
-    get(_target, prop) {
+    get(target, prop) {
+      if (Object.hasOwn(target, prop)) return target[prop];
       return process.env[String(prop)];
     },
-    has(_target, prop) {
-      return String(prop) in process.env;
+    has(target, prop) {
+      return Object.hasOwn(target, prop) || String(prop) in process.env;
     }
   }
 );
