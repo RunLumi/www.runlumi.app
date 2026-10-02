@@ -46,7 +46,14 @@ export const POST: APIRoute = async (context) => {
   const job = await getJobBySlug(DB, slug);
   if (!job) return new Response("Role not found.", { status: 404 });
 
-  const form = await context.request.formData();
+  let form: FormData;
+  try {
+    form = await context.request.formData();
+  } catch {
+    // Interrupted uploads or malformed multipart bodies are a submission error,
+    // not an uncaught server exception. No files or application have been saved.
+    return redirect303(fallback);
+  }
   const honeypot = formText(form, "website", 200);
   const startedAt = Number(formText(form, "started_at", 30));
   if (honeypot || !Number.isFinite(startedAt) || Date.now() - startedAt < 1200) {
