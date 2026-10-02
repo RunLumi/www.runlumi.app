@@ -1,18 +1,22 @@
 ---
 import BlogLayout from "../layouts/BlogLayout.astro";
-import type { BlogPost } from "../data/blog";
+import type { JournalPost } from "../lib/blog-source";
+import { Image } from "emdash/ui";
 
 interface Props {
   lang: "en" | "vi";
-  posts: BlogPost[];
+  posts: JournalPost[];
 }
 
 const { lang, posts } = Astro.props;
 const vi = lang === "vi";
 const title = vi ? "Góc nhìn Lumi — AI cho công việc thật" : "Lumi Journal — AI for real work";
 const description = vi
-  ? "Những ghi chép thực tế về lớp vận hành AI, business intelligence và AI agent có giới hạn cho doanh nghiệp."
-  : "Practical writing about AI operating layers, evidence-led business intelligence and bounded AI agents for real companies.";
+  ? "Ghi chép về dữ liệu, quyết định và những bước bàn giao trong công việc doanh nghiệp."
+  : "Field notes on the decisions, evidence and handoffs that shape real company work.";
+const latest = posts[0];
+const archive = posts.slice(1);
+const articleHref = (post: JournalPost) => (vi ? "/vi/blog/" : "/blog/") + post.slug;
 ---
 <BlogLayout
   lang={lang}
@@ -23,23 +27,72 @@ const description = vi
   alternateViPath="/vi/blog"
 >
   <section class="blog-index-hero blog-shell">
-    <div class="eyebrow">{vi ? "LUMI / GÓC NHÌN" : "LUMI / JOURNAL"}</div>
-    <h1>{vi ? "Những việc nằm giữa con người, dữ liệu và công cụ." : "The work between people, data and tools."}</h1>
-    <p>{description}</p>
+    <div class="blog-index-copy">
+      <div class="eyebrow">{vi ? "LUMI / GÓC NHÌN" : "LUMI / JOURNAL"}</div>
+      <h1>{vi ? "Công việc thật nằm giữa con người, dữ liệu và công cụ." : "The work is in the handoff."}</h1>
+      <p>{description}</p>
+    </div>
+    <div class="blog-index-edition" aria-label={vi ? "Thông tin chuyên mục" : "Journal details"}>
+      <span class="blog-index-edition-label">{vi ? "GÓC NHÌN DOANH NGHIỆP" : "COMPANY OPERATIONS"}</span>
+      <span class="blog-index-edition-count">{String(posts.length).padStart(2, "0")}</span>
+      <span class="blog-index-edition-note">{vi ? "bài viết · EN / VI" : "essays · EN / VI"}</span>
+    </div>
   </section>
-  <section class="blog-index-list blog-shell" aria-label={vi ? "Danh sách bài viết" : "Article list"}>
-    {posts.map((post, index) => (
-      <article class:list={["blog-card", index === 0 && "blog-card-featured"]}>
-        <div class="blog-card-index">0{index + 1}</div>
-        <div>
-          <div class="blog-card-meta"><span>{post.category}</span><time datetime={post.date}>{post.date}</time><span>{post.readTime}</span></div>
-          <h2><a href={`${vi ? "/vi/blog" : "/blog"}/${post.slug}`}>{post.title}</a></h2>
+
+  {latest && (
+    <section class="blog-featured blog-shell" aria-labelledby="blog-featured-title">
+      <a class="blog-featured-image-link" href={articleHref(latest)} aria-label={latest.title}>
+        {latest.featuredImage ? (
+          <Image image={latest.featuredImage} width={1600} height={900} alt={latest.featuredImage.alt || latest.title} priority />
+        ) : (
+          <div class="blog-featured-image-fallback" aria-hidden="true"><span>L / {String(latest.category).slice(0, 1)}</span></div>
+        )}
+        <span class="blog-image-index" aria-hidden="true">{vi ? "MỚI NHẤT" : "LATEST ESSAY"} <span>↗</span></span>
+      </a>
+      <div class="blog-featured-copy">
+        <div class="blog-card-meta">
+          <span>{latest.category}</span>
+          {latest.date && <time datetime={latest.date}>{latest.date}</time>}
+          {latest.readTime && <span>{latest.readTime}</span>}
+        </div>
+        <h2 id="blog-featured-title"><a href={articleHref(latest)}>{latest.title}</a></h2>
+        <p>{latest.description}</p>
+        <a class="blog-read-link" href={articleHref(latest)}>
+          {vi ? "Đọc bài viết" : "Read the essay"} <span aria-hidden="true">↗</span>
+        </a>
+      </div>
+    </section>
+  )}
+
+  <section class="blog-index-list blog-shell" aria-label={vi ? "Các bài viết khác" : "More essays"}>
+    <div class="blog-index-list-heading">
+      <h2>{vi ? "Các bài viết" : "The journal"}</h2>
+      <span>{vi ? "DỮ LIỆU · QUYẾT ĐỊNH · TỰ ĐỘNG HÓA" : "DATA · DECISIONS · AUTOMATION"}</span>
+    </div>
+    {archive.map((post, index) => (
+      <article class="blog-card">
+        <div class="blog-card-index" aria-hidden="true">{String(index + 2).padStart(2, "0")}</div>
+        <div class="blog-card-copy">
+          <div class="blog-card-meta">
+            <span>{post.category}</span>
+            {post.date && <time datetime={post.date}>{post.date}</time>}
+            {post.readTime && <span>{post.readTime}</span>}
+          </div>
+          <h3><a href={articleHref(post)}>{post.title}</a></h3>
           <p>{post.description}</p>
-          <a class="blog-read-link" href={`${vi ? "/vi/blog" : "/blog"}/${post.slug}`}>
-            {vi ? "Đọc bài viết" : "Read article"} <span aria-hidden="true">↗</span>
+          <a class="blog-read-link" href={articleHref(post)}>
+            {vi ? "Đọc bài viết" : "Read the essay"} <span aria-hidden="true">↗</span>
           </a>
+        </div>
+        <div class="blog-card-image" aria-hidden="true">
+          {post.featuredImage ? (
+            <Image image={post.featuredImage} width={480} height={300} alt="" loading="lazy" />
+          ) : (
+            <div class="blog-card-image-fallback"></div>
+          )}
         </div>
       </article>
     ))}
+    {!latest && <p class="blog-empty">{vi ? "Chưa có bài viết nào được xuất bản." : "No essays have been published yet."}</p>}
   </section>
 </BlogLayout>

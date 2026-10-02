@@ -63,6 +63,9 @@ const breadcrumbSchema = {
   <script type="application/ld+json" set:html={safeJson(breadcrumbSchema)} />
   <article class="blog-article blog-shell">
     <header class="blog-article-header">
+      <a class="blog-back-link" href={base}>
+        <span aria-hidden="true">←</span> {vi ? "Về Góc nhìn" : "Back to Journal"}
+      </a>
       <div class="blog-card-meta">
         <span>{post.category}</span>
         {post.date && <time datetime={post.date}>{post.date}</time>}
@@ -70,7 +73,12 @@ const breadcrumbSchema = {
       </div>
       <h1>{post.title}</h1>
       {post.intro && <p class="blog-article-intro">{post.intro}</p>}
-      <div class="blog-byline"><span>{post.author}</span></div>
+      <div class="blog-byline">
+        <span class="blog-byline-mark" aria-hidden="true">L</span>
+        <span>{post.author}</span>
+        <span class="blog-byline-separator" aria-hidden="true">/</span>
+        <span>{vi ? "Góc nhìn Lumi" : "Lumi Journal"}</span>
+      </div>
     </header>
     {post.featuredImage && (
       <figure class="blog-featured-image">
@@ -118,9 +126,10 @@ const breadcrumbSchema = {
       <div class="blog-related-grid">
         {relatedPosts.map((related) => (
           <a class="blog-related-card" href={base + "/" + related.slug}>
-            <span>{related.category}</span>
+            <span class="blog-related-meta">{related.category} <span aria-hidden="true">·</span> {related.readTime}</span>
             <h3>{related.title}</h3>
-            <small>{vi ? "Đọc bài viết" : "Read article"} ↗</small>
+            <p>{related.description}</p>
+            <span class="blog-related-link">{vi ? "Đọc bài viết" : "Read article"} <span aria-hidden="true">↗</span></span>
           </a>
         ))}
       </div>
