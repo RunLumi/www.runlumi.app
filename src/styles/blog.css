@@ -349,6 +349,10 @@
   line-height: 1.65;
 }
 
+.blog-index-list {
+  padding-block: 0 clamp(80px, 10vw, 136px);
+}
+
 .blog-index-list-heading {
   display: flex;
   align-items: baseline;
@@ -371,10 +375,20 @@
 }
 
 .blog-card {
+  display: grid;
   grid-template-columns: 44px minmax(0, 1fr) minmax(150px, 236px);
   align-items: center;
   gap: 24px clamp(22px, 4vw, 56px);
   padding-block: 29px;
+  border-top: 1px solid var(--color-border);
+}
+
+.blog-card-index {
+  align-self: start;
+  padding-top: 4px;
+  color: var(--color-lumi-blue);
+  font: 12px var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 .blog-card-copy {
@@ -617,6 +631,8 @@
 }
 
 .blog-related-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0 34px;
   margin-top: 30px;
 }
