@@ -17,6 +17,7 @@ interface Props {
 
 const { lang, title, description, canonicalPath, alternateEnPath, alternateViPath, image, imageAlt, ogType, noIndex } = Astro.props;
 const vi = lang === "vi";
+const isJournalIndex = Astro.url.pathname === (vi ? "/vi/blog" : "/blog");
 ---
 <BaseLayout lang={lang} title={title} description={description} canonicalPath={canonicalPath} alternateEnPath={alternateEnPath} alternateViPath={alternateViPath} image={image} imageAlt={imageAlt} ogType={ogType} noIndex={noIndex}>
   <header class="blog-header">
@@ -26,7 +27,7 @@ const vi = lang === "vi";
         <span>{vi ? "Góc nhìn" : "Journal"}</span>
       </a>
       <nav aria-label={vi ? "Điều hướng bài viết" : "Journal navigation"}>
-      <a href={vi ? "/vi/blog" : "/blog"}>{vi ? "Bài viết" : "Articles"}</a>
+      <a href={vi ? "/vi/blog" : "/blog"} aria-current={isJournalIndex ? "page" : undefined}>{vi ? "Bài viết" : "Articles"}</a>
         <a href={vi ? (alternateEnPath || "/blog") : (alternateViPath || "/vi/blog")}>{vi ? "EN" : "VI"}</a>
         <a class="blog-header-cta" href={vi ? "/vi#contact" : "/#contact"}>{vi ? "Trao đổi" : "Talk to Lumi"}</a>
       </nav>
