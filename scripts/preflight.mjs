@@ -4,7 +4,7 @@
 // is missing).
 import { execFileSync } from "node:child_process";
 
-const REQUIRED_SECRETS = ["ADMIN_PASSWORD", "ADMIN_SESSION_SECRET", "EMDASH_ENCRYPTION_KEY"];
+const REQUIRED_SECRETS = ["ADMIN_PASSWORD", "ADMIN_SESSION_SECRET", "EMDASH_ENCRYPTION_KEY", "DISCORD_APPLICATION_WEBHOOK_URL"];
 
 function wranglerJson(args) {
   return JSON.parse(

@@ -9,6 +9,7 @@ import {
   safeHttpUrl
 } from "../../../../lib/ats";
 import { badRequest, redirect303, sameOrigin } from "../../../../lib/http";
+import { notifyApplication } from "../../../../lib/application-notification";
 
 export const prerender = false;
 
@@ -40,7 +41,8 @@ export const POST: APIRoute = async (context) => {
   const fallback = `/jobs/${slug}?error=1`;
   if (!sameOrigin(context.request)) return badRequest("Invalid request origin.");
 
-  const { DB, FILES } = envFromLocals(context.locals);
+  const appEnv = envFromLocals(context.locals);
+  const { DB, FILES } = appEnv;
   const job = await getJobBySlug(DB, slug);
   if (!job) return new Response("Role not found.", { status: 404 });
 
@@ -180,5 +182,8 @@ export const POST: APIRoute = async (context) => {
     return redirect303(fallback);
   }
 
+  // Runs only after the application and file metadata commit. A Discord outage
+  // must never roll back files or encourage candidates to resubmit a saved CV.
+  await notifyApplication(appEnv, { applicationId, publicId, jobTitle: job.title });
   return redirect303(`/jobs/${job.slug}?applied=${encodeURIComponent(publicId)}`);
 };
