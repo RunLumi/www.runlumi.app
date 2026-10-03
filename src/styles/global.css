@@ -1546,3 +1546,22 @@ p {
     color: ButtonText;
   }
 }
+
+/* One explanatory scroll sequence; static content remains fully readable. */
+@keyframes lumi-workflow-arrive { from { opacity: 1; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) and (animation-range: entry 0% entry 100%) {
+     .day-section { view-timeline-name: --lumi-workflow-arrive; view-timeline-axis: block; }
+     .day-moment { animation-name: lumi-workflow-arrive; animation-duration: auto; animation-timing-function: linear; animation-fill-mode: both; animation-timeline: --lumi-workflow-arrive; animation-range: entry 10% entry 95%; }
+  }
+}
+@media (prefers-reduced-motion: reduce) {  .day-moment { animation: none; transform: none; opacity: 1; } }
+
+@media (min-width: 901px) and (min-height: 700px) {
+  .day-section .two-col-section > div:first-child { position: sticky; top: 110px; align-self: start; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .button:active { transform: translateY(1px); }
+  .text-link > span { transition: transform 180ms var(--ease-out); }
+  .text-link:is(:hover, :focus-visible) > span { transform: translateX(2px); }
+}
