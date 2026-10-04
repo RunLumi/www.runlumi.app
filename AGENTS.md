@@ -95,3 +95,9 @@ Use the authenticated CLI or EmDash MCP/API for content changes. Never commit
 source files, `.env` files, logs, PR bodies or `llms.txt`.
 
 Review mobile 320–430px, laptop 1280px, large desktop, both locales, keyboard focus, reduced motion, overflow, and factual claims.
+
+## Maintaining AI engineering guidance
+
+At the first repository task each month (Asia/Ho_Chi_Minh), follow [the monthly practice review](docs/engineering-practices.md#monthly-ai-engineering-practice-review), starting with claude.dev. Apply evidence-backed improvements to this contract and canonical docs; preserve existing ownership, security, product, and release rules. This runs on agent entry, not a background scheduler.
+
+Before long-task interruption/compaction, record a redacted checkpoint and revalidate actual state on resume using [the resume protocol](docs/engineering-practices.md#resuming-agent-work). Claims of better prompt/skill/workflow outcomes require [independent evaluation](docs/engineering-practices.md#evaluating-guidance-changes); source recommendations and green counts alone are not proof.
