@@ -51,7 +51,8 @@ including CMS-only changes through EmDash API/MCP.
 ## Jobs / ATS contract
 
 - `/jobs` is public and candidate-first.
-- `/admin/jobs` is private and decision-first.
+- `/admin/jobs` is private and decision-first; require an active EmDash admin user (`role = 50`).
+- All private hiring pages and APIs use the EmDash session and user record. Never introduce a second password or application-owned login cookie.
 - D1 stores structured hiring data; R2 stores candidate files.
 - Never store CV/file blobs in D1.
 - Candidate files remain private and are served only through authenticated admin endpoints.
@@ -60,6 +61,17 @@ including CMS-only changes through EmDash API/MCP.
 - Do not expose admin credentials, private file URLs, D1 IDs, or secrets in client code.
 - Keep the candidate flow usable without client JavaScript.
 - Prefer Cloudflare Access as a second production layer around admin routes, but do not make public application routes depend on it.
+
+## Collaborator CRM contract
+
+- `/crm` and `/vi/crm` are peer, private sales workspaces using EmDash authentication.
+- Admins grant CRM access to existing active EmDash non-admin users through `/admin/crm`.
+- CRM membership is an explicit user-ID allowlist in the hiring D1 database; resolve identity details from EmDash when needed. EmDash CMS roles alone grant no CRM or hiring access.
+- Contributors see and edit only leads assigned to their EmDash user ID. CRM admins can view all leads and reassign them.
+- Enforce ownership and CRM membership on every server route and D1 query; hide other owners' lead records as not found.
+- Store leads and activity in the hiring D1 database. Store no EmDash credentials, passkeys, or session data there.
+- Every change and note has an actor and timestamp. Versioned updates reject stale edits. Keep prospect records private and never place them in client-side source.
+- Hiring and CRM administration requires EmDash admin role; CRM collaborators must never gain access to candidate applications or files.
 
 ## Finish gate
 

@@ -15,6 +15,7 @@ const { title, description = "Careers at Lumi", admin = false } = Astro.props;
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width" />
     <meta name="theme-color" content="#F4F0E8" />
+    {admin && <meta name="robots" content="noindex, nofollow" />}
     <meta name="description" content={description} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title}</title>
@@ -30,9 +31,11 @@ const { title, description = "Careers at Lumi", admin = false } = Astro.props;
         <nav class="ats-nav" aria-label={admin ? "Admin" : "Jobs"}>
           {admin ? (
             <>
+              <a href="/crm">CRM</a>
+              <a href="/admin/crm">CRM members</a>
               <a href="/admin/jobs">Jobs</a>
               <a href="/admin/jobs/applications">Applications</a>
-              <form method="post" action="/api/admin/logout">
+              <form method="post" action="/_emdash/api/auth/logout?redirect=%2F">
                 <button class="ats-link-button" type="submit">Sign out</button>
               </form>
             </>

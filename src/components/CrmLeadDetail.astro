@@ -1,0 +1,64 @@
+---
+import CrmLayout from "../layouts/CrmLayout.astro";
+import type { Activity, CrmActor, CrmMember, Lead, Stage } from "../lib/crm";
+
+interface Props { actor: CrmActor; lead: Lead; activities: Activity[]; members: CrmMember[]; lang?: "en" | "vi"; error?: string | null }
+const { actor, lead, activities, members, lang = "en", error } = Astro.props;
+const vi = lang === "vi";
+const stages: Stage[] = ["new", "contacted", "qualified", "proposal", "won", "lost"];
+const labels: Record<Stage, string> = vi
+  ? { new: "Mới", contacted: "Đã liên hệ", qualified: "Đủ điều kiện", proposal: "Đề xuất", won: "Thành công", lost: "Đã mất" }
+  : { new: "New", contacted: "Contacted", qualified: "Qualified", proposal: "Proposal", won: "Won", lost: "Lost" };
+function activitySummary(activity: Activity) {
+  if (activity.kind === "note") return activity.body;
+  try {
+    const data = JSON.parse(activity.body) as { from?: { stage?: Stage; owner_id?: string }; to?: { stage?: Stage; owner_id?: string }; stage?: Stage };
+    if (activity.kind === "created") return vi ? `Tạo hồ sơ ở giai đoạn ${labels[data.stage ?? "new"]}.` : `Lead created in ${labels[data.stage ?? "new"]}.`;
+    const changes: string[] = [];
+    if (data.from?.stage && data.to?.stage && data.from.stage !== data.to.stage) changes.push(vi ? `Giai đoạn: ${labels[data.from.stage]} → ${labels[data.to.stage]}` : `Stage: ${labels[data.from.stage]} → ${labels[data.to.stage]}`);
+    if (data.from?.owner_id !== data.to?.owner_id) changes.push(vi ? "Đổi người phụ trách" : "Owner reassigned");
+    if (data.from?.stage === data.to?.stage && data.from?.owner_id === data.to?.owner_id) changes.push(vi ? "Cập nhật thông tin khách hàng" : "Lead details updated");
+    return changes.join(" · ");
+  } catch { return activity.body; }
+}
+---
+<CrmLayout title={`${lead.company} — Lumi CRM`} lang={lang} admin={actor.admin} userName={actor.name}>
+  <section class="crm-page ats-shell crm-detail-page">
+    <a class="crm-back" href={vi ? "/vi/crm" : "/crm"}>← {vi ? "Tất cả khách hàng" : "All leads"}</a>
+    <div class="ats-eyebrow">LUMI / CRM / {vi ? "HỒ SƠ KHÁCH HÀNG" : "LEAD RECORD"}</div>
+    <div class="crm-title-row"><div><h1 class="ats-title">{lead.company}</h1><p class="ats-lede">{lead.contact_name} · {lead.email || lead.phone}</p></div><span class:list={["ats-badge", lead.stage]}>{labels[lead.stage]}</span></div>
+    {error && <div class="ats-notice danger">{error === "conflict" ? (vi ? "Người khác vừa cập nhật hồ sơ này. Tải lại rồi thử lại." : "Someone else updated this lead. Reload and try again.") : error === "owner" ? (vi ? "Hãy chọn cộng tác viên đang được cấp quyền CRM." : "Choose an active CRM member as owner.") : (vi ? "Không thể lưu. Hãy kiểm tra các trường bắt buộc." : "Could not save. Check the required fields.")}</div>}
+    <div class="crm-detail-grid">
+      <section class="ats-card crm-edit-panel">
+        <div class="ats-toolbar"><h2>{vi ? "Thông tin và tiến độ" : "Details and progress"}</h2><span class="ats-count">{vi ? "Phiên bản" : "Version"} {lead.version}</span></div>
+        <form class="ats-form" method="post" action={`/api/crm/leads/${lead.id}/update`}>
+          <input type="hidden" name="version" value={lead.version} /><input type="hidden" name="return_to" value={vi ? "/vi/crm" : "/crm"} />
+          <div class="crm-form-grid">
+            <div class="ats-field"><label for="company">{vi ? "Công ty *" : "Company *"}</label><input class="ats-input" id="company" name="company" value={lead.company} maxlength="160" required /></div>
+            <div class="ats-field"><label for="contact_name">{vi ? "Người liên hệ *" : "Contact name *"}</label><input class="ats-input" id="contact_name" name="contact_name" value={lead.contact_name} maxlength="160" required /></div>
+            <div class="ats-field"><label for="email">Email</label><input class="ats-input" id="email" name="email" type="email" value={lead.email} maxlength="254" /></div>
+            <div class="ats-field"><label for="phone">{vi ? "Điện thoại" : "Phone"}</label><input class="ats-input" id="phone" name="phone" type="tel" value={lead.phone} maxlength="80" /></div>
+            <p class="ats-help crm-wide">{vi ? "Cần ít nhất email hoặc số điện thoại." : "Enter an email address or a phone number."}</p>
+            <div class="ats-field"><label for="source">{vi ? "Nguồn" : "Source"}</label><input class="ats-input" id="source" name="source" value={lead.source} maxlength="200" /></div>
+            <div class="ats-field"><label for="stage">{vi ? "Giai đoạn" : "Stage"}</label><select class="ats-select" id="stage" name="stage">{stages.map((stage) => <option value={stage} selected={stage === lead.stage}>{labels[stage]}</option>)}</select></div>
+            {actor.admin && <div class="ats-field"><label for="owner_id">{vi ? "Người phụ trách" : "Owner"}</label><select class="ats-select" id="owner_id" name="owner_id"><option value={actor.id} selected={actor.id === lead.owner_id}>{actor.name}</option>{members.filter((member) => (member.enabled && member.active) || member.user_id === lead.owner_id).map((member) => <option value={member.user_id} selected={member.user_id === lead.owner_id}>{member.name || member.email}{!member.enabled || !member.active ? (vi ? " (không hoạt động)" : " (inactive)") : ""}</option>)}</select></div>}
+            <div class="ats-field"><label for="value_vnd">{vi ? "Giá trị dự kiến (VND)" : "Estimated value (VND)"}</label><input class="ats-input" id="value_vnd" name="value_vnd" type="number" min="0" max="1000000000000" step="1" value={lead.value_vnd} required /></div>
+            <div class="ats-field crm-wide"><label for="next_action">{vi ? "Bước tiếp theo" : "Next action"}</label><input class="ats-input" id="next_action" name="next_action" value={lead.next_action} maxlength="1000" /></div>
+            <div class="ats-field"><label for="next_contact_on">{vi ? "Ngày liên hệ kế tiếp" : "Next follow-up"}</label><input class="ats-input" id="next_contact_on" name="next_contact_on" type="date" value={lead.next_contact_on ?? ""} /></div>
+            <div class="ats-field crm-wide"><label for="lost_reason">{vi ? "Lý do không thành công (bắt buộc khi chọn Đã mất)" : "Reason lost (required when marked lost)"}</label><textarea class="ats-input" id="lost_reason" name="lost_reason" rows="3" maxlength="1000">{lead.lost_reason}</textarea></div>
+          </div>
+          <button class="ats-button" type="submit">{vi ? "Lưu thay đổi" : "Save changes"}</button>
+        </form>
+        <div class="crm-meta"><span>{vi ? "Tạo lúc" : "Created"}: {lead.created_at.slice(0, 10)}</span><span>{vi ? "Cập nhật" : "Updated"}: {lead.updated_at.slice(0, 10)}</span></div>
+      </section>
+      <aside class="crm-activity-column">
+        <section class="ats-card crm-note-panel"><h2>{vi ? "Ghi chú cuộc trao đổi" : "Conversation note"}</h2><form class="ats-form" method="post" action={`/api/crm/leads/${lead.id}/note`}>
+          <input type="hidden" name="version" value={lead.version} /><input type="hidden" name="return_to" value={vi ? "/vi/crm" : "/crm"} />
+          <div class="ats-field"><label for="note">{vi ? "Ghi lại điều cần nhớ" : "Record what matters"}</label><textarea class="ats-input" id="note" name="note" rows="4" maxlength="3000" required></textarea></div>
+          <button class="ats-button secondary" type="submit">{vi ? "Thêm ghi chú" : "Add note"}</button>
+        </form></section>
+        <section class="ats-card crm-activity-panel"><h2>{vi ? "Nhật ký hoạt động" : "Activity"}</h2>{activities.length ? <ol class="crm-activity-list">{activities.map((activity) => <li><span class="crm-activity-dot" aria-hidden="true"></span><div><strong>{activity.actor_name}</strong><p>{activitySummary(activity)}</p><time datetime={activity.created_at}>{new Date(activity.created_at).toLocaleString(vi ? "vi-VN" : "en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Ho_Chi_Minh" })}</time></div></li>)}</ol> : <p class="ats-help">{vi ? "Chưa có hoạt động." : "No activity yet."}</p>}</section>
+      </aside>
+    </div>
+  </section>
+</CrmLayout>

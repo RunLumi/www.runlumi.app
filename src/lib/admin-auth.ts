@@ -1,68 +1,28 @@
-import { env } from "cloudflare:workers";
-import type { APIContext, AstroGlobal } from "astro";
-
-const COOKIE = "lumi_ats_admin";
-const MAX_AGE = 60 * 60 * 12;
-
-function base64Url(bytes: Uint8Array): string {
-  let binary = "";
-  for (const byte of bytes) binary += String.fromCharCode(byte);
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+// EmDash resolves the current user from its session before application
+// middleware runs. CMS editing roles do not grant ATS administrator access.
+export function activeUser(locals: Pick<App.Locals, "user">) {
+  const user = locals.user;
+  return user?.id && !user.disabled ? user : undefined;
 }
 
-async function hmac(secret: string, value: string): Promise<string> {
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-  const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(value));
-  return base64Url(new Uint8Array(signature));
-}
-
-export async function createAdminSession(secret: string): Promise<string> {
-  const payload = `${Date.now()}.${Date.now() + MAX_AGE * 1000}`;
-  return `${payload}.${await hmac(secret, payload)}`;
-}
-
-export async function verifyAdminSession(secret: string, token: string | undefined): Promise<boolean> {
-  if (!secret || !token) return false;
-  const parts = token.split(".");
-  if (parts.length !== 3) return false;
-  const [issued, expires, signature] = parts;
-  const expiry = Number(expires);
-  if (!Number.isFinite(expiry) || expiry < Date.now()) return false;
-  const payload = `${issued}.${expires}`;
-  const expected = await hmac(secret, payload);
-  if (expected.length !== signature.length) return false;
-  let mismatch = 0;
-  for (let i = 0; i < expected.length; i++) mismatch |= expected.charCodeAt(i) ^ signature.charCodeAt(i);
-  return mismatch === 0;
-}
-
-export function setAdminCookie(context: APIContext, token: string) {
-  context.cookies.set(COOKIE, token, {
-    httpOnly: true,
-    secure: context.url.protocol === "https:",
-    sameSite: "strict",
-    path: "/",
-    maxAge: MAX_AGE
-  });
-}
-
-export function clearAdminCookie(context: APIContext) {
-  context.cookies.delete(COOKIE, { path: "/" });
-}
-
-export async function isAdmin(context: Pick<APIContext, "cookies" | "locals"> | AstroGlobal): Promise<boolean> {
-  const secret = (env as unknown as { ADMIN_SESSION_SECRET: string }).ADMIN_SESSION_SECRET;
-  const token = context.cookies.get(COOKIE)?.value;
-  return verifyAdminSession(secret, token);
+export function isAdmin(locals: Pick<App.Locals, "user">): boolean {
+  return activeUser(locals)?.role === 50;
 }
 
 export function safeNext(value: string | null): string {
-  if (!value || !value.startsWith("/admin/jobs") || value.startsWith("//")) return "/admin/jobs";
-  return value;
+  if (!value || !value.startsWith("/") || value.startsWith("//") || /[\\\x00-\x20]/.test(value)) return "/admin/jobs";
+  try {
+    const url = new URL(value, "https://runlumi.app");
+    const path = decodeURIComponent(url.pathname);
+    const roots = ["/admin/jobs", "/admin/crm", "/crm", "/vi/crm"];
+    if (url.origin !== "https://runlumi.app" || /[\\\x00-\x20]/.test(path)) return "/admin/jobs";
+    if (!roots.some((root) => path === root || path.startsWith(`${root}/`))) return "/admin/jobs";
+    return path === "/admin/jobs/login" ? "/admin/jobs" : url.pathname + url.search;
+  } catch {
+    return "/admin/jobs";
+  }
+}
+
+export function emdashLoginUrl(next: string): string {
+  return `/_emdash/admin/login?redirect=${encodeURIComponent(safeNext(next))}`;
 }

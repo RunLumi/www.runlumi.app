@@ -1,10 +1,8 @@
 // Deploy preflight: verify the remote Worker has the secrets the app requires
-// before shipping. A deploy without ADMIN_PASSWORD/ADMIN_SESSION_SECRET would
-// silently brick the admin login (the handler bounces every attempt when either
-// is missing).
+// before shipping. Admin access uses EmDash's session and user database.
 import { execFileSync } from "node:child_process";
 
-const REQUIRED_SECRETS = ["ADMIN_PASSWORD", "ADMIN_SESSION_SECRET", "EMDASH_ENCRYPTION_KEY", "DISCORD_APPLICATION_WEBHOOK_URL"];
+const REQUIRED_SECRETS = ["EMDASH_ENCRYPTION_KEY", "DISCORD_APPLICATION_WEBHOOK_URL"];
 
 function wranglerJson(args) {
   return JSON.parse(
