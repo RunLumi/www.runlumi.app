@@ -1,0 +1,41 @@
+---
+import "../styles/jobs.css";
+
+interface Props { title: string; lang?: "en" | "vi"; admin?: boolean; userName: string }
+const { title, lang = "en", admin = false, userName } = Astro.props;
+const isVi = lang === "vi";
+---
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="theme-color" content="#F4F0E8" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{title}</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body class="crm-app">
+    <a class="ats-skip" href="#main">{isVi ? "Đến nội dung chính" : "Skip to content"}</a>
+    <header class="ats-header">
+      <div class="ats-shell ats-header-inner">
+        <a class="ats-brand" href={isVi ? "/vi/crm" : "/crm"}>
+          <img src="/brand/lumi-fulltext.svg" alt="Lumi" width="98" height="50" />
+          <span>CRM</span>
+        </a>
+        <nav class="ats-nav" aria-label={isVi ? "Điều hướng CRM" : "CRM navigation"}>
+          <a href={isVi ? "/vi/crm" : "/crm"}>{isVi ? "Khách hàng tiềm năng" : "Leads"}</a>
+          {admin && <a href="/admin/crm">{isVi ? "Cộng tác viên" : "Members"}</a>}
+          {admin && <a href="/admin/jobs">{isVi ? "Tuyển dụng" : "Hiring"}</a>}
+          <a href={isVi ? "/crm" : "/vi/crm"} lang={isVi ? "en" : "vi"}>{isVi ? "EN" : "VI"}</a>
+          <span class="crm-user">{userName}</span>
+          <form method="post" action="/_emdash/api/auth/logout?redirect=%2F">
+            <button class="ats-link-button" type="submit">{isVi ? "Đăng xuất" : "Sign out"}</button>
+          </form>
+        </nav>
+      </div>
+    </header>
+    <main id="main"><slot /></main>
+    <footer class="ats-footer"><div class="ats-shell"><span>© 2026 Cloudjet Solutions Pte. Ltd.</span><a href="mailto:hello@runlumi.app">hello@runlumi.app</a></div></footer>
+  </body>
+</html>

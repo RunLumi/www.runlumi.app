@@ -1,0 +1,69 @@
+---
+import CrmLayout from "../layouts/CrmLayout.astro";
+import type { CrmActor, CrmMember, Lead, Stage } from "../lib/crm";
+
+interface Props { actor: CrmActor; leads: Lead[]; members: CrmMember[]; ownerNames: Record<string, string>; lang?: "en" | "vi"; error?: string | null; totalCount: number; stageCounts: Record<Stage, number>; page: number; pageCount: number }
+const { actor, leads, members, ownerNames, lang = "en", error, totalCount, stageCounts, page, pageCount } = Astro.props;
+const vi = lang === "vi";
+const stageLabels: Record<Stage, string> = vi
+  ? { new: "Mới", contacted: "Đã liên hệ", qualified: "Đủ điều kiện", proposal: "Đề xuất", won: "Thành công", lost: "Đã mất" }
+  : { new: "New", contacted: "Contacted", qualified: "Qualified", proposal: "Proposal", won: "Won", lost: "Lost" };
+const counts = stageCounts;
+const date = (value: string | null) => value ? value.slice(0, 10) : (vi ? "Chưa đặt" : "Not set");
+---
+<CrmLayout title={vi ? "CRM cộng tác viên — Lumi" : "Lumi CRM — Leads"} lang={lang} admin={actor.admin} userName={actor.name}>
+  <section class="crm-page ats-shell">
+    <div class="ats-eyebrow">LUMI / CRM / {vi ? "ĐƯỜNG ỐNG BÁN HÀNG" : "SALES PIPELINE"}</div>
+    <div class="crm-title-row">
+      <div>
+        <h1 class="ats-title">{vi ? "Giữ bước tiếp theo luôn rõ ràng." : "Keep the next step clear."}</h1>
+        <p class="ats-lede">{vi ? "Theo dõi khách hàng, tiến độ bán hàng và lần liên hệ kế tiếp." : "Track prospects, sales progress, and the next follow-up."}</p>
+      </div>
+      <div class="crm-total"><strong>{totalCount}</strong><span>{vi ? "khách hàng" : "leads"}</span></div>
+    </div>
+    <div class="crm-stage-grid" aria-label={vi ? "Tổng quan theo giai đoạn" : "Pipeline by stage"}>
+      {(Object.keys(stageLabels) as Stage[]).map((stage) => <a class:list={["crm-stage", `stage-${stage}`]} aria-current={Astro.url.searchParams.get("stage") === stage ? "true" : undefined} href={`?stage=${stage}`}><span>{stageLabels[stage]}</span><strong>{counts[stage]}</strong></a>)}
+    </div>
+    <div class="crm-workspace">
+      <section class="ats-card crm-leads-panel">
+        <div class="ats-toolbar"><h2>{vi ? "Khách hàng tiềm năng" : "Leads"}</h2><a class="ats-button secondary" href={vi ? "/crm" : "/vi/crm"} lang={vi ? "en" : "vi"}>{vi ? "English" : "Tiếng Việt"}</a></div>
+        <form class="crm-filter" method="get">
+          <label for="stage-filter">{vi ? "Giai đoạn" : "Stage"}</label>
+          <select class="ats-select" id="stage-filter" name="stage"><option value="">{vi ? "Tất cả" : "All stages"}</option>{(Object.keys(stageLabels) as Stage[]).map((stage) => <option value={stage} selected={Astro.url.searchParams.get("stage") === stage}>{stageLabels[stage]}</option>)}</select>
+          <button class="ats-button secondary" type="submit">{vi ? "Lọc" : "Filter"}</button>
+          {Astro.url.searchParams.has("stage") && <a href={vi ? "/vi/crm" : "/crm"}>{vi ? "Xóa lọc" : "Clear"}</a>}
+        </form>
+        {error && <div class="ats-notice danger">{error === "conflict" ? (vi ? "Hồ sơ đã được cập nhật ở nơi khác. Hãy tải lại trước khi sửa." : "This lead changed elsewhere. Reload it before editing.") : (vi ? "Không thể lưu. Hãy kiểm tra lại thông tin." : "Could not save. Check the entered details.")}</div>}
+        {leads.length ? <div class="crm-lead-list">{leads.map((lead) => <a class="crm-lead-row" href={`${vi ? "/vi" : ""}/crm/${lead.id}`}>
+          <span class="crm-lead-main"><strong>{lead.company}</strong><span>{lead.contact_name} · {lead.email || lead.phone}</span>{actor.admin && <span class="crm-owner">{vi ? "Phụ trách" : "Owner"}: {ownerNames[lead.owner_id] ?? (vi ? "Tài khoản EmDash không hoạt động" : "Inactive EmDash account")}</span>}</span>
+          <span class:list={["ats-badge", lead.stage]}>{stageLabels[lead.stage]}</span>
+          <span class="crm-next">{lead.next_contact_on ? date(lead.next_contact_on) : (vi ? "Chưa hẹn" : "No follow-up")}</span>
+          <span class="crm-value">{new Intl.NumberFormat(vi ? "vi-VN" : "en-US").format(lead.value_vnd)} ₫</span>
+        </a>)}</div> : <div class="ats-empty"><h2>{vi ? "Chưa có khách hàng." : "No leads yet."}</h2><p>{vi ? "Thêm khách hàng đầu tiên để ghi lại cuộc trao đổi và bước tiếp theo." : "Add a prospect to record the conversation and next step."}</p></div>}
+        {pageCount > 1 && <nav class="crm-pagination" aria-label={vi ? "Phân trang" : "Pagination"}>
+          <span>{vi ? `Trang ${page} / ${pageCount}` : `Page ${page} of ${pageCount}`}</span>
+          <div>{page > 1 && <a class="ats-button secondary" href={`?${Astro.url.searchParams.has("stage") ? `stage=${encodeURIComponent(Astro.url.searchParams.get("stage")!)}&` : ""}page=${page - 1}`}>{vi ? "Trước" : "Previous"}</a>}
+          {page < pageCount && <a class="ats-button secondary" href={`?${Astro.url.searchParams.has("stage") ? `stage=${encodeURIComponent(Astro.url.searchParams.get("stage")!)}&` : ""}page=${page + 1}`}>{vi ? "Tiếp" : "Next"}</a>}</div>
+        </nav>}
+      </section>
+      <aside class="ats-card crm-create-panel">
+        <h2>{vi ? "Thêm khách hàng" : "Add a lead"}</h2>
+        <p class="ats-help">{vi ? "Chỉ người phụ trách và admin có thể xem hồ sơ." : "Only the owner and CRM admins can view a lead."}</p>
+        <form class="ats-form" method="post" action="/api/crm/leads">
+          <input type="hidden" name="return_to" value={vi ? "/vi/crm" : "/crm"} />
+          <div class="ats-field"><label for="company">{vi ? "Công ty *" : "Company *"}</label><input class="ats-input" id="company" name="company" maxlength="160" required /></div>
+          <div class="ats-field"><label for="contact_name">{vi ? "Người liên hệ *" : "Contact name *"}</label><input class="ats-input" id="contact_name" name="contact_name" maxlength="160" required /></div>
+          <div class="ats-field"><label for="email">Email</label><input class="ats-input" id="email" name="email" type="email" maxlength="254" /></div>
+          <div class="ats-field"><label for="phone">{vi ? "Điện thoại" : "Phone"}</label><input class="ats-input" id="phone" name="phone" type="tel" maxlength="80" /></div>
+          <p class="ats-help crm-contact-help">{vi ? "Cần ít nhất email hoặc số điện thoại." : "Enter an email address or a phone number."}</p>
+          <div class="ats-field"><label for="source">{vi ? "Nguồn" : "Source"}</label><input class="ats-input" id="source" name="source" maxlength="200" /></div>
+          {actor.admin && <div class="ats-field"><label for="owner_id">{vi ? "Người phụ trách" : "Owner"}</label><select class="ats-select" id="owner_id" name="owner_id"><option value={actor.id}>{actor.name}</option>{members.filter((member) => member.enabled && member.active && member.user_id !== actor.id).map((member) => <option value={member.user_id}>{member.name || member.email}</option>)}</select></div>}
+          <div class="ats-field"><label for="value_vnd">{vi ? "Giá trị dự kiến (VND)" : "Estimated value (VND)"}</label><input class="ats-input" id="value_vnd" name="value_vnd" type="number" min="0" max="1000000000000" step="1" value="0" required /></div>
+          <div class="ats-field"><label for="next_action">{vi ? "Bước tiếp theo" : "Next action"}</label><input class="ats-input" id="next_action" name="next_action" maxlength="1000" /></div>
+          <div class="ats-field"><label for="next_contact_on">{vi ? "Ngày liên hệ" : "Follow-up date"}</label><input class="ats-input" id="next_contact_on" name="next_contact_on" type="date" /></div>
+          <button class="ats-button" type="submit">{vi ? "Lưu khách hàng" : "Save lead"}</button>
+        </form>
+      </aside>
+    </div>
+  </section>
+</CrmLayout>

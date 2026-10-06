@@ -1,0 +1,43 @@
+---
+import JobsLayout from "../../../layouts/JobsLayout.astro";
+import { envFromLocals } from "../../../lib/ats";
+import { members } from "../../../lib/crm";
+
+export const prerender = false;
+const { DB, CONTENT_DB } = envFromLocals(Astro.locals);
+const current = await members(DB, CONTENT_DB);
+const accounts = (await CONTENT_DB.prepare("SELECT id, email, name, role FROM users WHERE disabled = 0 AND role < 50 ORDER BY name, email LIMIT 250").all<{id:string;email:string;name:string|null;role:number}>()).results;
+const byId = new Map(current.map((member) => [member.user_id, member]));
+const status = Astro.url.searchParams.get("status");
+---
+<JobsLayout title="CRM members — Lumi" admin>
+  <section class="ats-page"><div class="ats-shell">
+    <a class="crm-back" href="/crm">← CRM</a>
+    <div class="ats-eyebrow">LUMI / CRM / ACCESS</div>
+    <h1 class="ats-title">CRM members</h1>
+    <p class="ats-lede">Grant lead access to active EmDash accounts. Create or invite accounts in EmDash first. Hiring permissions remain limited to EmDash administrators.</p>
+    {status === "not-found" && <div class="ats-notice danger">No active non-admin EmDash account matches that email.</div>}
+    <div class="admin-grid" style="margin-top:36px">
+      <section class="ats-card admin-panel">
+        <h2>Grant CRM access</h2>
+        <form class="ats-form" method="post" action="/api/admin/crm/members">
+          <input type="hidden" name="enabled" value="1" />
+          <div class="ats-field"><label for="email">EmDash account email</label><input class="ats-input" id="email" name="email" type="email" autocomplete="email" maxlength="254" required /></div>
+          <button class="ats-button" type="submit">Grant access</button>
+        </form>
+        <p class="ats-help" style="margin-top:16px">Collaborators sign in at <a href="/_emdash/admin/login">EmDash</a>, then open <a href="/crm">the CRM</a>. They see leads assigned to them.</p>
+      </section>
+      <section class="ats-card admin-panel">
+        <h2>CRM access</h2>
+        {current.length ? <div class="crm-member-list">{current.map((member) => <div class="crm-member-row">
+          <div><strong>{member.name || member.email || "EmDash account unavailable"}</strong><span>{member.email}</span></div>
+          <span class:list={["ats-badge", member.enabled && member.active ? "published" : "closed"]}>{!member.enabled ? "CRM disabled" : member.active ? "Enabled" : "EmDash account inactive"}</span>
+          <form method="post" action="/api/admin/crm/members"><input type="hidden" name="user_id" value={member.user_id} /><input type="hidden" name="enabled" value={member.enabled ? "0" : "1"} /><button class="ats-button secondary" type="submit">{member.enabled ? "Revoke" : "Restore"}</button></form>
+        </div>)}</div> : <div class="ats-empty"><h2>No collaborators yet.</h2><p>Grant access to an active EmDash account to begin.</p></div>}
+      </section>
+    </div>
+    <section class="ats-card admin-panel" style="margin-top:22px"><h2>Active EmDash accounts</h2><p class="ats-help">An account appears here after it has signed into EmDash. Administrators already have CRM access.</p>
+      {accounts.length ? <div class="crm-account-list">{accounts.map((account) => { const access = byId.get(account.id); return <div class="crm-account-row"><div><strong>{account.name || account.email}</strong><span>{account.email} · {account.role === 40 ? "Editor" : account.role === 30 ? "Author" : account.role === 20 ? "Contributor" : "Member"}</span></div><span>{access?.enabled ? "CRM access enabled" : access ? "CRM access disabled" : "No CRM access"}</span></div>; })}</div> : <p class="ats-help">No active non-admin accounts found.</p>}
+    </section>
+  </div></section>
+</JobsLayout>
