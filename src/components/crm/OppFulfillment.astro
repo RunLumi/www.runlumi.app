@@ -1,0 +1,110 @@
+---
+import Hidden from "./Hidden.astro";
+import Field from "./Field.astro";
+import { errorText, formatDate, label } from "../../lib/crm/i18n";
+import { errorFor, valueFor } from "../../lib/crm/page";
+import { fulfillmentStatuses, handoffKeys, kindFor, parseJson, siteChecks, type Handoff } from "../../lib/crm/fulfillment";
+import { vnDate } from "../../lib/crm/money";
+import type { OppProps } from "../../lib/crm/routes/opportunity";
+
+type Props = OppProps;
+const { ctx, state, access, playbook, quotes, fulfillment, names } = Astro.props;
+const { lang, vi } = ctx;
+const actor = ctx.actor;
+const kind = kindFor(playbook);
+const accepted = quotes.some((quote) => quote.status === "accepted");
+const handoff = fulfillment ? parseJson<Handoff>(fulfillment.handoff, {}) : {};
+const checks = fulfillment ? parseJson<Record<string, string>>(fulfillment.checks, {}) : {};
+const approval = fulfillment ? parseJson<{ approved_on?: string; evidence?: string } | null>(fulfillment.owner_approval, null) : null;
+const acceptance = fulfillment ? parseJson<{ accepted_on?: string; evidence?: string } | null>(fulfillment.acceptance, null) : null;
+const handoffLabels: Record<string, [string, string]> = {
+  confirmed_content: ["Content the owner confirmed", "Nội dung chủ đã xác nhận"], assets_permitted: ["Assets permitted for use", "Hình ảnh/tài liệu được phép dùng"],
+  domain_choice: ["Address choice (subdomain, custom, undecided)", "Lựa chọn địa chỉ (subdomain, tên miền riêng, chưa quyết)"], domain_name: ["Domain / address", "Tên miền / địa chỉ"],
+  domain_ownership: ["Domain ownership and transfer terms", "Quyền sở hữu và chuyển tên miền"], domain_cost: ["Domain cost to confirm", "Chi phí tên miền cần xác nhận"],
+  revision_terms: ["Revision scope agreed", "Phạm vi chỉnh sửa đã thống nhất"], delivery_date: ["Agreed delivery date", "Ngày giao đã hẹn"],
+  cancellation_terms: ["Cancellation / refund terms actually agreed", "Điều kiện hủy / hoàn tiền đã thực sự thỏa thuận"],
+  enquiry_destination: ["Where site enquiries go (agreed with the owner)", "Nơi nhận yêu cầu từ website (đã thống nhất với chủ)"], response_owner: ["Who responds to enquiries", "Người phản hồi yêu cầu"],
+  missing_info: ["Missing information", "Thông tin còn thiếu"], next_appointment: ["Next appointment", "Lịch hẹn tiếp theo"],
+};
+const longKeys = new Set(["confirmed_content", "assets_permitted", "domain_ownership", "revision_terms", "cancellation_terms", "missing_info"]);
+const ownerCanEdit = access.canEdit && fulfillment && ["waiting_info", "pending"].includes(fulfillment.status);
+const handoffForm = (intent: string) => handoffKeys.map((key) => ({ key, value: valueFor(state, intent, `handoff.${key}`, (handoff as Record<string, string>)[key] ?? ""), error: errorFor(state, intent, `handoff.${key}`) }));
+const fError = state.intent === "fulfillment" ? Object.values(state.errors)[0] : undefined;
+---
+{kind && <section class="crm-sheet" id="fulfillment" aria-labelledby="fulfillment-h">
+  <h2 class="crm-h2" id="fulfillment-h">{vi ? "Bàn giao và thực hiện" : "Handoff and delivery"}</h2>
+  {!fulfillment ? (
+    !accepted ? <p class="crm-empty">{vi ? "Bàn giao mở sau khi khách chấp thuận báo giá." : "Handoff opens once the customer accepts a quote."}</p>
+    : access.canEdit ? <form class="crm-form" method="post" action="#fulfillment">
+      <Hidden intent="handoff" state={state} />
+      <p class="crm-help">{vi ? "Phạm vi lấy từ báo giá đã chấp thuận; người bán không tự tăng phạm vi. Ghi đúng điều đã thỏa thuận với chủ." : "Scope comes from the accepted quote; sellers cannot widen it. Record only what was agreed with the owner."}</p>
+      <div class="crm-form-grid">
+        {handoffForm("handoff").map((item) => <Field name={`handoff.${item.key}`} type={item.key === "delivery_date" ? "date" : longKeys.has(item.key) ? "textarea" : "text"} label={handoffLabels[item.key][vi ? 1 : 0]} lang={lang} value={item.value} error={item.error} wide={longKeys.has(item.key)} required={kind === "local_site" && ["confirmed_content", "assets_permitted", "domain_choice", "revision_terms", "delivery_date", "enquiry_destination", "response_owner"].includes(item.key)} maxlength={1000} />)}
+      </div>
+      {errorFor(state, "handoff", "handoff") && <p class="crm-error">{errorText(lang, errorFor(state, "handoff", "handoff"))}</p>}
+      <div class="crm-actions"><button class="crm-button" type="submit">{vi ? "Chuyển cho bộ phận thực hiện" : "Hand off to fulfillment"}</button></div>
+    </form> : <p class="crm-empty">{vi ? "Chưa bàn giao." : "Not handed off yet."}</p>
+  ) : <>
+    <dl class="crm-facts">
+      <div><dt>{vi ? "Loại" : "Kind"}</dt><dd>{label(lang, "fulfillmentKind", fulfillment.kind)}</dd></div>
+      <div><dt>{vi ? "Trạng thái" : "Status"}</dt><dd>{label(lang, "fulfillment", fulfillment.status)}{fulfillment.blocked ? <span class="crm-badge red" style="margin-left:6px">{vi ? "Bị chặn" : "Blocked"}</span> : null}</dd></div>
+      <div><dt>{vi ? "Người thực hiện" : "Assignee"}</dt><dd>{fulfillment.assignee_id ? names[fulfillment.assignee_id]?.name ?? "—" : (vi ? "Chưa giao" : "Unassigned")}</dd></div>
+      <div><dt>{vi ? "Chủ duyệt" : "Owner approval"}</dt><dd>{approval?.approved_on ? `${formatDate(approval.approved_on, lang)} · ${approval.evidence}` : (vi ? "Chưa có" : "Not yet")}</dd></div>
+      <div><dt>{vi ? "Nghiệm thu" : "Acceptance"}</dt><dd>{acceptance?.accepted_on ? `${formatDate(acceptance.accepted_on, lang)} · ${acceptance.evidence}` : (vi ? "Chưa có" : "Not yet")}</dd></div>
+    </dl>
+    {fulfillment.blocked ? <p class="crm-notice bad" style="margin-top:12px">{fulfillment.blocked_reason}</p> : null}
+    <ol class="crm-stages" style="margin-top:14px" aria-label={vi ? "Tiến độ thực hiện" : "Delivery progress"}>{fulfillmentStatuses[fulfillment.kind].map((status) => <li><span class:list={{ current: status === fulfillment.status }} aria-current={status === fulfillment.status ? "true" : undefined}>{label(lang, "fulfillment", status)}</span></li>)}</ol>
+    <h3 class="crm-h3">{vi ? "Thông tin bàn giao" : "Handoff"}</h3>
+    <p class="crm-help">{vi ? "Phạm vi" : "Scope"}: {handoff.scope}</p>
+    <dl class="crm-facts">{handoffKeys.filter((key) => handoff[key]).map((key) => <div><dt>{handoffLabels[key][vi ? 1 : 0]}</dt><dd>{handoff[key]}</dd></div>)}</dl>
+    {fulfillment.kind === "local_site" && <><h3 class="crm-h3">{vi ? "Kiểm tra trước khi live" : "Launch checks"}</h3>
+      <dl class="crm-facts">{siteChecks.map((check) => <div><dt>{label(lang, "check", check)}</dt><dd>{checks[check] ? label(lang, "checkValue", checks[check]) : (vi ? "Chưa kiểm tra" : "Not checked")}{checks[`${check}_note`] && <span class="crm-meta"><br />{checks[`${check}_note`]}</span>}</dd></div>)}</dl></>}
+
+    {(ownerCanEdit || actor.fulfillment) && <details class="crm-disclosure" open={state.intent === "handoff_update"}>
+      <summary>{vi ? "Bổ sung thông tin bàn giao" : "Complete handoff details"}</summary>
+      <form class="crm-form" method="post" action="#fulfillment">
+        <Hidden intent="handoff_update" state={state} version={fulfillment.version} />
+        <div class="crm-form-grid">{handoffForm("handoff_update").map((item) => <Field name={`handoff.${item.key}`} id={`hu-${item.key}`} type={item.key === "delivery_date" ? "date" : longKeys.has(item.key) ? "textarea" : "text"} label={handoffLabels[item.key][vi ? 1 : 0]} lang={lang} value={item.value} error={item.error} wide={longKeys.has(item.key)} maxlength={1000} />)}</div>
+        <div class="crm-actions"><button class="crm-button secondary" type="submit">{vi ? "Lưu bàn giao" : "Save handoff"}</button></div>
+      </form>
+    </details>}
+
+    {actor.fulfillment && <div style="margin-top:16px">
+      <h3 class="crm-h3">{vi ? "Thao tác thực hiện" : "Fulfillment actions"}</h3>
+      {fError && <p class="crm-error" role="alert">{errorText(lang, fError)}</p>}
+      <div class="crm-grid cols">
+        <form class="crm-form" method="post" action="#fulfillment">
+          <Hidden intent="fulfillment" state={state} version={fulfillment.version} /><input type="hidden" name="fulfillment_action" value="status" />
+          <Field name="status" id="ful-status" type="select" label={vi ? "Đổi trạng thái" : "Change status"} lang={lang} value={fulfillment.status} options={fulfillmentStatuses[fulfillment.kind].map((status) => ({ value: status, label: label(lang, "fulfillment", status) }))} />
+          <button class="crm-button small" type="submit">{vi ? "Cập nhật" : "Update"}</button>
+        </form>
+        <form class="crm-form" method="post" action="#fulfillment">
+          <Hidden intent="fulfillment" state={state} version={fulfillment.version} /><input type="hidden" name="fulfillment_action" value="block" /><input type="hidden" name="blocked" value={fulfillment.blocked ? "0" : "1"} />
+          {!fulfillment.blocked && <Field name="blocked_reason" id="ful-block" label={vi ? "Nguyên nhân bị chặn" : "Why it is blocked"} lang={lang} value="" maxlength={500} />}
+          <button class="crm-button small secondary" type="submit">{fulfillment.blocked ? (vi ? "Gỡ chặn" : "Unblock") : (vi ? "Đánh dấu bị chặn" : "Mark blocked")}</button>
+        </form>
+        <form class="crm-form" method="post" action="#fulfillment">
+          <Hidden intent="fulfillment" state={state} version={fulfillment.version} /><input type="hidden" name="fulfillment_action" value="owner_approval" />
+          <Field name="approved_on" id="ful-appr-on" type="date" label={vi ? "Ngày chủ duyệt" : "Date the owner approved"} lang={lang} value={approval?.approved_on ?? vnDate()} />
+          <Field name="approval_evidence" id="ful-appr-ev" label={vi ? "Bằng chứng từ chính chủ" : "Evidence from the owner"} lang={lang} value={approval?.evidence ?? ""} maxlength={500} />
+          <button class="crm-button small secondary" type="submit">{vi ? "Ghi nhận chủ duyệt" : "Record owner approval"}</button>
+        </form>
+        <form class="crm-form" method="post" action="#fulfillment">
+          <Hidden intent="fulfillment" state={state} version={fulfillment.version} /><input type="hidden" name="fulfillment_action" value="acceptance" />
+          <Field name="accepted_on" id="ful-acc-on" type="date" label={vi ? "Ngày nghiệm thu" : "Acceptance date"} lang={lang} value={acceptance?.accepted_on ?? vnDate()} />
+          <Field name="acceptance_evidence" id="ful-acc-ev" label={vi ? "Bằng chứng nghiệm thu" : "Acceptance evidence"} lang={lang} value={acceptance?.evidence ?? ""} maxlength={500} />
+          <button class="crm-button small secondary" type="submit">{vi ? "Ghi nhận nghiệm thu" : "Record acceptance"}</button>
+        </form>
+      </div>
+      {fulfillment.kind === "local_site" && <form class="crm-form" method="post" action="#fulfillment" style="margin-top:16px">
+        <Hidden intent="fulfillment" state={state} version={fulfillment.version} /><input type="hidden" name="fulfillment_action" value="checks" />
+        <div class="crm-form-grid">{siteChecks.map((check) => <div class="crm-field">
+          <label for={`chk-${check}`}>{label(lang, "check", check)}</label>
+          <select class="crm-select" id={`chk-${check}`} name={`check.${check}`}><option value="">{vi ? "Chưa kiểm tra" : "Not checked"}</option>{["pass", "fail", "na"].map((value) => <option value={value} selected={checks[check] === value}>{label(lang, "checkValue", value)}</option>)}</select>
+          <input class="crm-input" name={`check_note.${check}`} aria-label={`${label(lang, "check", check)} — ${vi ? "ghi chú" : "note"}`} value={checks[`${check}_note`] ?? ""} maxlength="300" />
+        </div>)}</div>
+        <div class="crm-actions"><button class="crm-button small secondary" type="submit">{vi ? "Lưu kết quả kiểm tra" : "Save checks"}</button></div>
+      </form>}
+    </div>}
+  </>}
+</section>}

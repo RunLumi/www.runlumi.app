@@ -1,0 +1,51 @@
+---
+import Hidden from "./Hidden.astro";
+import Field from "./Field.astro";
+import { errorText } from "../../lib/crm/i18n";
+import { errorFor, valueFor } from "../../lib/crm/page";
+import { requirementLabel, stageIndex } from "../../lib/crm/playbook";
+import type { OppProps } from "../../lib/crm/routes/opportunity";
+
+type Props = OppProps;
+const { ctx, state, access, playbook, transitions } = Astro.props;
+const { lang, vi } = ctx;
+const opp = access.opportunity;
+const def = playbook.def;
+const current = stageIndex(def, opp.stage_id);
+const nextOpen = def.stages.slice(current + 1).find((stage) => stage.outcome === "open" || stage.outcome === "won");
+const nextCheck = nextOpen ? transitions[nextOpen.id] : null;
+const stageError = errorFor(state, "stage", "to_stage");
+const missing = stageError?.startsWith("missing:") ? stageError.slice(8).split(",") : [];
+---
+<section class="crm-sheet" id="stage" aria-labelledby="stage-h">
+  <h2 class="crm-h2" id="stage-h">{vi ? "Tiến độ bán hàng" : "Sales progress"}</h2>
+  <ol class="crm-stages" aria-label={vi ? "Các giai đoạn" : "Stages"}>
+    {def.stages.map((stage, index) => <li><span class:list={{ current: stage.id === opp.stage_id, done: index < current && stage.outcome === "open", terminal: stage.outcome !== "open" }} aria-current={stage.id === opp.stage_id ? "true" : undefined}>
+      <span>{index + 1}. {vi ? stage.vi : stage.en}</span>{stage.skippable && <span class="crm-help">{vi ? "có thể bỏ qua" : "skippable"}</span>}
+    </span></li>)}
+  </ol>
+  {nextOpen && nextCheck && opp.outcome === "open" && <p class="crm-help">
+    {nextCheck.ok
+      ? (vi ? `Đủ điều kiện chuyển sang “${nextOpen.vi}”.` : `Ready to move to “${nextOpen.en}”.`)
+      : <>{vi ? `Để chuyển sang “${nextOpen.vi}” cần: ` : `To move to “${nextOpen.en}” you need: `}{nextCheck.missing.map((key) => requirementLabel(def, key, vi)).join(" · ")}</>}
+  </p>}
+  {access.canEdit && <form class="crm-form" method="post" action="#stage" style="margin-top:12px">
+    <Hidden intent="stage" state={state} version={opp.version} />
+    <div class="crm-form-grid">
+      <div class="crm-field" data-invalid={stageError ? "" : undefined}>
+        <label for="to_stage">{vi ? "Chuyển sang giai đoạn" : "Move to stage"}</label>
+        <select class="crm-select" id="to_stage" name="to_stage" aria-describedby={stageError ? "to_stage-error" : undefined}>
+          {def.stages.filter((stage) => stage.id !== opp.stage_id).map((stage) => {
+            const check = transitions[stage.id];
+            const note = check?.ok ? (check.skipped.length ? (vi ? " — bỏ qua bước, cần lý do" : " — skips steps, reason needed") : "") : (vi ? " — chưa đủ điều kiện" : " — requirements missing");
+            return <option value={stage.id} selected={valueFor(state, "stage", "to_stage", nextOpen?.id ?? "") === stage.id}>{vi ? stage.vi : stage.en}{note}</option>;
+          })}
+        </select>
+        {stageError && <span class="crm-error" id="to_stage-error">{errorText(lang, stageError)}{missing.length > 0 && ` ${missing.map((key) => requirementLabel(def, key, vi)).join(" · ")}`}</span>}
+      </div>
+      <Field name="reason" type="textarea" label={vi ? "Lý do (bắt buộc khi bỏ qua bước, thua hoặc tạm hoãn)" : "Reason (required when skipping, lost or on hold)"} lang={lang} value={valueFor(state, "stage", "reason", "")} error={errorFor(state, "stage", "reason")} maxlength={1000} wide />
+    </div>
+    <div class="crm-actions"><button class="crm-button" type="submit">{vi ? "Chuyển giai đoạn" : "Move stage"}</button></div>
+  </form>}
+  {opp.outcome === "lost" && opp.lost_reason && <p class="crm-help">{vi ? "Lý do" : "Reason"}: {opp.lost_reason}</p>}
+</section>

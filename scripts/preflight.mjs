@@ -2,7 +2,7 @@
 // before shipping. Admin access uses EmDash's session and user database.
 import { execFileSync } from "node:child_process";
 
-const REQUIRED_SECRETS = ["EMDASH_ENCRYPTION_KEY", "DISCORD_APPLICATION_WEBHOOK_URL"];
+const REQUIRED_SECRETS = ["EMDASH_ENCRYPTION_KEY", "DISCORD_APPLICATION_WEBHOOK_URL", "CRM_INTAKE_SECRET"];
 
 function wranglerJson(args) {
   return JSON.parse(

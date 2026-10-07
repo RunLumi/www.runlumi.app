@@ -1,0 +1,178 @@
+---
+import Hidden from "./Hidden.astro";
+import Field from "./Field.astro";
+import { formatDate, label, options } from "../../lib/crm/i18n";
+import { formatVnd, refundableAmount, effectiveEntries, vnDate } from "../../lib/crm/money";
+import { errorFor, valueFor } from "../../lib/crm/page";
+import { parseSnapshot } from "../../lib/crm/commercial";
+import type { OppProps } from "../../lib/crm/routes/opportunity";
+
+type Props = OppProps;
+const { ctx, state, access, offers, quoteOffers, quotes, ledger, summary, credit, names } = Astro.props;
+const { lang, vi } = ctx;
+const actor = ctx.actor;
+const canEdit = access.canEdit;
+const v = (intent: string, name: string, fallback = "") => valueFor(state, intent, name, fallback);
+const e = (intent: string, name: string) => errorFor(state, intent, name);
+const live = new Set(effectiveEntries(ledger).map((entry) => entry.id));
+const voided = new Set(ledger.filter((entry) => entry.kind === "void" && entry.status === "confirmed").map((entry) => entry.target_entry_id));
+const payments = ledger.filter((entry) => entry.kind === "payment" && entry.status === "confirmed" && live.has(entry.id));
+const who = (id: string | null) => id ? (names[id]?.name ?? (id === actor.id ? actor.name : id.startsWith("intake:") ? "intake" : "—")) : "—";
+const customOffers = offers.filter((offer) => offer.list_price_vnd === null);
+const creditReason: Record<string, [string, string]> = {
+  no_source: ["No confirmed Trust Kit payment on this business.", "Doanh nghiệp chưa có khoản Trust Kit đã xác nhận."],
+  not_fully_paid: ["The Trust Kit payment was refunded or voided.", "Khoản Trust Kit đã được hoàn hoặc hủy."],
+  already_used: ["The Trust Kit credit was already used once.", "Credit Trust Kit đã dùng một lần."],
+  expired: ["The credit window has closed.", "Cửa sổ credit đã đóng."],
+  before_payment: ["Acceptance date is before the Trust Kit payment.", "Ngày chấp thuận trước ngày thanh toán Trust Kit."],
+};
+---
+<section class="crm-sheet" id="commercial" aria-labelledby="commercial-h">
+  <h2 class="crm-h2" id="commercial-h">{vi ? "Báo giá, phải thu và thanh toán" : "Quotes, amounts due and payments"}</h2>
+  <p class="crm-help">{vi ? "Sổ theo dõi thương mại, không phải kế toán. Chấp thuận ≠ đã thanh toán. Thanh toán chỉ được tính khi người có quyền tài chính xác nhận bằng chứng." : "A commercial record, not accounting. Accepted is not paid. A payment counts only after someone with finance rights confirms its evidence."}</p>
+  <dl class="crm-facts" aria-label={vi ? "Tóm tắt" : "Summary"}>
+    <div><dt>{vi ? "Phải thu" : "Amount due"}</dt><dd class="crm-num">{formatVnd(summary.receivable, vi)}</dd></div>
+    <div><dt>Credit</dt><dd class="crm-num">{formatVnd(summary.credit, vi)}</dd></div>
+    <div><dt>{vi ? "Đã thu (xác nhận)" : "Collected (confirmed)"}</dt><dd class="crm-num">{formatVnd(summary.collected, vi)}</dd></div>
+    <div><dt>{vi ? "Đã hoàn" : "Refunded"}</dt><dd class="crm-num">{formatVnd(summary.refunded, vi)}</dd></div>
+    <div><dt>{vi ? "Còn lại" : "Outstanding"}</dt><dd class="crm-num">{formatVnd(Math.max(0, summary.outstanding), vi)}</dd></div>
+    <div><dt>{vi ? "Chờ xác nhận" : "Awaiting confirmation"}</dt><dd class="crm-num">{formatVnd(summary.pendingPayments, vi)}</dd></div>
+  </dl>
+
+  {credit && <div class:list={["crm-notice", credit.eligible ? "good" : ""]} style="margin-top:16px">
+    {credit.eligible
+      ? <>{vi ? `Đủ điều kiện credit Trust Kit ${formatVnd(credit.amount, vi)}, còn hiệu lực hết ngày ${formatDate(credit.expiresOn, lang)}. Credit chỉ áp dụng một lần và là điều chỉnh giá, không phải tiền thu.` : `Eligible for the Trust Kit credit of ${formatVnd(credit.amount, vi)}, available through ${formatDate(credit.expiresOn, lang)}. It applies once and adjusts price; it is not cash.`}</>
+      : <>{creditReason[credit.reason]?.[vi ? 1 : 0]}{credit.expiresOn ? ` (${vi ? "hạn" : "window end"} ${formatDate(credit.expiresOn, lang)})` : ""}</>}
+  </div>}
+
+  <h3 class="crm-h3">{vi ? "Báo giá" : "Quotes"}</h3>
+  {quotes.length ? <ul class="crm-list">{quotes.map((quote) => {
+    const snap = parseSnapshot(quote);
+    const offer = quoteOffers[quote.offer_id];
+    const mine = state.intent === "quote_accept" && state.values.quote_id === quote.id;
+    return <li class="crm-row">
+      <strong>{snap ? (vi ? snap.offer.name_vi : snap.offer.name_en) : (offer ? (vi ? offer.name_vi : offer.name_en) : quote.offer_id)} <span class="crm-meta">v{snap?.offer.version ?? offer?.version}</span></strong>
+      <span class="crm-row-side"><span class:list={["crm-badge", quote.status === "accepted" ? "green" : quote.status === "draft" ? "blue" : ""]}>{label(lang, "quote", quote.status)}</span></span>
+      <span class="crm-row-meta">
+        {snap?.lines.map((line) => <span class="crm-num">{line.label}: {formatVnd(line.amount_vnd, vi)} ({label(lang, "charge", line.charge_type)})</span>)}
+        {quote.credit_vnd > 0 && <span class="crm-num">Credit: −{formatVnd(quote.credit_vnd, vi)}</span>}
+        <span class="crm-num"><strong>{vi ? "Khách trả" : "Customer pays"}: {formatVnd(Math.max(0, quote.price_vnd - quote.credit_vnd), vi)}</strong></span>
+        {quote.accepted_on && <span>{vi ? "Chấp thuận" : "Accepted"} {formatDate(quote.accepted_on, lang)} · {quote.acceptance_evidence}</span>}
+        {snap?.price_note && <span>{snap.price_note}</span>}
+      </span>
+      {snap && <details class="crm-disclosure"><summary>{vi ? "Điều khoản đã chốt trong báo giá" : "Terms frozen in this quote"}</summary><p>{vi ? snap.offer.scope_vi : snap.offer.scope_en}</p><p class="crm-help">{vi ? snap.offer.conditions_vi : snap.offer.conditions_en}</p><p class="crm-help">{vi ? "Nguồn" : "Source"}: {snap.offer.source_ref} · {vi ? "hiệu lực" : "effective"} {snap.offer.effective_from}</p></details>}
+      {canEdit && quote.status === "draft" && <form class="crm-form" method="post" action="#commercial">
+        <Hidden intent="quote_accept" state={state} /><input type="hidden" name="quote_id" value={quote.id} />
+        {mine && state.errors.quote_id && <p class="crm-error" role="alert">{(() => { const code = state.errors.quote_id; const map: Record<string, [string, string]> = { credit_expired: ["The credit window closed. Withdraw this quote and create a new one.", "Cửa sổ credit đã đóng. Rút báo giá này và tạo báo giá mới."], credit_already_used: ["That Trust Kit payment was already credited.", "Khoản Trust Kit đó đã được credit."], credit_not_fully_paid: ["The Trust Kit payment was refunded or voided.", "Khoản Trust Kit đã hoàn hoặc hủy."], credit_changed: ["Credit eligibility changed. Create a new quote.", "Điều kiện credit đã thay đổi. Tạo báo giá mới."], credit_available: ["A Trust Kit credit now applies. Withdraw this quote and create a new one.", "Khoản credit Trust Kit nay đã áp dụng được. Rút báo giá này và tạo báo giá mới."], not_draft: ["This quote is no longer a draft.", "Báo giá không còn là bản nháp."] }; return map[code]?.[vi ? 1 : 0] ?? (vi ? "Không thể chấp thuận báo giá này." : "This quote cannot be accepted."); })()}</p>}
+        <div class="crm-form-grid">
+          <Field name="accepted_on" id={`acc-on-${quote.id}`} type="date" label={vi ? "Ngày khách chấp thuận" : "Date the customer accepted"} lang={lang} value={mine ? state.values.accepted_on ?? "" : vnDate()} error={mine ? state.errors.accepted_on : undefined} />
+          <Field name="acceptance_evidence" id={`acc-ev-${quote.id}`} label={vi ? "Bằng chứng chấp thuận (tin nhắn, chữ ký…)" : "Evidence of acceptance (message, signature…)"} lang={lang} value={mine ? state.values.acceptance_evidence ?? "" : ""} error={mine ? state.errors.acceptance_evidence : undefined} required maxlength={500} />
+        </div>
+        <div class="crm-actions"><button class="crm-button small" type="submit">{vi ? "Ghi nhận khách chấp thuận" : "Record acceptance"}</button></div>
+      </form>}
+      {canEdit && quote.status === "draft" && <form method="post" action="#commercial"><Hidden intent="quote_withdraw" state={state} /><input type="hidden" name="quote_id" value={quote.id} /><button class="crm-button small secondary" type="submit">{vi ? "Rút báo giá" : "Withdraw quote"}</button></form>}
+    </li>;
+  })}</ul> : <p class="crm-empty">{vi ? "Chưa có báo giá." : "No quotes yet."}</p>}
+
+  {canEdit && offers.length > 0 && <details class="crm-disclosure" open={state.intent === "quote_create"}>
+    <summary>{vi ? "Tạo báo giá" : "Create a quote"}</summary>
+    <form class="crm-form" method="post" action="#commercial">
+      <Hidden intent="quote_create" state={state} />
+      <fieldset class="crm-fieldset"><legend>{vi ? "Gói" : "Offer"}</legend>
+        {offers.map((offer) => <label class="crm-check"><input type="radio" name="offer_id" value={offer.id} checked={v("quote_create", "offer_id", offers[0].id) === offer.id} /><span><strong>{vi ? offer.name_vi : offer.name_en}</strong> v{offer.version} — {offer.list_price_vnd === null ? label(lang, "charge", "custom") : `${formatVnd(offer.list_price_vnd, vi)} · ${label(lang, "charge", offer.charge_type)}`}<br /><span class="crm-help">{vi ? offer.conditions_vi : offer.conditions_en}</span></span></label>)}
+      </fieldset>
+      {e("quote_create", "offer_id") && <p class="crm-error">{vi ? "Gói không hợp lệ cho playbook này." : "That offer is not allowed for this playbook."}</p>}
+      {actor.admin && <div class="crm-form-grid">
+        <Field name="price_override" label={vi ? "Giá khác giá niêm yết (chỉ admin)" : "Price other than list (admin only)"} lang={lang} value={v("quote_create", "price_override")} error={e("quote_create", "price_override")} inputmode="numeric" />
+        <Field name="price_note" label={vi ? "Lý do / ghi chú giá" : "Price reason / note"} lang={lang} value={v("quote_create", "price_note")} error={e("quote_create", "price_note")} maxlength={500} />
+      </div>}
+      {customOffers.length > 0 && <fieldset class="crm-fieldset"><legend>{vi ? "Dòng phí (chỉ cho gói báo giá theo dự án; chỉ ghi khi đã thỏa thuận)" : "Fee lines (quoted offers only; enter only what was agreed)"}</legend>
+        {[0, 1, 2].map((index) => <div class="crm-form-grid">
+          <Field name={`line.${index}.label`} label={vi ? "Mô tả" : "Description"} lang={lang} value={v("quote_create", `line.${index}.label`)} error={e("quote_create", `line.${index}.label`)} maxlength={160} />
+          <Field name={`line.${index}.charge_type`} type="select" label={vi ? "Loại phí" : "Charge"} lang={lang} value={v("quote_create", `line.${index}.charge_type`, "setup")} error={e("quote_create", `line.${index}.charge_type`)} options={["setup", "monthly", "annual", "project", "one_time"].map((value) => ({ value, label: label(lang, "charge", value) }))} />
+          <Field name={`line.${index}.amount_vnd`} label={vi ? "Số tiền (VND)" : "Amount (VND)"} lang={lang} value={v("quote_create", `line.${index}.amount_vnd`)} error={e("quote_create", `line.${index}.amount_vnd`)} inputmode="numeric" />
+        </div>)}
+        <p class="crm-help">{vi ? "Phí hằng tháng không tính vào khoản phải thu khi chấp thuận; tài chính ghi từng kỳ khi phát sinh." : "Monthly fees are not due at acceptance; finance records each period when it falls due."}</p>
+      </fieldset>}
+      <div class="crm-actions"><button class="crm-button" type="submit">{vi ? "Tạo báo giá" : "Create quote"}</button></div>
+    </form>
+  </details>}
+
+  <h3 class="crm-h3">{vi ? "Sổ ghi" : "Ledger"}</h3>
+  {ledger.length ? <div class="crm-table-wrap"><table class="crm-table">
+    <thead><tr><th>{vi ? "Loại" : "Type"}</th><th class="num">{vi ? "Số tiền" : "Amount"}</th><th>{vi ? "Ngày" : "Date"}</th><th>{vi ? "Trạng thái" : "Status"}</th><th>{vi ? "Bằng chứng / ghi chú" : "Evidence / note"}</th><th>{vi ? "Ghi bởi" : "Recorded by"}</th></tr></thead>
+    <tbody>{ledger.map((entry) => <tr>
+      <td>{label(lang, "ledger", entry.kind)}{voided.has(entry.id) && <span class="crm-badge" style="margin-left:6px">{vi ? "đã hủy" : "voided"}</span>}</td>
+      <td class="num">{entry.kind === "void" ? "—" : `${entry.kind === "credit" || entry.kind === "refund" ? "−" : ""}${formatVnd(entry.amount_vnd, vi)}`}</td>
+      <td>{formatDate(entry.occurred_on, lang)}{entry.period_start && <span class="crm-meta"><br />{formatDate(entry.period_start, lang)} → {formatDate(entry.period_end, lang)}</span>}</td>
+      <td>{label(lang, "ledgerStatus", entry.status)}{entry.confirmed_by && entry.kind === "payment" && <span class="crm-meta"><br />{who(entry.confirmed_by)}</span>}</td>
+      <td>{entry.evidence}{entry.note && <span class="crm-meta"><br />{entry.note}</span>}</td>
+      <td>{who(entry.recorded_by)}</td>
+    </tr>)}</tbody>
+  </table></div> : <p class="crm-empty">{vi ? "Chưa có ghi nhận." : "Nothing recorded yet."}</p>}
+
+  {actor.finance && ledger.some((entry) => entry.kind === "payment" && entry.status === "pending") && <div style="margin-top:14px">
+    {ledger.filter((entry) => entry.kind === "payment" && entry.status === "pending").map((entry) => <form class="crm-form crm-sheet flat" method="post" action="#commercial" style="margin-top:10px">
+      <Hidden intent="payment_review" state={state} /><input type="hidden" name="entry_id" value={entry.id} />
+      <p style="margin:0"><strong class="crm-num">{formatVnd(entry.amount_vnd, vi)}</strong> · {formatDate(entry.occurred_on, lang)} · {label(lang, "method", entry.method)} · {entry.evidence}</p>
+      <Field name="note" id={`review-${entry.id}`} label={vi ? "Ghi chú (bắt buộc khi từ chối)" : "Note (required to reject)"} lang={lang} value="" error={state.intent === "payment_review" && state.values.entry_id === entry.id ? state.errors.note : undefined} maxlength={500} />
+      <div class="crm-actions"><button class="crm-button small" type="submit" name="decision" value="confirm">{vi ? "Xác nhận đã nhận tiền" : "Confirm money received"}</button><button class="crm-button small danger" type="submit" name="decision" value="reject">{vi ? "Từ chối" : "Reject"}</button></div>
+    </form>)}
+  </div>}
+
+  {(canEdit || actor.finance) && <details class="crm-disclosure" open={state.intent === "payment"}>
+    <summary>{actor.finance ? (vi ? "Ghi nhận thanh toán (đã xác nhận)" : "Record a payment (confirmed)") : (vi ? "Báo cáo đã nhận thanh toán (chờ xác nhận)" : "Report a payment (awaits confirmation)")}</summary>
+    <form class="crm-form" method="post" action="#commercial">
+      <Hidden intent="payment" state={state} />
+      <div class="crm-form-grid">
+        <Field name="amount_vnd" label={vi ? "Số tiền thực nhận (VND)" : "Amount actually received (VND)"} lang={lang} value={v("payment", "amount_vnd")} error={e("payment", "amount_vnd")} required inputmode="numeric" />
+        <Field name="occurred_on" type="date" label={vi ? "Ngày nhận" : "Date received"} lang={lang} value={v("payment", "occurred_on", vnDate())} error={e("payment", "occurred_on")} required />
+        <Field name="method" type="select" label={vi ? "Hình thức" : "Method"} lang={lang} value={v("payment", "method", "bank_transfer")} error={e("payment", "method")} options={options(lang, "method")} required />
+        <Field name="evidence" label={vi ? "Bằng chứng (mã giao dịch, ảnh biên nhận…)" : "Evidence (transaction ref, receipt…)"} lang={lang} value={v("payment", "evidence")} error={e("payment", "evidence")} required maxlength={500} />
+        <Field name="period_start" type="date" label={vi ? "Kỳ dịch vụ từ (nếu có)" : "Service period from (if any)"} lang={lang} value={v("payment", "period_start")} error={e("payment", "period_start")} />
+        <Field name="period_end" type="date" label={vi ? "Đến" : "To"} lang={lang} value={v("payment", "period_end")} error={e("payment", "period_end")} />
+        <Field name="note" id="payment-note" label={vi ? "Ghi chú" : "Note"} lang={lang} value={v("payment", "note")} maxlength={500} wide />
+      </div>
+      <div class="crm-actions"><button class="crm-button" type="submit">{vi ? "Ghi nhận" : "Record"}</button></div>
+    </form>
+  </details>}
+
+  {actor.finance && payments.length > 0 && <details class="crm-disclosure" open={state.intent === "refund"}>
+    <summary>{vi ? "Hoàn tiền" : "Refund"}</summary>
+    <form class="crm-form" method="post" action="#commercial">
+      <Hidden intent="refund" state={state} />
+      <div class="crm-form-grid">
+        <Field name="target_entry_id" type="select" label={vi ? "Khoản thanh toán" : "Payment"} lang={lang} value={v("refund", "target_entry_id")} error={e("refund", "target_entry_id")} options={payments.map((entry) => ({ value: entry.id, label: `${formatVnd(entry.amount_vnd, vi)} · ${entry.occurred_on} · ${vi ? "còn hoàn được" : "refundable"} ${formatVnd(refundableAmount(ledger, entry.id), vi)}` }))} />
+        <Field name="amount_vnd" id="refund-amount" label={vi ? "Số tiền hoàn (VND)" : "Amount refunded (VND)"} lang={lang} value={v("refund", "amount_vnd")} error={e("refund", "amount_vnd")} required inputmode="numeric" />
+        <Field name="occurred_on" id="refund-date" type="date" label={vi ? "Ngày hoàn" : "Date"} lang={lang} value={v("refund", "occurred_on", vnDate())} error={e("refund", "occurred_on")} required />
+        <Field name="evidence" id="refund-evidence" label={vi ? "Bằng chứng" : "Evidence"} lang={lang} value={v("refund", "evidence")} error={e("refund", "evidence")} required maxlength={500} />
+        <Field name="note" id="refund-note" label={vi ? "Lý do" : "Reason"} lang={lang} value={v("refund", "note")} error={e("refund", "note")} required maxlength={500} wide />
+      </div>
+      <p class="crm-help">{vi ? "Chưa có chính sách hoàn tiền chung; chỉ ghi lại khoản hoàn đã thực sự thỏa thuận." : "There is no general refund policy; record only refunds actually agreed."}</p>
+      <div class="crm-actions"><button class="crm-button" type="submit">{vi ? "Ghi nhận hoàn tiền" : "Record refund"}</button></div>
+    </form>
+  </details>}
+
+  {actor.finance && ledger.some((entry) => live.has(entry.id)) && <details class="crm-disclosure" open={state.intent === "void" || state.intent === "receivable"}>
+    <summary>{vi ? "Điều chỉnh sai sót / ghi phải thu theo kỳ" : "Correct an entry / record a periodic amount due"}</summary>
+    <form class="crm-form" method="post" action="#commercial">
+      <Hidden intent="void" state={state} />
+      <div class="crm-form-grid">
+        <Field name="target_entry_id" id="void-target" type="select" label={vi ? "Dòng cần hủy" : "Entry to void"} lang={lang} value={v("void", "target_entry_id")} error={e("void", "target_entry_id")} options={effectiveEntries(ledger).map((entry) => ({ value: entry.id, label: `${label(lang, "ledger", entry.kind)} · ${formatVnd(entry.amount_vnd, vi)} · ${entry.occurred_on}` }))} />
+        <Field name="note" id="void-note" label={vi ? "Lý do điều chỉnh" : "Reason"} lang={lang} value={v("void", "note")} error={e("void", "note")} required maxlength={500} />
+      </div>
+      <p class="crm-help">{vi ? "Dòng gốc vẫn hiển thị; báo cáo bỏ qua dòng đã hủy. Ghi lại dòng đúng nếu cần." : "The original stays visible; reports ignore voided entries. Record the correct entry if needed."}</p>
+      <div class="crm-actions"><button class="crm-button danger" type="submit">{vi ? "Hủy dòng" : "Void entry"}</button></div>
+    </form>
+    <form class="crm-form" method="post" action="#commercial" style="margin-top:16px">
+      <Hidden intent="receivable" state={state} />
+      <div class="crm-form-grid">
+        <Field name="amount_vnd" id="rec-amount" label={vi ? "Số tiền phải thu (VND)" : "Amount due (VND)"} lang={lang} value={v("receivable", "amount_vnd")} error={e("receivable", "amount_vnd")} required inputmode="numeric" />
+        <Field name="period_start" id="rec-start" type="date" label={vi ? "Kỳ từ" : "Period from"} lang={lang} value={v("receivable", "period_start")} error={e("receivable", "period_start")} required />
+        <Field name="period_end" id="rec-end" type="date" label={vi ? "Đến" : "To"} lang={lang} value={v("receivable", "period_end")} error={e("receivable", "period_end")} required />
+        <Field name="note" id="rec-note" label={vi ? "Căn cứ" : "Basis"} lang={lang} value={v("receivable", "note")} error={e("receivable", "note")} required maxlength={500} />
+      </div>
+      <div class="crm-actions"><button class="crm-button secondary" type="submit">{vi ? "Ghi phải thu" : "Record amount due"}</button></div>
+    </form>
+  </details>}
+</section>

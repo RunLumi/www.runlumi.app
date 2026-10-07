@@ -1,0 +1,79 @@
+---
+import Hidden from "./Hidden.astro";
+import Field from "./Field.astro";
+import { formatDate, label, options } from "../../lib/crm/i18n";
+import { errorFor, valueFor } from "../../lib/crm/page";
+import type { OppProps } from "../../lib/crm/routes/opportunity";
+import { costCategories, externalStates, taskOutcomes } from "../../lib/crm/tasks";
+
+type Props = OppProps;
+const { ctx, state, access, tasks, contacts } = Astro.props;
+const { lang, vi } = ctx;
+const open = tasks.filter((task) => task.status === "open");
+const closed = tasks.filter((task) => task.status !== "open").slice(0, 20);
+const v = (name: string, fallback = "") => valueFor(state, "task_create", name, fallback);
+const e = (name: string) => errorFor(state, "task_create", name);
+const updateFor = (taskId: string) => state.intent === "task_update" && state.values.task_id === taskId;
+const contactOptions = [{ value: "", label: vi ? "Không chọn" : "No specific contact" }, ...contacts.map((contact) => ({ value: contact.id, label: `${contact.name}${contact.do_not_contact ? (vi ? " — không liên hệ" : " — do not contact") : ""}` }))];
+---
+<section class="crm-sheet" id="tasks" aria-labelledby="tasks-h">
+  <h2 class="crm-h2" id="tasks-h">{vi ? "Việc, lịch hẹn và ghé thăm" : "Tasks, meetings and visits"}<span class="crm-count">{open.length}</span></h2>
+  {open.length ? <ul class="crm-list">{open.map((task) => <li class="crm-row">
+    <strong>{task.title}</strong>
+    <span class="crm-row-side"><span class="crm-badge">{label(lang, "task", task.kind)}</span>{(task.kind === "meeting" || task.kind === "demo") && <span class:list={["crm-badge", task.meeting_confirmed ? "green" : "amber"]}>{task.meeting_confirmed ? (vi ? "Hai bên đã xác nhận" : "Confirmed by both") : (vi ? "Chưa xác nhận" : "Not confirmed")}</span>}{task.external_state !== "none" && <span class:list={["crm-badge", task.external_state === "unknown" ? "amber" : task.external_state === "failed" ? "red" : ""]}>{label(lang, "external", task.external_state)}</span>}{task.needs_help ? <span class="crm-badge amber">{vi ? "Cần hỗ trợ" : "Help requested"}</span> : null}</span>
+    <span class="crm-row-meta"><span>{formatDate(task.due_on, lang)}{task.due_time ? ` · ${task.due_time}` : ""}</span>{task.contact_id && <span>{contacts.find((contact) => contact.id === task.contact_id)?.name}</span>}{task.note && <span>{task.note}</span>}{task.help_note && <span>{task.help_note}</span>}</span>
+    {access.canEdit && <details class="crm-disclosure" open={updateFor(task.id)}>
+      <summary>{vi ? "Cập nhật kết quả" : "Record outcome"}</summary>
+      <form class="crm-form" method="post" action="#tasks">
+        <Hidden intent="task_update" state={state} /><input type="hidden" name="task_id" value={task.id} /><input type="hidden" name="task_action" value="complete" />
+        <div class="crm-form-grid">
+          <Field name="outcome" id={`outcome-${task.id}`} type="select" label={vi ? "Kết quả" : "Outcome"} lang={lang} value={updateFor(task.id) ? state.values.outcome ?? "" : ""} error={updateFor(task.id) ? state.errors.outcome : undefined} options={[{ value: "", label: vi ? "Chọn" : "Choose" }, ...taskOutcomes.map((value) => ({ value, label: label(lang, "taskOutcome", value) }))]} required />
+          <Field name="minutes" id={`minutes-${task.id}`} label={vi ? "Thời gian (phút)" : "Time spent (minutes)"} lang={lang} value={updateFor(task.id) ? state.values.minutes ?? "" : ""} error={updateFor(task.id) ? state.errors.minutes : undefined} inputmode="numeric" />
+          <Field name="category" id={`category-${task.id}`} type="select" label={vi ? "Loại thời gian" : "Time category"} lang={lang} value={updateFor(task.id) ? state.values.category ?? "sales" : task.kind === "visit" ? "travel" : "sales"} options={costCategories.slice(0, 6).map((value) => ({ value, label: label(lang, "cost", value) }))} />
+          <Field name="note" id={`note-${task.id}`} label={vi ? "Ghi chú" : "Note"} lang={lang} value={updateFor(task.id) ? state.values.note ?? "" : ""} maxlength={1000} />
+        </div>
+        <div class="crm-actions"><button class="crm-button small" type="submit">{vi ? "Hoàn tất việc" : "Complete task"}</button></div>
+      </form>
+      <div class="crm-actions" style="margin-top:10px">
+        {(task.kind === "meeting" || task.kind === "demo") && !task.meeting_confirmed && <form method="post" action="#tasks"><Hidden intent="task_update" state={state} /><input type="hidden" name="task_id" value={task.id} /><input type="hidden" name="task_action" value="confirm" /><button class="crm-button small secondary" type="submit">{vi ? "Đánh dấu hai bên đã xác nhận" : "Mark confirmed by both sides"}</button></form>}
+        <form method="post" action="#tasks"><Hidden intent="task_update" state={state} /><input type="hidden" name="task_id" value={task.id} /><input type="hidden" name="task_action" value="cancel" /><button class="crm-button small secondary" type="submit">{vi ? "Hủy việc" : "Cancel task"}</button></form>
+      </div>
+      <form class="crm-form" method="post" action="#tasks" style="margin-top:10px">
+        <Hidden intent="task_update" state={state} /><input type="hidden" name="task_id" value={task.id} /><input type="hidden" name="task_action" value="help" />
+        <input type="hidden" name="needs_help" value={task.needs_help ? "0" : "1"} />
+        {!task.needs_help && <Field name="help_note" id={`help-${task.id}`} label={vi ? "Cần hỗ trợ gì (kỹ thuật, admin)" : "What help is needed (technical, admin)"} lang={lang} value={updateFor(task.id) ? state.values.help_note ?? "" : ""} error={updateFor(task.id) ? state.errors.help_note : undefined} maxlength={500} />}
+        <div class="crm-actions"><button class="crm-button small secondary" type="submit">{task.needs_help ? (vi ? "Đã được hỗ trợ" : "Help resolved") : (vi ? "Yêu cầu hỗ trợ" : "Request help")}</button></div>
+      </form>
+      {task.kind === "message" && <form class="crm-form" method="post" action="#tasks" style="margin-top:10px">
+        <Hidden intent="task_update" state={state} /><input type="hidden" name="task_id" value={task.id} /><input type="hidden" name="task_action" value="external" />
+        <p class="crm-help">{vi ? "CRM không gửi tin. Ghi lại trạng thái tin nhắn bạn gửi ngoài hệ thống; kết quả chưa rõ phải được xác minh, không gửi lại tự động." : "The CRM sends nothing. Record the state of a message you sent elsewhere; an unknown result must be verified, never resent automatically."}</p>
+        <div class="crm-form-grid">
+          <Field name="external_state" id={`ext-${task.id}`} type="select" label={vi ? "Trạng thái gửi" : "Send state"} lang={lang} value={task.external_state} error={updateFor(task.id) ? state.errors.external_state : undefined} options={externalStates.filter((value) => value !== "none").map((value) => ({ value, label: label(lang, "external", value) }))} />
+          <Field name="note" id={`extnote-${task.id}`} label={vi ? "Bằng chứng / ghi chú" : "Evidence / note"} lang={lang} value="" error={updateFor(task.id) ? state.errors.note : undefined} maxlength={1000} />
+        </div>
+        <div class="crm-actions"><button class="crm-button small secondary" type="submit">{vi ? "Cập nhật trạng thái" : "Update state"}</button></div>
+      </form>}
+    </details>}
+  </li>)}</ul> : <p class="crm-empty">{vi ? "Chưa có việc đang mở." : "No open tasks."}</p>}
+
+  {access.canEdit && <details class="crm-disclosure" open={state.intent === "task_create" || open.length === 0}>
+    <summary>{vi ? "Thêm việc hoặc lịch hẹn" : "Add a task or appointment"}</summary>
+    <form class="crm-form" method="post" action="#tasks">
+      <Hidden intent="task_create" state={state} />
+      <div class="crm-form-grid">
+        <Field name="kind" type="select" label={vi ? "Loại" : "Kind"} lang={lang} value={v("kind", "follow_up")} error={e("kind")} options={options(lang, "task")} required />
+        <Field name="title" label={vi ? "Việc cần làm" : "What to do"} lang={lang} value={v("title")} error={e("title")} required maxlength={300} />
+        <Field name="due_on" type="date" label={vi ? "Ngày" : "Date"} lang={lang} value={v("due_on")} error={e("due_on")} help={vi ? "Bắt buộc với ghé thăm, cuộc hẹn, demo." : "Required for visits, meetings and demos."} />
+        <Field name="due_time" type="time" label={vi ? "Giờ" : "Time"} lang={lang} value={v("due_time")} error={e("due_time")} />
+        <Field name="contact_id" type="select" label={vi ? "Người liên hệ" : "Contact"} lang={lang} value={v("contact_id")} error={e("contact_id")} options={contactOptions} />
+        <Field name="channel" type="select" label={vi ? "Kênh" : "Channel"} lang={lang} value={v("channel")} options={options(lang, "contactChannel")} />
+        <Field name="note" label={vi ? "Ghi chú" : "Note"} lang={lang} value={v("note")} maxlength={1000} wide />
+      </div>
+      <label class="crm-check"><input type="checkbox" name="meeting_confirmed" value="1" checked={v("meeting_confirmed") === "1"} /><span>{vi ? "Cuộc hẹn đã được cả hai bên xác nhận" : "Both sides have confirmed this meeting"}</span></label>
+      <div class="crm-actions"><button class="crm-button" type="submit">{vi ? "Thêm việc" : "Add task"}</button></div>
+    </form>
+  </details>}
+  {closed.length > 0 && <details class="crm-disclosure"><summary>{vi ? `Đã xong (${closed.length})` : `Done (${closed.length})`}</summary>
+    <ul class="crm-list">{closed.map((task) => <li class="crm-row"><span>{task.title}</span><span class="crm-row-side"><span class="crm-badge">{label(lang, "task", task.kind)}</span><span class="crm-badge">{task.status === "cancelled" ? (vi ? "Đã hủy" : "Cancelled") : label(lang, "taskOutcome", task.outcome)}</span></span></li>)}</ul>
+  </details>}
+</section>

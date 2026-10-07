@@ -1,0 +1,110 @@
+---
+import CrmShell from "../../layouts/CrmShell.astro";
+import Field from "./Field.astro";
+import FormNotices from "./FormNotices.astro";
+import Hidden from "./Hidden.astro";
+import { formatDateTime, label } from "../../lib/crm/i18n";
+import { errorFor, valueFor } from "../../lib/crm/page";
+import type { AdminProps } from "../../lib/crm/routes/admin";
+import type { IntakePayload } from "../../lib/crm/intake";
+import { costCategories } from "../../lib/crm/tasks";
+
+type Props = AdminProps;
+const { ctx, state, team, accounts, inbound, owners, cohorts, playbooks } = Astro.props;
+const { lang, vi, base } = ctx;
+const byId = new Map(team.map((member) => [member.user_id, member]));
+const roleName = (role: number) => role === 40 ? "Editor" : role === 30 ? "Author" : role === 20 ? "Contributor" : "Member";
+const v = (intent: string, name: string, fallback = "") => valueFor(state, intent, name, fallback);
+const e = (intent: string, name: string) => errorFor(state, intent, name);
+const payload = (raw: string) => { try { return JSON.parse(raw) as IntakePayload; } catch { return null; } };
+---
+<CrmShell title={vi ? "Quản trị CRM" : "CRM admin"} lang={lang} actor={ctx.actor} current="admin">
+  <div class="crm-head"><div>
+    <p class="crm-eyebrow">{vi ? "Quản trị" : "Admin"}</p>
+    <h1 class="crm-h1">{vi ? "Đội ngũ, phân công và cấu hình bán hàng." : "Team, assignment and sales configuration."}</h1>
+    <p class="crm-lede">{vi ? "Danh tính và đăng nhập do EmDash quản lý. Quyền CRM không cấp quyền tuyển dụng; không cần nâng ai lên admin EmDash để làm tài chính hay bàn giao." : "EmDash owns identity and sign-in. CRM access grants nothing in hiring; nobody needs EmDash admin to handle finance or fulfillment."}</p>
+  </div><div class="crm-actions"><a class="crm-button secondary" href={`${base}/admin/playbooks`}>{vi ? "Playbook" : "Playbooks"}</a><a class="crm-button secondary" href={`${base}/admin/offers`}>{vi ? "Gói và giá" : "Offers and prices"}</a></div></div>
+  <FormNotices state={state} lang={lang} saved={Astro.url.searchParams.get("saved")} />
+
+  <section class="crm-sheet" id="inbound" aria-labelledby="inbound-h">
+    <h2 class="crm-h2" id="inbound-h">{vi ? "Yêu cầu từ website chờ phân công" : "Website enquiries waiting for assignment"}<span class="crm-count">{inbound.length}</span></h2>
+    <p class="crm-help">{vi ? "Chỉ yêu cầu gửi tới Lumi từ local.runlumi.app. Yêu cầu chưa phải thanh toán, tài khoản hay khách đã đủ điều kiện." : "Only enquiries addressed to Lumi from local.runlumi.app. An enquiry is not a payment, an account or a qualified lead."}</p>
+    {inbound.length ? <ul class="crm-list">{inbound.map((row) => { const data = payload(row.payload); return <li class="crm-row">
+      <a class="crm-row-title" href={`${base}/${row.opportunity_id}`}>{data?.business ?? row.id}</a>
+      <span class="crm-row-side">{row.suppressed ? <span class="crm-badge red">{vi ? "Số này từng yêu cầu không liên hệ" : "This number previously opted out"}</span> : null}<span class="crm-badge">{data?.locale?.toUpperCase()}</span></span>
+      <span class="crm-row-meta"><span>{data?.name}</span><span>{data?.context ? `${data.context.source} · ${data.context.cta_intent} · ${data.context.offer_interest}` : (vi ? "Không có ngữ cảnh trang" : "No page context")}</span><span>{formatDateTime(row.received_at, lang)}</span>{data?.note && <span>{data.note}</span>}</span>
+      <div class="crm-grid cols">
+        <form class="crm-form" method="post" action="#inbound"><Hidden intent="inbound_assign" state={state} /><input type="hidden" name="inbound_id" value={row.id} />
+          <Field name="owner_id" id={`ib-owner-${row.id}`} type="select" label={vi ? "Giao cho" : "Assign to"} lang={lang} value="" options={[{ value: "", label: vi ? "Chọn người" : "Choose" }, ...owners.map((owner) => ({ value: owner.id, label: owner.label }))]} error={state.intent === "inbound_assign" && state.values.inbound_id === row.id ? state.errors.owner_id : undefined} />
+          <button class="crm-button small" type="submit">{vi ? "Giao" : "Assign"}</button></form>
+        <form class="crm-form" method="post" action="#inbound"><Hidden intent="inbound_dismiss" state={state} /><input type="hidden" name="inbound_id" value={row.id} />
+          <Field name="dismiss_reason" id={`ib-dis-${row.id}`} label={vi ? "Lý do bỏ qua (spam, nhầm…)" : "Reason to dismiss (spam, misdirected…)"} lang={lang} value="" maxlength={500} error={state.intent === "inbound_dismiss" && state.values.inbound_id === row.id ? state.errors.dismiss_reason : undefined} />
+          <button class="crm-button small secondary" type="submit">{vi ? "Bỏ qua" : "Dismiss"}</button></form>
+      </div>
+    </li>; })}</ul> : <p class="crm-empty">{vi ? "Không có yêu cầu đang chờ." : "No enquiries waiting."}</p>}
+  </section>
+
+  <section class="crm-sheet" id="members" aria-labelledby="members-h">
+    <h2 class="crm-h2" id="members-h">{vi ? "Cộng tác viên và quyền" : "Collaborators and permissions"}</h2>
+    <form class="crm-form" method="post" action="#members">
+      <Hidden intent="member" state={state} /><input type="hidden" name="enabled" value="1" />
+      <div class="crm-form-grid"><Field name="email" type="email" label={vi ? "Email tài khoản EmDash" : "EmDash account email"} lang={lang} value={v("member", "email")} error={e("member", "email")} required maxlength={254} autocomplete="off" help={vi ? "Tạo hoặc mời tài khoản trong EmDash trước." : "Create or invite the account in EmDash first."} /></div>
+      <div class="crm-actions"><button class="crm-button" type="submit">{vi ? "Cấp quyền CRM" : "Grant CRM access"}</button></div>
+    </form>
+    {team.length ? <div class="crm-table-wrap" style="margin-top:16px"><table class="crm-table">
+      <thead><tr><th>{vi ? "Người" : "Person"}</th><th>{vi ? "Trạng thái" : "Status"}</th><th>{vi ? "Quyền thêm" : "Extra permissions"}</th><th>{vi ? "Truy cập" : "Access"}</th></tr></thead>
+      <tbody>{team.map((member) => <tr>
+        <td><strong>{member.name || member.email || (vi ? "Tài khoản EmDash không còn" : "EmDash account unavailable")}</strong><br /><span class="crm-meta">{member.email}</span></td>
+        <td><span class:list={["crm-badge", member.enabled && member.active ? "green" : "red"]}>{!member.enabled ? (vi ? "Đã thu hồi" : "Revoked") : member.active ? (vi ? "Hoạt động" : "Active") : (vi ? "EmDash bị vô hiệu" : "EmDash disabled")}</span></td>
+        <td><form method="post" action="#members" class="crm-actions"><Hidden intent="capabilities" state={state} /><input type="hidden" name="user_id" value={member.user_id} />
+          <label class="crm-check"><input type="checkbox" name="finance" value="1" checked={member.finance} /><span>{vi ? "Tài chính" : "Finance"}</span></label>
+          <label class="crm-check"><input type="checkbox" name="fulfillment" value="1" checked={member.fulfillment} /><span>{vi ? "Bàn giao" : "Fulfillment"}</span></label>
+          <button class="crm-button small secondary" type="submit">{vi ? "Lưu" : "Save"}</button></form></td>
+        <td><form method="post" action="#members"><Hidden intent="member" state={state} /><input type="hidden" name="user_id" value={member.user_id} /><input type="hidden" name="enabled" value={member.enabled ? "0" : "1"} /><button class:list={["crm-button small", member.enabled ? "danger" : "secondary"]} type="submit">{member.enabled ? (vi ? "Thu hồi" : "Revoke") : (vi ? "Khôi phục" : "Restore")}</button></form></td>
+      </tr>)}</tbody>
+    </table></div> : <p class="crm-empty">{vi ? "Chưa có cộng tác viên." : "No collaborators yet."}</p>}
+    <p class="crm-help">{vi ? "Thu hồi quyền hoặc vô hiệu tài khoản EmDash có hiệu lực từ yêu cầu kế tiếp. Hồ sơ vẫn giữ nguyên; admin giao lại từ trang Cơ hội (lọc “người phụ trách không hoạt động”)." : "Revoking access or disabling the EmDash account takes effect on the next request. Records stay; reassign them from Pipeline (filter “inactive owner”)."}</p>
+    <details class="crm-disclosure"><summary>{vi ? "Tài khoản EmDash đang hoạt động (không phải admin)" : "Active EmDash accounts (non-admin)"}</summary>
+      <ul class="crm-list">{accounts.map((account) => <li class="crm-row"><span>{account.name || account.email} <span class="crm-meta">{account.email} · {roleName(account.role)}</span></span><span class="crm-badge">{byId.get(account.id)?.enabled ? (vi ? "Có quyền CRM" : "CRM access") : (vi ? "Chưa có quyền CRM" : "No CRM access")}</span></li>)}</ul>
+    </details>
+  </section>
+
+  <section class="crm-sheet" id="cohorts" aria-labelledby="cohorts-h">
+    <h2 class="crm-h2" id="cohorts-h">Cohort</h2>
+    {cohorts.length > 0 && <ul class="crm-list">{cohorts.map((cohort) => <li class="crm-row">
+      <a class="crm-row-title" href={`${base}/reports?cohort_report=${cohort.cohort_key}#cohort`}>{cohort.name}</a>
+      <span class="crm-row-side"><span class:list={["crm-badge", cohort.costing_complete ? "green" : "amber"]}>{cohort.costing_complete ? (vi ? "Đã đủ chi phí" : "Costing complete") : (vi ? "Chưa đủ chi phí" : "Costing incomplete")}</span></span>
+      <span class="crm-row-meta"><span>{cohort.cohort_key}</span><span>{cohort.starts_on} → {cohort.ends_on ?? "…"}</span><span>{vi ? "mục tiêu" : "target"} {cohort.target_size ?? "—"}</span></span>
+      <form class="crm-form" method="post" action="#cohorts"><Hidden intent="costing" state={state} /><input type="hidden" name="cohort_key" value={cohort.cohort_key} /><input type="hidden" name="costing_complete" value={cohort.costing_complete ? "0" : "1"} />
+        {!cohort.costing_complete && <Field name="costing_note" id={`cn-${cohort.cohort_key}`} label={vi ? "Giả định chi phí (giá giờ công, cách phân bổ chi phí chung)" : "Costing assumptions (hourly rate, shared-cost allocation)"} lang={lang} value="" maxlength={1000} error={state.intent === "costing" && state.values.cohort_key === cohort.cohort_key ? state.errors.costing_note : undefined} />}
+        <div class="crm-actions"><button class="crm-button small secondary" type="submit">{cohort.costing_complete ? (vi ? "Mở lại chi phí" : "Reopen costing") : (vi ? "Đánh dấu đã đủ chi phí" : "Mark costing complete")}</button></div>
+      </form>
+    </li>)}</ul>}
+    <details class="crm-disclosure" open={state.intent === "cohort"}><summary>{vi ? "Tạo cohort" : "Create a cohort"}</summary>
+      <form class="crm-form" method="post" action="#cohorts"><Hidden intent="cohort" state={state} />
+        <div class="crm-form-grid">
+          <Field name="cohort_key" label={vi ? "Mã (vd. garage-bt-q4-1)" : "Key (e.g. garage-bt-q4-1)"} lang={lang} value={v("cohort", "cohort_key")} error={e("cohort", "cohort_key")} required maxlength={60} />
+          <Field name="name" id="co-name" label={vi ? "Tên" : "Name"} lang={lang} value={v("cohort", "name")} error={e("cohort", "name")} required maxlength={120} />
+          <Field name="playbook_key" id="co-pb" type="select" label="Playbook" lang={lang} value={v("cohort", "playbook_key", "local-preview")} options={playbooks.filter((item) => item.kind !== "legacy").map((item) => ({ value: item.playbook_key, label: vi ? item.name_vi : item.name_en }))} />
+          <Field name="starts_on" type="date" label={vi ? "Bắt đầu" : "Starts"} lang={lang} value={v("cohort", "starts_on")} error={e("cohort", "starts_on")} required />
+          <Field name="ends_on" type="date" label={vi ? "Kết thúc quan sát" : "Observation ends"} lang={lang} value={v("cohort", "ends_on")} error={e("cohort", "ends_on")} />
+          <Field name="target_size" label={vi ? "Cỡ mẫu (theo STRATEGY: 30)" : "Sample size (STRATEGY: 30)"} lang={lang} value={v("cohort", "target_size", "30")} error={e("cohort", "target_size")} inputmode="numeric" />
+        </div>
+        <div class="crm-actions"><button class="crm-button" type="submit">{vi ? "Tạo" : "Create"}</button></div>
+      </form>
+    </details>
+    {cohorts.length > 0 && <details class="crm-disclosure" open={state.intent === "cohort_cost"}><summary>{vi ? "Ghi chi phí chung của cohort (quảng cáo, công cụ…)" : "Log a cohort-wide cost (ads, tools…)"}</summary>
+      <form class="crm-form" method="post" action="#cohorts"><Hidden intent="cohort_cost" state={state} />
+        <div class="crm-form-grid">
+          <Field name="cohort_key" id="cc-key" type="select" label="Cohort" lang={lang} value={v("cohort_cost", "cohort_key")} options={cohorts.map((cohort) => ({ value: cohort.cohort_key, label: cohort.name }))} />
+          <Field name="category" id="cc-cat" type="select" label={vi ? "Loại" : "Category"} lang={lang} value={v("cohort_cost", "category", "ads")} options={costCategories.map((value) => ({ value, label: label(lang, "cost", value) }))} />
+          <Field name="amount_vnd" id="cc-amt" label={vi ? "Chi phí (VND)" : "Cost (VND)"} lang={lang} value={v("cohort_cost", "amount_vnd")} error={e("cohort_cost", "amount_vnd")} inputmode="numeric" />
+          <Field name="minutes" id="cc-min" label={vi ? "Phút" : "Minutes"} lang={lang} value={v("cohort_cost", "minutes")} error={e("cohort_cost", "minutes")} inputmode="numeric" />
+          <Field name="basis" id="cc-basis" type="select" label={vi ? "Cơ sở" : "Basis"} lang={lang} value={v("cohort_cost", "basis", "actual")} options={[{ value: "actual", label: vi ? "Thực tế" : "Actual" }, { value: "estimate", label: vi ? "Dự toán" : "Estimate" }]} />
+          <Field name="note" id="cc-note" label={vi ? "Ghi chú" : "Note"} lang={lang} value={v("cohort_cost", "note")} maxlength={500} />
+        </div>
+        <div class="crm-actions"><button class="crm-button secondary" type="submit">{vi ? "Ghi" : "Log"}</button></div>
+      </form>
+    </details>}
+  </section>
+</CrmShell>

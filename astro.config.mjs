@@ -21,7 +21,10 @@ export default defineConfig({
     }),
   ],
   adapter: cloudflare({
-    imageService: "compile"
+    imageService: "compile",
+    // Integration runs point local D1/KV/R2 at an isolated directory; the
+    // default keeps Wrangler's normal .wrangler/state persistence.
+    persistState: process.env.LUMI_PERSIST_TO ? { path: process.env.LUMI_PERSIST_TO } : true
   }),
   trailingSlash: "never"
 });

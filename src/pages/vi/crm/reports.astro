@@ -1,0 +1,9 @@
+---
+import ReportsView from "../../../components/crm/ReportsView.astro";
+import { reportsRoute } from "../../../lib/crm/routes/reports";
+
+export const prerender = false;
+const result = await reportsRoute(Astro, "vi");
+if (result instanceof Response) return result;
+---
+<ReportsView {...result} />

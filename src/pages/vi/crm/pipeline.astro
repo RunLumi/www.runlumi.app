@@ -1,0 +1,9 @@
+---
+import PipelineView from "../../../components/crm/PipelineView.astro";
+import { pipelineRoute } from "../../../lib/crm/routes/pipeline";
+
+export const prerender = false;
+const result = await pipelineRoute(Astro, "vi");
+if (result instanceof Response) return result;
+---
+<PipelineView {...result} />

@@ -1,0 +1,104 @@
+---
+import CrmShell from "../../layouts/CrmShell.astro";
+import { formatDate, label, options } from "../../lib/crm/i18n";
+import { formatVnd } from "../../lib/crm/money";
+import type { ReportsProps } from "../../lib/crm/routes/reports";
+
+type Props = ReportsProps;
+const { ctx, filters, summaries, offers, cohorts, cohort, pending } = Astro.props;
+const { lang, vi, base } = ctx;
+const r = cohort?.report;
+const pct = (value: number | null) => value === null ? (vi ? "Chưa đủ dữ liệu" : "Not enough data") : `${value.toFixed(1)}`;
+const money = (value: number | null) => value === null ? (vi ? "Chưa đủ dữ liệu" : "Not enough data") : formatVnd(value, vi);
+const minutes = (value: number | null) => value === null ? (vi ? "Chưa đủ dữ liệu" : "Not enough data") : `${Math.round(value * 10) / 10} ${vi ? "phút" : "min"}`;
+const tone: Record<string, string> = { met: "green", not_met: "red", unknown: "amber" };
+const gateLabels: Record<string, [string, string]> = {
+  paid_businesses: ["Paying businesses", "Doanh nghiệp trả tiền"], paid_starters: ["Paid Starters", "Starter đã trả tiền"],
+  avg_preview_minutes: ["Average human preview time", "Thời gian người làm preview trung bình"], google_management: ["No manual Google management needed", "Không cần quản lý Google thủ công"],
+  cac: ["CAC per Starter", "CAC mỗi Starter"], median_fulfillment: ["Median fulfillment", "Trung vị thời gian thực hiện"], p90_fulfillment: ["p90 fulfillment", "p90 thời gian thực hiện"], contribution: ["Positive year-one contribution after reserve", "Contribution năm đầu dương sau dự phòng"],
+};
+---
+<CrmShell title={vi ? "Báo cáo" : "Reports"} lang={lang} actor={ctx.actor} current="reports">
+  <div class="crm-head"><div>
+    <p class="crm-eyebrow">{vi ? "Báo cáo" : "Reports"}</p>
+    <h1 class="crm-h1">{vi ? "Mô hình nào tạo khách trả tiền." : "Which models create paying customers."}</h1>
+    <p class="crm-lede">{vi ? "Mỗi quy trình bán được báo cáo riêng. Tỷ lệ luôn kèm mẫu số; thiếu dữ liệu hiển thị là chưa đủ dữ liệu, không phải 0." : "Each playbook is reported on its own. Rates show their denominator; missing data shows as not enough data, never zero."}</p>
+  </div></div>
+
+  <form class="crm-sheet crm-filter" method="get" aria-label={vi ? "Bộ lọc báo cáo" : "Report filters"}>
+    <div class="crm-field"><label for="r-channel">{vi ? "Kênh" : "Channel"}</label><select class="crm-select" id="r-channel" name="channel"><option value="">{vi ? "Tất cả" : "Any"}</option>{options(lang, "channel").map((item) => <option value={item.value} selected={filters.channel === item.value}>{item.label}</option>)}</select></div>
+    <div class="crm-field"><label for="r-offer">{vi ? "Gói" : "Offer"}</label><select class="crm-select" id="r-offer" name="offer"><option value="">{vi ? "Tất cả" : "Any"}</option>{offers.map((offer) => <option value={offer.offer_key} selected={filters.offer === offer.offer_key}>{vi ? offer.name_vi : offer.name_en}</option>)}</select></div>
+    <div class="crm-field"><label for="r-cohort">Cohort</label><select class="crm-select" id="r-cohort" name="cohort"><option value="">{vi ? "Tất cả" : "Any"}</option>{cohorts.map((item) => <option value={item.cohort_key} selected={filters.cohort === item.cohort_key}>{item.name}</option>)}</select></div>
+    <div class="crm-field"><label for="r-industry">{vi ? "Ngành" : "Industry"}</label><input class="crm-input" id="r-industry" name="industry" value={filters.industry} maxlength="120" /></div>
+    <div class="crm-field"><label for="r-region">{vi ? "Khu vực" : "Region"}</label><input class="crm-input" id="r-region" name="region" value={filters.region} maxlength="120" /></div>
+    {ctx.actor.admin && <div class="crm-field"><label for="r-owner">{vi ? "Mã người phụ trách" : "Owner ID"}</label><input class="crm-input" id="r-owner" name="owner" value={filters.owner} maxlength="120" /></div>}
+    <div class="crm-actions"><button class="crm-button secondary" type="submit">{vi ? "Áp dụng" : "Apply"}</button><a class="crm-link" href={`${base}/reports`}>{vi ? "Xóa lọc" : "Clear"}</a></div>
+  </form>
+
+  <div class="crm-grid cols wide" style="margin-top:18px">{summaries.map((summary) => { const max = Math.max(1, ...Object.values(summary.stages)); return <section class="crm-sheet" aria-labelledby={`pb-${summary.playbook.playbook_key}`}>
+    <h2 class="crm-h2" id={`pb-${summary.playbook.playbook_key}`}>{vi ? summary.playbook.name_vi : summary.playbook.name_en}</h2>
+    <ol class="crm-bars" aria-label={vi ? "Số cơ hội hiện tại theo giai đoạn" : "Opportunities now, by stage"}>
+      {summary.playbook.def.stages.map((stage) => <li class:list={{ terminal: stage.outcome !== "open" }}>
+        <a class="crm-link" href={`${base}/pipeline?playbook=${summary.playbook.playbook_key}&stage=${stage.id}`}>{vi ? stage.vi : stage.en}</a>
+        <span class="crm-bar" aria-hidden="true"><span style={`inline-size:${Math.round(((summary.stages[stage.id] ?? 0) / max) * 100)}%`}></span></span>
+        <strong class="crm-num">{summary.stages[stage.id] ?? 0}</strong>
+      </li>)}
+    </ol>
+    <p class="crm-help">{vi ? "Đang mở" : "Open"}: {summary.outcomes.open ?? 0} · {vi ? "Thành công" : "Won"}: {summary.outcomes.won ?? 0} · {vi ? "Không thành" : "Lost"}: {summary.outcomes.lost ?? 0} · {vi ? "Tạm hoãn" : "Paused"}: {summary.outcomes.paused ?? 0}<br />{vi ? "Giá trị ước tính đã biết" : "Known estimated value"}: {formatVnd(summary.knownValue, vi)} · {vi ? "chưa biết giá trị" : "value unknown"}: {summary.unknownValue}</p>
+  </section>; })}</div>
+
+  {(ctx.actor.admin || ctx.actor.finance) && <section class="crm-sheet" id="cohort" style="margin-top:18px" aria-labelledby="cohort-h">
+    <h2 class="crm-h2" id="cohort-h">{vi ? "Cohort Lumi Local và kinh tế bán hàng" : "Lumi Local cohort and sales economics"}</h2>
+    {cohorts.length === 0 ? <p class="crm-empty">{vi ? "Chưa có cohort. Admin tạo cohort trong trang Quản trị." : "No cohort yet. Admins create cohorts in Admin."}</p> : <>
+      <form method="get" class="crm-actions" action="#cohort"><label class="crm-label" for="cohort_report">Cohort</label><select class="crm-select" style="width:auto" id="cohort_report" name="cohort_report">{cohorts.map((item) => <option value={item.cohort_key} selected={cohort?.cohort.cohort_key === item.cohort_key}>{item.name}</option>)}</select><button class="crm-button small secondary" type="submit">{vi ? "Xem" : "View"}</button></form>
+      {cohort && r && <>
+        <p class="crm-help">{vi ? "Cửa sổ quan sát" : "Observation window"}: {formatDate(r.window.starts_on, lang)} → {formatDate(r.window.ends_on, lang)} · {vi ? "mẫu" : "sample"} {r.sample}/{r.target} {vi ? "doanh nghiệp" : "businesses"}{r.complete ? "" : (vi ? " (chưa đủ cỡ mẫu)" : " (sample incomplete)")} · {vi ? "còn" : ""} {r.window.open_credit_windows} {vi ? "khách Trust Kit đang trong cửa sổ credit — chưa kết luận nâng cấp thất bại." : "Trust Kit buyers still inside the credit window — upgrade outcome not final."}</p>
+        <dl class="crm-facts" style="margin-top:12px">
+          <div><dt>{vi ? "Doanh nghiệp (duy nhất)" : "Unique businesses"}</dt><dd class="crm-figure">{r.funnel.unique_businesses}</dd></div>
+          <div><dt>{vi ? "Đủ điều kiện" : "Qualified"}</dt><dd class="crm-figure">{r.funnel.qualified}</dd></div>
+          <div><dt>{vi ? "Trao đổi với chủ" : "Owner conversations"}</dt><dd class="crm-figure">{r.funnel.owner_conversations}</dd></div>
+          <div><dt>{vi ? "Đã xem preview" : "Previews shown"}</dt><dd class="crm-figure">{r.funnel.previews_shown}</dd></div>
+          <div><dt>{vi ? "Hẹn đã xác nhận / đã diễn ra" : "Meetings confirmed / held"}</dt><dd class="crm-figure">{r.meetings.confirmed} / {r.meetings.held}</dd></div>
+          <div><dt>{vi ? "Doanh nghiệp trả tiền" : "Paying businesses"}</dt><dd class="crm-figure">{r.paid.businesses}</dd></div>
+          <div><dt>{vi ? "Starter trả tiền (mỗi DN một lần)" : "Paid Starters (once per business)"}</dt><dd class="crm-figure">{r.paid.starters}</dd></div>
+          <div><dt>{vi ? "Starter trực tiếp / nâng cấp" : "Direct / upgraded Starters"}</dt><dd class="crm-figure">{r.paid.starter_direct} / {r.paid.upgrades}</dd></div>
+          <div><dt>{vi ? "Chỉ Trust Kit" : "Trust Kit only"}</dt><dd class="crm-figure">{r.paid.trust_only}</dd></div>
+        </dl>
+        <h3 class="crm-h3">{vi ? "Chuyển đổi" : "Conversion"}</h3>
+        <p>{vi ? "Starter trả tiền trên 100 cuộc trao đổi với chủ" : "Paid Starters per 100 owner conversations"}: <strong>{pct(r.conversion.starters_per_100_conversations)}</strong> <span class="crm-meta">({r.conversion.numerator}/{r.conversion.denominator})</span></p>
+        <h3 class="crm-h3">{vi ? "Tiền và contribution" : "Money and contribution"}</h3>
+        <dl class="crm-facts">
+          <div><dt>{vi ? "Thực thu" : "Cash collected"}</dt><dd class="crm-num">{formatVnd(r.money.collected, vi)}</dd></div>
+          <div><dt>{vi ? "Hoàn tiền" : "Refunds"}</dt><dd class="crm-num">{formatVnd(r.money.refunded, vi)}</dd></div>
+          <div><dt>{vi ? "Thực thu ròng" : "Net cash"}</dt><dd class="crm-num">{formatVnd(r.money.net, vi)}</dd></div>
+          <div><dt>{vi ? "Credit (điều chỉnh giá, không phải tiền)" : "Credits (price adjustments, not cash)"}</dt><dd class="crm-num">{formatVnd(r.money.credit, vi)}</dd></div>
+          <div><dt>{vi ? "Chi phí bán hàng" : "Acquisition cost"}</dt><dd class="crm-num">{formatVnd(r.costs.acquisition, vi)}</dd></div>
+          <div><dt>{vi ? "Chi phí thực hiện" : "Delivery cost"}</dt><dd class="crm-num">{formatVnd(r.costs.delivery, vi)}</dd></div>
+          <div><dt>{vi ? "Contribution thực tế" : "Realised contribution"}</dt><dd class="crm-num">{money(r.contribution.realised)}</dd></div>
+          <div><dt>{vi ? "Dự phòng hỗ trợ năm đầu (dự toán)" : "Year-one support reserve (estimate)"}</dt><dd class="crm-num">{formatVnd(r.costs.support_reserve_estimate, vi)}</dd></div>
+          <div><dt>{vi ? "Sau dự phòng" : "After reserve"}</dt><dd class="crm-num">{money(r.contribution.after_reserve)}</dd></div>
+          <div><dt>{vi ? "Contribution / cuộc trao đổi" : "Contribution per conversation"}</dt><dd class="crm-num">{money(r.contribution.per_conversation)}</dd></div>
+          <div><dt>{vi ? "CAC / Starter (tính toàn bộ chi phí tìm khách cho Starter)" : "CAC per Starter (all prospecting charged to Starters)"}</dt><dd class="crm-num">{r.cac === null ? (r.paid.starters === 0 ? (vi ? "Không xác định — chưa có Starter" : "Undefined — no Starter yet") : (vi ? "Chưa đủ dữ liệu" : "Not enough data")) : formatVnd(r.cac, vi)}</dd></div>
+          <div><dt>{vi ? "Thời gian preview trung bình" : "Average preview time"}</dt><dd class="crm-num">{minutes(r.labour.avg_preview_minutes)} <span class="crm-meta">({r.labour.previews_timed}/{r.funnel.previews_shown})</span></dd></div>
+          <div><dt>{vi ? "Thực hiện: trung vị / p90" : "Fulfillment: median / p90"}</dt><dd class="crm-num">{minutes(r.fulfillment_minutes.median)} / {minutes(r.fulfillment_minutes.p90)} <span class="crm-meta">(n={r.fulfillment_minutes.sample})</span></dd></div>
+        </dl>
+        {!r.costs.costing_known && <p class="crm-notice warn" style="margin-top:12px">{vi ? `Chi phí chưa đủ: ${cohort.cohort.costing_complete ? "" : "admin chưa đánh dấu đã ghi đủ chi phí; "}${r.costs.uncosted_labour ? "có thời gian lao động chưa có chi phí theo giờ." : ""} Contribution và CAC hiển thị là chưa đủ dữ liệu, không mặc định dương.` : `Costing incomplete: ${cohort.cohort.costing_complete ? "" : "an admin has not marked costing complete; "}${r.costs.uncosted_labour ? "some labour time has no hourly cost." : ""} Contribution and CAC show as not enough data and are never assumed positive.`}</p>}
+        <h3 class="crm-h3">{vi ? "Cổng quyết định (nội bộ, có phiên bản)" : "Decision gates (internal, versioned)"}</h3>
+        <p class="crm-help">{vi ? "Nguồn" : "Source"}: {cohort.policySource}. {vi ? "Đạt ngưỡng không tự tăng nhân sự, đổi giá hay mở chiến dịch." : "Meeting a gate never adds headcount, changes prices or starts campaigns."}</p>
+        <div class="crm-table-wrap"><table class="crm-table">
+          <thead><tr><th>{vi ? "Tiêu chí" : "Criterion"}</th><th>{vi ? "Cổng" : "Gate"}</th><th>{vi ? "Kết quả" : "Result"}</th></tr></thead>
+          <tbody>
+            {Object.entries(r.gates.continue).map(([key, value]) => <tr><td>{gateLabels[key][vi ? 1 : 0]}</td><td>{vi ? "Tiếp tục cohort 2" : "Continue to cohort 2"}</td><td><span class:list={["crm-badge", tone[value]]}>{label(lang, "criterion", value)}</span></td></tr>)}
+            {Object.entries(r.gates.scale).map(([key, value]) => <tr><td>{gateLabels[key][vi ? 1 : 0]}</td><td>{vi ? "Trước khi thêm người bán" : "Before adding reps"}</td><td><span class:list={["crm-badge", tone[value]]}>{label(lang, "criterion", value)}</span></td></tr>)}
+          </tbody>
+        </table></div>
+        {r.review_trigger && <p class="crm-notice warn">{vi ? "Đã có 20+ cuộc trao đổi với chủ mà chưa có Starter trả tiền: cần xem lại cách chào, vấn đề và tệp khách." : "20+ owner conversations and no paid Starter: review the pitch, pain and ICP."}</p>}
+      </>}
+    </>}
+  </section>}
+
+  {ctx.actor.finance && <section class="crm-sheet" id="pending" style="margin-top:18px" aria-labelledby="pending-h">
+    <h2 class="crm-h2" id="pending-h">{vi ? "Thanh toán chờ xác nhận" : "Payments awaiting confirmation"}<span class="crm-count">{pending.length}</span></h2>
+    {pending.length ? <ul class="crm-list">{pending.map((item) => <li class="crm-row"><a class="crm-row-title" href={`${base}/${item.opportunity_id}#commercial`}>{item.title}</a><span class="crm-row-side crm-num">{formatVnd(item.amount_vnd, vi)}</span><span class="crm-row-meta"><span>{formatDate(item.occurred_on, lang)}</span><span>{item.evidence}</span></span></li>)}</ul> : <p class="crm-empty">{vi ? "Không có." : "None."}</p>}
+  </section>}
+</CrmShell>

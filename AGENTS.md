@@ -65,12 +65,17 @@ including CMS-only changes through EmDash API/MCP.
 ## Collaborator CRM contract
 
 - `/crm` and `/vi/crm` are peer, private sales workspaces using EmDash authentication.
-- Admins grant CRM access to existing active EmDash non-admin users through `/admin/crm`.
+- Admins grant CRM access to existing active EmDash non-admin users through `/crm/admin` (`/admin/crm` redirects there).
 - CRM membership is an explicit user-ID allowlist in the hiring D1 database; resolve identity details from EmDash when needed. EmDash CMS roles alone grant no CRM or hiring access.
 - Contributors see and edit only leads assigned to their EmDash user ID. CRM admins can view all leads and reassign them.
 - Enforce ownership and CRM membership on every server route and D1 query; hide other owners' lead records as not found.
 - Store leads and activity in the hiring D1 database. Store no EmDash credentials, passkeys, or session data there.
 - Every change and note has an actor and timestamp. Versioned updates reject stale edits. Keep prospect records private and never place them in client-side source.
+- Sales models are versioned playbooks and offers (`docs/crm/README.md`). Changes create new versions; never rewrite a playbook, offer, quote snapshot or ledger row that a deal references. Configuration uses safe field types only, never executable SQL, code or expressions.
+- The commercial ledger is append-only. Accepted ≠ paid; payments count only after someone with the finance capability confirms them. Credits, refunds and voids are separate entries. Unknown values stay unknown, never 0.
+- Finance and fulfillment are CRM capabilities, independent of ATS access and of the EmDash admin role.
+- `/api/intake/local` accepts only HMAC-signed enquiries addressed to Lumi from local.runlumi.app. Never route enquiries from customers' Starter sites into this CRM.
+- The CRM never messages customers, buys domains, publishes sites, takes payments or pays commission; do-not-contact applies across every channel and playbook.
 - Hiring and CRM administration requires EmDash admin role; CRM collaborators must never gain access to candidate applications or files.
 
 ## Finish gate

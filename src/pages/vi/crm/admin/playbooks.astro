@@ -1,0 +1,9 @@
+---
+import PlaybooksView from "../../../../components/crm/PlaybooksView.astro";
+import { playbooksRoute } from "../../../../lib/crm/routes/admin";
+
+export const prerender = false;
+const result = await playbooksRoute(Astro, "vi");
+if (result instanceof Response) return result;
+---
+<PlaybooksView {...result} />

@@ -1,0 +1,9 @@
+---
+import NewView from "../../../components/crm/NewView.astro";
+import { newRoute } from "../../../lib/crm/routes/pipeline";
+
+export const prerender = false;
+const result = await newRoute(Astro, "vi");
+if (result instanceof Response) return result;
+---
+<NewView {...result} />

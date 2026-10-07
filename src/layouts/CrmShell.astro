@@ -1,0 +1,45 @@
+---
+import "../styles/crm.css";
+import type { CrmActor } from "../lib/crm/access";
+import { type Lang, alternateUrl, base, t } from "../lib/crm/i18n";
+
+interface Props { title: string; lang: Lang; actor: CrmActor; current?: "today" | "pipeline" | "new" | "reports" | "fulfillment" | "admin" }
+const { title, lang, actor, current } = Astro.props;
+const root = base(lang);
+const links = [
+  { key: "today", href: root, label: t(lang, "nav_today") },
+  { key: "pipeline", href: `${root}/pipeline`, label: t(lang, "nav_pipeline") },
+  { key: "new", href: `${root}/new`, label: t(lang, "nav_new") },
+  { key: "reports", href: `${root}/reports`, label: t(lang, "nav_reports") },
+  ...(actor.fulfillment || actor.admin ? [{ key: "fulfillment", href: `${root}/fulfillment`, label: t(lang, "nav_fulfillment") }] : []),
+  ...(actor.admin ? [{ key: "admin", href: `${root}/admin`, label: t(lang, "nav_admin") }] : []),
+];
+---
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#F4F0E8" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{title} — Lumi CRM</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body class="crm">
+    <a class="crm-skip" href="#main">{t(lang, "skip")}</a>
+    <header class="crm-header">
+      <div class="crm-shell crm-header-inner">
+        <a class="crm-brand" href={root}><img src="/brand/lumi-fulltext.svg" alt="Lumi" width="86" height="44" /><span>CRM</span></a>
+        <nav class="crm-nav" aria-label={lang === "vi" ? "Điều hướng CRM" : "CRM navigation"}>
+          {links.map((link) => <a href={link.href} aria-current={current === link.key ? "page" : undefined}>{link.label}</a>)}
+          {actor.admin && <a href="/admin/jobs">{t(lang, "nav_hiring")}</a>}
+          <a href={alternateUrl(Astro.url)} lang={lang === "vi" ? "en" : "vi"} hreflang={lang === "vi" ? "en" : "vi"}>{t(lang, "switch_lang")}</a>
+          <span class="crm-user" title={actor.email}>{actor.name}</span>
+          <form method="post" action="/_emdash/api/auth/logout?redirect=%2F"><button type="submit">{t(lang, "sign_out")}</button></form>
+        </nav>
+      </div>
+    </header>
+    <main id="main" class="crm-main"><div class="crm-shell"><slot /></div></main>
+    <footer class="crm-footer"><div class="crm-shell"><span>Lumi CRM · {lang === "vi" ? "Nội bộ, chỉ người được cấp quyền" : "Internal, permitted users only"}</span><span>© 2026 Cloudjet Solutions Pte. Ltd.</span></div></footer>
+  </body>
+</html>

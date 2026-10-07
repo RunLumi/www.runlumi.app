@@ -1,0 +1,9 @@
+---
+import AccountView from "../../../../components/crm/AccountView.astro";
+import { accountRoute } from "../../../../lib/crm/routes/account";
+
+export const prerender = false;
+const result = await accountRoute(Astro, "vi");
+if (result instanceof Response) return result;
+---
+<AccountView {...result} />

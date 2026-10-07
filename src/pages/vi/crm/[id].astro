@@ -1,17 +1,9 @@
 ---
-import CrmLeadDetail from "../../../components/CrmLeadDetail.astro";
-import { crmActor, getLead, members, type Activity } from "../../../lib/crm";
-import { envFromLocals } from "../../../lib/ats";
-import { activeUser, emdashLoginUrl } from "../../../lib/admin-auth";
+import OpportunityView from "../../../components/crm/OpportunityView.astro";
+import { opportunityRoute } from "../../../lib/crm/routes/opportunity";
 
 export const prerender = false;
-const { DB, CONTENT_DB } = envFromLocals(Astro.locals);
-if (!activeUser(Astro.locals)) return Astro.redirect(emdashLoginUrl(Astro.url.pathname), 303);
-const actor = await crmActor(Astro.locals, DB);
-if (!actor) return new Response("Quản trị viên chưa cấp quyền CRM cho tài khoản EmDash này.", { status: 403 });
-const lead = await getLead(DB, actor, Astro.params.id ?? "");
-if (!lead) return new Response("Không tìm thấy khách hàng.", { status: 404 });
-const activities = (await DB.prepare("SELECT id, actor_name, kind, body, created_at FROM crm_activities WHERE lead_id = ? ORDER BY created_at DESC LIMIT 100").bind(lead.id).all<Activity>()).results;
-const team = actor.admin ? await members(DB, CONTENT_DB) : [];
+const result = await opportunityRoute(Astro, "vi");
+if (result instanceof Response) return result;
 ---
-<CrmLeadDetail lang="vi" actor={actor} lead={lead} activities={activities} members={team} error={Astro.url.searchParams.get("error")} />
+<OpportunityView {...result} />

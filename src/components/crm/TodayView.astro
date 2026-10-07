@@ -1,0 +1,71 @@
+---
+import CrmShell from "../../layouts/CrmShell.astro";
+import { formatDate, label } from "../../lib/crm/i18n";
+import type { TodayProps } from "../../lib/crm/routes/today";
+import type { TodayTask, TodayOpp } from "../../lib/crm/today";
+
+type Props = TodayProps;
+const { ctx, data, stageNames } = Astro.props;
+const { lang, vi, base } = ctx;
+const stageOf = (opp: TodayOpp) => stageNames[`${opp.playbook_id.split("@")[0]}:${opp.stage_id}`] ?? opp.stage_id;
+const total = data.overdue.length + data.dueToday.length;
+const lanes: { title: string; tone: string; tasks: TodayTask[]; empty: string }[] = [
+  { title: vi ? "Quá hạn" : "Overdue", tone: "urgent", tasks: data.overdue, empty: vi ? "Không có việc quá hạn." : "Nothing overdue." },
+  { title: vi ? "Hôm nay" : "Due today", tone: "soon", tasks: data.dueToday, empty: vi ? "Không có việc đến hạn hôm nay." : "Nothing due today." },
+  { title: vi ? "Lịch 7 ngày tới (ghé thăm, họp, demo, pilot)" : "Next 7 days (visits, meetings, demos, pilots)", tone: "calm", tasks: data.upcoming, empty: vi ? "Chưa có lịch." : "Nothing scheduled." },
+];
+---
+<CrmShell title={vi ? "Hôm nay" : "Today"} lang={lang} actor={ctx.actor} current="today">
+  <div class="crm-head">
+    <div>
+      <p class="crm-eyebrow">{formatDate(data.today, lang)}</p>
+      <h1 class="crm-h1">{vi ? "Hôm nay cần làm gì, với ai." : "What needs doing today, and with whom."}</h1>
+      <p class="crm-lede">{vi ? `${total} việc đến hạn hoặc quá hạn. Nhắc việc chỉ dành cho bạn; CRM không tự gửi tin cho khách.` : `${total} tasks due or overdue. Reminders are for you; the CRM never messages customers.`}</p>
+    </div>
+    <a class="crm-button" href={`${base}/new`}>{vi ? "Tạo cơ hội mới" : "New opportunity"}</a>
+  </div>
+
+  {ctx.actor.admin && (data.unassigned > 0 || data.inactiveOwners.length > 0) && <div class="crm-notice warn" role="status">
+    {data.unassigned > 0 && <p style="margin:0"><a class="crm-link" href={`${base}/admin#inbound`}>{vi ? `${data.unassigned} cơ hội đang chờ phân công.` : `${data.unassigned} opportunities are waiting for assignment.`}</a></p>}
+    {data.inactiveOwners.length > 0 && <p style="margin:0"><a class="crm-link" href={`${base}/pipeline?owner=inactive&playbook=all`}>{vi ? `${data.inactiveOwners.length} cơ hội có người phụ trách không còn hoạt động — cần giao lại.` : `${data.inactiveOwners.length} opportunities belong to inactive owners — reassign them.`}</a></p>}
+  </div>}
+  {ctx.actor.finance && data.pendingPayments > 0 && <div class="crm-notice" role="status"><a class="crm-link" href={`${base}/reports#pending`}>{vi ? `${data.pendingPayments} khoản thanh toán chờ xác nhận.` : `${data.pendingPayments} payments await confirmation.`}</a></div>}
+
+  <div class="crm-grid cols">
+    {lanes.map((lane) => <section class:list={["crm-sheet crm-lane", lane.tone]} aria-labelledby={`lane-${lane.tone}`}>
+      <h2 class="crm-h2" id={`lane-${lane.tone}`}>{lane.title}<span class="crm-count">{lane.tasks.length}</span></h2>
+      {lane.tasks.length ? <ul class="crm-list">{lane.tasks.map((task) => <li class="crm-row">
+        <a class="crm-row-title" href={`${base}/${task.opportunity_id}#tasks`}>{task.title}</a>
+        <span class="crm-row-side"><span class="crm-badge">{label(lang, "task", task.kind)}</span>{task.kind === "meeting" || task.kind === "demo" ? <span class:list={["crm-badge", task.meeting_confirmed ? "green" : "amber"]}>{task.meeting_confirmed ? (vi ? "Đã xác nhận" : "Confirmed") : (vi ? "Chưa xác nhận" : "Unconfirmed")}</span> : null}</span>
+        <span class="crm-row-meta"><span>{task.account_name}</span><span>{formatDate(task.due_on, lang)}{task.due_time ? ` · ${task.due_time}` : ""}</span>{task.needs_help ? <span>{vi ? "Cần hỗ trợ" : "Help requested"}</span> : null}</span>
+      </li>)}</ul> : <p class="crm-empty">{lane.empty}</p>}
+    </section>)}
+  </div>
+
+  <div class="crm-grid cols" style="margin-top:18px">
+    <section class="crm-sheet" aria-labelledby="missing-next">
+      <h2 class="crm-h2" id="missing-next">{vi ? "Thiếu bước tiếp theo" : "Missing a next step"}<span class="crm-count">{data.missingNext.length}</span></h2>
+      <p class="crm-help">{vi ? "Cơ hội đang mở chưa có bước tiếp theo kèm ngày và chưa có việc nào." : "Open opportunities with no dated next step and no open task."}</p>
+      {data.missingNext.length ? <ul class="crm-list">{data.missingNext.map((opp) => <li class="crm-row"><a class="crm-row-title" href={`${base}/${opp.id}`}>{opp.title}</a><span class="crm-badge blue">{stageOf(opp)}</span><span class="crm-row-meta"><span>{opp.account_name}</span>{opp.owner_id === null && <span>{vi ? "Chưa phân công" : "Unassigned"}</span>}</span></li>)}</ul> : <p class="crm-empty">{vi ? "Mọi cơ hội đều có bước tiếp theo." : "Every opportunity has a next step."}</p>}
+    </section>
+    <section class="crm-sheet" aria-labelledby="credits">
+      <h2 class="crm-h2" id="credits">{vi ? "Credit Trust Kit còn hiệu lực" : "Open Trust Kit credits"}<span class="crm-count">{data.credits.length}</span></h2>
+      <p class="crm-help">{vi ? "Credit toàn bộ khi nâng cấp lên Starter trong cửa sổ, tính theo ngày thanh toán." : "Full credit if the owner upgrades to Starter within the window from the payment date."}</p>
+      {data.credits.length ? <ul class="crm-list">{data.credits.map((credit) => <li class="crm-row"><a class="crm-row-title" href={`${base}/${credit.opportunity_id}#commercial`}>{credit.account_name}</a><span class="crm-badge amber">{vi ? "Hết hạn" : "Expires"} {formatDate(credit.expires_on, lang)}</span><span class="crm-row-meta"><span>{vi ? "Thanh toán" : "Paid"} {formatDate(credit.paid_on, lang)}</span></span></li>)}</ul> : <p class="crm-empty">{vi ? "Không có credit đang mở." : "No open credits."}</p>}
+    </section>
+    <section class="crm-sheet" aria-labelledby="renewals">
+      <h2 class="crm-h2" id="renewals">{vi ? "Gia hạn sắp tới" : "Renewals coming up"}<span class="crm-count">{data.renewals.length + data.renewalCandidates.length}</span></h2>
+      {data.renewals.length + data.renewalCandidates.length ? <ul class="crm-list">
+        {data.renewals.map((opp) => <li class="crm-row"><a class="crm-row-title" href={`${base}/${opp.id}`}>{opp.title}</a><span class="crm-badge blue">{stageOf(opp)}</span><span class="crm-row-meta"><span>{vi ? "Đến hạn" : "Due"} {formatDate(opp.renewal_due_on ?? null, lang)}</span></span></li>)}
+        {data.renewalCandidates.map((opp) => <li class="crm-row"><a class="crm-row-title" href={`${base}/${opp.id}#linked`}>{opp.account_name}</a><span class="crm-badge amber">{vi ? "Chưa có cơ hội gia hạn" : "No renewal yet"}</span><span class="crm-row-meta"><span>{vi ? "Kỳ dịch vụ kết thúc" : "Service period ends"} {formatDate(opp.service_period_end ?? null, lang)}</span></span></li>)}
+      </ul> : <p class="crm-empty">{vi ? "Không có gia hạn trong 60 ngày tới." : "No renewals in the next 60 days."}</p>}
+    </section>
+    <section class="crm-sheet" aria-labelledby="blocked">
+      <h2 class="crm-h2" id="blocked">{vi ? "Bàn giao bị chặn và yêu cầu hỗ trợ" : "Blocked delivery and help requests"}<span class="crm-count">{data.blocked.length + data.help.length}</span></h2>
+      {data.blocked.length + data.help.length ? <ul class="crm-list">
+        {data.blocked.map((item) => <li class="crm-row"><a class="crm-row-title" href={`${base}/${item.opportunity_id}#fulfillment`}>{item.title}</a><span class="crm-badge red">{vi ? "Bị chặn" : "Blocked"}</span><span class="crm-row-meta"><span>{item.blocked_reason}</span></span></li>)}
+        {data.help.map((task) => <li class="crm-row"><a class="crm-row-title" href={`${base}/${task.opportunity_id}#tasks`}>{task.title}</a><span class="crm-badge amber">{vi ? "Cần hỗ trợ" : "Help"}</span><span class="crm-row-meta"><span>{task.account_name}</span><span>{task.help_note}</span></span></li>)}
+      </ul> : <p class="crm-empty">{vi ? "Không có gì bị chặn." : "Nothing is blocked."}</p>}
+    </section>
+  </div>
+</CrmShell>

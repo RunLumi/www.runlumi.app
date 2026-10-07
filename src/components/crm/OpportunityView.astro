@@ -1,0 +1,51 @@
+---
+import CrmShell from "../../layouts/CrmShell.astro";
+import FormNotices from "./FormNotices.astro";
+import OppStage from "./OppStage.astro";
+import OppFields from "./OppFields.astro";
+import OppTasks from "./OppTasks.astro";
+import OppCommercial from "./OppCommercial.astro";
+import OppFulfillment from "./OppFulfillment.astro";
+import OppSide from "./OppSide.astro";
+import OppActivity from "./OppActivity.astro";
+import { label } from "../../lib/crm/i18n";
+import { stageLabel } from "../../lib/crm/playbook";
+import type { OppProps } from "../../lib/crm/routes/opportunity";
+
+type Props = OppProps;
+const p = Astro.props;
+const { ctx, access, playbook, payment, fulfillment } = p;
+const { lang, vi, base } = ctx;
+const opp = access.opportunity;
+const paymentTone: Record<string, string> = { paid: "green", overpaid: "amber", partial: "amber", unpaid: "red", refunded: "", not_billed: "" };
+const saved = Astro.url.searchParams.get("saved");
+---
+<CrmShell title={opp.title} lang={lang} actor={ctx.actor} current="pipeline">
+  <p class="crm-eyebrow"><a class="crm-link" href={`${base}/pipeline?playbook=${playbook.playbook_key}`}>{vi ? playbook.name_vi : playbook.name_en}</a> · v{playbook.version} · {label(lang, "relation", opp.relation)}</p>
+  <div class="crm-head">
+    <div>
+      <h1 class="crm-h1">{opp.title}</h1>
+      <p class="crm-lede"><a class="crm-link" href={`${base}/accounts/${opp.account_id}`}>{opp.account_name}</a>{opp.region ? ` · ${opp.region}` : ""}{opp.industry ? ` · ${opp.industry}` : ""}</p>
+    </div>
+    <dl class="crm-facts" style="min-width:min(100%,420px)" aria-label={vi ? "Trạng thái độc lập" : "Independent statuses"}>
+      <div><dt>{vi ? "Bán hàng" : "Sales"}</dt><dd><span class="crm-badge blue">{stageLabel(playbook.def, opp.stage_id, vi)}</span></dd></div>
+      <div><dt>{vi ? "Thanh toán" : "Payment"}</dt><dd><span class:list={["crm-badge", paymentTone[payment]]}>{label(lang, "payment", payment)}</span></dd></div>
+      <div><dt>{vi ? "Bàn giao" : "Delivery"}</dt><dd>{fulfillment ? <span class:list={["crm-badge", fulfillment.blocked ? "red" : ""]}>{fulfillment.blocked ? (vi ? "Bị chặn" : "Blocked") : label(lang, "fulfillment", fulfillment.status)}</span> : <span class="crm-badge">{vi ? "Chưa bàn giao" : "No handoff"}</span>}</dd></div>
+    </dl>
+  </div>
+  {opp.needs_review ? <div class="crm-notice warn" role="status"><strong>{vi ? "Hồ sơ cũ cần xem lại." : "Legacy record — needs review."}</strong>{vi ? "Giai đoạn và giá trị được chuyển nguyên trạng từ CRM đầu tiên; chúng không chứng minh đã thanh toán hay đã bàn giao. Admin có thể chuyển sang playbook phù hợp." : "Stage and value were copied as recorded in the first CRM; they prove nothing about payment or delivery. An admin can move it to a current playbook."}</div> : null}
+  {opp.outcome === "open" && !opp.owner_id && <div class="crm-notice warn" role="status">{vi ? "Cơ hội đang chờ admin phân công." : "This opportunity is waiting for an admin to assign it."}</div>}
+  {!access.canEdit && <div class="crm-notice" role="status">{vi ? "Bạn đang xem với quyền tài chính/bàn giao; thông tin bán hàng chỉ đọc." : "You are viewing with finance/fulfillment access; sales details are read-only."}</div>}
+  <FormNotices state={p.state} lang={lang} saved={saved} />
+  <div class="crm-grid two">
+    <div>
+      <OppStage {...p} />
+      {access.canEdit && <OppFields {...p} />}
+      {access.canEdit && <OppTasks {...p} />}
+      <OppCommercial {...p} />
+      <OppFulfillment {...p} />
+      {access.canEdit && <OppActivity {...p} />}
+    </div>
+    <OppSide {...p} />
+  </div>
+</CrmShell>

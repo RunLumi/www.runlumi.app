@@ -1,0 +1,123 @@
+---
+import Hidden from "./Hidden.astro";
+import Field from "./Field.astro";
+import { formatDate, label } from "../../lib/crm/i18n";
+import { formatVnd, vnDate } from "../../lib/crm/money";
+import { errorFor, valueFor } from "../../lib/crm/page";
+import { stageLabel } from "../../lib/crm/playbook";
+import type { OppProps } from "../../lib/crm/routes/opportunity";
+import { costCategories } from "../../lib/crm/tasks";
+
+type Props = OppProps;
+const { ctx, state, access, playbook, contacts, related, costs, names, owners, cohorts, linkPlaybooks, allVersions, playbookNames } = Astro.props;
+const { lang, vi, base } = ctx;
+const actor = ctx.actor;
+const opp = access.opportunity;
+const person = (id: string | null) => !id ? (vi ? "Chưa có" : "None") : id.startsWith("intake:") ? (vi ? "Form website" : "Website form") : names[id] ? `${names[id].name}${names[id].active ? "" : (vi ? " (không hoạt động)" : " (inactive)")}` : id === actor.id ? actor.name : (vi ? "Tài khoản không hoạt động" : "Inactive account");
+const v = (intent: string, name: string, fallback: string | number | null = "") => valueFor(state, intent, name, fallback);
+const e = (intent: string, name: string) => errorFor(state, intent, name);
+const isRenewalish = playbook.kind === "renewal" || opp.outcome === "won";
+const minutes = costs.reduce((sum, cost) => sum + (cost.minutes ?? 0), 0);
+---
+<aside class="crm-grid" aria-label={vi ? "Thông tin bên lề" : "Side panel"}>
+  <section class="crm-sheet" id="details" aria-labelledby="details-h">
+    <h2 class="crm-h2" id="details-h">{vi ? "Phụ trách và nguồn" : "Ownership and source"}</h2>
+    <dl class="crm-facts">
+      <div><dt>{vi ? "Người phụ trách hiện tại" : "Current owner"}</dt><dd>{opp.owner_id ? person(opp.owner_id) : <span class="crm-badge amber">{vi ? "Chưa phân công" : "Unassigned"}</span>}</dd></div>
+      <div><dt>{vi ? "Người bán (ghi công)" : "Seller (attribution)"}</dt><dd>{person(opp.seller_id)}</dd></div>
+      <div><dt>{vi ? "Kênh" : "Channel"}</dt><dd>{label(lang, "channel", opp.source_channel)}</dd></div>
+      <div><dt>{vi ? "Giới thiệu" : "Referred by"}</dt><dd>{opp.referrer || "—"}</dd></div>
+      <div><dt>{vi ? "Chi tiết nguồn" : "Source detail"}</dt><dd>{opp.source_detail || "—"}</dd></div>
+      <div><dt>{vi ? "Giá trị ước tính" : "Estimated value"}</dt><dd class="crm-num">{formatVnd(opp.estimated_value_vnd, vi)}</dd></div>
+      <div><dt>Cohort</dt><dd>{opp.cohort_key ?? "—"}</dd></div>
+      <div><dt>{vi ? "Tạo bởi" : "Created by"}</dt><dd>{person(opp.created_by)} · {formatDate(opp.created_at, lang)}</dd></div>
+      {(opp.service_period_start || opp.renewal_due_on) && <div><dt>{vi ? "Kỳ dịch vụ" : "Service period"}</dt><dd>{formatDate(opp.service_period_start, lang)} → {formatDate(opp.service_period_end, lang)}</dd></div>}
+    </dl>
+    <p class="crm-help">{vi ? "Hoa hồng: chưa có chính sách được duyệt. CRM chỉ giữ ghi công, không tính hay trả hoa hồng." : "Commission: no approved policy. The CRM keeps attribution only; it calculates and pays nothing."}</p>
+    {access.canEdit && <details class="crm-disclosure" open={state.intent === "details"}>
+      <summary>{vi ? "Sửa bước tiếp theo và chi tiết" : "Edit next step and details"}</summary>
+      <form class="crm-form" method="post" action="#details">
+        <Hidden intent="details" state={state} version={opp.version} />
+        {state.intent === "details" && state.conflict && <p class="crm-help">{vi ? "Giá trị mới nhất" : "Latest values"}: {opp.title} · {opp.next_action || "—"} · {formatDate(opp.next_action_due, lang)} · {formatVnd(opp.estimated_value_vnd, vi)}</p>}
+        <Field name="title" id="d-title" label={vi ? "Tên cơ hội" : "Opportunity name"} lang={lang} value={v("details", "title", opp.title)} error={e("details", "title")} required maxlength={160} />
+        <Field name="next_action" id="d-next" label={vi ? "Bước tiếp theo" : "Next step"} lang={lang} value={v("details", "next_action", opp.next_action)} error={e("details", "next_action")} maxlength={500} />
+        <Field name="next_action_due" id="d-due" type="date" label={vi ? "Ngày" : "Date"} lang={lang} value={v("details", "next_action_due", opp.next_action_due)} error={e("details", "next_action_due")} />
+        <Field name="estimated_value_vnd" id="d-value" label={vi ? "Giá trị ước tính (VND; để trống nếu chưa biết)" : "Estimated value (VND; blank if unknown)"} lang={lang} value={v("details", "estimated_value_vnd", opp.estimated_value_vnd)} error={e("details", "estimated_value_vnd")} inputmode="numeric" />
+        <Field name="referrer" id="d-ref" label={vi ? "Người giới thiệu" : "Referred by"} lang={lang} value={v("details", "referrer", opp.referrer)} maxlength={160} />
+        <Field name="source_detail" id="d-src" label={vi ? "Chi tiết nguồn" : "Source detail"} lang={lang} value={v("details", "source_detail", opp.source_detail)} maxlength={300} />
+        <Field name="cohort_key" id="d-cohort" type="select" label="Cohort" lang={lang} value={v("details", "cohort_key", opp.cohort_key)} error={e("details", "cohort_key")} options={[{ value: "", label: vi ? "Không thuộc cohort" : "No cohort" }, ...cohorts.map((key) => ({ value: key, label: key }))]} />
+        {isRenewalish && <><Field name="service_period_start" id="d-ps" type="date" label={vi ? "Kỳ dịch vụ từ" : "Service period from"} lang={lang} value={v("details", "service_period_start", opp.service_period_start)} error={e("details", "service_period_start")} />
+          <Field name="service_period_end" id="d-pe" type="date" label={vi ? "Kỳ dịch vụ đến" : "Service period to"} lang={lang} value={v("details", "service_period_end", opp.service_period_end)} error={e("details", "service_period_end")} />
+          <Field name="renewal_due_on" id="d-rd" type="date" label={vi ? "Ngày đến hạn gia hạn" : "Renewal due"} lang={lang} value={v("details", "renewal_due_on", opp.renewal_due_on)} error={e("details", "renewal_due_on")} /></>}
+        {!isRenewalish && <><input type="hidden" name="service_period_start" value={opp.service_period_start ?? ""} /><input type="hidden" name="service_period_end" value={opp.service_period_end ?? ""} /><input type="hidden" name="renewal_due_on" value={opp.renewal_due_on ?? ""} /></>}
+        <div class="crm-actions"><button class="crm-button" type="submit">{vi ? "Lưu" : "Save"}</button></div>
+      </form>
+    </details>}
+    {actor.admin && <form class="crm-form" method="post" style="margin-top:14px">
+      <Hidden intent="assign" state={state} version={opp.version} />
+      <Field name="owner_id" id="assign-owner" type="select" label={vi ? "Giao cho" : "Assign to"} lang={lang} value={opp.owner_id ?? ""} error={e("assign", "owner_id")} options={[...(opp.owner_id && !owners.some((owner) => owner.id === opp.owner_id) ? [{ value: opp.owner_id, label: person(opp.owner_id) }] : []), ...(opp.owner_id ? [] : [{ value: "", label: vi ? "Chọn người" : "Choose" }]), ...owners.map((owner) => ({ value: owner.id, label: owner.label }))]} />
+      <p class="crm-help">{vi ? "Giao lại không đổi người bán được ghi công." : "Reassigning never changes seller attribution."}</p>
+      <div class="crm-actions"><button class="crm-button secondary small" type="submit">{vi ? "Giao" : "Assign"}</button></div>
+    </form>}
+  </section>
+
+  <section class="crm-sheet" aria-labelledby="contacts-h">
+    <h2 class="crm-h2" id="contacts-h">{vi ? "Người liên hệ" : "Contacts"}</h2>
+    {opp.account_dnc ? <p class="crm-notice bad">{vi ? "Doanh nghiệp yêu cầu không liên hệ." : "This business asked not to be contacted."}</p> : null}
+    {contacts.length ? <ul class="crm-list">{contacts.map((contact) => <li class="crm-row"><span><strong>{contact.name}</strong> · {label(lang, "role", contact.role)}</span>
+      <span class="crm-row-side">{contact.do_not_contact ? <span class="crm-badge red">{vi ? "Không liên hệ" : "Do not contact"}</span> : <span class="crm-badge">{label(lang, "consent", contact.consent_status)}</span>}</span>
+      <span class="crm-row-meta">{contact.phone && <span>{contact.phone}</span>}{contact.zalo && <span>Zalo {contact.zalo}</span>}{contact.email && <span>{contact.email}</span>}{contact.preferred_channel && <span>{vi ? "Ưu tiên" : "Prefers"} {label(lang, "contactChannel", contact.preferred_channel)}</span>}</span></li>)}</ul> : <p class="crm-empty">{vi ? "Chưa có người liên hệ." : "No contacts yet."}</p>}
+    <a class="crm-link" href={`${base}/accounts/${opp.account_id}#contacts`}>{vi ? "Quản lý người liên hệ và quyền liên hệ" : "Manage contacts and contact permission"}</a>
+  </section>
+
+  <section class="crm-sheet" id="linked" aria-labelledby="linked-h">
+    <h2 class="crm-h2" id="linked-h">{vi ? "Cơ hội liên quan" : "Related opportunities"}</h2>
+    {related.length ? <ul class="crm-list">{related.map((item) => <li class="crm-row"><a class="crm-row-title" href={`${base}/${item.id}`}>{item.title}</a><span class="crm-row-side"><span class="crm-badge">{label(lang, "relation", item.relation)}</span><span class="crm-badge">{label(lang, "outcome", item.outcome)}</span></span><span class="crm-row-meta"><span>{playbookNames[item.playbook_id]}</span>{item.id === opp.parent_id && <span>{vi ? "Giao dịch gốc" : "Original deal"}</span>}</span></li>)}</ul> : <p class="crm-empty">{vi ? "Không có cơ hội liên quan bạn được xem." : "No related opportunities you can view."}</p>}
+    {access.canEdit && <details class="crm-disclosure" open={state.intent === "linked"}>
+      <summary>{vi ? "Mở cơ hội tiếp nối trên cùng doanh nghiệp" : "Open a follow-on opportunity for this business"}</summary>
+      <form class="crm-form" method="post">
+        <Hidden intent="linked" state={state} />
+        <p class="crm-help">{vi ? "Nâng cấp (Trust Kit → Starter), gia hạn, hoặc mở rộng sang giải pháp Lumi khi có vấn đề lặp lại và quyết định mua riêng. Không sao chép khách hàng." : "Upgrade (Trust Kit → Starter), renewal, or expansion to a Lumi solution when there is recurring pain and a separate buying decision. The customer is never copied."}</p>
+        <Field name="relation" id="l-rel" type="select" label={vi ? "Loại" : "Kind"} lang={lang} value={v("linked", "relation", opp.outcome === "won" ? "upgrade" : "expansion")} error={e("linked", "relation")} options={["upgrade", "renewal", "expansion"].map((value) => ({ value, label: label(lang, "relation", value) }))} />
+        <Field name="playbook_key" id="l-pb" type="select" label={vi ? "Quy trình bán" : "Playbook"} lang={lang} value={v("linked", "playbook_key", playbook.playbook_key)} error={e("linked", "playbook_key")} options={linkPlaybooks.map((item) => ({ value: item.playbook_key, label: vi ? item.name_vi : item.name_en }))} />
+        <div class="crm-actions"><button class="crm-button secondary" type="submit">{vi ? "Mở cơ hội" : "Open opportunity"}</button></div>
+      </form>
+    </details>}
+  </section>
+
+  <section class="crm-sheet" id="time" aria-labelledby="time-h">
+    <h2 class="crm-h2" id="time-h">{vi ? "Thời gian và chi phí" : "Time and costs"}</h2>
+    <p class="crm-help">{vi ? `${minutes} phút đã ghi. Dùng cho báo cáo cohort; nhân công chưa định giá sẽ hiển thị là chưa đủ dữ liệu.` : `${minutes} minutes logged. Used by cohort reports; labour without a cost shows as not enough data.`}</p>
+    {costs.length > 0 && <ul class="crm-list">{costs.slice(0, 8).map((cost) => <li class="crm-row"><span>{label(lang, "cost", cost.category)}{cost.basis === "estimate" ? (vi ? " (dự toán)" : " (estimate)") : ""}</span><span class="crm-row-side crm-num">{cost.minutes !== null ? `${cost.minutes}′` : ""} {cost.amount_vnd !== null ? formatVnd(cost.amount_vnd, vi) : ""}</span></li>)}</ul>}
+    {access.canEdit && <details class="crm-disclosure" open={state.intent === "cost"}>
+      <summary>{vi ? "Ghi thời gian / chi phí" : "Log time / cost"}</summary>
+      <form class="crm-form" method="post" action="#time">
+        <Hidden intent="cost" state={state} />
+        <Field name="category" id="c-cat" type="select" label={vi ? "Loại" : "Category"} lang={lang} value={v("cost", "category", "research")} error={e("cost", "category")} options={costCategories.map((value) => ({ value, label: label(lang, "cost", value) }))} />
+        <Field name="minutes" id="c-min" label={vi ? "Phút" : "Minutes"} lang={lang} value={v("cost", "minutes")} error={e("cost", "minutes")} inputmode="numeric" />
+        <Field name="amount_vnd" id="c-amt" label={vi ? "Chi phí (VND)" : "Cost (VND)"} lang={lang} value={v("cost", "amount_vnd")} error={e("cost", "amount_vnd")} inputmode="numeric" />
+        <Field name="basis" id="c-basis" type="select" label={vi ? "Cơ sở" : "Basis"} lang={lang} value={v("cost", "basis", "actual")} options={[{ value: "actual", label: vi ? "Thực tế" : "Actual" }, { value: "estimate", label: vi ? "Dự toán (vd. hỗ trợ năm đầu)" : "Estimate (e.g. year-one support)" }]} />
+        <Field name="occurred_on" id="c-date" type="date" label={vi ? "Ngày" : "Date"} lang={lang} value={v("cost", "occurred_on", vnDate())} error={e("cost", "occurred_on")} />
+        <Field name="note" id="c-note" label={vi ? "Ghi chú" : "Note"} lang={lang} value={v("cost", "note")} maxlength={500} />
+        <div class="crm-actions"><button class="crm-button secondary" type="submit">{vi ? "Ghi" : "Log"}</button></div>
+      </form>
+    </details>}
+  </section>
+
+  {actor.admin && <section class="crm-sheet" aria-labelledby="admin-h">
+    <h2 class="crm-h2" id="admin-h">{vi ? "Quản trị hồ sơ" : "Record administration"}</h2>
+    <form class="crm-form" method="post">
+      <Hidden intent="playbook_change" state={state} version={opp.version} />
+      <p class="crm-help">{vi ? `Hiện tại: ${playbookNames[opp.playbook_id]} · ${stageLabel(playbook.def, opp.stage_id, true)}. Đổi playbook cần chọn giai đoạn đích và lý do; lịch sử được giữ.` : `Now: ${playbookNames[opp.playbook_id]} · ${stageLabel(playbook.def, opp.stage_id, false)}. Choose a target stage and reason; history is kept.`}</p>
+      <Field name="target_playbook_id" id="pc-pb" type="select" label={vi ? "Playbook / phiên bản đích" : "Target playbook / version"} lang={lang} value={v("playbook_change", "target_playbook_id", allVersions[0]?.id ?? "")} error={e("playbook_change", "target_playbook_id")} options={allVersions.map((item) => ({ value: item.id, label: playbookNames[item.id] }))} />
+      <Field name="target_stage" id="pc-stage" type="select" label={vi ? "Giai đoạn đích" : "Target stage"} lang={lang} value={v("playbook_change", "target_stage")} error={e("playbook_change", "target_stage")} options={allVersions.flatMap((item) => item.def.stages.map((stage) => ({ value: stage.id, label: `${playbookNames[item.id]} → ${vi ? stage.vi : stage.en}` }))).filter((option, index, list) => list.findIndex((other) => other.value === option.value && other.label === option.label) === index)} />
+      <Field name="reason" id="pc-reason" label={vi ? "Lý do" : "Reason"} lang={lang} value={v("playbook_change", "reason")} error={e("playbook_change", "reason")} required maxlength={1000} />
+      <div class="crm-actions"><button class="crm-button secondary small" type="submit">{vi ? "Đổi playbook" : "Change playbook"}</button></div>
+    </form>
+    <form class="crm-form" method="post" style="margin-top:14px">
+      <Hidden intent="move_account" state={state} version={opp.version} />
+      <Field name="target_account_id" id="ma-acc" label={vi ? "Gộp vào doanh nghiệp (mã)" : "Merge into account (ID)"} lang={lang} value={v("move_account", "target_account_id")} error={e("move_account", "target_account_id")} maxlength={60} help={vi ? "Dùng khi phát hiện trùng; xem gợi ý trên trang doanh nghiệp." : "Use for duplicates; see suggestions on the account page."} />
+      <div class="crm-actions"><button class="crm-button secondary small" type="submit">{vi ? "Chuyển" : "Move"}</button></div>
+    </form>
+  </section>}
+</aside>

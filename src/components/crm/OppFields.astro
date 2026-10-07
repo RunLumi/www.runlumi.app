@@ -1,0 +1,46 @@
+---
+import Hidden from "./Hidden.astro";
+import Field from "./Field.astro";
+import { errorFor, valueFor } from "../../lib/crm/page";
+import { stageLabel, upcomingFields, visibleChecks, visibleFields, type FieldDef } from "../../lib/crm/playbook";
+import { oppChecks, oppFields } from "../../lib/crm/records";
+import type { OppProps } from "../../lib/crm/routes/opportunity";
+
+type Props = OppProps;
+const { ctx, state, access, playbook } = Astro.props;
+const { lang, vi } = ctx;
+const opp = access.opportunity;
+const stored = oppFields(opp);
+const checks = oppChecks(opp);
+const fields = visibleFields(playbook.def, opp.stage_id);
+const list = visibleChecks(playbook.def, opp.stage_id);
+const upcoming = upcomingFields(playbook.def, opp.stage_id);
+const groups = playbook.def.stages.map((stage) => ({ stage, fields: fields.filter((field) => field.stage === stage.id) })).filter((group) => group.fields.length);
+const yesNo = [{ value: "", label: vi ? "Chưa ghi" : "Not recorded" }, { value: "yes", label: vi ? "Có" : "Yes" }, { value: "no", label: vi ? "Không" : "No" }, { value: "unknown", label: vi ? "Chưa biết" : "Unknown" }];
+const inputType = (field: FieldDef) => ({ long_text: "textarea", date: "date", url: "url", select: "select", yes_no: "select", number: "text", money: "text", minutes: "text", text: "text" } as const)[field.type];
+const display = (field: FieldDef, value: string | undefined) => {
+  if (!value) return vi ? "Chưa biết" : "Unknown";
+  if (field.type === "select") { const option = field.options?.find((item) => item.value === value); return option ? (vi ? option.vi : option.en) : value; }
+  if (field.type === "yes_no") return value === "yes" ? (vi ? "Có" : "Yes") : value === "no" ? (vi ? "Không" : "No") : (vi ? "Chưa biết" : "Unknown");
+  return value;
+};
+---
+{(fields.length > 0 || list.length > 0) && <section class="crm-sheet" id="discovery" aria-labelledby="discovery-h">
+  <h2 class="crm-h2" id="discovery-h">{vi ? "Thông tin đã xác minh" : "Verified information"}</h2>
+  <p class="crm-help">{vi ? "Để trống nghĩa là chưa biết. Không điền số 0 hay suy đoán thay cho thông tin chưa xác minh." : "Blank means unknown. Do not enter 0 or a guess in place of something not verified."}</p>
+  {access.canEdit ? <form class="crm-form" method="post" action="#discovery">
+    <Hidden intent="fields" state={state} version={opp.version} />
+    {groups.map((group) => <fieldset class="crm-fieldset"><legend>{stageLabel(playbook.def, group.stage.id, vi)}</legend><div class="crm-form-grid">
+      {group.fields.map((field) => <Field name={`field.${field.key}`} type={inputType(field)} label={vi ? field.vi : field.en} lang={lang} help={vi ? field.help_vi : field.help_en}
+        value={valueFor(state, "fields", `field.${field.key}`, stored[field.key] ?? "")} error={errorFor(state, "fields", `field.${field.key}`)}
+        options={field.type === "yes_no" ? yesNo : field.type === "select" ? [{ value: "", label: vi ? "Chưa biết" : "Unknown" }, ...(field.options ?? []).map((option) => ({ value: option.value, label: vi ? option.vi : option.en }))] : []}
+        inputmode={["number", "money", "minutes"].includes(field.type) ? "numeric" : undefined} wide={field.type === "long_text"} maxlength={field.type === "long_text" ? 4000 : 500} />)}
+    </div></fieldset>)}
+    {list.length > 0 && <fieldset class="crm-fieldset"><legend>{vi ? "Checklist" : "Checklist"}</legend>
+      <input type="hidden" name="checks_present" value="1" />
+      {list.map((check) => <label class="crm-check"><input type="checkbox" name={`check.${check.key}`} value="1" checked={state.intent === "fields" ? state.values[`check.${check.key}`] === "1" : checks[check.key] === true} /><span>{vi ? check.vi : check.en}</span></label>)}
+    </fieldset>}
+    <div class="crm-actions"><button class="crm-button" type="submit">{vi ? "Lưu thông tin" : "Save information"}</button></div>
+  </form> : <dl class="crm-facts">{fields.map((field) => <div><dt>{vi ? field.vi : field.en}</dt><dd>{display(field, stored[field.key])}</dd></div>)}</dl>}
+  {upcoming.length > 0 && <p class="crm-help">{vi ? "Giai đoạn kế tiếp sẽ hỏi thêm: " : "The next stage will ask for: "}{upcoming.map((field) => vi ? field.vi : field.en).join(" · ")}</p>}
+</section>}

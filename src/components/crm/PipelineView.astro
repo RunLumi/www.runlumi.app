@@ -1,0 +1,74 @@
+---
+import CrmShell from "../../layouts/CrmShell.astro";
+import { formatDate, formatVnd } from "../../lib/crm/view";
+import { label, options } from "../../lib/crm/i18n";
+import type { PipelineProps } from "../../lib/crm/routes/pipeline";
+
+type Props = PipelineProps;
+const { ctx, filters, playbooks, offers, rows, total, page, pages, counts, owners, ownerNames, cohorts } = Astro.props;
+const { lang, vi, base } = ctx;
+const playbook = playbooks.find((item) => item.playbook_key === filters.playbook);
+const byId = new Map(playbooks.map((item) => [item.playbook_key, item]));
+const stageName = (playbookId: string, stage: string) => {
+  const def = byId.get(playbookId.split("@")[0])?.def;
+  const found = def?.stages.find((item) => item.id === stage);
+  return found ? (vi ? found.vi : found.en) : stage;
+};
+const query = (changes: Record<string, string>) => {
+  const params = new URLSearchParams(Object.entries({ ...filters, ...changes }).filter(([, value]) => value));
+  const text = params.toString();
+  return text ? `?${text}` : "?";
+};
+const outcomeTone: Record<string, string> = { open: "blue", won: "green", lost: "", paused: "amber" };
+---
+<CrmShell title={vi ? "Cơ hội" : "Pipeline"} lang={lang} actor={ctx.actor} current="pipeline">
+  <div class="crm-head">
+    <div>
+      <p class="crm-eyebrow">{playbook ? (vi ? playbook.name_vi : playbook.name_en) : (vi ? "Mọi quy trình" : "All playbooks")}</p>
+      <h1 class="crm-h1">{vi ? "Cơ hội theo quy trình bán." : "Opportunities by sales playbook."}</h1>
+      <p class="crm-lede">{vi ? `${total} cơ hội khớp bộ lọc. Mỗi quy trình có các giai đoạn riêng; số liệu không gộp giữa các quy trình.` : `${total} opportunities match. Each playbook has its own stages; counts are never combined across playbooks.`}</p>
+    </div>
+    <a class="crm-button" href={`${base}/new${playbook ? `?playbook=${playbook.playbook_key}` : ""}`}>{vi ? "Tạo cơ hội" : "New opportunity"}</a>
+  </div>
+
+  <nav aria-label={vi ? "Chọn quy trình" : "Choose playbook"} class="crm-actions" style="margin-bottom:16px">
+    {playbooks.map((item) => <a class:list={["crm-button small", filters.playbook === item.playbook_key ? "" : "secondary"]} aria-current={filters.playbook === item.playbook_key ? "true" : undefined} href={query({ playbook: item.playbook_key, stage: "", page: "" })}>{vi ? item.name_vi : item.name_en}</a>)}
+    <a class:list={["crm-button small", filters.playbook === "all" ? "" : "secondary"]} href={query({ playbook: "all", stage: "", page: "" })}>{vi ? "Tất cả (chỉ danh sách)" : "All (list only)"}</a>
+  </nav>
+
+  {playbook && <ol class="crm-stages" aria-label={vi ? "Số cơ hội theo giai đoạn" : "Opportunities per stage"}>
+    {playbook.def.stages.map((stage) => <li><a href={query({ stage: filters.stage === stage.id ? "" : stage.id, page: "" })} aria-current={filters.stage === stage.id ? "true" : undefined} class:list={{ terminal: stage.outcome !== "open" }}><span>{vi ? stage.vi : stage.en}</span><strong>{counts[stage.id] ?? 0}</strong></a></li>)}
+  </ol>}
+
+  <form class="crm-sheet crm-filter" method="get" aria-label={vi ? "Bộ lọc" : "Filters"}>
+    <input type="hidden" name="playbook" value={filters.playbook} />
+    <div class="crm-field"><label for="q">{vi ? "Tìm" : "Search"}</label><input class="crm-input" id="q" name="q" value={filters.q} maxlength="120" /></div>
+    <div class="crm-field"><label for="outcome">{vi ? "Trạng thái" : "Status"}</label><select class="crm-select" id="outcome" name="outcome"><option value="">{vi ? "Tất cả" : "Any"}</option>{options(lang, "outcome").map((item) => <option value={item.value} selected={filters.outcome === item.value}>{item.label}</option>)}</select></div>
+    <div class="crm-field"><label for="channel">{vi ? "Kênh" : "Channel"}</label><select class="crm-select" id="channel" name="channel"><option value="">{vi ? "Tất cả" : "Any"}</option>{options(lang, "channel").map((item) => <option value={item.value} selected={filters.channel === item.value}>{item.label}</option>)}</select></div>
+    <div class="crm-field"><label for="offer">{vi ? "Gói" : "Offer"}</label><select class="crm-select" id="offer" name="offer"><option value="">{vi ? "Tất cả" : "Any"}</option>{offers.map((offer) => <option value={offer.offer_key} selected={filters.offer === offer.offer_key}>{vi ? offer.name_vi : offer.name_en}</option>)}</select></div>
+    <div class="crm-field"><label for="cohort">Cohort</label><select class="crm-select" id="cohort" name="cohort"><option value="">{vi ? "Tất cả" : "Any"}</option>{cohorts.map((key) => <option value={key} selected={filters.cohort === key}>{key}</option>)}</select></div>
+    <div class="crm-field"><label for="industry">{vi ? "Ngành" : "Industry"}</label><input class="crm-input" id="industry" name="industry" value={filters.industry} maxlength="120" /></div>
+    <div class="crm-field"><label for="region">{vi ? "Khu vực" : "Region"}</label><input class="crm-input" id="region" name="region" value={filters.region} maxlength="120" /></div>
+    {ctx.actor.admin && <div class="crm-field"><label for="owner">{vi ? "Người phụ trách" : "Owner"}</label><select class="crm-select" id="owner" name="owner"><option value="">{vi ? "Tất cả" : "Anyone"}</option><option value="unassigned" selected={filters.owner === "unassigned"}>{vi ? "Chưa phân công" : "Unassigned"}</option><option value="inactive" selected={filters.owner === "inactive"}>{vi ? "Người phụ trách không hoạt động" : "Inactive owner"}</option>{owners.map((owner) => <option value={owner.id} selected={filters.owner === owner.id}>{owner.label}</option>)}</select></div>}
+    <div class="crm-actions"><button class="crm-button secondary" type="submit">{vi ? "Lọc" : "Apply"}</button><a class="crm-link" href={`${base}/pipeline?playbook=${filters.playbook}`}>{vi ? "Xóa lọc" : "Clear"}</a></div>
+  </form>
+
+  <section class="crm-sheet" aria-label={vi ? "Danh sách cơ hội" : "Opportunity list"} style="margin-top:18px">
+    {rows.length ? <ul class="crm-list">{rows.map((row) => <li class="crm-row">
+      <a class="crm-row-title" href={`${base}/${row.id}`}>{row.title}</a>
+      <span class="crm-row-side"><span class="crm-badge blue">{stageName(row.playbook_id, row.stage_id)}</span><span class:list={["crm-badge", outcomeTone[row.outcome]]}>{label(lang, "outcome", row.outcome)}</span>{row.needs_review ? <span class="crm-badge amber">{vi ? "Cần xem lại" : "Needs review"}</span> : null}</span>
+      <span class="crm-row-meta">
+        {row.account_name !== row.title && <span>{row.account_name}</span>}
+        <span>{label(lang, "relation", row.relation)}</span>
+        <span>{label(lang, "channel", row.source_channel)}</span>
+        <span>{vi ? "Bước tiếp theo" : "Next"}: {row.next_action || "—"} · {formatDate(row.next_action_due, lang)}</span>
+        <span class="crm-num">{vi ? "Giá trị ước tính" : "Est. value"}: {formatVnd(row.estimated_value_vnd, vi)}</span>
+        {ctx.actor.admin && <span>{vi ? "Phụ trách" : "Owner"}: {row.owner_id ? `${ownerNames[row.owner_id]?.name ?? (row.owner_id === ctx.actor.id ? ctx.actor.name : (vi ? "Tài khoản không hoạt động" : "Inactive account"))}${ownerNames[row.owner_id] && !ownerNames[row.owner_id].active ? (vi ? " (không hoạt động)" : " (inactive)") : ""}` : (vi ? "Chưa phân công" : "Unassigned")}</span>}
+      </span>
+    </li>)}</ul> : <p class="crm-empty">{vi ? "Không có cơ hội khớp bộ lọc." : "No opportunities match these filters."}</p>}
+    {pages > 1 && <nav class="crm-pagination" aria-label={vi ? "Phân trang" : "Pagination"}>
+      <span class="crm-meta">{vi ? `Trang ${page} / ${pages}` : `Page ${page} of ${pages}`}</span>
+      <span class="crm-actions">{page > 1 && <a class="crm-button small secondary" href={query({ page: String(page - 1) })}>{vi ? "Trước" : "Previous"}</a>}{page < pages && <a class="crm-button small secondary" href={query({ page: String(page + 1) })}>{vi ? "Tiếp" : "Next"}</a>}</span>
+    </nav>}
+  </section>
+</CrmShell>

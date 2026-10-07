@@ -1,0 +1,9 @@
+---
+import FulfillmentView from "../../../components/crm/FulfillmentView.astro";
+import { fulfillmentRoute } from "../../../lib/crm/routes/fulfillment";
+
+export const prerender = false;
+const result = await fulfillmentRoute(Astro, "vi");
+if (result instanceof Response) return result;
+---
+<FulfillmentView {...result} />
