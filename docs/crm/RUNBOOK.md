@@ -110,10 +110,14 @@ Adapter behaviour:
 
 ## 6. Production release record
 
+Release on 2026-10-07 (Asia/Ho_Chi_Minh).
+
 | Item | Value |
 |---|---|
-| CRM PR / merge SHA | _filled at release_ |
-| Worker version | _filled at release_ |
-| Migration applied | _filled at release_ |
-| local.runlumi PR / merge SHA / deployment | _filled at release_ |
-| Verified | _filled at release_ |
+| CRM PR / merge SHA | RunLumi/www.runlumi.app#27 → `423c961`. Head `b90df7a` passed hosted CI (lint, test, local migration, build). |
+| Backup before migration | `backups/lumi-jobs-pre-0003.sql` (private, git-ignored) |
+| Migration applied | `0003_crm_sales.sql` remote. Afterwards: 4 playbooks, 5 offers, 1 policy, 0 legacy leads to migrate, 0 ledger rows, ATS applications unchanged (6) |
+| Worker version | `5048364f-8d3c-4e85-a596-9a8e81d977e0` (`npm run deploy` from `423c961`; preflight confirmed `CRM_INTAKE_SECRET`) |
+| local.runlumi PR / merge SHA / deployment | RunLumi/local.runlumi#71 → `437e7da`. "Deploy production" run 37579543784 succeeded. Pages deployment `16798958-a1c3-4320-b35c-3acb8aeca982`. |
+| Verified in production (no session) | `/`, `/jobs`, `local.runlumi.app/`, `/en/` and `/nganh/garage/` return 200. `/crm`, `/vi/crm`, `/crm/admin`, `/admin/crm` and `/crm/<id>` redirect (303) to EmDash sign-in. `POST /api/intake/local` returns 403 for an unknown source and 401 for a bad signature (not 503, so the secret is present); `GET` returns 405. The local.runlumi enquiry endpoint still rejects invalid fields (400). |
+| Not yet verified in production | Authenticated CRM flows: EmDash sign-in needs a passkey or email link held by the user. No synthetic enquiry, customer or transaction was created in production. |
