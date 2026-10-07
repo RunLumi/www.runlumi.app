@@ -76,9 +76,9 @@ for (const file of [...walk("migrations", [".sql"]), ...walk("src", [".ts"]).fil
 // locale-peers: AGENTS.md non-negotiable 2 — structural content ships in
 // both locales. Compare .astro pages under src/pages against src/pages/vi.
 // API routes (src/pages/api/**) are locale-agnostic and excluded.
-// Redirect-only admin routes and the public careers pages are English-only;
-// the hiring desk (admin/jobs) is bilingual and must keep its /vi peers.
-const englishOnlyPrefixes = ["admin/crm/", "admin/jobs/login.astro", "jobs/"];
+// Only redirect-only admin routes are English-only; the hiring desk and the
+// public careers pages are bilingual and must keep their /vi peers.
+const englishOnlyPrefixes = ["admin/crm/", "admin/jobs/login.astro"];
 const enPages = walk("src/pages", [".astro"], [])
   .map((path) => path.slice("src/pages/".length))
   .filter((path) => path !== "index.astro" && !path.startsWith("vi/"))

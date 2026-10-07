@@ -9,6 +9,7 @@ import {
   safeHttpUrl
 } from "../../../../lib/ats";
 import { badRequest, redirect303, sameOrigin } from "../../../../lib/http";
+import { deskPath, postLang } from "../../../../lib/hiring/desk";
 import { notifyApplication } from "../../../../lib/application-notification";
 
 export const prerender = false;
@@ -38,7 +39,9 @@ function testFileAllowed(file: File): boolean {
 
 export const POST: APIRoute = async (context) => {
   const slug = context.params.slug ?? "";
-  const fallback = `/jobs/${slug}?error=1`;
+  // Return to the page language the candidate used (hidden field, else referrer).
+  let lang = postLang(context.request);
+  const fallback = () => deskPath(lang, `/jobs/${slug}?error=1`);
   if (!sameOrigin(context.request)) return badRequest("Invalid request origin.");
 
   const appEnv = envFromLocals(context.locals);
@@ -52,12 +55,13 @@ export const POST: APIRoute = async (context) => {
   } catch {
     // Interrupted uploads or malformed multipart bodies are a submission error,
     // not an uncaught server exception. No files or application have been saved.
-    return redirect303(fallback);
+    return redirect303(fallback());
   }
+  lang = postLang(context.request, form);
   const honeypot = formText(form, "website", 200);
   const startedAt = Number(formText(form, "started_at", 30));
   if (honeypot || !Number.isFinite(startedAt) || Date.now() - startedAt < 1200) {
-    return redirect303(fallback);
+    return redirect303(fallback());
   }
 
   const fullName = formText(form, "full_name", 160);
@@ -70,9 +74,9 @@ export const POST: APIRoute = async (context) => {
   const resume = form.get("resume");
 
   if (!fullName || !email || !/^\S+@\S+\.\S+$/.test(email) || !coverLetter || !consent || !isFile(resume)) {
-    return redirect303(fallback);
+    return redirect303(fallback());
   }
-  if (!resumeAllowed(resume) || resume.size > RESUME_MAX) return redirect303(fallback);
+  if (!resumeAllowed(resume) || resume.size > RESUME_MAX) return redirect303(fallback());
 
   const questions = await getQuestions(DB, job.id);
   const answers: Array<{ questionId: string; text: string }> = [];
@@ -83,20 +87,20 @@ export const POST: APIRoute = async (context) => {
     const value = form.get(`question_${question.id}`);
     if (question.kind === "file") {
       if (isFile(value)) {
-        if (!testFileAllowed(value) || value.size > TEST_MAX) return redirect303(fallback);
+        if (!testFileAllowed(value) || value.size > TEST_MAX) return redirect303(fallback());
         totalBytes += value.size;
         testFiles.push({ questionId: question.id, file: value });
       } else if (question.required) {
-        return redirect303(fallback);
+        return redirect303(fallback());
       }
     } else {
       const text = typeof value === "string" ? value.trim().slice(0, 12_000) : "";
-      if (question.required && !text) return redirect303(fallback);
+      if (question.required && !text) return redirect303(fallback());
       answers.push({ questionId: question.id, text });
     }
   }
 
-  if (totalBytes > TOTAL_MAX) return redirect303(fallback);
+  if (totalBytes > TOTAL_MAX) return redirect303(fallback());
 
   const applicationId = crypto.randomUUID();
   const publicId = crypto.randomUUID().split("-")[0].toUpperCase();
@@ -186,11 +190,11 @@ export const POST: APIRoute = async (context) => {
   } catch (error) {
     await Promise.all(uploadedKeys.map((key) => FILES.delete(key).catch(() => undefined)));
     console.error("Application submission failed", error);
-    return redirect303(fallback);
+    return redirect303(fallback());
   }
 
   // Runs only after the application and file metadata commit. A Discord outage
   // must never roll back files or encourage candidates to resubmit a saved CV.
   await notifyApplication(appEnv, { applicationId, publicId, jobTitle: job.title });
-  return redirect303(`/jobs/${job.slug}?applied=${encodeURIComponent(publicId)}`);
+  return redirect303(deskPath(lang, `/jobs/${job.slug}?applied=${encodeURIComponent(publicId)}`));
 };

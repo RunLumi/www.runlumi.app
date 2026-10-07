@@ -1,0 +1,11 @@
+---
+import PublicJob from "../../../components/jobs/PublicJob.astro";
+import { envFromLocals, getJobBySlug, getQuestions } from "../../../lib/ats";
+
+export const prerender = false;
+const { DB } = envFromLocals(Astro.locals);
+const job = await getJobBySlug(DB, Astro.params.slug ?? "");
+if (!job) Astro.response.status = 404;
+const questions = job ? await getQuestions(DB, job.id) : [];
+---
+<PublicJob lang="vi" job={job} questions={questions} />

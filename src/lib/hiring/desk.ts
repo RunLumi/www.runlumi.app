@@ -41,6 +41,7 @@ export function statusTone(status: string): string {
 
 const eventNames: Record<string, [string, string]> = {
   status_changed: ["Stage changed", "Đổi giai đoạn"], note_added: ["Private note added", "Thêm ghi chú riêng"], submitted: ["Application received", "Nhận hồ sơ"],
+  interview_scheduled: ["Interview scheduled", "Đã hẹn phỏng vấn"], interview_status: ["Interview updated", "Cập nhật phỏng vấn"], scorecard_added: ["Scorecard added", "Thêm phiếu đánh giá"],
   discord_notification_sent: ["Team notified", "Đã báo cho đội"], discord_notification_failed: ["Team notification failed", "Báo cho đội thất bại"],
 };
 export function eventName(type: string, lang: Lang): string {

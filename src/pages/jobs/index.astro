@@ -1,51 +1,9 @@
 ---
-import JobsLayout from "../../layouts/JobsLayout.astro";
+import PublicJobs from "../../components/jobs/PublicJobs.astro";
 import { envFromLocals, getPublishedJobs } from "../../lib/ats";
 
 export const prerender = false;
-
 const { DB } = envFromLocals(Astro.locals);
 const jobs = await getPublishedJobs(DB);
 ---
-<JobsLayout title="Jobs at Lumi" description="Open roles at Lumi. Small teams, clear ownership, useful work.">
-  <section class="ats-page">
-    <div class="ats-shell">
-      <div class="ats-eyebrow">LUMI / CAREERS</div>
-      <h1 class="ats-title">Do work that leaves the company better than you found it.</h1>
-      <p class="ats-lede">
-        We are a small team building practical software for real businesses. Clear thinking,
-        good judgment and care for the work matter more than theatre.
-      </p>
-
-      <div class="ats-toolbar">
-        <span class="ats-count">{jobs.length} open {jobs.length === 1 ? "role" : "roles"}</span>
-        <a class="ats-button secondary" href="mailto:hello@runlumi.app">Say hello anyway</a>
-      </div>
-
-      {jobs.length ? (
-        <div class="job-list">
-          {jobs.map((job) => (
-            <a class="job-row" href={`/jobs/${job.slug}`}>
-              <div>
-                <h2>{job.title}</h2>
-                <p>{job.summary}</p>
-                <div class="job-meta">
-                  {job.team && <span>{job.team}</span>}
-                  {job.location && <span>{job.location}</span>}
-                  {job.workplace_type && <span>{job.workplace_type}</span>}
-                  {job.employment_type && <span>{job.employment_type}</span>}
-                </div>
-              </div>
-              <span class="job-row-action">View role →</span>
-            </a>
-          ))}
-        </div>
-      ) : (
-        <div class="ats-card ats-empty">
-          <h2>No open roles right now.</h2>
-          <p>We keep this page quiet when there is nothing real to apply for. You can still write to us if your work is unusually relevant.</p>
-        </div>
-      )}
-    </div>
-  </section>
-</JobsLayout>
+<PublicJobs lang="en" jobs={jobs} />

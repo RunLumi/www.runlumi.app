@@ -3,6 +3,7 @@ import type { AstroGlobal } from "astro";
 import { type AdminApplicationRow, type Job, type JobQuestion, envFromLocals, getAdminJobs, getApplication, getApplications, getJobById, getQuestions } from "../ats";
 import type { WorkspaceUser } from "../workspace/roles";
 import type { Lang } from "./desk";
+import { DEFAULT_RETENTION_DAYS, type InterviewRow, RETENTION_STATUSES, type ScorecardRow } from "./interviews";
 
 export interface DeskBase { lang: Lang; vi: boolean; user: WorkspaceUser }
 type JobListRow = Job & { application_count: number; unread_count: number };
@@ -35,7 +36,16 @@ export async function applicationsPage(astro: AstroGlobal, lang: Lang) {
     getAdminJobs(DB) as unknown as Promise<JobListRow[]>, getApplications(DB, jobId, status),
     DB.prepare(`SELECT status, COUNT(*) AS count FROM applications ${jobId ? "WHERE job_id = ?" : ""} GROUP BY status`).bind(...(jobId ? [jobId] : [])).all<{ status: string; count: number }>(),
   ]);
-  return { ...base(astro, lang), jobs, applications, jobId, status, stageCounts: Object.fromEntries(stages.results.map((row) => [row.status, row.count])) as Record<string, number> };
+  // Retention preview: closed applications last updated on or before the cutoff.
+  const requested = astro.url.searchParams.get("cutoff") ?? "";
+  const cutoff = /^\d{4}-\d{2}-\d{2}$/.test(requested) ? requested : new Date(Date.now() + 7 * 3_600_000 - DEFAULT_RETENTION_DAYS * 86_400_000).toISOString().slice(0, 10);
+  const until = new Date(`${cutoff}T23:59:59.999+07:00`).toISOString();
+  const purgeable = (await DB.prepare(`SELECT COUNT(*) AS n FROM applications WHERE status IN (${RETENTION_STATUSES.map(() => "?").join(", ")}) AND updated_at <= ?`).bind(...RETENTION_STATUSES, until).first<{ n: number }>())?.n ?? 0;
+  const query = astro.url.searchParams;
+  return {
+    ...base(astro, lang), jobs, applications, jobId, status, stageCounts: Object.fromEntries(stages.results.map((row) => [row.status, row.count])) as Record<string, number>,
+    retention: { cutoff, purgeable, purged: query.get("purged"), error: !!query.get("purge_error") },
+  };
 }
 
 export interface AnswerRow { prompt: string; kind: string; answer_text: string }
@@ -47,13 +57,20 @@ export async function applicationPage(astro: AstroGlobal, lang: Lang) {
   const { DB } = envFromLocals(astro.locals);
   const application: AdminApplicationRow | null = await getApplication(DB, astro.params.id ?? "");
   if (!application) return null;
-  const [answers, files, notes, events] = await Promise.all([
+  const [answers, files, notes, events, interviews, scorecards] = await Promise.all([
     DB.prepare("SELECT q.prompt, q.kind, aa.answer_text FROM application_answers aa JOIN job_questions q ON q.id = aa.question_id WHERE aa.application_id = ? ORDER BY q.sort_order, q.created_at").bind(application.id).all<AnswerRow>(),
     DB.prepare("SELECT af.id, af.filename, af.kind, af.size_bytes, q.prompt FROM application_files af LEFT JOIN job_questions q ON q.id = af.question_id WHERE af.application_id = ? ORDER BY CASE af.kind WHEN 'resume' THEN 0 ELSE 1 END, af.created_at").bind(application.id).all<FileRow>(),
     DB.prepare("SELECT id, body, author, created_at FROM application_notes WHERE application_id = ? ORDER BY created_at DESC").bind(application.id).all<NoteRow>(),
     DB.prepare("SELECT id, event_type, actor, from_status, to_status, detail, created_at FROM application_events WHERE application_id = ? ORDER BY created_at DESC LIMIT 50").bind(application.id).all<EventRow>(),
+    DB.prepare("SELECT id, stage, scheduled_at, duration_minutes, location, interviewers, status, created_by_name FROM application_interviews WHERE application_id = ? ORDER BY scheduled_at").bind(application.id).all<InterviewRow>(),
+    DB.prepare("SELECT id, interview_id, author_id, author_name, recommendation, ratings, evidence, created_at FROM application_scorecards WHERE application_id = ? ORDER BY created_at").bind(application.id).all<ScorecardRow>(),
   ]);
-  return { ...base(astro, lang), application, answers: answers.results, files: files.results, notes: notes.results, events: events.results };
+  const query = astro.url.searchParams;
+  return {
+    ...base(astro, lang), application, answers: answers.results, files: files.results, notes: notes.results, events: events.results,
+    interviews: interviews.results, scorecards: scorecards.results,
+    flash: { saved: query.get("saved"), interviewError: !!query.get("interview_error"), scorecardError: query.get("scorecard_error") },
+  };
 }
 
 export function notFound(lang: Lang): Response {

@@ -103,6 +103,61 @@ test("hiring desk: bilingual pages, real actors in history, confirmed deletes", 
   assert.equal(jobs(`SELECT COUNT(*) AS n FROM applications WHERE id = ${q(ids.app)}`)[0].n, 0);
 });
 
+async function apply(slug, name, lang = "en") {
+  const form = new FormData();
+  for (const [key, value] of Object.entries({ started_at: String(Date.now() - 5000), website: "", full_name: name, email: `${name.replace(/\W+/g, "-").toLowerCase()}@example.test`, cover_letter: "TEST synthetic application", consent: "1", lang })) form.set(key, value);
+  form.set("resume", new File(["%PDF-1.4 TEST"], "TEST-cv.pdf", { type: "application/pdf" }));
+  return fetch(`${BASE}/api/jobs/${slug}/apply`, { method: "POST", body: form, headers: { origin: BASE }, redirect: "manual" });
+}
+
+test("careers pages are bilingual; a Vietnamese application returns to Vietnamese", async () => {
+  const slug = jobs(`SELECT slug FROM jobs WHERE id = ${q(ids.job)}`)[0].slug;
+  const listing = await fetch(`${BASE}/vi/jobs`);
+  assert.equal(listing.status, 200);
+  const html = await listing.text();
+  assert.match(html, /Vị trí đang tuyển/);
+  assert.match(html, new RegExp(`/vi/jobs/${slug}`));
+  const page = await fetch(`${BASE}/vi/jobs/${slug}`);
+  assert.match(await page.text(), /Gửi hồ sơ/);
+  const applied = await apply(slug, `TEST Ung Vien ${run}`, "vi");
+  assert.match(applied.headers.get("location") ?? "", new RegExp(`^/vi/jobs/${slug}\\?applied=`));
+});
+
+test("interviews and independent scorecards; retention deletes only closed, old applications", async () => {
+  S.hr2 = await userSession(S.admin, { email: `test-hr2-${run}@example.test`, name: `TEST HR Two ${run}` });
+  await S.admin.post("/workspace/users", { intent: "grant", email: S.hr2.email, roles: ["hr"] });
+  const app = jobs(`SELECT id FROM applications WHERE job_id = ${q(ids.job)} ORDER BY created_at DESC LIMIT 1`)[0].id;
+  assert.match((await S.hr.post(`/api/admin/applications/${app}/interviews`, { intent: "create", stage: "screen", scheduled_at: "2026-10-09T09:30", duration_minutes: "30", interviewers: "TEST HR", lang: "en" })).location, /saved=interview/);
+  assert.match((await S.hr.post(`/api/admin/applications/${app}/interviews`, { intent: "create", stage: "screen", scheduled_at: "soon", interviewers: "x" })).location, /interview_error/);
+  const interview = jobs(`SELECT id, scheduled_at FROM application_interviews WHERE application_id = ${q(app)}`)[0];
+  assert.equal(interview.scheduled_at, "2026-10-09T02:30:00.000Z", "stored in UTC from Vietnam time");
+  await S.hr.post(`/api/admin/applications/${app}/interviews`, { intent: "status", interview_id: interview.id, status: "done" });
+  const card = { interview_id: interview.id, recommendation: "yes", evidence: "TEST walked through a real customer case with numbers.", "rating.role_skills": "3", "rating.problem_solving": "3", "rating.communication": "4", "rating.ownership": "3" };
+  assert.match((await S.hr.post(`/api/admin/applications/${app}/scorecards`, card)).location, /saved=scorecard/);
+  assert.match((await S.hr.post(`/api/admin/applications/${app}/scorecards`, card)).location, /scorecard_error=exists/, "one scorecard per person per interview");
+  const before = await S.hr2.get(`/admin/jobs/applications/${app}`);
+  assert.match(before.html, /appear after you submit yours/);
+  assert.ok(!before.html.includes("TEST walked through"), "a second reviewer does not see the first scorecard yet");
+  await S.hr2.post(`/api/admin/applications/${app}/scorecards`, { ...card, recommendation: "no", evidence: "TEST could not explain the trade-off in the pricing case." });
+  assert.ok((await S.hr2.get(`/admin/jobs/applications/${app}`)).html.includes("TEST walked through"), "visible after submitting");
+  // Retention: only closed applications at or before the cutoff are deleted.
+  await S.hr.post(`/api/admin/applications/${app}/status`, { status: "rejected" });
+  jobs(`UPDATE applications SET updated_at = '2026-01-01T00:00:00.000Z' WHERE id = ${q(app)}`);
+  const slug = jobs(`SELECT slug FROM jobs WHERE id = ${q(ids.job)}`)[0].slug;
+  assert.equal((await apply(slug, `TEST Still Open ${run}`)).status, 303);
+  const open = jobs(`SELECT id FROM applications WHERE job_id = ${q(ids.job)} AND id != ${q(app)} LIMIT 1`)[0].id;
+  jobs(`UPDATE applications SET updated_at = '2026-01-01T00:00:00.000Z' WHERE id = ${q(open)}`);
+  const preview = await S.hr.get("/admin/jobs/applications?cutoff=2026-02-01");
+  assert.match(preview.html, /would be deleted/);
+  assert.match((await S.hr.post("/api/admin/applications/purge", { cutoff: "2026-02-01" })).location, /purge_error/, "confirmation required");
+  assert.match((await S.hr.post("/api/admin/applications/purge", { cutoff: "2026-02-01", confirm: "1" })).location, /purged=\d+/);
+  assert.equal(jobs(`SELECT COUNT(*) AS n FROM applications WHERE id = ${q(app)}`)[0].n, 0);
+  assert.equal(jobs(`SELECT COUNT(*) AS n FROM application_scorecards WHERE application_id = ${q(app)}`)[0].n, 0, "scorecards go with it");
+  assert.equal(jobs(`SELECT COUNT(*) AS n FROM applications WHERE id = ${q(open)}`)[0].n, 1, "old but still-open applications stay");
+  assert.ok(jobs("SELECT COUNT(*) AS n FROM workspace_audit WHERE action = 'candidates_purged'")[0].n >= 1);
+  assert.equal((await S.exec.post("/api/admin/applications/purge", { cutoff: "2026-02-01", confirm: "1" })).status, 403);
+});
+
 test("revoking a role takes effect on the next request and is audited", async () => {
   assert.equal((await S.admin.post("/workspace/users", { intent: "update", user_id: S.hr.id, roles: ["hr"], enabled: "0" })).status, 303);
   assert.equal((await S.hr.get("/admin/jobs")).status, 403);
