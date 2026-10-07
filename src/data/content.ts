@@ -1,3 +1,5 @@
+import { company } from "./company";
+
 export const content = {
   en: {
     lang: "en",
@@ -292,7 +294,7 @@ export const content = {
       title: "What would you stop chasing?",
       body: "Think of the report, the handoff or the unanswered question that will come around again next week. Bring that to Lumi. Let’s see what a better way of working could look like.",
       primary: "Discuss your workflow",
-      secondary: "hello@runlumi.app",
+      secondary: company.email,
     },
     footer: {
       line: "One operating layer for the company you already run.",
@@ -593,7 +595,7 @@ export const content = {
       title: "Việc gì bạn muốn thôi phải đốc thúc?",
       body: "Bản báo cáo, khâu bàn giao hay câu hỏi chưa có lời đáp nào sẽ lại xuất hiện vào tuần tới? Hãy bắt đầu từ đó, cùng Lumi tìm một cách làm đáng để thay đổi.",
       primary: "Trao đổi với Lumi",
-      secondary: "hello@runlumi.app",
+      secondary: company.email,
     },
     footer: {
       line: "Để công việc nối liền, con người có thêm thời gian suy xét.",

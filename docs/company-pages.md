@@ -10,6 +10,8 @@ address; no company phone number is displayed.
 `src/data/company.ts` is the single source for these details and EN/VI company
 copy. `CompanyFooter.astro` renders them across landing, Journal, company and
 public careers pages, retaining the existing email, Careers and GitHub links.
+The public contact address is `hi@runlumi.app`, sourced from the company data
+for footer labels, homepage email drafts and public careers contact links.
 Journal footers also retain RSS. Private workspaces do not use this footer.
 
 English is `/about` and `/vision`; Vietnamese is `/vi/about` and `/vi/vision`.

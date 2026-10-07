@@ -1,12 +1,13 @@
 ---
 import type { content } from "../data/content";
+import { company } from "../data/company";
 import BaseLayout from "../layouts/BaseLayout.astro";
 import CompanyFooter from "./CompanyFooter.astro";
 
 interface Props { copy: (typeof content)[keyof typeof content]; }
 const { copy } = Astro.props;
 const vi = copy.lang === "vi";
-const contact = `mailto:hello@runlumi.app?subject=${encodeURIComponent(vi ? "Trao đổi về một quy trình cùng Lumi" : "One workflow to explore with Lumi")}&body=${encodeURIComponent(vi ? "Chào Lumi,\n\nCông việc chúng tôi muốn cải thiện:\nHệ thống đang dùng:\nĐiểm thường bị mắc:\nKết quả mong đợi:\n" : "Hello Lumi,\n\nThe workflow we want to improve:\nSystems we use:\nWhere work gets stuck:\nWhat a useful result looks like:\n")}`;
+const contact = `mailto:${company.email}?subject=${encodeURIComponent(vi ? "Trao đổi về một quy trình cùng Lumi" : "One workflow to explore with Lumi")}&body=${encodeURIComponent(vi ? "Chào Lumi,\n\nCông việc chúng tôi muốn cải thiện:\nHệ thống đang dùng:\nĐiểm thường bị mắc:\nKết quả mong đợi:\n" : "Hello Lumi,\n\nThe workflow we want to improve:\nSystems we use:\nWhere work gets stuck:\nWhat a useful result looks like:\n")}`;
 ---
 <BaseLayout lang={copy.lang} title={copy.meta.title} description={copy.meta.description} canonicalPath={copy.path}>
   <header class="site-header">

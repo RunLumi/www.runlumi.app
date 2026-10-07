@@ -4,7 +4,7 @@ import { content } from "../data/content";
 import PublicIcon from "./PublicIcon.astro";
 import "../styles/company-footer.css";
 interface Props { lang: CompanyLocale; contact?: string; journal?: boolean }
-const { lang, contact = "mailto:hello@runlumi.app", journal = false } = Astro.props;
+const { lang, contact = `mailto:${company.email}`, journal = false } = Astro.props;
 const c = companyContent[lang];
 const home = lang === "vi" ? "/vi" : "/";
 ---
@@ -20,7 +20,7 @@ const home = lang === "vi" ? "/vi" : "/";
         <a href={companyRoutes.about[lang]}>{c.aboutLabel}</a><a href={companyRoutes.vision[lang]}>{c.visionLabel}</a>
         <a href={lang === "vi" ? "/vi/blog" : "/blog"}>{c.journal}</a><a href={lang === "vi" ? "/vi/jobs" : "/jobs"}>{c.careers}</a>
         {journal && <a href={lang === "vi" ? "/vi/rss.xml" : "/rss.xml"}>RSS</a>}
-        <a href={contact}>hello@runlumi.app</a><a href="https://github.com/RunLumi">GitHub</a>
+        <a href={contact}>{company.email}</a><a href="https://github.com/RunLumi">GitHub</a>
       </nav>
     </div>
     <section class="company-details" aria-labelledby="company-info-heading">

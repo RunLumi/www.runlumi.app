@@ -1,5 +1,6 @@
 export type CompanyLocale = "en" | "vi";
 export const company = {
+  email: "hi@runlumi.app",
   name: "CLOUDJET SOLUTIONS PTE. LTD.",
   singaporeAddress: "71 Ayer Rajah Crescent, #02-10/11, Singapore 139951",
   uen: "201708398E",
