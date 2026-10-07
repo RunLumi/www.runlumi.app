@@ -1,6 +1,8 @@
 # Hướng dẫn sử dụng CRM Lumi
 
-Địa chỉ: `https://runlumi.app/vi/crm` (tiếng Việt) hoặc `https://runlumi.app/crm` (tiếng Anh). Đăng nhập bằng tài khoản EmDash. Admin phải cấp quyền CRM trước thì bạn mới vào được.
+Địa chỉ: `https://runlumi.app/vi/workspace` (Tổng quan) và `https://runlumi.app/vi/crm` (CRM). Thêm `/vi` để dùng tiếng Việt; bỏ `/vi` để dùng tiếng Anh. Đăng nhập bằng tài khoản EmDash. Admin phải cấp vai trò trước thì bạn mới vào được: Nhân viên bán hàng, Quản lý bán hàng, Tài chính hoặc Bàn giao. Vai trò Nhân sự (HR) dùng phân hệ Tuyển dụng.
+
+Thanh điều hướng có hai tầng. Tầng trên chuyển giữa các phân hệ: Tổng quan, Tuyển dụng, CRM, Quản trị. Tầng dưới là các trang trong phân hệ đang mở. Bạn chỉ thấy những mục vai trò của mình được phép.
 
 CRM chỉ để ghi chép và điều phối công việc. CRM không tự gửi tin cho khách, không mua tên miền, không xuất bản website, không thu tiền và không tính hoa hồng.
 
@@ -64,13 +66,22 @@ Bạn chỉ thấy các cơ hội được giao cho mình. Nếu một doanh ngh
 - **Chi trả:** tài chính chi ngoài CRM, rồi ghi nhận lại theo bảng kê.
 - **Chi tiết:** xem [COMMISSION.md](COMMISSION.md).
 
+## Quản lý bán hàng (Sales Manager)
+
+- Thấy mọi cơ hội của cả đội và giao lại cho người khác. Giao lại không đổi người bán được ghi công.
+- Trang *Vận hành* gồm hàng chờ yêu cầu từ website và cohort.
+- Không sửa được playbook, gói, chính sách hoa hồng hay người dùng; các việc đó thuộc về Admin.
+
 ## Admin
 
 - **Cấp quyền.**
-  - Tạo hoặc mời tài khoản trong EmDash trước, rồi cấp quyền CRM bằng email ở *Quản trị*.
-  - Bật thêm quyền *Tài chính* hoặc *Bàn giao* khi cần. Không cần nâng ai lên admin EmDash.
-  - Quyền CRM không mở được trang tuyển dụng.
-- **Thu hồi.** Thu hồi quyền có hiệu lực ngay từ yêu cầu kế tiếp. Hồ sơ vẫn còn: vào *Cơ hội*, lọc "người phụ trách không hoạt động" để giao lại.
+  - Tạo hoặc mời tài khoản trong EmDash trước.
+  - Vào *Quản trị → Người dùng và vai trò*, cấp vai trò bằng email. Vai trò gồm: Nhân sự (HR), Quản lý bán hàng, Nhân viên bán hàng, Tài chính, Bàn giao; có thể kết hợp nhiều vai trò.
+  - Không cần nâng ai lên admin EmDash.
+  - Vai trò CRM không mở được hồ sơ ứng viên, và HR không vào được CRM.
+- **Thu hồi.**
+  - Có hiệu lực ngay từ yêu cầu kế tiếp, và được ghi vào nhật ký thay đổi quyền.
+  - Hồ sơ vẫn còn: vào *Cơ hội*, lọc "người phụ trách không hoạt động" để giao lại.
 - **Yêu cầu từ website.** Yêu cầu gửi từ local.runlumi.app vào hàng chờ, chưa giao cho ai. Hãy *giao* cho người phụ trách, hoặc *bỏ qua* nếu là spam (phải ghi lý do). Yêu cầu chưa phải thanh toán, chưa phải tài khoản và chưa phải khách đủ điều kiện.
 - **Playbook và gói.**
   - Lưu thay đổi luôn tạo phiên bản mới. Cơ hội cũ giữ phiên bản đang dùng.

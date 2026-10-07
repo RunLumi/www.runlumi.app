@@ -1,48 +1,11 @@
 // Admin operations: membership, capabilities, inbound queue and cohorts.
 import type { CrmActor } from "./access";
 import { assignableOwner } from "./access";
-import { ConflictError, Errors, ForbiddenError, ValidationError, emailPattern, eventStatement, fail, nowIso, onceGuarded } from "./core";
+import { ConflictError, Errors, ForbiddenError, ValidationError, eventStatement, fail, nowIso, onceGuarded } from "./core";
 import { isIsoDate } from "./playbook";
 
 function requireAdmin(actor: CrmActor): void {
-  if (!actor.admin) throw new ForbiddenError();
-}
-
-/** Grants, revokes or restores CRM access for an existing, active, non-admin EmDash account. */
-export async function setMembership(db: D1Database, contentDb: D1Database, actor: CrmActor, form: FormData): Promise<void> {
-  requireAdmin(actor);
-  const errors = new Errors();
-  const email = errors.text(form, "email", 254).toLowerCase();
-  const userId = errors.text(form, "user_id", 128);
-  const enabled = form.get("enabled") === "1";
-  errors.throwIfAny();
-  if (!userId && !emailPattern.test(email)) fail("email", "invalid");
-  const user = userId
-    ? await contentDb.prepare("SELECT id, role, disabled FROM users WHERE id = ? LIMIT 1").bind(userId).first<{ id: string; role: number; disabled: number }>()
-    : await contentDb.prepare("SELECT id, role, disabled FROM users WHERE lower(email) = ? LIMIT 1").bind(email).first<{ id: string; role: number; disabled: number }>();
-  const target = user?.id ?? userId;
-  if (!target) fail("email", "not_found");
-  if (enabled && (!user || user.disabled || user.role === 50)) fail(userId ? "user_id" : "email", "not_found");
-  if (!enabled && !await db.prepare("SELECT 1 FROM crm_members WHERE user_id = ?").bind(target).first()) fail("user_id", "not_found");
-  const now = nowIso();
-  await db.batch([
-    db.prepare("INSERT INTO crm_members (user_id, enabled, granted_by, updated_at) VALUES (?, ?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET enabled = excluded.enabled, granted_by = excluded.granted_by, updated_at = excluded.updated_at")
-      .bind(target, enabled ? 1 : 0, actor.id, now),
-    eventStatement(db, actor, enabled ? "member_enabled" : "member_revoked", { user_id: target }, {}),
-  ]);
-}
-
-export async function setCapabilities(db: D1Database, actor: CrmActor, form: FormData): Promise<void> {
-  requireAdmin(actor);
-  const userId = typeof form.get("user_id") === "string" ? String(form.get("user_id")) : "";
-  if (!await db.prepare("SELECT 1 FROM crm_members WHERE user_id = ?").bind(userId).first()) fail("user_id", "not_found");
-  const wanted = (["finance", "fulfillment"] as const).filter((capability) => form.get(capability) === "1");
-  const now = nowIso();
-  await db.batch([
-    db.prepare("DELETE FROM crm_capabilities WHERE user_id = ?").bind(userId),
-    ...wanted.map((capability) => db.prepare("INSERT INTO crm_capabilities (user_id, capability, granted_by, granted_at) VALUES (?, ?, ?, ?)").bind(userId, capability, actor.id, now)),
-    eventStatement(db, actor, "capabilities_set", { user_id: userId, capabilities: wanted }, {}),
-  ]);
+  if (!actor.manager) throw new ForbiddenError();
 }
 
 /** Assigns a queued inbound enquiry to an owner. */
@@ -53,6 +16,8 @@ export async function assignInbound(db: D1Database, contentDb: D1Database, actor
   const ownerId = errors.text(form, "owner_id", 128, true);
   errors.throwIfAny();
   if (!await assignableOwner(db, contentDb, actor, ownerId)) fail("owner_id", "invalid");
+  // Assigning an enquiry credits the assignee as seller; managers cannot credit themselves.
+  if (ownerId === actor.id && !actor.configure) fail("owner_id", "self_assign");
   const row = await db.prepare("SELECT opportunity_id FROM crm_inbound WHERE id = ? AND status = 'queued'").bind(inboundId).first<{ opportunity_id: string }>();
   if (!row) fail("inbound_id", "invalid");
   const now = nowIso();

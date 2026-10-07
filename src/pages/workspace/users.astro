@@ -1,0 +1,9 @@
+---
+import WorkspaceUsers from "../../components/workspace/WorkspaceUsers.astro";
+import { usersPage } from "../../lib/workspace/pages";
+
+export const prerender = false;
+const data = await usersPage(Astro, "en");
+if (data instanceof Response) return data;
+---
+<WorkspaceUsers {...data} />

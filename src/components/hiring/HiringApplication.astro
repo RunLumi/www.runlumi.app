@@ -1,0 +1,66 @@
+---
+import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
+import { applicationStatuses } from "../../lib/ats";
+import { deskDate, deskPath, eventName, statusName, statusTone } from "../../lib/hiring/desk";
+import type { applicationPage } from "../../lib/hiring/pages";
+
+type Props = NonNullable<Awaited<ReturnType<typeof applicationPage>>>;
+const { lang, vi, user, application, answers, files, notes, events } = Astro.props;
+const saved = Astro.url.searchParams.get("saved");
+---
+<WorkspaceShell title={application.full_name} lang={lang} user={user} module="hiring" current="applications">
+  <p class="crm-eyebrow"><a class="crm-link" href={deskPath(lang, "/admin/jobs/applications")}>{vi ? "Ứng viên" : "Candidates"}</a> / {application.job_title} / {application.public_id}</p>
+  <div class="crm-head"><div>
+    <h1 class="crm-h1">{application.full_name}</h1>
+    <p class="crm-lede"><span class:list={["crm-badge", statusTone(application.status)]}>{statusName(application.status, lang)}</span> · {vi ? "Nộp" : "Applied"} {deskDate(application.created_at, lang)}</p>
+  </div>
+  {user.can("hiring.applications.manage") && <form class="crm-actions" method="post" action={`/api/admin/applications/${application.id}/status`}>
+    <input type="hidden" name="lang" value={lang} />
+    <label class="crm-label" for="status">{vi ? "Giai đoạn" : "Stage"}</label>
+    <select class="crm-select" style="width:auto" id="status" name="status">{applicationStatuses.map((value) => <option value={value} selected={application.status === value}>{statusName(value, lang)}</option>)}</select>
+    <button class="crm-button" type="submit">{vi ? "Cập nhật" : "Update stage"}</button>
+  </form>}</div>
+  {saved && <div class="crm-notice good" role="status">{vi ? "Đã lưu." : "Saved."}</div>}
+  <div class="crm-grid two">
+    <div>
+      <section class="crm-sheet" aria-labelledby="cand-h">
+        <h2 class="crm-h2" id="cand-h">{vi ? "Ứng viên" : "Candidate"}</h2>
+        <dl class="crm-facts">
+          <div><dt>Email</dt><dd><a class="crm-link" href={`mailto:${application.email}`}>{application.email}</a></dd></div>
+          <div><dt>{vi ? "Điện thoại" : "Phone"}</dt><dd>{application.phone || "—"}</dd></div>
+          <div><dt>LinkedIn</dt><dd>{application.linkedin_url ? <a class="crm-link" href={application.linkedin_url} rel="noopener noreferrer" target="_blank">{vi ? "Mở" : "Open"} ↗</a> : "—"}</dd></div>
+          <div><dt>Portfolio</dt><dd>{application.portfolio_url ? <a class="crm-link" href={application.portfolio_url} rel="noopener noreferrer" target="_blank">{vi ? "Mở" : "Open"} ↗</a> : "—"}</dd></div>
+        </dl>
+      </section>
+      <section class="crm-sheet" aria-labelledby="letter-h"><h2 class="crm-h2" id="letter-h">{vi ? "Thư giới thiệu" : "Cover letter"}</h2><p style="white-space:pre-wrap">{application.cover_letter || "—"}</p></section>
+      {answers.length > 0 && <section class="crm-sheet" aria-labelledby="work-h"><h2 class="crm-h2" id="work-h">{vi ? "Bài làm" : "Work sample"}</h2>
+        {answers.map((answer) => <div style="padding:12px 0;border-bottom:1px solid var(--crm-line-soft)"><strong>{answer.prompt}</strong><p style="margin:6px 0 0;white-space:pre-wrap">{answer.answer_text || "—"}</p></div>)}
+      </section>}
+      <section class="crm-sheet" aria-labelledby="files-h"><h2 class="crm-h2" id="files-h">{vi ? "Tệp" : "Files"}</h2>
+        {files.length ? <ul class="crm-list">{files.map((file) => <li class="crm-row"><a class="crm-row-title" href={`/api/admin/files/${file.id}`}>{file.filename}</a><span class="crm-row-meta"><span>{file.kind === "resume" ? "CV" : file.prompt || (vi ? "Tệp bài test" : "Test file")}</span><span>{Math.ceil(file.size_bytes / 1024)} KB</span></span></li>)}</ul> : <p class="crm-empty">{vi ? "Không có tệp." : "No files."}</p>}
+        <p class="crm-help">{vi ? "Tệp lưu riêng tư, chỉ mở qua phiên đăng nhập có quyền tuyển dụng." : "Files are private and open only through a signed-in session with hiring access."}</p>
+      </section>
+    </div>
+    <aside class="crm-grid">
+      {user.can("hiring.applications.manage") && <section class="crm-sheet" aria-labelledby="notes-h"><h2 class="crm-h2" id="notes-h">{vi ? "Ghi chú riêng" : "Private notes"}</h2>
+        <form class="crm-form" method="post" action={`/api/admin/applications/${application.id}/notes`}>
+          <input type="hidden" name="lang" value={lang} />
+          <div class="crm-field"><label for="body">{vi ? "Bằng chứng, băn khoăn, câu hỏi tiếp theo" : "Evidence, concern, next question"}</label><textarea class="crm-textarea" id="body" name="body" required maxlength="4000"></textarea></div>
+          <div class="crm-actions"><button class="crm-button secondary" type="submit">{vi ? "Thêm ghi chú" : "Add note"}</button></div>
+        </form>
+        {notes.length > 0 && <ol class="crm-activity" style="margin-top:14px">{notes.map((note) => <li><p style="white-space:pre-wrap">{note.body}</p><span class="crm-meta">{note.author} · {deskDate(note.created_at, lang)}</span></li>)}</ol>}
+      </section>}
+      <section class="crm-sheet" aria-labelledby="hist-h"><h2 class="crm-h2" id="hist-h">{vi ? "Lịch sử" : "History"}</h2>
+        {events.length ? <ol class="crm-activity">{events.map((event) => <li><strong>{eventName(event.event_type, lang)}</strong>{event.to_status && <p>{event.from_status ? statusName(event.from_status, lang) : "—"} → {statusName(event.to_status, lang)}</p>}<span class="crm-meta">{event.actor} · {deskDate(event.created_at, lang)}</span></li>)}</ol> : <p class="crm-empty">—</p>}
+      </section>
+      {user.can("hiring.applications.delete") && <section class="crm-sheet" aria-labelledby="privacy-h"><h2 class="crm-h2" id="privacy-h">{vi ? "Dữ liệu và quyền riêng tư" : "Data and privacy"}</h2>
+        <p class="crm-help">{vi ? "Xóa hồ sơ, ghi chú, câu trả lời và mọi tệp đã tải lên khỏi kho riêng tư." : "Deletes the application record, notes, answers and every uploaded file from private storage."}</p>
+        <form class="crm-form" method="post" action={`/api/admin/applications/${application.id}/delete`}>
+          <input type="hidden" name="lang" value={lang} />
+          <label class="crm-check"><input type="checkbox" name="confirm" value="1" required /><span>{vi ? "Xóa vĩnh viễn hồ sơ và tệp của ứng viên này." : "Permanently delete this candidate's application and files."}</span></label>
+          <div class="crm-actions"><button class="crm-button danger" type="submit">{vi ? "Xóa hồ sơ" : "Delete application"}</button></div>
+        </form>
+      </section>}
+    </aside>
+  </div>
+</WorkspaceShell>

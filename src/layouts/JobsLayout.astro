@@ -1,13 +1,13 @@
 ---
+// Public careers pages. Private hiring pages use WorkspaceShell.
 import "../styles/jobs.css";
 
 interface Props {
   title: string;
   description?: string;
-  admin?: boolean;
 }
 
-const { title, description = "Careers at Lumi", admin = false } = Astro.props;
+const { title, description = "Careers at Lumi" } = Astro.props;
 ---
 <!doctype html>
 <html lang="en">
@@ -15,36 +15,21 @@ const { title, description = "Careers at Lumi", admin = false } = Astro.props;
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width" />
     <meta name="theme-color" content="#F4F0E8" />
-    {admin && <meta name="robots" content="noindex, nofollow" />}
     <meta name="description" content={description} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title}</title>
   </head>
-  <body class:list={{ "ats-admin": admin }}>
+  <body>
     <a class="ats-skip" href="#main">Skip to content</a>
     <header class="ats-header">
       <div class="ats-shell ats-header-inner">
-        <a class="ats-brand" href={admin ? "/admin/jobs" : "/jobs"}>
+        <a class="ats-brand" href="/jobs">
           <img src="/brand/lumi-fulltext.svg" alt="Lumi" width="98" height="50" />
-          <span>{admin ? "Hiring desk" : "Jobs"}</span>
+          <span>Jobs</span>
         </a>
-        <nav class="ats-nav" aria-label={admin ? "Admin" : "Jobs"}>
-          {admin ? (
-            <>
-              <a href="/crm">CRM</a>
-              <a href="/admin/crm">CRM members</a>
-              <a href="/admin/jobs">Jobs</a>
-              <a href="/admin/jobs/applications">Applications</a>
-              <form method="post" action="/_emdash/api/auth/logout?redirect=%2F">
-                <button class="ats-link-button" type="submit">Sign out</button>
-              </form>
-            </>
-          ) : (
-            <>
-              <a href="/">About Lumi</a>
-              <a href="/jobs">Open roles</a>
-            </>
-          )}
+        <nav class="ats-nav" aria-label="Jobs">
+          <a href="/">About Lumi</a>
+          <a href="/jobs">Open roles</a>
         </nav>
       </div>
     </header>

@@ -1,0 +1,48 @@
+---
+// One shell for every private module. Primary navigation switches modules
+// (only those the person may open); secondary navigation lists pages in the
+// current module. Server-rendered links and forms only: no client script.
+import "../styles/crm.css";
+import { type ModuleKey, localized, modules, switchLocale, visibleLinks, visibleModules } from "../lib/workspace/nav";
+import { type WorkspaceUser, roleLabel } from "../lib/workspace/roles";
+
+interface Props { title: string; lang: "en" | "vi"; user: WorkspaceUser; module: ModuleKey; current?: string }
+const { title, lang, user, module, current } = Astro.props;
+const vi = lang === "vi";
+const available = visibleModules(user);
+const active = modules.find((item) => item.key === module)!;
+const links = user.can(active.permission) ? visibleLinks(user, active) : [];
+const badges = user.admin ? [roleLabel("admin", vi)] : [...user.roles].map((role) => roleLabel(role, vi));
+---
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#F4F0E8" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{title} — Lumi Workspace</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body class="crm">
+    <a class="crm-skip" href="#main">{vi ? "Đến nội dung chính" : "Skip to content"}</a>
+    <header class="ws-header">
+      <div class="crm-shell ws-bar">
+        <a class="crm-brand" href={localized("/workspace", vi)}><img src="/brand/lumi-fulltext.svg" alt="Lumi" width="86" height="44" /><span>Workspace</span></a>
+        <nav class="ws-modules" aria-label={vi ? "Phân hệ" : "Modules"}>
+          {available.map((item) => <a href={localized(item.path, vi)} aria-current={item.key === module ? "page" : undefined}>{vi ? item.vi : item.en}</a>)}
+        </nav>
+        <div class="ws-account">
+          <a class="ws-lang" href={switchLocale(Astro.url)} lang={vi ? "en" : "vi"} hreflang={vi ? "en" : "vi"}>{vi ? "English" : "Tiếng Việt"}</a>
+          <span class="ws-user" title={user.email}><strong>{user.name}</strong><span>{badges.join(" · ")}</span></span>
+          <form method="post" action="/_emdash/api/auth/logout?redirect=%2F"><button type="submit">{vi ? "Đăng xuất" : "Sign out"}</button></form>
+        </div>
+      </div>
+      {links.length > 0 && <div class="ws-subbar"><nav class="crm-shell ws-pages" aria-label={vi ? `Trang trong ${active.vi}` : `${active.en} pages`}>
+        {links.map((link) => <a href={localized(link.path, vi)} aria-current={link.key === current ? "page" : undefined}>{vi ? link.vi : link.en}</a>)}
+      </nav></div>}
+    </header>
+    <main id="main" class="crm-main"><div class="crm-shell"><slot /></div></main>
+    <footer class="crm-footer"><div class="crm-shell"><span>Lumi Workspace · {vi ? "Nội bộ, chỉ người được cấp quyền" : "Internal, permitted users only"}</span><span>© 2026 Cloudjet Solutions Pte. Ltd.</span></div></footer>
+  </body>
+</html>

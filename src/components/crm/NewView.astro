@@ -46,7 +46,7 @@ const fieldLabels: Record<string, string> = vi
       <Field name="referrer" label={vi ? "Người giới thiệu" : "Referred by"} lang={lang} value={v("referrer")} error={e("referrer")} maxlength={160} />
       <Field name="next_action" label={vi ? "Bước tiếp theo" : "Next step"} lang={lang} value={v("next_action")} error={e("next_action")} maxlength={500} />
       <Field name="next_action_due" type="date" label={fieldLabels.next_action_due} lang={lang} value={v("next_action_due")} error={e("next_action_due")} />
-      {ctx.actor.admin && <Field name="owner_id" type="select" label={fieldLabels.owner_id} lang={lang} value={v("owner_id", ctx.actor.id)} error={e("owner_id")} options={owners.map((owner) => ({ value: owner.id, label: owner.label }))} />}
+      {ctx.actor.manager && <Field name="owner_id" type="select" label={fieldLabels.owner_id} lang={lang} value={v("owner_id", ctx.actor.id)} error={e("owner_id")} options={owners.map((owner) => ({ value: owner.id, label: owner.label }))} />}
     </div>
     <p class="crm-help">{vi ? "Không nhập mật khẩu, quyền truy cập Google hay dữ liệu khách hàng cuối vào đây." : "Never enter passwords, Google access or end-customer data here."}</p>
     <div class="crm-actions"><button class="crm-button" type="submit">{vi ? "Tạo cơ hội" : "Create opportunity"}</button><a class="crm-link" href={ctx.base}>{t(lang, "cancel")}</a></div>

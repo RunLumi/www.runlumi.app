@@ -1,6 +1,7 @@
 // Seller → fulfillment handoff and delivery tracking. The CRM records and
 // coordinates; it never buys domains, publishes sites or messages customers.
 import type { CrmActor } from "./access";
+import { hasRole } from "../workspace/members";
 import { parseSnapshot, type Quote } from "./commercial";
 import { ConflictError, Errors, ForbiddenError, eventStatement, fail, newId, nowIso, once, onceGuarded } from "./core";
 import { isIsoDate, type Playbook } from "./playbook";
@@ -77,7 +78,7 @@ export async function createHandoff(db: D1Database, actor: CrmActor, opportunity
 
 /** Sellers may complete missing handoff details while information is still being gathered. */
 export async function updateHandoff(db: D1Database, actor: CrmActor, opportunity: Opportunity, fulfillment: Fulfillment, form: FormData): Promise<void> {
-  const ownerEdit = actor.admin || opportunity.owner_id === actor.id;
+  const ownerEdit = actor.manager || opportunity.owner_id === actor.id;
   if (!actor.fulfillment && !(ownerEdit && ["waiting_info", "pending"].includes(fulfillment.status))) throw new ForbiddenError();
   const version = Number(form.get("version"));
   const errors = new Errors();
@@ -162,7 +163,7 @@ export async function fulfillmentAction(db: D1Database, actor: CrmActor, opportu
   if (action === "assign") {
     const assignee = errors.text(form, "assignee_id", 128, true);
     errors.throwIfAny();
-    if (assignee !== actor.id && !await db.prepare("SELECT 1 FROM crm_members m JOIN crm_capabilities c ON c.user_id = m.user_id WHERE m.user_id = ? AND m.enabled = 1 AND c.capability = 'fulfillment'").bind(assignee).first()) fail("assignee_id", "invalid");
+    if (assignee !== actor.id && !await hasRole(db, assignee, ["fulfillment"])) fail("assignee_id", "invalid");
     return guardedFulfillment(db, actor, opportunity, fulfillment, version, form, "fulfillment_assigned", { to: assignee }, sql("assignee_id = ?", assignee));
   }
   fail("fulfillment_action", "invalid");

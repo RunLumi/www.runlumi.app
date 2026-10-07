@@ -1,0 +1,33 @@
+---
+import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
+import { localized, modules } from "../../lib/workspace/nav";
+import type { homePage } from "../../lib/workspace/pages";
+import { roleDescriptions, roleLabel } from "../../lib/workspace/roles";
+
+type Props = Awaited<ReturnType<typeof homePage>>;
+const { lang, vi, user, cards } = Astro.props;
+const held = user.admin ? (["admin"] as const) : [...user.roles];
+const intro: Record<string, [string, string]> = {
+  hiring: ["Roles, application tests and candidates.", "Vị trí, bài test và ứng viên."],
+  crm: ["Opportunities, quotes, payments, delivery and commission.", "Cơ hội, báo giá, thanh toán, bàn giao và hoa hồng."],
+  admin: ["Who can sign in, and with which roles.", "Ai được đăng nhập và với vai trò nào."],
+};
+---
+<WorkspaceShell title={vi ? "Tổng quan" : "Overview"} lang={lang} user={user} module="home">
+  <div class="crm-head"><div>
+    <p class="crm-eyebrow">Lumi Workspace</p>
+    <h1 class="crm-h1">{vi ? `Chào ${user.name}.` : `Hello, ${user.name}.`}</h1>
+    <p class="crm-lede">{vi ? "Mỗi phân hệ chỉ hiện khi vai trò của bạn cho phép." : "Each module appears only when your role allows it."}</p>
+  </div></div>
+  <div class="crm-grid cols">
+    {cards.map((card) => { const module = modules.find((item) => item.key === card.module)!; return <section class="crm-sheet crm-lane calm" aria-labelledby={`m-${card.module}`}>
+      <h2 class="crm-h2" id={`m-${card.module}`}><a class="crm-link" href={localized(module.path, vi)}>{vi ? module.vi : module.en}</a></h2>
+      <p class="crm-help">{intro[card.module][vi ? 1 : 0]}</p>
+      <dl class="crm-facts">{card.figures.map((figure) => <div><dt>{figure.label[vi ? 1 : 0]}</dt><dd class="crm-figure"><a class="crm-link" href={localized(figure.href, vi)}>{figure.value}</a></dd></div>)}</dl>
+    </section>; })}
+  </div>
+  <section class="crm-sheet" style="margin-top:18px" aria-labelledby="roles-h">
+    <h2 class="crm-h2" id="roles-h">{vi ? "Vai trò của bạn" : "Your roles"}</h2>
+    <ul class="crm-list">{held.map((role) => <li class="crm-row"><strong>{roleLabel(role, vi)}</strong><span class="crm-row-meta"><span>{roleDescriptions[role][vi ? 1 : 0]}</span></span></li>)}</ul>
+  </section>
+</WorkspaceShell>

@@ -43,7 +43,7 @@ export async function loadOpportunity(db: D1Database, actor: CrmActor, id: strin
   const scope = readableScope(actor);
   const row = await db.prepare(`${OPP_SELECT} WHERE o.id = ? AND ${scope.sql}`).bind(id, ...scope.args).first<Opportunity>();
   if (!row) throw new NotFoundError();
-  return { opportunity: row, canEdit: actor.admin || row.owner_id === actor.id };
+  return { opportunity: row, canEdit: actor.manager || row.owner_id === actor.id };
 }
 
 export function requireEdit(access: Access): Opportunity {
@@ -116,8 +116,8 @@ export async function quickCreate(db: D1Database, contentDb: D1Database, actor: 
   if (input.next_action_due && !isIsoDate(input.next_action_due)) errors.add("next_action_due", "invalid");
   const playbook = (await latestPlaybooks(db, { activeOnly: true })).find((item) => item.playbook_key === input.playbook_key);
   if (!playbook) errors.add("playbook_key", "invalid");
-  const owner = actor.admin ? (input.owner_id || actor.id) : actor.id;
-  if (actor.admin && !await assignableOwner(db, contentDb, actor, owner)) errors.add("owner_id", "invalid");
+  const owner = actor.manager ? (input.owner_id || actor.id) : actor.id;
+  if (actor.manager && !await assignableOwner(db, contentDb, actor, owner)) errors.add("owner_id", "invalid");
   errors.throwIfAny();
   if (phoneNorm && await phoneSuppressed(db, phoneNorm)) fail("phone", "suppressed");
 
@@ -235,10 +235,12 @@ export async function moveStage(db: D1Database, actor: CrmActor, opportunity: Op
 }
 
 export async function assignOwner(db: D1Database, contentDb: D1Database, actor: CrmActor, opportunity: Opportunity, form: FormData): Promise<void> {
-  if (!actor.admin) throw new ForbiddenError();
+  if (!actor.manager) throw new ForbiddenError();
   const version = parseVersion(form);
   const ownerId = typeof form.get("owner_id") === "string" ? String(form.get("owner_id")) : "";
   if (!ownerId || !await assignableOwner(db, contentDb, actor, ownerId)) fail("owner_id", "invalid");
+  // Taking an unattributed deal for yourself would also make you its credited seller; only Admins may.
+  if (ownerId === actor.id && !opportunity.seller_id && !actor.configure) fail("owner_id", "self_assign");
   const guard = guardFor(opportunity, version, actor);
   const now = nowIso();
   const result = await onceGuarded(db, actor, requestKey(form), "assign", opportunity.id, guard, [
@@ -311,7 +313,7 @@ export async function createLinked(db: D1Database, actor: CrmActor, parent: Oppo
 
 /** Admin-only: move an opportunity to another playbook/version with an explicit stage mapping. */
 export async function changePlaybook(db: D1Database, actor: CrmActor, opportunity: Opportunity, form: FormData): Promise<void> {
-  if (!actor.admin) throw new ForbiddenError();
+  if (!actor.manager) throw new ForbiddenError();
   const version = parseVersion(form);
   const errors = new Errors();
   const targetId = errors.text(form, "target_playbook_id", 80, true);
@@ -336,8 +338,8 @@ export async function changePlaybook(db: D1Database, actor: CrmActor, opportunit
 
 export async function loadAccount(db: D1Database, actor: CrmActor, id: string): Promise<Account> {
   const scope = readableScope(actor, "ox");
-  const row = await db.prepare(`SELECT a.* FROM crm_accounts a WHERE a.id = ? AND ${actor.admin ? "1 = 1" : `EXISTS (SELECT 1 FROM crm_opportunities ox WHERE ox.account_id = a.id AND ${scope.sql})`}`)
-    .bind(id, ...(actor.admin ? [] : scope.args)).first<Account>();
+  const row = await db.prepare(`SELECT a.* FROM crm_accounts a WHERE a.id = ? AND ${actor.manager ? "1 = 1" : `EXISTS (SELECT 1 FROM crm_opportunities ox WHERE ox.account_id = a.id AND ${scope.sql})`}`)
+    .bind(id, ...(actor.manager ? [] : scope.args)).first<Account>();
   if (!row) throw new NotFoundError();
   return row;
 }
@@ -353,7 +355,7 @@ export async function accountOpportunities(db: D1Database, actor: CrmActor, acco
 }
 
 export async function canEditAccount(db: D1Database, actor: CrmActor, accountId: string): Promise<boolean> {
-  if (actor.admin) return true;
+  if (actor.manager) return true;
   return !!await db.prepare("SELECT 1 FROM crm_opportunities WHERE account_id = ? AND owner_id = ? LIMIT 1").bind(accountId, actor.id).first();
 }
 
@@ -412,7 +414,7 @@ export async function setDoNotContact(db: D1Database, actor: CrmActor, accountId
   const value = form.get("do_not_contact") === "1";
   const reason = errors.text(form, "dnc_reason", 500, true);
   errors.throwIfAny();
-  if (!value && !actor.admin) throw new ForbiddenError();
+  if (!value && !actor.configure) throw new ForbiddenError();
   const now = nowIso();
   const statements = contactId
     ? [db.prepare("UPDATE crm_contacts SET do_not_contact = ?, dnc_reason = ?, dnc_recorded_by = ?, dnc_recorded_at = ?, version = version + 1, updated_at = ? WHERE id = ? AND account_id = ?").bind(value ? 1 : 0, reason, actor.id, now, now, contactId, accountId)]
@@ -441,7 +443,7 @@ export async function saveAccount(db: D1Database, actor: CrmActor, account: Acco
 
 /** Admin-only merge of a duplicate: moves one opportunity to another existing account. */
 export async function moveToAccount(db: D1Database, actor: CrmActor, opportunity: Opportunity, form: FormData): Promise<void> {
-  if (!actor.admin) throw new ForbiddenError();
+  if (!actor.manager) throw new ForbiddenError();
   const version = parseVersion(form);
   const targetId = typeof form.get("target_account_id") === "string" ? String(form.get("target_account_id")) : "";
   if (!targetId || targetId === opportunity.account_id || !await db.prepare("SELECT 1 FROM crm_accounts WHERE id = ?").bind(targetId).first()) fail("target_account_id", "invalid");
@@ -477,13 +479,13 @@ export function filterSql(actor: CrmActor, filters: Filters, inactiveOwners: rea
   const add = (sql: string, ...values: unknown[]) => { parts.push(sql); args.push(...values); };
   if (filters.playbook) add("o.playbook_id IN (SELECT id FROM crm_playbooks WHERE playbook_key = ?)", filters.playbook);
   if (filters.stage) add("o.stage_id = ?", filters.stage);
-  if (filters.owner === "unassigned" && actor.admin) parts.push("o.owner_id IS NULL");
-  else if (filters.owner === "inactive" && actor.admin) {
+  if (filters.owner === "unassigned" && actor.manager) parts.push("o.owner_id IS NULL");
+  else if (filters.owner === "inactive" && actor.manager) {
     const ids = inactiveOwners.slice(0, 80);
     parts.push(ids.length ? `o.owner_id IN (${ids.map(() => "?").join(", ")})` : "0");
     args.push(...ids);
   }
-  else if (filters.owner && actor.admin) add("o.owner_id = ?", filters.owner);
+  else if (filters.owner && actor.manager) add("o.owner_id = ?", filters.owner);
   if (filters.channel) add("o.source_channel = ?", filters.channel);
   if (filters.cohort) add("o.cohort_key = ?", filters.cohort);
   if (filters.industry) add("a.industry = ? COLLATE NOCASE", filters.industry);

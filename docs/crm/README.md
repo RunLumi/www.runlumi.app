@@ -74,6 +74,8 @@ Sources: `RunLumi/local.runlumi` `PRICING.md`, `COPY.md`, `STRATEGY.md` and `doc
 - **What a stage can require:** playbook fields, checklist items, or one of three built-ins: `accepted_quote`, `primary_contact`, `next_step`. Visits, owner absences, reschedules and no-shows are task outcomes, not stages.
 - **What admins can configure:** stages, safe field types (`text`, `long_text`, `number`, `money`, `minutes`, `date`, `url`, `select`, `yes_no`), checklists, requirements and allowed offers. They cannot configure SQL, JavaScript or expressions.
 
+Permissions come from Workspace roles ([docs/workspace/README.md](../workspace/README.md)). In the table below, "Collaborator" means the Sales Executive role; Sales Managers also see and assign every opportunity and run the inbound queue and cohorts.
+
 | Capability | Collaborator | + finance | + fulfillment | EmDash admin |
 |---|---|---|---|---|
 | See and edit own opportunities, accounts and contacts | ✓ | ✓ | ✓ | all |

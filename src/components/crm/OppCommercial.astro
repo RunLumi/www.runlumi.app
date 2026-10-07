@@ -82,7 +82,7 @@ const creditReason: Record<string, [string, string]> = {
         {offers.map((offer) => <label class="crm-check"><input type="radio" name="offer_id" value={offer.id} checked={v("quote_create", "offer_id", offers[0].id) === offer.id} /><span><strong>{vi ? offer.name_vi : offer.name_en}</strong> v{offer.version} — {offer.list_price_vnd === null ? label(lang, "charge", "custom") : `${formatVnd(offer.list_price_vnd, vi)} · ${label(lang, "charge", offer.charge_type)}`}<br /><span class="crm-help">{vi ? offer.conditions_vi : offer.conditions_en}</span></span></label>)}
       </fieldset>
       {e("quote_create", "offer_id") && <p class="crm-error">{vi ? "Gói không hợp lệ cho playbook này." : "That offer is not allowed for this playbook."}</p>}
-      {actor.admin && <div class="crm-form-grid">
+      {actor.configure && <div class="crm-form-grid">
         <Field name="price_override" label={vi ? "Giá khác giá niêm yết (chỉ admin)" : "Price other than list (admin only)"} lang={lang} value={v("quote_create", "price_override")} error={e("quote_create", "price_override")} inputmode="numeric" />
         <Field name="price_note" label={vi ? "Lý do / ghi chú giá" : "Price reason / note"} lang={lang} value={v("quote_create", "price_note")} error={e("quote_create", "price_note")} maxlength={500} />
       </div>}

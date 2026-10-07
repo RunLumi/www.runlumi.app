@@ -30,7 +30,7 @@ export async function accountRoute(astro: AstroGlobal, lang: Lang): Promise<Acco
   return {
     ctx, state: posted ?? emptyState, account, contacts: await accountContacts(ctx.db, account.id),
     opportunities: await accountOpportunities(ctx.db, ctx.actor, account.id), canEdit: await canEditAccount(ctx.db, ctx.actor, account.id),
-    duplicates: ctx.actor.admin ? await possibleDuplicates(ctx.db, account) : [],
+    duplicates: ctx.actor.manager ? await possibleDuplicates(ctx.db, account) : [],
     playbookNames: Object.fromEntries((await allPlaybookVersions(ctx.db)).map((item) => [item.id, lang === "vi" ? item.name_vi : item.name_en])),
   };
 }

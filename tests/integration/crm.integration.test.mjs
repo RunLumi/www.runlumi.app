@@ -73,12 +73,10 @@ test("setup: real EmDash sessions and CRM membership", async () => {
   S.ful = await userSession(S.admin, { email: `test-ful-${run}@example.test`, name: `TEST Fulfillment ${run}`, role: 20 });
   S.outsider = await userSession(S.admin, { email: `test-out-${run}@example.test`, name: `TEST Outsider ${run}` });
   assert.equal((await S.a.get("/crm")).status, 403, "EmDash login alone grants no CRM access");
-  for (const session of [S.a, S.b, S.fin, S.ful]) {
-    const response = await S.admin.post("/crm/admin", { intent: "member", enabled: "1", email: session.email });
+  for (const [session, roles] of [[S.a, ["sales_executive"]], [S.b, ["sales_executive"]], [S.fin, ["finance"]], [S.ful, ["fulfillment"]]]) {
+    const response = await S.admin.post("/workspace/users", { intent: "grant", email: session.email, roles });
     assert.equal(response.status, 303, `grant ${session.name}`);
   }
-  await S.admin.post("/crm/admin", { intent: "capabilities", user_id: S.fin.id, finance: "1" });
-  await S.admin.post("/crm/admin", { intent: "capabilities", user_id: S.ful.id, fulfillment: "1" });
   for (const session of [S.a, S.b, S.fin, S.ful]) assert.equal((await session.get("/crm")).status, 200, `${session.name} can open the CRM`);
   assert.equal((await S.outsider.get("/crm")).status, 403);
   assert.equal((await S.a.get("/admin/jobs")).status, 403, "CRM members get no ATS access");
@@ -368,7 +366,7 @@ test("13. admin builds a playbook and offer in the UI; versions never rewrite hi
 });
 
 test("revocation and disabled EmDash accounts take effect on the next request; records stay", async () => {
-  await S.admin.post("/crm/admin", { intent: "member", user_id: S.b.id, enabled: "0" });
+  await S.admin.post("/workspace/users", { intent: "update", user_id: S.b.id, roles: ["sales_executive"], enabled: "0" });
   assert.equal((await S.b.get("/crm")).status, 403);
   assert.equal(jobs(`SELECT COUNT(*) AS n FROM crm_opportunities WHERE owner_id = ${q(S.b.id)}`)[0].n >= 1, true, "B's records remain");
   assert.match((await S.admin.get("/crm/pipeline?owner=inactive&playbook=all")).html, /TEST B typed this/);

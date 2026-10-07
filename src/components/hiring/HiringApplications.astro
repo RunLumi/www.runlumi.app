@@ -1,0 +1,37 @@
+---
+import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
+import { applicationStatuses } from "../../lib/ats";
+import { deskDate, deskPath, statusName, statusTone } from "../../lib/hiring/desk";
+import type { applicationsPage } from "../../lib/hiring/pages";
+
+type Props = Awaited<ReturnType<typeof applicationsPage>>;
+const { lang, vi, user, jobs, applications, jobId, status, stageCounts } = Astro.props;
+const query = (changes: Record<string, string>) => {
+  const params = new URLSearchParams(Object.entries({ job: jobId, status, ...changes }).filter(([, value]) => value));
+  return `?${params.toString()}`;
+};
+---
+<WorkspaceShell title={vi ? "Ứng viên" : "Candidates"} lang={lang} user={user} module="hiring" current="applications">
+  <div class="crm-head"><div>
+    <p class="crm-eyebrow">{vi ? "Tuyển dụng / Ứng viên" : "Hiring / Candidates"}</p>
+    <h1 class="crm-h1">{vi ? "Đọc bài làm. Ra quyết định." : "Read the work. Make the decision."}</h1>
+    <p class="crm-lede">{vi ? "Một hàng chờ cho mọi vị trí. Giai đoạn là ngôn ngữ chung, không thay cho phán đoán." : "One queue across every role. Stages are a shared language, not a substitute for judgment."}</p>
+  </div>{user.can("hiring.export") && <a class="crm-button secondary" href={`/api/admin/applications/export.csv?job=${encodeURIComponent(jobId)}&status=${encodeURIComponent(status)}`}>{vi ? "Xuất CSV" : "Export CSV"}</a>}</div>
+
+  <ol class="crm-stages" aria-label={vi ? "Hồ sơ theo giai đoạn" : "Applications by stage"}>
+    {applicationStatuses.map((stage) => <li><a href={query({ status: status === stage ? "" : stage })} aria-current={status === stage ? "true" : undefined} class:list={{ terminal: ["hired", "rejected", "withdrawn"].includes(stage) }}><span>{statusName(stage, lang)}</span><strong>{stageCounts[stage] ?? 0}</strong></a></li>)}
+  </ol>
+  <form class="crm-sheet crm-filter" method="get" aria-label={vi ? "Bộ lọc" : "Filters"}>
+    <div class="crm-field"><label for="job">{vi ? "Vị trí" : "Role"}</label><select class="crm-select" id="job" name="job"><option value="">{vi ? "Mọi vị trí" : "All roles"}</option>{jobs.map((job) => <option value={job.id} selected={jobId === job.id}>{job.title}</option>)}</select></div>
+    <div class="crm-field"><label for="status">{vi ? "Giai đoạn" : "Stage"}</label><select class="crm-select" id="status" name="status"><option value="">{vi ? "Mọi giai đoạn" : "All stages"}</option>{applicationStatuses.map((value) => <option value={value} selected={status === value}>{statusName(value, lang)}</option>)}</select></div>
+    <div class="crm-actions"><button class="crm-button secondary" type="submit">{vi ? "Lọc" : "Apply"}</button><a class="crm-link" href={deskPath(lang, "/admin/jobs/applications")}>{vi ? "Xóa lọc" : "Clear"}</a></div>
+  </form>
+  <section class="crm-sheet" style="margin-top:18px" aria-label={vi ? "Danh sách ứng viên" : "Candidate list"}>
+    <p class="crm-meta" style="margin-top:0">{vi ? `${applications.length} hồ sơ (tối đa 500 gần nhất)` : `${applications.length} shown (latest 500 at most)`}</p>
+    {applications.length ? <ul class="crm-list">{applications.map((app) => <li class="crm-row">
+      <a class="crm-row-title" href={deskPath(lang, `/admin/jobs/applications/${app.id}`)}>{app.full_name}</a>
+      <span class="crm-row-side"><span class:list={["crm-badge", statusTone(app.status)]}>{statusName(app.status, lang)}</span></span>
+      <span class="crm-row-meta"><span>{app.job_title}</span><span>{app.email}</span><span>{vi ? "Nộp" : "Applied"} {deskDate(app.created_at, lang)}</span><span class="crm-num">{app.public_id}</span></span>
+    </li>)}</ul> : <p class="crm-empty">{vi ? "Không có hồ sơ khớp bộ lọc." : "No applications match this view."}</p>}
+  </section>
+</WorkspaceShell>

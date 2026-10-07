@@ -1,0 +1,8 @@
+---
+import WorkspaceHome from "../../../components/workspace/WorkspaceHome.astro";
+import { homePage } from "../../../lib/workspace/pages";
+
+export const prerender = false;
+const data = await homePage(Astro, "vi");
+---
+<WorkspaceHome {...data} />

@@ -1,11 +1,14 @@
 import type { APIRoute } from "astro";
 import { envFromLocals, formText, nowIso } from "../../../../../lib/ats";
 import { badRequest, redirect303, sameOrigin } from "../../../../../lib/http";
+import { deskForbidden, deskPath, postLang } from "../../../../../lib/hiring/desk";
 
 export const prerender = false;
 const kinds = new Set(["short", "long", "file"]);
 
 export const POST: APIRoute = async (context) => {
+  const denied = deskForbidden(context.locals, "hiring.jobs.manage");
+  if (denied) return denied;
   if (!sameOrigin(context.request)) return badRequest("Invalid request.");
   const jobId = context.params.id ?? "";
   const { DB } = envFromLocals(context.locals);
@@ -24,5 +27,5 @@ export const POST: APIRoute = async (context) => {
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(crypto.randomUUID(), jobId, kind, prompt, help, required, sortOrder, nowIso()).run();
 
-  return redirect303(`/admin/jobs/${jobId}`);
+  return redirect303(deskPath(postLang(context.request, form), `/admin/jobs/${jobId}`));
 };

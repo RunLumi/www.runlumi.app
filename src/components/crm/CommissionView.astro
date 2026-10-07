@@ -12,7 +12,7 @@ import type { CommissionProps } from "../../lib/crm/routes/commission";
 type Props = CommissionProps;
 const { ctx, state, view, people, person } = Astro.props;
 const { lang, vi, base } = ctx;
-const seesAll = ctx.actor.admin || ctx.actor.finance;
+const seesAll = ctx.actor.configure || ctx.actor.finance;
 const current = view.versions[0];
 const approved = view.versions.find((item) => item.body.status === "approved");
 const typeLabel: Record<SellerType, [string, string]> = {
@@ -58,7 +58,7 @@ const e = (intent: string, field: string) => errorFor(state, intent, field);
       </tbody>
     </table></div>
     <p class="crm-help">{vi ? `Thời gian giữ: ${current.body.retention_days} ngày sau khi live, không hoàn tiền. Lead inbound do admin giao: ${current.body.inbound_pct}% mức trên. Giảm giá so với niêm yết làm giảm hoa hồng theo tỷ lệ; credit nâng cấp không tính là giảm giá. Hiệu lực từ ${formatDate(current.effective_from, lang)}. Nguồn: ${current.source_ref}.` : `Holdback: ${current.body.retention_days} days after going live, with no refund. Inbound leads assigned by an admin: ${current.body.inbound_pct}% of the above. Discounts below list scale commission down; the upgrade credit is not a discount. Effective ${formatDate(current.effective_from, lang)}. Source: ${current.source_ref}.`}</p>
-    {ctx.actor.admin && <details class="crm-disclosure" open={state.intent === "policy_save"}>
+    {ctx.actor.configure && <details class="crm-disclosure" open={state.intent === "policy_save"}>
       <summary>{vi ? "Lưu phiên bản mới (hoặc duyệt)" : "Save a new version (or approve)"}</summary>
       <form class="crm-form" method="post" action="#policy">
         <Hidden intent="policy_save" state={state} />
@@ -122,7 +122,7 @@ const e = (intent: string, field: string) => errorFor(state, intent, field);
     </table></div> : <p class="crm-empty">{vi ? "Không có dòng nào." : "No lines."}</p>}
   </section>}
 
-  {ctx.actor.admin && <section class="crm-sheet" id="terms" aria-labelledby="terms-h">
+  {ctx.actor.configure && <section class="crm-sheet" id="terms" aria-labelledby="terms-h">
     <h2 class="crm-h2" id="terms-h">{vi ? "Loại người bán" : "Seller terms"}</h2>
     <p class="crm-help">{vi ? "Mỗi giao dịch dùng loại có hiệu lực tại ngày khách chấp thuận. Admin/founder mặc định không hưởng hoa hồng. Hợp đồng cộng tác viên chỉ nên quy định kết quả, không quản lý như nhân viên." : "A deal uses the type in force on its acceptance date. Admins/founders earn nothing by default. Partner contracts should define outcomes, not manage partners like employees."}</p>
     <ul class="crm-list">{people.map((item) => { const row = latestType(item.id); return <li class="crm-row"><span>{item.label}</span><span class="crm-row-side"><span class:list={["crm-badge", row ? "" : "amber"]}>{row ? typeLabel[row.seller_type][vi ? 1 : 0] : (vi ? "Chưa khai báo" : "Not set")}</span>{row && <span class="crm-meta">{vi ? "từ" : "from"} {formatDate(row.effective_from, lang)}</span>}</span></li>; })}</ul>

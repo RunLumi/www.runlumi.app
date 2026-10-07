@@ -1,11 +1,14 @@
 import type { APIRoute } from "astro";
 import { envFromLocals, formText, nowIso } from "../../../../../lib/ats";
 import { badRequest, redirect303, sameOrigin } from "../../../../../lib/http";
+import { deskForbidden, deskPath, postLang } from "../../../../../lib/hiring/desk";
 
 export const prerender = false;
 const states = new Set(["draft", "published", "closed"]);
 
 export const POST: APIRoute = async (context) => {
+  const denied = deskForbidden(context.locals, "hiring.jobs.manage");
+  if (denied) return denied;
   if (!sameOrigin(context.request)) return badRequest("Invalid request.");
   const id = context.params.id ?? "";
   const { DB } = envFromLocals(context.locals);
@@ -22,5 +25,5 @@ export const POST: APIRoute = async (context) => {
     await DB.prepare("UPDATE jobs SET status=?, updated_at=? WHERE id=?").bind(status, now, id).run();
   }
 
-  return redirect303(`/admin/jobs/${id}`);
+  return redirect303(deskPath(postLang(context.request, form), `/admin/jobs/${id}`));
 };

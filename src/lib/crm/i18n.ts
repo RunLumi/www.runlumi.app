@@ -31,6 +31,7 @@ const dict = {
   err_taken: ["That key already exists.", "Mã này đã tồn tại."], err_verify_unknown: ["An unknown result must be verified as sent or failed.", "Kết quả chưa rõ phải được xác minh là đã gửi hoặc thất bại."],
   err_not_draft: ["This quote is no longer a draft.", "Báo giá không còn là bản nháp."],
   err_credit_available: ["A Trust Kit credit now applies. Withdraw this quote and create a new one.", "Khoản credit Trust Kit nay đã áp dụng được. Rút báo giá này và tạo báo giá mới."],
+  err_self_assign: ["Ask an admin to assign this to you: it would credit you as the seller.", "Nhờ admin giao cho bạn: thao tác này sẽ ghi công bạn là người bán."],
   err_not_found: ["No matching active account.", "Không tìm thấy tài khoản đang hoạt động phù hợp."],
   conflict_title: ["Someone else changed this record.", "Người khác vừa thay đổi hồ sơ này."],
   conflict_body: ["Your edit is still in the form below. Compare it with the latest values, then save again to apply it on top.", "Bản sửa của bạn vẫn còn trong form bên dưới. So sánh với giá trị mới nhất rồi lưu lại để áp dụng."],

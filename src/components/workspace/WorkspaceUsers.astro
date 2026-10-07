@@ -1,0 +1,78 @@
+---
+import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
+import type { usersPage } from "../../lib/workspace/pages";
+import { ROLE_PERMISSIONS, roleDescriptions, roleLabel, roles } from "../../lib/workspace/roles";
+
+type Props = Exclude<Awaited<ReturnType<typeof usersPage>>, Response>;
+const { lang, vi, user, members, accounts, audit, names, state } = Astro.props;
+const saved = Astro.url.searchParams.get("saved");
+const memberIds = new Set(members.map((member) => member.user_id));
+const admins = accounts.filter((account) => account.role === 50);
+const candidates = accounts.filter((account) => account.role !== 50 && !memberIds.has(account.id));
+const errors: Record<string, [string, string]> = {
+  not_found: ["No active EmDash account matches. Create or invite it in EmDash first.", "Không có tài khoản EmDash đang hoạt động khớp. Hãy tạo hoặc mời trong EmDash trước."],
+  already_admin: ["EmDash admins already have every permission.", "Admin EmDash đã có mọi quyền."],
+  disabled_account: ["That EmDash account is disabled.", "Tài khoản EmDash đó đang bị vô hiệu."],
+  required: ["Choose at least one role.", "Chọn ít nhất một vai trò."],
+  self: ["You cannot change your own access.", "Không thể tự đổi quyền của chính mình."],
+};
+const error = Object.values(state.errors)[0];
+const actions: Record<string, [string, string]> = { access_saved: ["Access saved", "Lưu quyền"], access_revoked: ["Access revoked", "Thu hồi quyền"] };
+const permissionCount = (role: typeof roles[number]) => ROLE_PERMISSIONS[role].length;
+---
+<WorkspaceShell title={vi ? "Người dùng và vai trò" : "Users and roles"} lang={lang} user={user} module="admin" current="users">
+  <div class="crm-head"><div>
+    <p class="crm-eyebrow">{vi ? "Quản trị" : "Admin"}</p>
+    <h1 class="crm-h1">{vi ? "Ai được vào, với vai trò nào." : "Who gets in, and with which role."}</h1>
+    <p class="crm-lede">{vi ? "Danh tính và đăng nhập do EmDash quản lý. Ở đây chỉ cấp vai trò cho tài khoản EmDash đã tồn tại. Thu hồi có hiệu lực từ yêu cầu kế tiếp; hồ sơ họ phụ trách vẫn giữ nguyên." : "EmDash owns identity and sign-in. Here you grant roles to existing EmDash accounts. Revoking takes effect on the next request; their records stay."}</p>
+  </div></div>
+  {saved && <div class="crm-notice good" role="status">{vi ? "Đã lưu." : "Saved."}</div>}
+  {error && <div class="crm-notice bad" role="alert">{errors[error]?.[vi ? 1 : 0] ?? error}</div>}
+
+  <section class="crm-sheet" aria-labelledby="matrix-h">
+    <h2 class="crm-h2" id="matrix-h">{vi ? "Vai trò" : "Roles"}</h2>
+    <div class="crm-table-wrap"><table class="crm-table">
+      <thead><tr><th>{vi ? "Vai trò" : "Role"}</th><th>{vi ? "Được làm gì" : "What it allows"}</th></tr></thead>
+      <tbody>
+        <tr><td><strong>{roleLabel("admin", vi)}</strong></td><td>{roleDescriptions.admin[vi ? 1 : 0]}</td></tr>
+        {roles.map((role) => <tr><td><strong>{roleLabel(role, vi)}</strong><span class="crm-meta"><br />{permissionCount(role)} {vi ? "quyền" : "permissions"}</span></td><td>{roleDescriptions[role][vi ? 1 : 0]}</td></tr>)}
+      </tbody>
+    </table></div>
+    <p class="crm-help">{vi ? "Có thể kết hợp nhiều vai trò, ví dụ Nhân viên bán hàng + Bàn giao. Vai trò CRM không mở được hồ sơ ứng viên." : "Roles combine, for example Sales Executive + Fulfillment. CRM roles never open candidate records."}</p>
+  </section>
+
+  <section class="crm-sheet" aria-labelledby="grant-h">
+    <h2 class="crm-h2" id="grant-h">{vi ? "Cấp quyền" : "Grant access"}</h2>
+    <form class="crm-form" method="post">
+      <input type="hidden" name="intent" value="grant" />
+      <div class="crm-field"><label for="email">{vi ? "Email tài khoản EmDash" : "EmDash account email"}</label><input class="crm-input" id="email" name="email" type="email" required maxlength="254" autocomplete="off" list="accounts" value={state.intent === "grant" ? state.values.email : ""} aria-invalid={state.intent === "grant" && state.errors.email ? "true" : undefined} /></div>
+      <datalist id="accounts">{candidates.map((account) => <option value={account.email}>{account.name ?? ""}</option>)}</datalist>
+      <fieldset class="crm-fieldset"><legend>{vi ? "Vai trò" : "Roles"}</legend><div class="crm-actions">{roles.map((role) => <label class="crm-check"><input type="checkbox" name="roles" value={role} /><span>{roleLabel(role, vi)}</span></label>)}</div></fieldset>
+      <div class="crm-actions"><button class="crm-button" type="submit">{vi ? "Cấp quyền" : "Grant access"}</button></div>
+    </form>
+  </section>
+
+  <section class="crm-sheet" aria-labelledby="members-h">
+    <h2 class="crm-h2" id="members-h">{vi ? "Người có quyền" : "People with access"}<span class="crm-count">{members.filter((member) => member.enabled).length}</span></h2>
+    <ul class="crm-list">
+      {admins.map((account) => <li class="crm-row"><span><strong>{account.name || account.email}</strong><br /><span class="crm-meta">{account.email}</span></span><span class="crm-row-side"><span class="crm-badge green">{roleLabel("admin", vi)}</span><span class="crm-meta">{vi ? "do EmDash cấp" : "from EmDash"}</span></span></li>)}
+      {members.map((member) => <li class="crm-row">
+        <span><strong>{member.name || member.email || (vi ? "Tài khoản EmDash không còn" : "EmDash account unavailable")}</strong><br /><span class="crm-meta">{member.email}</span></span>
+        <span class="crm-row-side"><span class:list={["crm-badge", member.enabled && member.active ? "green" : "red"]}>{!member.enabled ? (vi ? "Đã thu hồi" : "Revoked") : member.active ? (vi ? "Đang hoạt động" : "Active") : (vi ? "EmDash bị vô hiệu" : "EmDash disabled")}</span></span>
+        <form class="crm-form" method="post" aria-label={`${vi ? "Vai trò của" : "Roles for"} ${member.name || member.email}`}>
+          <input type="hidden" name="intent" value="update" /><input type="hidden" name="user_id" value={member.user_id} />
+          <div class="crm-actions">{roles.map((role) => <label class="crm-check"><input type="checkbox" name="roles" value={role} checked={member.roles.includes(role)} /><span>{roleLabel(role, vi)}</span></label>)}</div>
+          <div class="crm-actions">
+            <button class="crm-button small" type="submit" name="enabled" value="1">{member.enabled ? (vi ? "Lưu vai trò" : "Save roles") : (vi ? "Khôi phục với các vai trò này" : "Restore with these roles")}</button>
+            {member.enabled && <button class="crm-button small danger" type="submit" name="enabled" value="0">{vi ? "Thu hồi quyền" : "Revoke access"}</button>}
+          </div>
+        </form>
+      </li>)}
+    </ul>
+  </section>
+
+  <section class="crm-sheet" aria-labelledby="audit-h">
+    <h2 class="crm-h2" id="audit-h">{vi ? "Nhật ký thay đổi quyền" : "Access changes"}</h2>
+    {audit.length ? <ol class="crm-activity">{audit.map((row) => { const detail = JSON.parse(row.detail || "{}") as { roles_after?: string[] }; return <li><strong>{actions[row.action]?.[vi ? 1 : 0] ?? row.action}: {names[row.target_user_id] ?? row.target_user_id}</strong><p>{(detail.roles_after ?? []).map((role) => roleLabel(role as typeof roles[number], vi)).join(", ") || "—"}</p><span class="crm-meta">{row.actor_name} · {new Date(row.created_at).toLocaleString(vi ? "vi-VN" : "en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Ho_Chi_Minh" })}</span></li>; })}</ol> : <p class="crm-empty">{vi ? "Chưa có thay đổi." : "No changes yet."}</p>}
+  </section>
+</WorkspaceShell>

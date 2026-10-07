@@ -20,7 +20,7 @@ const val = (name: string, fallback: string | number | null | undefined) => post
 const err = (name: string) => posted ? state.errors[name] : undefined;
 const show = (offer: Offer | null) => !!offer || isNew;
 ---
-<CrmShell title={vi ? "Gói và giá" : "Offers"} lang={lang} actor={ctx.actor} current="admin">
+<CrmShell title={vi ? "Gói và giá" : "Offers"} lang={lang} actor={ctx.actor} current="offers">
   <p class="crm-eyebrow"><a class="crm-link" href={`${base}/admin`}>{vi ? "Quản trị" : "Admin"}</a> / {vi ? "Gói" : "Offers"}</p>
   <div class="crm-head"><div>
     <h1 class="crm-h1">{vi ? "Gói, giá và điều kiện có phiên bản." : "Versioned offers, prices and conditions."}</h1>

@@ -130,3 +130,27 @@ Release on 2026-10-07 (Asia/Ho_Chi_Minh).
 | local.runlumi PR / merge SHA / deployment | RunLumi/local.runlumi#71 → `437e7da`. "Deploy production" run 37579543784 succeeded. Pages deployment `16798958-a1c3-4320-b35c-3acb8aeca982`. |
 | Verified in production (no session) | `/`, `/jobs`, `local.runlumi.app/`, `/en/` and `/nganh/garage/` return 200. `/crm`, `/vi/crm`, `/crm/admin`, `/admin/crm` and `/crm/<id>` redirect (303) to EmDash sign-in. `POST /api/intake/local` returns 403 for an unknown source and 401 for a bad signature (not 503, so the secret is present); `GET` returns 405. The local.runlumi enquiry endpoint still rejects invalid fields (400). |
 | Not yet verified in production | Authenticated CRM flows: EmDash sign-in needs a passkey or email link held by the user. No synthetic enquiry, customer or transaction was created in production. |
+
+## 7. Workspace roles migration (`0005_workspace_roles.sql`)
+
+The migration is additive:
+- it creates `workspace_members`, `workspace_roles` and `workspace_audit`;
+- it copies every `crm_members` row into the Sales Executive role, keeping the enabled flag;
+- it turns `crm_capabilities` rows into the Finance and Fulfillment roles;
+- it adds `author_id` and `actor_id` to the hiring notes and events.
+
+`crm_members` and `crm_capabilities` are left untouched and are no longer read.
+
+Back up before applying:
+
+```bash
+./node_modules/.bin/wrangler d1 export lumi-jobs --remote --output backups/lumi-jobs-pre-0005.sql
+```
+
+Verify after applying:
+
+```bash
+./node_modules/.bin/wrangler d1 execute lumi-jobs --remote --command "SELECT (SELECT COUNT(*) FROM crm_members) old, (SELECT COUNT(*) FROM workspace_members) new, (SELECT COUNT(*) FROM workspace_roles) roles"
+```
+
+`new` must equal `old`. HR staff need the HR role granted on `/workspace/users`; before this change, hiring required the EmDash admin role.

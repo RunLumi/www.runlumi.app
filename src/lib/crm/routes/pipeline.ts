@@ -20,11 +20,11 @@ export async function pipelineRoute(astro: AstroGlobal, lang: Lang): Promise<Pip
   // (for search and reassignment) without showing a combined funnel.
   if (filters.playbook !== "all" && !playbooks.some((item) => item.playbook_key === filters.playbook)) filters.playbook = playbooks.find((item) => item.active)?.playbook_key ?? "";
   const query = { ...filters, playbook: filters.playbook === "all" ? "" : filters.playbook };
-  const inactive = ctx.actor.admin && filters.owner === "inactive" ? await inactiveOwnerIds(ctx.db, ctx.contentDb) : [];
+  const inactive = ctx.actor.manager && filters.owner === "inactive" ? await inactiveOwnerIds(ctx.db, ctx.contentDb) : [];
   const list = await listOpportunities(ctx.db, ctx.actor, query, page(astro.url), inactive);
   const counts = filters.playbook === "all" ? {} : await stageCounts(ctx.db, ctx.actor, query, inactive);
-  const owners = ctx.actor.admin ? await ownerOptions(ctx.db, ctx.contentDb, ctx.actor) : [];
-  const ownerNames = ctx.actor.admin ? await displayNames(ctx.contentDb, list.rows.map((row) => row.owner_id ?? "")) : {};
+  const owners = ctx.actor.manager ? await ownerOptions(ctx.db, ctx.contentDb, ctx.actor) : [];
+  const ownerNames = ctx.actor.manager ? await displayNames(ctx.contentDb, list.rows.map((row) => row.owner_id ?? "")) : {};
   const cohorts = (await ctx.db.prepare("SELECT cohort_key FROM crm_cohorts ORDER BY starts_on DESC LIMIT 50").all<{ cohort_key: string }>()).results.map((row) => row.cohort_key);
   return { ctx, filters, playbooks, offers: await latestOffers(ctx.db), ...list, counts, owners, ownerNames, cohorts };
 }
@@ -40,6 +40,6 @@ export async function newRoute(astro: AstroGlobal, lang: Lang): Promise<NewProps
   if (posted instanceof Response) return posted;
   return {
     ctx, state: posted ?? emptyState, playbooks: await latestPlaybooks(ctx.db, { activeOnly: true }),
-    owners: ctx.actor.admin ? await ownerOptions(ctx.db, ctx.contentDb, ctx.actor) : [],
+    owners: ctx.actor.manager ? await ownerOptions(ctx.db, ctx.contentDb, ctx.actor) : [],
   };
 }

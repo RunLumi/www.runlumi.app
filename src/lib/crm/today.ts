@@ -25,7 +25,7 @@ export async function loadToday(db: D1Database, actor: CrmActor, inactiveIds: re
     tasks("t.due_on < ?", today),
     tasks("t.due_on = ?", today),
     tasks("t.due_on > ? AND t.due_on <= ? AND t.kind IN ('visit', 'meeting', 'demo', 'pilot_review')", today, week),
-    actor.admin ? db.prepare(`${TASK_SELECT} WHERE t.status = 'open' AND t.needs_help = 1 ORDER BY t.updated_at LIMIT 100`).all<TodayTask>().then((result) => result.results) : tasks("t.needs_help = 1"),
+    actor.manager ? db.prepare(`${TASK_SELECT} WHERE t.status = 'open' AND t.needs_help = 1 ORDER BY t.updated_at LIMIT 100`).all<TodayTask>().then((result) => result.results) : tasks("t.needs_help = 1"),
   ]);
   const missingNext = (await db.prepare(
     `SELECT o.id, o.title, a.name AS account_name, o.stage_id, o.playbook_id, o.next_action, o.next_action_due, o.owner_id FROM crm_opportunities o JOIN crm_accounts a ON a.id = o.account_id
@@ -59,7 +59,7 @@ export async function loadToday(db: D1Database, actor: CrmActor, inactiveIds: re
      WHERE f.blocked = 1 AND ${actor.fulfillment ? "1 = 1" : scope.sql} LIMIT 100`,
   ).bind(...(actor.fulfillment ? [] : scope.args)).all<{ id: string; opportunity_id: string; title: string; blocked_reason: string }>()).results;
   let unassigned = 0; let inactiveOwners: TodayOpp[] = []; let pendingPayments = 0;
-  if (actor.admin) {
+  if (actor.manager) {
     unassigned = (await db.prepare("SELECT COUNT(*) AS count FROM crm_opportunities WHERE owner_id IS NULL AND outcome = 'open'").first<{ count: number }>())?.count ?? 0;
     if (inactiveIds.length) {
       inactiveOwners = (await db.prepare(`SELECT o.id, o.title, a.name AS account_name, o.stage_id, o.playbook_id, o.next_action, o.next_action_due, o.owner_id FROM crm_opportunities o JOIN crm_accounts a ON a.id = o.account_id WHERE o.outcome IN ('open', 'paused') AND o.owner_id IN (${inactiveIds.slice(0, 90).map(() => "?").join(", ")}) LIMIT 100`)

@@ -78,7 +78,7 @@ export async function createQuote(db: D1Database, actor: CrmActor, opportunity: 
     if (override === undefined) fail("price_override", "invalid");
     if (override !== null && override !== offer!.list_price_vnd) {
       // Only admins may depart from list price, and only with a reason.
-      if (!actor.admin) fail("price_override", "admin_only");
+      if (!actor.configure) fail("price_override", "admin_only");
       if (!priceNote) fail("price_note", "required");
     }
     lines = [{ label: offer!.name_en, charge_type: offer!.charge_type, amount_vnd: override ?? offer!.list_price_vnd! }];
@@ -132,7 +132,7 @@ export async function acceptQuote(db: D1Database, actor: CrmActor, opportunity: 
   }
   // Server time anchors the credit window: only admins may date an acceptance
   // before the quote was entered (e.g. a decision recorded late), with evidence.
-  if (acceptedOn < vnDate(quote!.created_at) && !actor.admin) fail("accepted_on", "before_quote");
+  if (acceptedOn < vnDate(quote!.created_at) && !actor.configure) fail("accepted_on", "before_quote");
   const offer = await getOffer(db, quote!.offer_id);
   let creditSource: string | null = null;
   const decision = await creditFor(db, opportunity, offer!, acceptedOn);
@@ -195,7 +195,7 @@ export async function recordPayment(db: D1Database, actor: CrmActor, opportunity
   if (periodEnd && (!isIsoDate(periodEnd) || periodEnd < periodStart)) errors.add("period_end", "invalid");
   errors.throwIfAny();
   // Finance confirms money, but not for a sale they own themselves (admins excepted).
-  const confirmed = actor.finance && (actor.admin || opportunity.owner_id !== actor.id);
+  const confirmed = actor.finance && (actor.configure || opportunity.owner_id !== actor.id);
   const now = nowIso();
   const id = newId("led");
   await once(db, actor, requestKey(form), "payment", id, [
@@ -213,7 +213,7 @@ export async function reviewPayment(db: D1Database, actor: CrmActor, opportunity
   if (!decision) fail("decision", "invalid");
   if (decision === "rejected" && !note) fail("note", "required");
   const entry = await db.prepare("SELECT recorded_by FROM crm_ledger WHERE id = ? AND opportunity_id = ?").bind(entryId, opportunity.id).first<{ recorded_by: string }>();
-  if (entry && !actor.admin && (entry.recorded_by === actor.id || opportunity.owner_id === actor.id)) throw new ForbiddenError();
+  if (entry && !actor.configure && (entry.recorded_by === actor.id || opportunity.owner_id === actor.id)) throw new ForbiddenError();
   const guard = { sql: "EXISTS (SELECT 1 FROM crm_ledger WHERE id = ? AND opportunity_id = ? AND status = 'pending')", args: [entryId, opportunity.id] };
   const now = nowIso();
   const result = await onceGuarded(db, actor, requestKey(form), `payment_${decision}`, entryId, guard, [
