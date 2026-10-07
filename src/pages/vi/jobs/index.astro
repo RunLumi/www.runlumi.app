@@ -1,0 +1,9 @@
+---
+import PublicJobs from "../../../components/jobs/PublicJobs.astro";
+import { envFromLocals, getPublishedJobs } from "../../../lib/ats";
+
+export const prerender = false;
+const { DB } = envFromLocals(Astro.locals);
+const jobs = await getPublishedJobs(DB);
+---
+<PublicJobs lang="vi" jobs={jobs} />

@@ -165,3 +165,8 @@ Verify after applying:
 | Worker version | `11b36e6c-f37f-448d-93ac-ddc87270ce8b` at 100% (`npm run deploy` from `e236272`) |
 | Verified without a session | `/` and `/jobs` return 200. `/workspace`, `/workspace/users`, `/admin/jobs`, `/admin/jobs/applications`, `/crm`, `/crm/commission`, `/admin/crm` and their `/vi` peers redirect (303) to EmDash sign-in. Hiring APIs return 401. Intake rejects an unknown source. New routes returned 404 for under a minute while the version propagated, then served correctly. |
 | Pending (needs the owner's EmDash session) | Sign in as Admin, grant roles on `/vi/workspace/users`, then check the navigation and hiring desk with a real HR account and a real sales account |
+
+
+## 8. Hiring interviews migration (`0006_hiring_interviews.sql`)
+
+The migration is additive. It creates `application_interviews` and `application_scorecards`, and both are deleted together with their application. Back up first with `wrangler d1 export … --output backups/lumi-jobs-pre-0006.sql`, then run `npm run db:migrate`. No existing rows change.

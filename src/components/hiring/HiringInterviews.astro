@@ -1,0 +1,79 @@
+---
+// Interviews and scorecards for one application.
+import type { WorkspaceUser } from "../../lib/workspace/roles";
+import { criteria, interviewStages, interviewStatuses, label, recommendations, summarize, visibleScorecards, type InterviewRow, type ScorecardRow } from "../../lib/hiring/interviews";
+
+interface Props {
+  lang: "en" | "vi"; user: WorkspaceUser; applicationId: string; interviews: InterviewRow[]; scorecards: ScorecardRow[];
+  flash: { saved: string | null; interviewError: boolean; scorecardError: string | null };
+}
+const { lang, user, applicationId, interviews, scorecards, flash } = Astro.props;
+const vi = lang === "vi";
+const canManage = user.can("hiring.applications.manage");
+const { mine, others, hidden } = visibleScorecards(scorecards, user.id);
+const shown = [...mine, ...others];
+const summary = summarize(shown);
+const when = (iso: string) => new Date(iso).toLocaleString(vi ? "vi-VN" : "en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Ho_Chi_Minh" });
+const tone: Record<string, string> = { scheduled: "blue", done: "green", cancelled: "", no_show: "red", strong_yes: "green", yes: "green", no: "red", strong_no: "red" };
+const scale = [1, 2, 3, 4];
+const scaleHelp = vi ? "1 = chưa đạt · 2 = còn thiếu · 3 = đạt · 4 = vượt kỳ vọng" : "1 = not yet · 2 = some gaps · 3 = meets the bar · 4 = raises the bar";
+---
+<section class="crm-sheet" id="interviews" aria-labelledby="iv-h">
+  <h2 class="crm-h2" id="iv-h">{vi ? "Phỏng vấn" : "Interviews"}<span class="crm-count">{interviews.length}</span></h2>
+  {flash.interviewError && <p class="crm-notice bad" role="alert">{vi ? "Kiểm tra lại vòng, thời gian (giờ Việt Nam), thời lượng và người phỏng vấn." : "Check the stage, time (Vietnam time), duration and interviewers."}</p>}
+  {flash.saved === "interview" && <p class="crm-notice good" role="status">{vi ? "Đã lưu lịch phỏng vấn." : "Interview saved."}</p>}
+  {interviews.length ? <ul class="crm-list">{interviews.map((interview) => <li class="crm-row">
+    <strong>{label("stage", interview.stage, vi)}</strong>
+    <span class="crm-row-side"><span class:list={["crm-badge", tone[interview.status]]}>{label("status", interview.status, vi)}</span></span>
+    <span class="crm-row-meta"><span>{when(interview.scheduled_at)} · {interview.duration_minutes} {vi ? "phút" : "min"}</span><span>{interview.interviewers}</span>{interview.location && <span>{interview.location}</span>}</span>
+    {canManage && interview.status === "scheduled" && <form class="crm-actions" method="post" action={`/api/admin/applications/${applicationId}/interviews`}>
+      <input type="hidden" name="lang" value={lang} /><input type="hidden" name="intent" value="status" /><input type="hidden" name="interview_id" value={interview.id} />
+      <button class="crm-button small secondary" type="submit" name="status" value="done">{vi ? "Đã diễn ra" : "Mark done"}</button>
+      <button class="crm-button small secondary" type="submit" name="status" value="no_show">{vi ? "Ứng viên không đến" : "No-show"}</button>
+      <button class="crm-button small secondary" type="submit" name="status" value="cancelled">{vi ? "Hủy" : "Cancel"}</button>
+    </form>}
+  </li>)}</ul> : <p class="crm-empty">{vi ? "Chưa có lịch phỏng vấn." : "No interviews scheduled."}</p>}
+  {canManage && <details class="crm-disclosure" open={flash.interviewError}><summary>{vi ? "Hẹn phỏng vấn" : "Schedule an interview"}</summary>
+    <form class="crm-form" method="post" action={`/api/admin/applications/${applicationId}/interviews`}>
+      <input type="hidden" name="lang" value={lang} /><input type="hidden" name="intent" value="create" />
+      <div class="crm-form-grid">
+        <div class="crm-field"><label for="iv-stage">{vi ? "Vòng" : "Stage"}</label><select class="crm-select" id="iv-stage" name="stage">{interviewStages.map((stage) => <option value={stage}>{label("stage", stage, vi)}</option>)}</select></div>
+        <div class="crm-field"><label for="iv-at">{vi ? "Thời gian (giờ Việt Nam)" : "Time (Vietnam time)"}</label><input class="crm-input" id="iv-at" name="scheduled_at" type="datetime-local" required /></div>
+        <div class="crm-field"><label for="iv-dur">{vi ? "Thời lượng (phút)" : "Duration (minutes)"}</label><input class="crm-input" id="iv-dur" name="duration_minutes" inputmode="numeric" value="45" /></div>
+        <div class="crm-field"><label for="iv-who">{vi ? "Người phỏng vấn" : "Interviewers"}</label><input class="crm-input" id="iv-who" name="interviewers" required maxlength="300" value={user.name} /></div>
+        <div class="crm-field wide"><label for="iv-where">{vi ? "Địa điểm hoặc link họp" : "Place or meeting link"}</label><input class="crm-input" id="iv-where" name="location" maxlength="300" /></div>
+      </div>
+      <p class="crm-help">{vi ? "CRM không tự gửi lời mời; hãy gửi lịch cho ứng viên qua kênh đã thống nhất." : "The desk sends no invitations; send the time to the candidate through your usual channel."}</p>
+      <div class="crm-actions"><button class="crm-button secondary" type="submit">{vi ? "Lưu lịch" : "Save interview"}</button></div>
+    </form>
+  </details>}
+</section>
+
+<section class="crm-sheet" id="scorecards" aria-labelledby="sc-h">
+  <h2 class="crm-h2" id="sc-h">{vi ? "Phiếu đánh giá" : "Scorecards"}<span class="crm-count">{scorecards.length}</span></h2>
+  {flash.scorecardError === "exists" && <p class="crm-notice warn" role="alert">{vi ? "Bạn đã nộp phiếu cho vòng này." : "You already submitted a scorecard for this interview."}</p>}
+  {flash.scorecardError === "invalid" && <p class="crm-notice bad" role="alert">{vi ? "Chấm đủ 4 tiêu chí, chọn khuyến nghị và ghi bằng chứng (ít nhất 20 ký tự)." : "Rate all four criteria, choose a recommendation and write the evidence (20 characters or more)."}</p>}
+  {flash.saved === "scorecard" && <p class="crm-notice good" role="status">{vi ? "Đã nộp phiếu." : "Scorecard submitted."}</p>}
+  {hidden > 0 && <p class="crm-notice" role="status">{vi ? `${hidden} phiếu của đồng nghiệp sẽ hiện sau khi bạn nộp phiếu của mình, để đánh giá độc lập.` : `${hidden} colleague scorecard(s) appear after you submit yours, so your view stays independent.`}</p>}
+  {shown.length > 0 && <>
+    <dl class="crm-facts">{recommendations.map((value) => <div><dt>{label("recommendation", value, vi)}</dt><dd class="crm-figure">{summary.counts[value]}</dd></div>)}</dl>
+    <dl class="crm-facts" style="margin-top:12px">{criteria.map((value) => <div><dt>{label("criterion", value, vi)}</dt><dd>{summary.averages[value] ?? "—"} / 4</dd></div>)}</dl>
+    <ol class="crm-activity" style="margin-top:16px">{shown.map((card) => <li>
+      <strong>{card.author_name}</strong> <span class:list={["crm-badge", tone[card.recommendation]]}>{label("recommendation", card.recommendation, vi)}</span>
+      <p>{criteria.map((value) => `${label("criterion", value, vi)} ${(JSON.parse(card.ratings) as Record<string, number>)[value] ?? "—"}`).join(" · ")}</p>
+      <p style="white-space:pre-wrap">{card.evidence}</p>
+      <span class="crm-meta">{card.interview_id ? label("stage", interviews.find((item) => item.id === card.interview_id)?.stage ?? "", vi) : (vi ? "Đánh giá chung" : "Overall")} · {when(card.created_at)}</span>
+    </li>)}</ol>
+  </>}
+  {canManage && <details class="crm-disclosure" open={!!flash.scorecardError || (mine.length === 0 && interviews.some((item) => item.status === "done"))}><summary>{vi ? "Nộp phiếu của bạn" : "Submit your scorecard"}</summary>
+    <form class="crm-form" method="post" action={`/api/admin/applications/${applicationId}/scorecards`}>
+      <input type="hidden" name="lang" value={lang} />
+      <div class="crm-field"><label for="sc-iv">{vi ? "Vòng" : "Interview"}</label><select class="crm-select" id="sc-iv" name="interview_id"><option value="">{vi ? "Đánh giá chung (hồ sơ, bài làm)" : "Overall (application, work sample)"}</option>{interviews.filter((item) => item.status === "done").map((item) => <option value={item.id}>{label("stage", item.stage, vi)} · {when(item.scheduled_at)}</option>)}</select></div>
+      <p class="crm-help">{scaleHelp}</p>
+      {criteria.map((value) => <fieldset class="crm-fieldset"><legend>{label("criterion", value, vi)}</legend><div class="crm-actions">{scale.map((score) => <label class="crm-check"><input type="radio" name={`rating.${value}`} value={score} required /><span>{score}</span></label>)}</div></fieldset>)}
+      <fieldset class="crm-fieldset"><legend>{vi ? "Khuyến nghị" : "Recommendation"}</legend><div class="crm-actions">{recommendations.map((value) => <label class="crm-check"><input type="radio" name="recommendation" value={value} required /><span>{label("recommendation", value, vi)}</span></label>)}</div></fieldset>
+      <div class="crm-field"><label for="sc-ev">{vi ? "Bằng chứng (điều ứng viên đã làm hoặc nói, không phải cảm giác)" : "Evidence (what the candidate did or said, not impressions)"}</label><textarea class="crm-textarea" id="sc-ev" name="evidence" required minlength="20" maxlength="6000"></textarea></div>
+      <div class="crm-actions"><button class="crm-button" type="submit">{vi ? "Nộp phiếu" : "Submit scorecard"}</button></div>
+    </form>
+  </details>}
+</section>

@@ -19,13 +19,15 @@ Both share one identity (EmDash), one role model and one navigation shell. Every
 | Hiring API checks | Middleware only | Middleware, plus a per-endpoint permission check (manage, delete, export). |
 | Access changes | No record | `workspace_audit` records who granted, changed or revoked access. |
 
-Remaining gaps, not built:
-- Interview scheduling and scorecards.
-- Per-role hiring managers.
-- Candidate retention or erasure schedules.
-- Bilingual public `/jobs` pages; the public job content is single-language.
+| Interviews | None | Each application has scheduled interviews, by stage, in Vietnam time, with a status (scheduled, done, cancelled, no-show). The desk sends no invitations. |
+| Evaluation | Free-text notes only | Scorecards, one per person per interview: four criteria on a 1–4 scale (no neutral middle), a recommendation and required evidence. Colleagues' scorecards stay hidden until you submit your own, so reviews stay independent. |
+| Retention | Delete one application at a time | HR previews and confirms a cutoff, then rejected or withdrawn applications last updated before it are deleted with their files, interviews and scorecards. At most 200 per run. Each run is audited. Nothing runs automatically. |
+| Public careers pages | English only | `/jobs` and `/vi/jobs` are peers; the application form returns to the candidate's language. Role content is published in the language HR writes it in. |
 
-The model below leaves room for each of these.
+Remaining gaps, not built:
+- Per-role hiring managers who see only the roles they own.
+- Calendar invitations.
+- A legally confirmed retention period: the cutoff is chosen by HR each time.
 
 ## 2. Roles
 
