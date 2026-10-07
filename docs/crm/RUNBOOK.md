@@ -170,3 +170,13 @@ Verify after applying:
 ## 8. Hiring interviews migration (`0006_hiring_interviews.sql`)
 
 The migration is additive. It creates `application_interviews` and `application_scorecards`, and both are deleted together with their application. Back up first with `wrangler d1 export … --output backups/lumi-jobs-pre-0006.sql`, then run `npm run db:migrate`. No existing rows change.
+
+### Release record: hiring interviews, scorecards, retention, bilingual careers (2026-10-08)
+
+| Item | Value |
+|---|---|
+| PR / merge SHA | RunLumi/www.runlumi.app#33 → `ec73674`. Hosted CI did not start (Actions budget). Local gates passed: lint, 60 unit tests, local migration, build, plus 8/8 Workspace and 14/14 CRM integration blocks. |
+| Backup / migration | `backups/lumi-jobs-pre-0006.sql`; `0006_hiring_interviews.sql` applied remotely, with 9 applications unchanged |
+| Worker version | `75772476-2a19-4ce7-9576-d66608b534d8` at 100% |
+| Verified without a session | `/jobs` and `/vi/jobs` return 200; the Vietnamese copy and `hreflang` are present. Private pages redirect to sign-in. The interview, scorecard and purge APIs return 401. |
+| Pending (owner) | Invite HR and sales staff in EmDash, grant roles on `/vi/workspace/users`, and check the signed-in pages with real accounts |
