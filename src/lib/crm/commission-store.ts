@@ -68,7 +68,8 @@ export async function loadCommission(db: D1Database, contentDb: D1Database, acto
   const adminIds = new Set([...users.values()].filter((user) => user.role === 50).map((user) => user.id));
   const all = computeCommission(versions, deals.map((deal) => ({ ...deal, ledger: byOpp.get(deal.id) ?? [], delivered_on: deliveredOn.get(deal.id) ?? null })), typeResolver(terms, adminIds));
   const approved = versions.some((item) => item.body.status === "approved");
-  const seesAll = actor.admin || actor.finance;
+  // Only Admin and Finance see everyone's figures; Sales Managers see their own like any seller.
+  const seesAll = actor.configure || actor.finance;
   // Collaborators see their own lines only once an approved policy exists.
   const visible = seesAll || approved;
   const lines = seesAll ? all : approved ? all.filter((line) => line.user_id === actor.id && !line.simulated) : [];
@@ -78,7 +79,7 @@ export async function loadCommission(db: D1Database, contentDb: D1Database, acto
 }
 
 export async function saveSellerTerms(db: D1Database, contentDb: D1Database, actor: CrmActor, form: FormData): Promise<void> {
-  if (!actor.admin) throw new ForbiddenError();
+  if (!actor.configure) throw new ForbiddenError();
   const errors = new Errors();
   const userId = errors.text(form, "user_id", 128, true);
   const type = errors.text(form, "seller_type", 20, true) as SellerType;
@@ -97,7 +98,7 @@ export async function saveSellerTerms(db: D1Database, contentDb: D1Database, act
 
 /** Admin-only: who referred this deal (attribution for referral commission). */
 export async function setReferrer(db: D1Database, contentDb: D1Database, actor: CrmActor, opportunity: Opportunity, form: FormData): Promise<void> {
-  if (!actor.admin) throw new ForbiddenError();
+  if (!actor.configure) throw new ForbiddenError();
   const version = Number(form.get("version"));
   const referrer = typeof form.get("referrer_id") === "string" ? String(form.get("referrer_id")) : "";
   if (!Number.isSafeInteger(version) || version < 1) fail("version", "invalid");
@@ -112,7 +113,7 @@ export async function setReferrer(db: D1Database, contentDb: D1Database, actor: 
 
 /** Admin-only: a new policy version. Approving is an explicit status on the new version. */
 export async function savePolicyVersion(db: D1Database, actor: CrmActor, form: FormData): Promise<void> {
-  if (!actor.admin) throw new ForbiddenError();
+  if (!actor.configure) throw new ForbiddenError();
   const versions = await policyVersions(db);
   const current = versions[0];
   if (!current) fail("policy", "missing");
@@ -166,7 +167,7 @@ export async function recordPayout(db: D1Database, actor: CrmActor, form: FormDa
   const magnitude = parseVnd(raw.replace(/^-/, ""));
   if (!magnitude) errors.add("amount_vnd", "invalid");
   errors.throwIfAny();
-  if (userId === actor.id && !actor.admin) throw new ForbiddenError();
+  if (userId === actor.id && !actor.configure) throw new ForbiddenError();
   const id = newId("pay");
   const amount = negative ? -magnitude! : magnitude!;
   await once(db, actor, requestKey(form), "commission_payout", id, [

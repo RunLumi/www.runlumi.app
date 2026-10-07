@@ -15,6 +15,8 @@ test("safeNext allows local admin and CRM destinations", () => {
   assert.equal(safeNext("/admin/crm"), "/admin/crm");
   assert.equal(safeNext("/crm?stage=proposal"), "/crm?stage=proposal");
   assert.equal(safeNext("/vi/crm/lead-123"), "/vi/crm/lead-123");
+  assert.equal(safeNext("/vi/workspace"), "/vi/workspace");
+  assert.equal(safeNext("/vi/admin/jobs/applications"), "/vi/admin/jobs/applications");
 });
 
 test("safeNext rejects external and malformed destinations", () => {

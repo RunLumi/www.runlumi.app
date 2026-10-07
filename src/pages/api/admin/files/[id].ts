@@ -1,9 +1,12 @@
 import type { APIRoute } from "astro";
 import { envFromLocals } from "../../../../lib/ats";
+import { deskForbidden } from "../../../../lib/hiring/desk";
 
 export const prerender = false;
 
 export const GET: APIRoute = async (context) => {
+  const denied = deskForbidden(context.locals, "hiring.applications.manage");
+  if (denied) return denied;
   const id = context.params.id ?? "";
   const { DB, FILES } = envFromLocals(context.locals);
   const row = await DB.prepare(

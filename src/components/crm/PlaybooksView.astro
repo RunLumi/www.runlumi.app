@@ -20,7 +20,7 @@ const checkRows = pad(def.checklist, 2);
 const selectedOffers = posted ? (state.values.offers ?? "").split(",") : def.offers;
 const key = isNew ? "" : editing?.playbook_key ?? "";
 ---
-<CrmShell title="Playbooks" lang={lang} actor={ctx.actor} current="admin">
+<CrmShell title="Playbooks" lang={lang} actor={ctx.actor} current="playbooks">
   <p class="crm-eyebrow"><a class="crm-link" href={`${base}/admin`}>{vi ? "Quản trị" : "Admin"}</a> / Playbooks</p>
   <div class="crm-head"><div>
     <h1 class="crm-h1">{vi ? "Quy trình bán có phiên bản." : "Versioned sales playbooks."}</h1>

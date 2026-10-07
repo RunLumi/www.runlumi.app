@@ -36,7 +36,9 @@ Hiring admin:
 - `/admin/jobs/applications` — candidate pipeline
 - `/admin/jobs/applications/[id]` — full application review, files, notes, history
 - `/crm` and `/vi/crm` — internal sales CRM: Today, pipeline per playbook, opportunities, accounts, reports, fulfillment
-- `/crm/admin` and `/vi/crm/admin` — CRM members and capabilities, website enquiry queue, cohorts, versioned playbooks and offers (`/admin/crm` redirects here)
+- `/workspace` and `/vi/workspace` — Workspace overview; `/workspace/users` — users and roles (Admin)
+- `/crm/admin` and `/vi/crm/admin` — CRM operations: website enquiry queue and cohorts; `/crm/admin/playbooks` and `/crm/admin/offers` (Admin) (`/admin/crm` redirects here)
+- `/admin/jobs` and `/vi/admin/jobs` — bilingual hiring desk (Admin, HR)
 - `POST /api/intake/local` — signed server-to-server intake from local.runlumi.app (see [docs/crm](docs/crm/README.md))
 
 ## ATS architecture
@@ -45,7 +47,7 @@ Hiring admin:
 - **D1** — jobs, test questions, applications, answers, stages, notes and audit events.
 - **R2** — private CVs and candidate-uploaded work samples. Candidate files never receive public R2 URLs.
 - **EmDash identity** — one EmDash session signs into the CMS, sales CRM and hiring desk. Hiring administration requires an EmDash admin user.
-- **CRM permissions** — admins grant active EmDash users explicit CRM membership and optional finance/fulfillment capabilities; collaborators see only opportunities assigned to them. See [docs/crm/README.md](docs/crm/README.md).
+- **Workspace roles** — admins grant active EmDash users roles (HR, Sales Manager, Sales Executive, Finance, Fulfillment) on `/workspace/users`. See [docs/workspace/README.md](docs/workspace/README.md) and [docs/crm/README.md](docs/crm/README.md).
 - **Optional Cloudflare Access** — recommended as a second layer in front of `/admin/jobs*`, `/admin/crm*` and `/api/admin/*`.
 
 The public apply flow works without client JavaScript.
@@ -124,7 +126,7 @@ The production Worker needs `EMDASH_ENCRYPTION_KEY`. Generate it with `node_modu
 
 ## Admin security
 
-EmDash owns sign-in sessions and user records. `/admin/jobs` and CRM administration require the EmDash admin role. Grant sales collaborators CRM access from `/crm/admin`; invited users must complete their EmDash sign-in before access can be granted.
+EmDash owns sign-in sessions and user records. `/admin/jobs` and CRM administration require the EmDash admin role. Grant HR and sales roles from `/workspace/users`; invited users must complete their EmDash sign-in before access can be granted.
 
 For production, optionally protect the admin surfaces with Cloudflare Access as a second layer:
 

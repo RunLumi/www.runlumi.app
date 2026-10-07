@@ -1,11 +1,16 @@
 import type { APIRoute } from "astro";
 import { envFromLocals } from "../../../../../lib/ats";
 import { badRequest, redirect303, sameOrigin } from "../../../../../lib/http";
+import { deskForbidden, deskPath, postLang } from "../../../../../lib/hiring/desk";
 
 export const prerender = false;
 
 export const POST: APIRoute = async (context) => {
+  const denied = deskForbidden(context.locals, "hiring.applications.delete");
+  if (denied) return denied;
   if (!sameOrigin(context.request)) return badRequest("Invalid request.");
+  const form = await context.request.formData().catch(() => new FormData());
+  if (form.get("confirm") !== "1") return badRequest("Confirm the deletion first.");
   const id = context.params.id ?? "";
   if (!id) return badRequest("Invalid application.");
 
@@ -22,5 +27,5 @@ export const POST: APIRoute = async (context) => {
     return new Response("Could not delete application.", { status: 500 });
   }
 
-  return redirect303("/admin/jobs/applications");
+  return redirect303(deskPath(postLang(context.request, form), "/admin/jobs/applications"));
 };

@@ -135,7 +135,7 @@ export async function logCost(db: D1Database, actor: CrmActor, opportunity: Oppo
   if (!minutesRaw && !amountRaw) errors.add("minutes", "required");
   if (!isIsoDate(occurred_on)) errors.add("occurred_on", "invalid");
   errors.throwIfAny();
-  if (!opportunity && !actor.admin) throw new ForbiddenError();
+  if (!opportunity && !actor.manager) throw new ForbiddenError();
   const id = newId("cst");
   await once(db, actor, requestKey(form), "cost", id, [
     db.prepare("INSERT INTO crm_costs (id, opportunity_id, cohort_key, category, basis, minutes, amount_vnd, occurred_on, note, recorded_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")

@@ -53,7 +53,7 @@ const editing = (id: string) => state.intent === "contact" && state.values.conta
               </div>
               <div class="crm-actions"><button class="crm-button secondary small" type="submit">{vi ? "Lưu" : "Save"}</button></div>
             </form>
-            {(!contact.do_not_contact || ctx.actor.admin) && <form class="crm-form" method="post" action="#contacts" style="margin-top:12px">
+            {(!contact.do_not_contact || ctx.actor.manager) && <form class="crm-form" method="post" action="#contacts" style="margin-top:12px">
               <Hidden intent="dnc" state={state} /><input type="hidden" name="contact_id" value={contact.id} /><input type="hidden" name="do_not_contact" value={contact.do_not_contact ? "0" : "1"} />
               <Field name="dnc_reason" id={`dnc-${contact.id}`} label={contact.do_not_contact ? (vi ? "Bằng chứng để gỡ (bắt buộc)" : "Evidence for lifting (required)") : (vi ? "Lý do / nguồn yêu cầu (bắt buộc)" : "Reason / source of the request (required)")} lang={lang} value="" error={state.intent === "dnc" && state.values.contact_id === contact.id ? state.errors.dnc_reason : undefined} required maxlength={500} />
               <div class="crm-actions"><button class:list={["crm-button small", contact.do_not_contact ? "secondary" : "danger"]} type="submit">{contact.do_not_contact ? (vi ? "Gỡ không liên hệ" : "Lift do-not-contact") : (vi ? "Đặt không liên hệ" : "Set do-not-contact")}</button></div>
@@ -94,11 +94,11 @@ const editing = (id: string) => state.intent === "contact" && state.values.conta
         </form>
         <form class="crm-form" method="post" style="margin-top:14px">
           <Hidden intent="dnc" state={state} /><input type="hidden" name="contact_id" value="" /><input type="hidden" name="do_not_contact" value={account.do_not_contact ? "0" : "1"} />
-          {(!account.do_not_contact || ctx.actor.admin) && <><Field name="dnc_reason" id="a-dnc" label={account.do_not_contact ? (vi ? "Bằng chứng để gỡ" : "Evidence for lifting") : (vi ? "Cả doanh nghiệp yêu cầu không liên hệ — lý do" : "Whole business asked not to be contacted — reason")} lang={lang} value="" error={state.intent === "dnc" && !state.values.contact_id ? state.errors.dnc_reason : undefined} required maxlength={500} />
+          {(!account.do_not_contact || ctx.actor.manager) && <><Field name="dnc_reason" id="a-dnc" label={account.do_not_contact ? (vi ? "Bằng chứng để gỡ" : "Evidence for lifting") : (vi ? "Cả doanh nghiệp yêu cầu không liên hệ — lý do" : "Whole business asked not to be contacted — reason")} lang={lang} value="" error={state.intent === "dnc" && !state.values.contact_id ? state.errors.dnc_reason : undefined} required maxlength={500} />
             <button class:list={["crm-button small", account.do_not_contact ? "secondary" : "danger"]} type="submit">{account.do_not_contact ? (vi ? "Gỡ (admin)" : "Lift (admin)") : (vi ? "Không liên hệ doanh nghiệp này" : "Do not contact this business")}</button></>}
         </form>
       </section>}
-      {ctx.actor.admin && duplicates.length > 0 && <section class="crm-sheet" aria-labelledby="dup-h">
+      {ctx.actor.manager && duplicates.length > 0 && <section class="crm-sheet" aria-labelledby="dup-h">
         <h2 class="crm-h2" id="dup-h">{vi ? "Có thể trùng" : "Possible duplicates"}</h2>
         <ul class="crm-list">{duplicates.map((item) => <li class="crm-row"><a class="crm-row-title" href={`${base}/accounts/${item.id}`}>{item.name}</a><span class="crm-row-meta"><span>{item.region}</span><span class="crm-num">{item.id}</span></span></li>)}</ul>
         <p class="crm-help">{vi ? "Gộp bằng cách chuyển từng cơ hội sang doanh nghiệp đúng (trên trang cơ hội)." : "Merge by moving each opportunity to the right business (on the opportunity page)."}</p>

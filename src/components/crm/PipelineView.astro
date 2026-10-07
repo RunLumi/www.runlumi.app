@@ -49,7 +49,7 @@ const outcomeTone: Record<string, string> = { open: "blue", won: "green", lost: 
     <div class="crm-field"><label for="cohort">Cohort</label><select class="crm-select" id="cohort" name="cohort"><option value="">{vi ? "Tất cả" : "Any"}</option>{cohorts.map((key) => <option value={key} selected={filters.cohort === key}>{key}</option>)}</select></div>
     <div class="crm-field"><label for="industry">{vi ? "Ngành" : "Industry"}</label><input class="crm-input" id="industry" name="industry" value={filters.industry} maxlength="120" /></div>
     <div class="crm-field"><label for="region">{vi ? "Khu vực" : "Region"}</label><input class="crm-input" id="region" name="region" value={filters.region} maxlength="120" /></div>
-    {ctx.actor.admin && <div class="crm-field"><label for="owner">{vi ? "Người phụ trách" : "Owner"}</label><select class="crm-select" id="owner" name="owner"><option value="">{vi ? "Tất cả" : "Anyone"}</option><option value="unassigned" selected={filters.owner === "unassigned"}>{vi ? "Chưa phân công" : "Unassigned"}</option><option value="inactive" selected={filters.owner === "inactive"}>{vi ? "Người phụ trách không hoạt động" : "Inactive owner"}</option>{owners.map((owner) => <option value={owner.id} selected={filters.owner === owner.id}>{owner.label}</option>)}</select></div>}
+    {ctx.actor.manager && <div class="crm-field"><label for="owner">{vi ? "Người phụ trách" : "Owner"}</label><select class="crm-select" id="owner" name="owner"><option value="">{vi ? "Tất cả" : "Anyone"}</option><option value="unassigned" selected={filters.owner === "unassigned"}>{vi ? "Chưa phân công" : "Unassigned"}</option><option value="inactive" selected={filters.owner === "inactive"}>{vi ? "Người phụ trách không hoạt động" : "Inactive owner"}</option>{owners.map((owner) => <option value={owner.id} selected={filters.owner === owner.id}>{owner.label}</option>)}</select></div>}
     <div class="crm-actions"><button class="crm-button secondary" type="submit">{vi ? "Lọc" : "Apply"}</button><a class="crm-link" href={`${base}/pipeline?playbook=${filters.playbook}`}>{vi ? "Xóa lọc" : "Clear"}</a></div>
   </form>
 
@@ -63,7 +63,7 @@ const outcomeTone: Record<string, string> = { open: "blue", won: "green", lost: 
         <span>{label(lang, "channel", row.source_channel)}</span>
         <span>{vi ? "Bước tiếp theo" : "Next"}: {row.next_action || "—"} · {formatDate(row.next_action_due, lang)}</span>
         <span class="crm-num">{vi ? "Giá trị ước tính" : "Est. value"}: {formatVnd(row.estimated_value_vnd, vi)}</span>
-        {ctx.actor.admin && <span>{vi ? "Phụ trách" : "Owner"}: {row.owner_id ? `${ownerNames[row.owner_id]?.name ?? (row.owner_id === ctx.actor.id ? ctx.actor.name : (vi ? "Tài khoản không hoạt động" : "Inactive account"))}${ownerNames[row.owner_id] && !ownerNames[row.owner_id].active ? (vi ? " (không hoạt động)" : " (inactive)") : ""}` : (vi ? "Chưa phân công" : "Unassigned")}</span>}
+        {ctx.actor.manager && <span>{vi ? "Phụ trách" : "Owner"}: {row.owner_id ? `${ownerNames[row.owner_id]?.name ?? (row.owner_id === ctx.actor.id ? ctx.actor.name : (vi ? "Tài khoản không hoạt động" : "Inactive account"))}${ownerNames[row.owner_id] && !ownerNames[row.owner_id].active ? (vi ? " (không hoạt động)" : " (inactive)") : ""}` : (vi ? "Chưa phân công" : "Unassigned")}</span>}
       </span>
     </li>)}</ul> : <p class="crm-empty">{vi ? "Không có cơ hội khớp bộ lọc." : "No opportunities match these filters."}</p>}
     {pages > 1 && <nav class="crm-pagination" aria-label={vi ? "Phân trang" : "Pagination"}>

@@ -10,20 +10,18 @@ import type { IntakePayload } from "../../lib/crm/intake";
 import { costCategories } from "../../lib/crm/tasks";
 
 type Props = AdminProps;
-const { ctx, state, team, accounts, inbound, owners, cohorts, playbooks } = Astro.props;
+const { ctx, state, inbound, owners, cohorts, playbooks } = Astro.props;
 const { lang, vi, base } = ctx;
-const byId = new Map(team.map((member) => [member.user_id, member]));
-const roleName = (role: number) => role === 40 ? "Editor" : role === 30 ? "Author" : role === 20 ? "Contributor" : "Member";
 const v = (intent: string, name: string, fallback = "") => valueFor(state, intent, name, fallback);
 const e = (intent: string, name: string) => errorFor(state, intent, name);
 const payload = (raw: string) => { try { return JSON.parse(raw) as IntakePayload; } catch { return null; } };
 ---
-<CrmShell title={vi ? "Quản trị CRM" : "CRM admin"} lang={lang} actor={ctx.actor} current="admin">
+<CrmShell title={vi ? "Vận hành CRM" : "CRM operations"} lang={lang} actor={ctx.actor} current="admin">
   <div class="crm-head"><div>
-    <p class="crm-eyebrow">{vi ? "Quản trị" : "Admin"}</p>
-    <h1 class="crm-h1">{vi ? "Đội ngũ, phân công và cấu hình bán hàng." : "Team, assignment and sales configuration."}</h1>
-    <p class="crm-lede">{vi ? "Danh tính và đăng nhập do EmDash quản lý. Quyền CRM không cấp quyền tuyển dụng; không cần nâng ai lên admin EmDash để làm tài chính hay bàn giao." : "EmDash owns identity and sign-in. CRM access grants nothing in hiring; nobody needs EmDash admin to handle finance or fulfillment."}</p>
-  </div><div class="crm-actions"><a class="crm-button secondary" href={`${base}/admin/playbooks`}>{vi ? "Playbook" : "Playbooks"}</a><a class="crm-button secondary" href={`${base}/admin/offers`}>{vi ? "Gói và giá" : "Offers and prices"}</a></div></div>
+    <p class="crm-eyebrow">{vi ? "Vận hành CRM" : "CRM operations"}</p>
+    <h1 class="crm-h1">{vi ? "Phân công khách mới và theo dõi cohort." : "Assign new enquiries and run cohorts."}</h1>
+    <p class="crm-lede">{vi ? "Người dùng và vai trò được quản lý tập trung ở Workspace. Quyền CRM không cấp quyền tuyển dụng." : "Users and roles are managed centrally in the Workspace. CRM access grants nothing in hiring."}</p>
+  </div><div class="crm-actions">{ctx.actor.configure && <><a class="crm-button secondary" href={`${base}/admin/playbooks`}>{vi ? "Playbook" : "Playbooks"}</a><a class="crm-button secondary" href={`${base}/admin/offers`}>{vi ? "Gói và giá" : "Offers and prices"}</a><a class="crm-button secondary" href={vi ? "/vi/workspace/users" : "/workspace/users"}>{vi ? "Người dùng và vai trò" : "Users and roles"}</a></>}</div></div>
   <FormNotices state={state} lang={lang} saved={Astro.url.searchParams.get("saved")} />
 
   <section class="crm-sheet" id="inbound" aria-labelledby="inbound-h">
@@ -42,31 +40,6 @@ const payload = (raw: string) => { try { return JSON.parse(raw) as IntakePayload
           <button class="crm-button small secondary" type="submit">{vi ? "Bỏ qua" : "Dismiss"}</button></form>
       </div>
     </li>; })}</ul> : <p class="crm-empty">{vi ? "Không có yêu cầu đang chờ." : "No enquiries waiting."}</p>}
-  </section>
-
-  <section class="crm-sheet" id="members" aria-labelledby="members-h">
-    <h2 class="crm-h2" id="members-h">{vi ? "Cộng tác viên và quyền" : "Collaborators and permissions"}</h2>
-    <form class="crm-form" method="post" action="#members">
-      <Hidden intent="member" state={state} /><input type="hidden" name="enabled" value="1" />
-      <div class="crm-form-grid"><Field name="email" type="email" label={vi ? "Email tài khoản EmDash" : "EmDash account email"} lang={lang} value={v("member", "email")} error={e("member", "email")} required maxlength={254} autocomplete="off" help={vi ? "Tạo hoặc mời tài khoản trong EmDash trước." : "Create or invite the account in EmDash first."} /></div>
-      <div class="crm-actions"><button class="crm-button" type="submit">{vi ? "Cấp quyền CRM" : "Grant CRM access"}</button></div>
-    </form>
-    {team.length ? <div class="crm-table-wrap" style="margin-top:16px"><table class="crm-table">
-      <thead><tr><th>{vi ? "Người" : "Person"}</th><th>{vi ? "Trạng thái" : "Status"}</th><th>{vi ? "Quyền thêm" : "Extra permissions"}</th><th>{vi ? "Truy cập" : "Access"}</th></tr></thead>
-      <tbody>{team.map((member) => <tr>
-        <td><strong>{member.name || member.email || (vi ? "Tài khoản EmDash không còn" : "EmDash account unavailable")}</strong><br /><span class="crm-meta">{member.email}</span></td>
-        <td><span class:list={["crm-badge", member.enabled && member.active ? "green" : "red"]}>{!member.enabled ? (vi ? "Đã thu hồi" : "Revoked") : member.active ? (vi ? "Hoạt động" : "Active") : (vi ? "EmDash bị vô hiệu" : "EmDash disabled")}</span></td>
-        <td><form method="post" action="#members" class="crm-actions"><Hidden intent="capabilities" state={state} /><input type="hidden" name="user_id" value={member.user_id} />
-          <label class="crm-check"><input type="checkbox" name="finance" value="1" checked={member.finance} /><span>{vi ? "Tài chính" : "Finance"}</span></label>
-          <label class="crm-check"><input type="checkbox" name="fulfillment" value="1" checked={member.fulfillment} /><span>{vi ? "Bàn giao" : "Fulfillment"}</span></label>
-          <button class="crm-button small secondary" type="submit">{vi ? "Lưu" : "Save"}</button></form></td>
-        <td><form method="post" action="#members"><Hidden intent="member" state={state} /><input type="hidden" name="user_id" value={member.user_id} /><input type="hidden" name="enabled" value={member.enabled ? "0" : "1"} /><button class:list={["crm-button small", member.enabled ? "danger" : "secondary"]} type="submit">{member.enabled ? (vi ? "Thu hồi" : "Revoke") : (vi ? "Khôi phục" : "Restore")}</button></form></td>
-      </tr>)}</tbody>
-    </table></div> : <p class="crm-empty">{vi ? "Chưa có cộng tác viên." : "No collaborators yet."}</p>}
-    <p class="crm-help">{vi ? "Thu hồi quyền hoặc vô hiệu tài khoản EmDash có hiệu lực từ yêu cầu kế tiếp. Hồ sơ vẫn giữ nguyên; admin giao lại từ trang Cơ hội (lọc “người phụ trách không hoạt động”)." : "Revoking access or disabling the EmDash account takes effect on the next request. Records stay; reassign them from Pipeline (filter “inactive owner”)."}</p>
-    <details class="crm-disclosure"><summary>{vi ? "Tài khoản EmDash đang hoạt động (không phải admin)" : "Active EmDash accounts (non-admin)"}</summary>
-      <ul class="crm-list">{accounts.map((account) => <li class="crm-row"><span>{account.name || account.email} <span class="crm-meta">{account.email} · {roleName(account.role)}</span></span><span class="crm-badge">{byId.get(account.id)?.enabled ? (vi ? "Có quyền CRM" : "CRM access") : (vi ? "Chưa có quyền CRM" : "No CRM access")}</span></li>)}</ul>
-    </details>
   </section>
 
   <section class="crm-sheet" id="cohorts" aria-labelledby="cohorts-h">

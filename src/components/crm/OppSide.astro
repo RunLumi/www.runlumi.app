@@ -53,13 +53,13 @@ const minutes = costs.reduce((sum, cost) => sum + (cost.minutes ?? 0), 0);
         <div class="crm-actions"><button class="crm-button" type="submit">{vi ? "Lưu" : "Save"}</button></div>
       </form>
     </details>}
-    {actor.admin && <form class="crm-form" method="post" style="margin-top:14px">
+    {actor.manager && <form class="crm-form" method="post" style="margin-top:14px">
       <Hidden intent="assign" state={state} version={opp.version} />
       <Field name="owner_id" id="assign-owner" type="select" label={vi ? "Giao cho" : "Assign to"} lang={lang} value={opp.owner_id ?? ""} error={e("assign", "owner_id")} options={[...(opp.owner_id && !owners.some((owner) => owner.id === opp.owner_id) ? [{ value: opp.owner_id, label: person(opp.owner_id) }] : []), ...(opp.owner_id ? [] : [{ value: "", label: vi ? "Chọn người" : "Choose" }]), ...owners.map((owner) => ({ value: owner.id, label: owner.label }))]} />
       <p class="crm-help">{vi ? "Giao lại không đổi người bán được ghi công." : "Reassigning never changes seller attribution."}</p>
       <div class="crm-actions"><button class="crm-button secondary small" type="submit">{vi ? "Giao" : "Assign"}</button></div>
     </form>}
-    {actor.admin && <form class="crm-form" method="post" action="#details" style="margin-top:14px">
+    {actor.configure && <form class="crm-form" method="post" action="#details" style="margin-top:14px">
       <Hidden intent="referrer" state={state} version={opp.version} />
       <Field name="referrer_id" id="ref-user" type="select" label={vi ? "Người giới thiệu (hưởng hoa hồng giới thiệu)" : "Referrer (earns referral commission)"} lang={lang} value={opp.referrer_id ?? ""} error={e("referrer", "referrer_id")} options={[{ value: "", label: vi ? "Không có" : "None" }, ...owners.map((owner) => ({ value: owner.id, label: owner.label }))]} />
       <div class="crm-actions"><button class="crm-button secondary small" type="submit">{vi ? "Lưu người giới thiệu" : "Save referrer"}</button></div>
@@ -109,7 +109,7 @@ const minutes = costs.reduce((sum, cost) => sum + (cost.minutes ?? 0), 0);
     </details>}
   </section>
 
-  {actor.admin && <section class="crm-sheet" aria-labelledby="admin-h">
+  {actor.manager && <section class="crm-sheet" aria-labelledby="admin-h">
     <h2 class="crm-h2" id="admin-h">{vi ? "Quản trị hồ sơ" : "Record administration"}</h2>
     <form class="crm-form" method="post">
       <Hidden intent="playbook_change" state={state} version={opp.version} />

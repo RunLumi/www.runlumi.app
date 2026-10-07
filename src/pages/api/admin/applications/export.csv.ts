@@ -1,5 +1,6 @@
 import type { APIRoute } from "astro";
 import { envFromLocals, getApplications } from "../../../../lib/ats";
+import { deskForbidden } from "../../../../lib/hiring/desk";
 
 export const prerender = false;
 
@@ -10,6 +11,8 @@ function csv(value: unknown): string {
 }
 
 export const GET: APIRoute = async (context) => {
+  const denied = deskForbidden(context.locals, "hiring.export");
+  if (denied) return denied;
   const { DB } = envFromLocals(context.locals);
   const job = context.url.searchParams.get("job") ?? "";
   const status = context.url.searchParams.get("status") ?? "";

@@ -173,9 +173,10 @@ OAuth session expired or was refreshed with a narrower scope; rerun
 
 **Admin sign-in returns to the login page.**
 Sign in at `/_emdash/admin/login` first. An authenticated account that
-gets 403 at `/admin/jobs` or `/crm/admin` must be active and have the
-EmDash admin role. CRM collaborators need an enabled membership entry in
-`crm_members`; an admin grants it from `/crm/admin` after sign-in.
+gets 403 at `/workspace/users` must be active and have the
+EmDash admin role. Everyone else needs an enabled `workspace_members` entry
+with the right role (HR for hiring, a sales role for the CRM); an admin grants
+it from `/workspace/users` after the person has signed in once.
 
 **Preflight fails naming a missing secret.**
 Set it via stdin (commands above). If you must confirm which value is

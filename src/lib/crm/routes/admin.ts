@@ -1,6 +1,6 @@
 import type { AstroGlobal } from "astro";
-import { type MemberRow, type OwnerOption, members, ownerOptions } from "../access";
-import { assignInbound, dismissInbound, saveCohort, setCapabilities, setCostingComplete, setMembership } from "../admin";
+import { type OwnerOption, ownerOptions } from "../access";
+import { assignInbound, dismissInbound, saveCohort, setCostingComplete } from "../admin";
 import {
   type Offer, type OfferInput, allOfferVersions, allPlaybookVersions, latestOffers, latestPlaybooks, parsePlaybookForm, saveOfferVersion, savePlaybookVersion, setOfferActive, setPlaybookActive,
 } from "../config";
@@ -15,14 +15,15 @@ import { logCost } from "../tasks";
 import { ValidationError } from "../core";
 
 export interface AdminProps {
-  ctx: Ctx; state: FormState; team: MemberRow[]; accounts: { id: string; email: string; name: string | null; role: number }[];
+  ctx: Ctx; state: FormState;
   inbound: InboundRow[]; owners: OwnerOption[]; cohorts: CohortRow[]; playbooks: Playbook[];
 }
 
-async function adminContext(astro: AstroGlobal, lang: Lang): Promise<Ctx | Response> {
+/** CRM operations (inbound queue, cohorts) need the team permission; configuration needs Admin. */
+async function adminContext(astro: AstroGlobal, lang: Lang, level: "manager" | "configure" = "manager"): Promise<Ctx | Response> {
   const ctx = await context(astro, lang);
   if (ctx instanceof Response) return ctx;
-  return ctx.actor.admin ? ctx : forbidden(lang);
+  return ctx.actor[level] ? ctx : forbidden(lang);
 }
 
 export async function adminRoute(astro: AstroGlobal, lang: Lang): Promise<AdminProps | Response> {
@@ -30,8 +31,6 @@ export async function adminRoute(astro: AstroGlobal, lang: Lang): Promise<AdminP
   if (ctx instanceof Response) return ctx;
   const here = astro.url.pathname;
   const posted = await handlePost(astro, ctx, {
-    member: async (form) => { await setMembership(ctx.db, ctx.contentDb, ctx.actor, form); return `${here}#members`; },
-    capabilities: async (form) => { await setCapabilities(ctx.db, ctx.actor, form); return `${here}#members`; },
     inbound_assign: async (form) => { await assignInbound(ctx.db, ctx.contentDb, ctx.actor, form); return `${here}#inbound`; },
     inbound_dismiss: async (form) => { await dismissInbound(ctx.db, ctx.actor, form); return `${here}#inbound`; },
     cohort: async (form) => { await saveCohort(ctx.db, ctx.actor, form); return `${here}#cohorts`; },
@@ -45,8 +44,7 @@ export async function adminRoute(astro: AstroGlobal, lang: Lang): Promise<AdminP
   });
   if (posted instanceof Response) return posted;
   return {
-    ctx, state: posted ?? emptyState, team: await members(ctx.db, ctx.contentDb),
-    accounts: (await ctx.contentDb.prepare("SELECT id, email, name, role FROM users WHERE disabled = 0 AND role < 50 ORDER BY name, email LIMIT 250").all<{ id: string; email: string; name: string | null; role: number }>()).results,
+    ctx, state: posted ?? emptyState,
     inbound: await inboundQueue(ctx.db), owners: await ownerOptions(ctx.db, ctx.contentDb, ctx.actor),
     cohorts: (await ctx.db.prepare("SELECT * FROM crm_cohorts ORDER BY starts_on DESC LIMIT 50").all<CohortRow>()).results,
     playbooks: await latestPlaybooks(ctx.db),
@@ -56,7 +54,7 @@ export async function adminRoute(astro: AstroGlobal, lang: Lang): Promise<AdminP
 export interface PlaybooksProps { ctx: Ctx; state: FormState; versions: Playbook[]; latest: Playbook[]; offers: Offer[]; editing: Playbook | null; isNew: boolean }
 
 export async function playbooksRoute(astro: AstroGlobal, lang: Lang): Promise<PlaybooksProps | Response> {
-  const ctx = await adminContext(astro, lang);
+  const ctx = await adminContext(astro, lang, "configure");
   if (ctx instanceof Response) return ctx;
   const here = astro.url.pathname;
   const posted = await handlePost(astro, ctx, {
@@ -92,7 +90,7 @@ function offerInput(form: FormData): OfferInput {
 }
 
 export async function offersRoute(astro: AstroGlobal, lang: Lang): Promise<OffersProps | Response> {
-  const ctx = await adminContext(astro, lang);
+  const ctx = await adminContext(astro, lang, "configure");
   if (ctx instanceof Response) return ctx;
   const here = astro.url.pathname;
   const posted = await handlePost(astro, ctx, {

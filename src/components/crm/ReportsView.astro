@@ -31,7 +31,7 @@ const gateLabels: Record<string, [string, string]> = {
     <div class="crm-field"><label for="r-cohort">Cohort</label><select class="crm-select" id="r-cohort" name="cohort"><option value="">{vi ? "Tất cả" : "Any"}</option>{cohorts.map((item) => <option value={item.cohort_key} selected={filters.cohort === item.cohort_key}>{item.name}</option>)}</select></div>
     <div class="crm-field"><label for="r-industry">{vi ? "Ngành" : "Industry"}</label><input class="crm-input" id="r-industry" name="industry" value={filters.industry} maxlength="120" /></div>
     <div class="crm-field"><label for="r-region">{vi ? "Khu vực" : "Region"}</label><input class="crm-input" id="r-region" name="region" value={filters.region} maxlength="120" /></div>
-    {ctx.actor.admin && <div class="crm-field"><label for="r-owner">{vi ? "Mã người phụ trách" : "Owner ID"}</label><input class="crm-input" id="r-owner" name="owner" value={filters.owner} maxlength="120" /></div>}
+    {ctx.actor.manager && <div class="crm-field"><label for="r-owner">{vi ? "Mã người phụ trách" : "Owner ID"}</label><input class="crm-input" id="r-owner" name="owner" value={filters.owner} maxlength="120" /></div>}
     <div class="crm-actions"><button class="crm-button secondary" type="submit">{vi ? "Áp dụng" : "Apply"}</button><a class="crm-link" href={`${base}/reports`}>{vi ? "Xóa lọc" : "Clear"}</a></div>
   </form>
 
@@ -47,7 +47,7 @@ const gateLabels: Record<string, [string, string]> = {
     <p class="crm-help">{vi ? "Đang mở" : "Open"}: {summary.outcomes.open ?? 0} · {vi ? "Thành công" : "Won"}: {summary.outcomes.won ?? 0} · {vi ? "Không thành" : "Lost"}: {summary.outcomes.lost ?? 0} · {vi ? "Tạm hoãn" : "Paused"}: {summary.outcomes.paused ?? 0}<br />{vi ? "Giá trị ước tính đã biết" : "Known estimated value"}: {formatVnd(summary.knownValue, vi)} · {vi ? "chưa biết giá trị" : "value unknown"}: {summary.unknownValue}</p>
   </section>; })}</div>
 
-  {(ctx.actor.admin || ctx.actor.finance) && <section class="crm-sheet" id="cohort" style="margin-top:18px" aria-labelledby="cohort-h">
+  {(ctx.actor.manager || ctx.actor.finance) && <section class="crm-sheet" id="cohort" style="margin-top:18px" aria-labelledby="cohort-h">
     <h2 class="crm-h2" id="cohort-h">{vi ? "Cohort Lumi Local và kinh tế bán hàng" : "Lumi Local cohort and sales economics"}</h2>
     {cohorts.length === 0 ? <p class="crm-empty">{vi ? "Chưa có cohort. Admin tạo cohort trong trang Quản trị." : "No cohort yet. Admins create cohorts in Admin."}</p> : <>
       <form method="get" class="crm-actions" action="#cohort"><label class="crm-label" for="cohort_report">Cohort</label><select class="crm-select" style="width:auto" id="cohort_report" name="cohort_report">{cohorts.map((item) => <option value={item.cohort_key} selected={cohort?.cohort.cohort_key === item.cohort_key}>{item.name}</option>)}</select><button class="crm-button small secondary" type="submit">{vi ? "Xem" : "View"}</button></form>

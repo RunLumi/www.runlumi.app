@@ -1,0 +1,9 @@
+---
+import HiringJob from "../../../../components/hiring/HiringJob.astro";
+import { jobPage, notFound } from "../../../../lib/hiring/pages";
+
+export const prerender = false;
+const data = await jobPage(Astro, "vi");
+if (!data) return notFound("vi");
+---
+<HiringJob {...data} />

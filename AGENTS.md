@@ -48,10 +48,17 @@ including CMS-only changes through EmDash API/MCP.
 - Existing articles and fallback content are not automatically compliant. Track
   renderer/schema gaps honestly; a green build alone is not editorial verification.
 
+## Workspace roles contract
+
+- Private modules (Hiring, CRM, and later ones) share one EmDash identity, one Workspace allowlist (`workspace_members`), combinable roles (`workspace_roles`) and one permission map in `src/lib/workspace/roles.ts`. See [docs/workspace/README.md](docs/workspace/README.md).
+- Roles: Admin (EmDash role 50; never stored), HR, Sales Manager, Sales Executive, Finance and Fulfillment. Check permissions, never role names, in routes, APIs, queries and navigation.
+- Only Admins manage users and roles (`/workspace/users`); every access change is written to `workspace_audit`. Nobody changes their own access.
+- Navigation comes from `src/lib/workspace/nav.ts` and shows only entries the person may open; every private page renders inside `WorkspaceShell` and has a `/vi` peer.
+
 ## Jobs / ATS contract
 
 - `/jobs` is public and candidate-first.
-- `/admin/jobs` is private and decision-first; require an active EmDash admin user (`role = 50`).
+- `/admin/jobs` and `/vi/admin/jobs` are private and decision-first; require the `hiring.access` permission (Admin or HR). Deleting and exporting need their own permissions.
 - All private hiring pages and APIs use the EmDash session and user record. Never introduce a second password or application-owned login cookie.
 - D1 stores structured hiring data; R2 stores candidate files.
 - Never store CV/file blobs in D1.
@@ -65,9 +72,9 @@ including CMS-only changes through EmDash API/MCP.
 ## Collaborator CRM contract
 
 - `/crm` and `/vi/crm` are peer, private sales workspaces using EmDash authentication.
-- Admins grant CRM access to existing active EmDash non-admin users through `/crm/admin` (`/admin/crm` redirects there).
-- CRM membership is an explicit user-ID allowlist in the hiring D1 database; resolve identity details from EmDash when needed. EmDash CMS roles alone grant no CRM or hiring access.
-- Contributors see and edit only leads assigned to their EmDash user ID. CRM admins can view all leads and reassign them.
+- Admins grant CRM roles (Sales Manager, Sales Executive, Finance, Fulfillment) to existing active EmDash non-admin users on `/workspace/users`.
+- Workspace membership is an explicit user-ID allowlist in the hiring D1 database; resolve identity details from EmDash when needed. EmDash CMS roles below admin grant no CRM or hiring access.
+- Sales Executives see and edit only opportunities assigned to their EmDash user ID. Sales Managers and Admins see every opportunity and reassign them; only Admins configure playbooks, offers and commission policy.
 - Enforce ownership and CRM membership on every server route and D1 query; hide other owners' lead records as not found.
 - Store leads and activity in the hiring D1 database. Store no EmDash credentials, passkeys, or session data there.
 - Every change and note has an actor and timestamp. Versioned updates reject stale edits. Keep prospect records private and never place them in client-side source.
@@ -77,7 +84,7 @@ including CMS-only changes through EmDash API/MCP.
 - `/api/intake/local` accepts only HMAC-signed enquiries addressed to Lumi from local.runlumi.app. Never route enquiries from customers' Starter sites into this CRM.
 - The CRM never messages customers, buys domains, publishes sites, takes payments or pays commission; do-not-contact applies across every channel and playbook.
 - Commission is a versioned policy (`docs/crm/COMMISSION.md`). An unapproved version is an admin/finance-only simulation; never show estimates to collaborators or record payouts without an approved version. Commission is earned only on confirmed cash for delivered, retained customers.
-- Hiring and CRM administration requires EmDash admin role; CRM collaborators must never gain access to candidate applications or files.
+- User and role administration requires the EmDash admin role. CRM roles must never gain access to candidate applications or files, and HR gains no CRM access.
 
 ## Finish gate
 

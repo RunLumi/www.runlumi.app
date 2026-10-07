@@ -1,0 +1,8 @@
+---
+import HiringJobs from "../../../../components/hiring/HiringJobs.astro";
+import { jobsPage } from "../../../../lib/hiring/pages";
+
+export const prerender = false;
+const data = await jobsPage(Astro, "vi");
+---
+<HiringJobs {...data} />

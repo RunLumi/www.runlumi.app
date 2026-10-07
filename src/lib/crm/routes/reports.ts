@@ -17,7 +17,7 @@ export async function reportsRoute(astro: AstroGlobal, lang: Lang): Promise<Repo
   const ctx = await context(astro, lang);
   if (ctx instanceof Response) return ctx;
   const filters = readFilters(astro.url);
-  const playbooks = (await latestPlaybooks(ctx.db)).filter((item) => item.kind !== "legacy" || ctx.actor.admin);
+  const playbooks = (await latestPlaybooks(ctx.db)).filter((item) => item.kind !== "legacy" || ctx.actor.manager);
   const summaries: PipelineSummary[] = [];
   for (const playbook of playbooks) {
     const where = filterSql(ctx.actor, { ...filters, playbook: playbook.playbook_key, stage: "" });
@@ -38,7 +38,7 @@ export async function reportsRoute(astro: AstroGlobal, lang: Lang): Promise<Repo
   const cohorts = (await ctx.db.prepare("SELECT * FROM crm_cohorts ORDER BY starts_on DESC LIMIT 50").all<CohortRow>()).results;
   // Cohort economics are admin/finance views; collaborators see their own pipeline only.
   const cohortKey = astro.url.searchParams.get("cohort_report") ?? cohorts[0]?.cohort_key ?? "";
-  const cohort = (ctx.actor.admin || ctx.actor.finance) && cohortKey ? await loadCohort(ctx.db, cohortKey) : null;
+  const cohort = (ctx.actor.manager || ctx.actor.finance) && cohortKey ? await loadCohort(ctx.db, cohortKey) : null;
   const pending = ctx.actor.finance ? (await ctx.db.prepare(
     `SELECT l.id, l.opportunity_id, o.title, l.amount_vnd, l.occurred_on, l.evidence FROM crm_ledger l JOIN crm_opportunities o ON o.id = l.opportunity_id
      WHERE l.kind = 'payment' AND l.status = 'pending' ORDER BY l.created_at LIMIT 100`,

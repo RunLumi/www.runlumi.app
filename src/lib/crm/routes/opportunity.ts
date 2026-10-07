@@ -94,10 +94,10 @@ export async function opportunityRoute(astro: AstroGlobal, lang: Lang): Promise<
   return {
     ctx, state: posted ?? emptyState, access, playbook, transitions, offers, quoteOffers, quotes, ledger, summary, payment: paymentState(summary), credit,
     fulfillment, tasks, costs, contacts, related, events, names: await displayNames(ctx.contentDb, people),
-    owners: ctx.actor.admin ? await ownerOptions(ctx.db, ctx.contentDb, ctx.actor) : [],
+    owners: ctx.actor.manager ? await ownerOptions(ctx.db, ctx.contentDb, ctx.actor) : [],
     cohorts: (await ctx.db.prepare("SELECT cohort_key FROM crm_cohorts ORDER BY starts_on DESC LIMIT 50").all<{ cohort_key: string }>()).results.map((row) => row.cohort_key),
     linkPlaybooks: latest.filter((item) => item.kind !== "legacy"),
-    allVersions: ctx.actor.admin ? (await allPlaybookVersions(ctx.db)).filter((item) => item.active && item.kind !== "legacy") : [],
+    allVersions: ctx.actor.manager ? (await allPlaybookVersions(ctx.db)).filter((item) => item.active && item.kind !== "legacy") : [],
     playbookNames: Object.fromEntries((await allPlaybookVersions(ctx.db)).map((item) => [item.id, `${lang === "vi" ? item.name_vi : item.name_en} v${item.version}`])),
   };
 }
