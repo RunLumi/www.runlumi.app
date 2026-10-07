@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseLocalDateTime, parseScorecard, summarize, visibleScorecards } from "../src/lib/hiring/interviews.ts";
+import { RETENTION_DAYS, parseLocalDateTime, parseScorecard, retentionCutoff, summarize, visibleScorecards } from "../src/lib/hiring/interviews.ts";
 
 const form = (values: Record<string, string>) => { const data = new FormData(); for (const [key, value] of Object.entries(values)) data.set(key, value); return data; };
 const full = { recommendation: "yes", evidence: "Explained the pricing trade-off with numbers.", "rating.role_skills": "3", "rating.problem_solving": "4", "rating.communication": "3", "rating.ownership": "2" };
@@ -34,4 +34,10 @@ test("colleagues' scorecards stay hidden until you submit yours", () => {
 test("interview times are read as Vietnam time", () => {
   assert.equal(parseLocalDateTime("2026-10-09T09:30"), "2026-10-09T02:30:00.000Z");
   assert.equal(parseLocalDateTime("tomorrow"), null);
+});
+
+test("retention keeps closed applications for 60 days (owner decision 2026-10-08)", () => {
+  assert.equal(RETENTION_DAYS, 60);
+  // 2026-10-08 10:00 in Vietnam: closed on or before 2026-08-09 is due.
+  assert.equal(retentionCutoff(Date.parse("2026-10-08T03:00:00Z")), "2026-08-09");
 });

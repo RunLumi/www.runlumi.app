@@ -3,6 +3,7 @@ import type { AstroGlobal } from "astro";
 import { envFromLocals } from "../ats";
 import { sameOrigin } from "../http";
 import { vnDate } from "../crm/money";
+import { RETENTION_STATUSES, retentionCutoff } from "../hiring/interviews";
 import { type AuditRow, AccessError, type MemberRow, parseRoles, recentAudit, saveMember, workspaceMembers } from "./members";
 import type { WorkspaceUser } from "./roles";
 
@@ -16,12 +17,15 @@ export async function homePage(astro: AstroGlobal, lang: Lang) {
   const today = vnDate();
   const cards: HomeCard[] = [];
   if (user.can("hiring.access")) {
-    const row = await DB.prepare("SELECT (SELECT COUNT(*) FROM jobs WHERE status = 'published') AS open, (SELECT COUNT(*) FROM applications WHERE status = 'new') AS fresh, (SELECT COUNT(*) FROM applications WHERE status = 'interview') AS interview")
-      .first<{ open: number; fresh: number; interview: number }>();
+    const due = new Date(`${retentionCutoff()}T23:59:59.999+07:00`).toISOString();
+    const row = await DB.prepare(`SELECT (SELECT COUNT(*) FROM jobs WHERE status = 'published') AS open, (SELECT COUNT(*) FROM applications WHERE status = 'new') AS fresh, (SELECT COUNT(*) FROM applications WHERE status = 'interview') AS interview,
+      (SELECT COUNT(*) FROM applications WHERE status IN (${RETENTION_STATUSES.map(() => "?").join(", ")}) AND updated_at <= ?) AS expired`)
+      .bind(...RETENTION_STATUSES, due).first<{ open: number; fresh: number; interview: number; expired: number }>();
     cards.push({ module: "hiring", figures: [
       { label: ["New applications", "Hồ sơ mới"], value: row?.fresh ?? 0, href: "/admin/jobs/applications?status=new" },
       { label: ["In interview", "Đang phỏng vấn"], value: row?.interview ?? 0, href: "/admin/jobs/applications?status=interview" },
       { label: ["Open roles", "Vị trí đang tuyển"], value: row?.open ?? 0, href: "/admin/jobs" },
+      ...(user.can("hiring.applications.delete") ? [{ label: ["Past the 60-day retention (delete)", "Quá hạn lưu 60 ngày (cần xóa)"] as [string, string], value: row?.expired ?? 0, href: "/admin/jobs/applications#retention" }] : []),
     ] });
   }
   if (user.can("crm.access")) {
