@@ -1,0 +1,9 @@
+---
+import CommissionView from "../../components/crm/CommissionView.astro";
+import { commissionRoute } from "../../lib/crm/routes/commission";
+
+export const prerender = false;
+const result = await commissionRoute(Astro, "en");
+if (result instanceof Response) return result;
+---
+<CommissionView {...result} />

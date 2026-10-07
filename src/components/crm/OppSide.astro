@@ -26,14 +26,14 @@ const minutes = costs.reduce((sum, cost) => sum + (cost.minutes ?? 0), 0);
       <div><dt>{vi ? "Người phụ trách hiện tại" : "Current owner"}</dt><dd>{opp.owner_id ? person(opp.owner_id) : <span class="crm-badge amber">{vi ? "Chưa phân công" : "Unassigned"}</span>}</dd></div>
       <div><dt>{vi ? "Người bán (ghi công)" : "Seller (attribution)"}</dt><dd>{person(opp.seller_id)}</dd></div>
       <div><dt>{vi ? "Kênh" : "Channel"}</dt><dd>{label(lang, "channel", opp.source_channel)}</dd></div>
-      <div><dt>{vi ? "Giới thiệu" : "Referred by"}</dt><dd>{opp.referrer || "—"}</dd></div>
+      <div><dt>{vi ? "Giới thiệu" : "Referred by"}</dt><dd>{opp.referrer_id ? person(opp.referrer_id) : opp.referrer || "—"}</dd></div>
       <div><dt>{vi ? "Chi tiết nguồn" : "Source detail"}</dt><dd>{opp.source_detail || "—"}</dd></div>
       <div><dt>{vi ? "Giá trị ước tính" : "Estimated value"}</dt><dd class="crm-num">{formatVnd(opp.estimated_value_vnd, vi)}</dd></div>
       <div><dt>Cohort</dt><dd>{opp.cohort_key ?? "—"}</dd></div>
       <div><dt>{vi ? "Tạo bởi" : "Created by"}</dt><dd>{person(opp.created_by)} · {formatDate(opp.created_at, lang)}</dd></div>
       {(opp.service_period_start || opp.renewal_due_on) && <div><dt>{vi ? "Kỳ dịch vụ" : "Service period"}</dt><dd>{formatDate(opp.service_period_start, lang)} → {formatDate(opp.service_period_end, lang)}</dd></div>}
     </dl>
-    <p class="crm-help">{vi ? "Hoa hồng: chưa có chính sách được duyệt. CRM chỉ giữ ghi công, không tính hay trả hoa hồng." : "Commission: no approved policy. The CRM keeps attribution only; it calculates and pays nothing."}</p>
+    <p class="crm-help">{vi ? "Hoa hồng tính theo người bán được ghi công và người giới thiệu, theo chính sách tại trang Hoa hồng. CRM không chi tiền." : "Commission follows the attributed seller and referrer under the policy on the Commission page. The CRM pays nothing."}</p>
     {access.canEdit && <details class="crm-disclosure" open={state.intent === "details"}>
       <summary>{vi ? "Sửa bước tiếp theo và chi tiết" : "Edit next step and details"}</summary>
       <form class="crm-form" method="post" action="#details">
@@ -58,6 +58,11 @@ const minutes = costs.reduce((sum, cost) => sum + (cost.minutes ?? 0), 0);
       <Field name="owner_id" id="assign-owner" type="select" label={vi ? "Giao cho" : "Assign to"} lang={lang} value={opp.owner_id ?? ""} error={e("assign", "owner_id")} options={[...(opp.owner_id && !owners.some((owner) => owner.id === opp.owner_id) ? [{ value: opp.owner_id, label: person(opp.owner_id) }] : []), ...(opp.owner_id ? [] : [{ value: "", label: vi ? "Chọn người" : "Choose" }]), ...owners.map((owner) => ({ value: owner.id, label: owner.label }))]} />
       <p class="crm-help">{vi ? "Giao lại không đổi người bán được ghi công." : "Reassigning never changes seller attribution."}</p>
       <div class="crm-actions"><button class="crm-button secondary small" type="submit">{vi ? "Giao" : "Assign"}</button></div>
+    </form>}
+    {actor.admin && <form class="crm-form" method="post" action="#details" style="margin-top:14px">
+      <Hidden intent="referrer" state={state} version={opp.version} />
+      <Field name="referrer_id" id="ref-user" type="select" label={vi ? "Người giới thiệu (hưởng hoa hồng giới thiệu)" : "Referrer (earns referral commission)"} lang={lang} value={opp.referrer_id ?? ""} error={e("referrer", "referrer_id")} options={[{ value: "", label: vi ? "Không có" : "None" }, ...owners.map((owner) => ({ value: owner.id, label: owner.label }))]} />
+      <div class="crm-actions"><button class="crm-button secondary small" type="submit">{vi ? "Lưu người giới thiệu" : "Save referrer"}</button></div>
     </form>}
   </section>
 

@@ -2,7 +2,7 @@
 export type Lang = "en" | "vi";
 
 const dict = {
-  nav_today: ["Today", "Hôm nay"], nav_pipeline: ["Pipeline", "Cơ hội"], nav_new: ["New", "Tạo mới"], nav_reports: ["Reports", "Báo cáo"],
+  nav_today: ["Today", "Hôm nay"], nav_pipeline: ["Pipeline", "Cơ hội"], nav_new: ["New", "Tạo mới"], nav_reports: ["Reports", "Báo cáo"], nav_commission: ["Commission", "Hoa hồng"],
   nav_fulfillment: ["Fulfillment", "Bàn giao"], nav_admin: ["Admin", "Quản trị"], nav_hiring: ["Hiring", "Tuyển dụng"], sign_out: ["Sign out", "Đăng xuất"],
   skip: ["Skip to content", "Đến nội dung chính"], switch_lang: ["Tiếng Việt", "English"],
   save: ["Save", "Lưu"], cancel: ["Cancel", "Hủy"], unknown: ["Unknown", "Chưa biết"], none: ["None", "Không có"], not_set: ["Not set", "Chưa đặt"],

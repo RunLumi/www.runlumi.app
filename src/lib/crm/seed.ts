@@ -208,3 +208,25 @@ export const seedGatePolicy = {
     credit_window_days: 30,
   },
 };
+
+/**
+ * Commission proposal (docs/crm/COMMISSION.md). Status "proposed": the CRM
+ * simulates amounts for admins/finance only and records no payouts until an
+ * admin saves an approved version.
+ */
+export const seedCommissionPolicy = {
+  key: "local-commission",
+  source_ref: "docs/crm/COMMISSION.md — proposal 2026-10-07, not approved (STRATEGY.md:68: commission amounts unapproved)",
+  effective_from: "2026-10-07",
+  body: {
+    status: "proposed",
+    retention_days: 60,
+    inbound_pct: 50,
+    offers: { trust_kit: "local-trust-kit", starter: "local-starter", renewal: ["local-renewal-subdomain", "local-renewal-domain"] },
+    rates: {
+      partner_seller: { trust_kit: 100000, starter_live: 300000, starter_retained: 100000, upgrade_live: 200000, upgrade_retained: 100000, renewal_pct: 10 },
+      partner_referral: { trust_kit: 30000, starter_live: 100000, starter_retained: 50000, upgrade_live: 70000, upgrade_retained: 50000, renewal_pct: 0 },
+      employee: { trust_kit: 40000, starter_live: 120000, starter_retained: 30000, upgrade_live: 80000, upgrade_retained: 30000, renewal_pct: 5 },
+    },
+  },
+};

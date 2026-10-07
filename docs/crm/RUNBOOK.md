@@ -62,6 +62,15 @@ $W d1 execute lumi-jobs --local --persist-to $D --file migrations/0003_crm_sales
 - **Code defect.** Roll the Worker back with `wrangler rollback <previous-version-id>`. The previous build's `/crm` reads only `crm_leads`, which still exists. CRM data entered after the migration stays in the new tables and comes back with a redeploy.
 - **Unusable migration result.** Restore from the export taken above, into a new database or after confirming nothing new needs to be kept. Never drop tables that hold new records without exporting them first.
 
+### Migration `0004_crm_commission.sql`
+
+The migration is additive:
+- it adds `crm_opportunities.referrer_id`;
+- it creates `crm_seller_terms` and `crm_commission_payouts`;
+- it seeds `local-commission@1` with status `proposed`.
+
+Nothing becomes payable until an admin saves an approved version on `/crm/commission`. Take a backup and apply it in the same way as 0003.
+
 ## 3. Local gates
 
 Use Node ≥22.18. On Node 22.14, prefix the test commands with `NODE_OPTIONS=--experimental-strip-types`.

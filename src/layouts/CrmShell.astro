@@ -3,7 +3,7 @@ import "../styles/crm.css";
 import type { CrmActor } from "../lib/crm/access";
 import { type Lang, alternateUrl, base, t } from "../lib/crm/i18n";
 
-interface Props { title: string; lang: Lang; actor: CrmActor; current?: "today" | "pipeline" | "new" | "reports" | "fulfillment" | "admin" }
+interface Props { title: string; lang: Lang; actor: CrmActor; current?: "today" | "pipeline" | "new" | "reports" | "commission" | "fulfillment" | "admin" }
 const { title, lang, actor, current } = Astro.props;
 const root = base(lang);
 const links = [
@@ -11,6 +11,7 @@ const links = [
   { key: "pipeline", href: `${root}/pipeline`, label: t(lang, "nav_pipeline") },
   { key: "new", href: `${root}/new`, label: t(lang, "nav_new") },
   { key: "reports", href: `${root}/reports`, label: t(lang, "nav_reports") },
+  { key: "commission", href: `${root}/commission`, label: t(lang, "nav_commission") },
   ...(actor.fulfillment || actor.admin ? [{ key: "fulfillment", href: `${root}/fulfillment`, label: t(lang, "nav_fulfillment") }] : []),
   ...(actor.admin ? [{ key: "admin", href: `${root}/admin`, label: t(lang, "nav_admin") }] : []),
 ];

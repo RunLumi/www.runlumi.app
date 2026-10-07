@@ -2,7 +2,7 @@
 // src/lib/crm/seed.ts, or rewrites the seed block in place with --write.
 // Run: node --experimental-strip-types scripts/crm-seed-sql.mjs [--write]
 import { readFileSync, writeFileSync } from "node:fs";
-import { EFFECTIVE_FROM, SOURCE_PRICING, seedGatePolicy, seedOffers, seedPlaybooks } from "../src/lib/crm/seed.ts";
+import { EFFECTIVE_FROM, SOURCE_PRICING, seedCommissionPolicy, seedGatePolicy, seedOffers, seedPlaybooks } from "../src/lib/crm/seed.ts";
 
 const CREATED_AT = "2026-10-07T00:00:00.000Z";
 const SYSTEM = "system:migration-0003";
@@ -28,11 +28,21 @@ export function seedSql() {
   return lines.join("\n");
 }
 
-const path = new URL("../migrations/0003_crm_sales.sql", import.meta.url);
+export function commissionSql() {
+  const policy = seedCommissionPolicy;
+  return `INSERT INTO crm_policies (id, policy_key, version, body, source_ref, effective_from, created_by, created_at) VALUES (${[
+    `${policy.key}@1`, policy.key, 1, JSON.stringify(policy.body), policy.source_ref, policy.effective_from, "system:migration-0004", CREATED_AT,
+  ].map(q).join(", ")});`;
+}
+
+const writeBlock = (file, sql) => {
+  const path = new URL(`../migrations/${file}`, import.meta.url);
+  const text = readFileSync(path, "utf8");
+  writeFileSync(path, text.replace(/(-- seed:begin[^\n]*\n)[\s\S]*?(-- seed:end)/, `$1${sql}\n$2`));
+};
 if (process.argv.includes("--write")) {
-  const sql = readFileSync(path, "utf8");
-  const next = sql.replace(/(-- seed:begin[^\n]*\n)[\s\S]*?(-- seed:end)/, `$1${seedSql()}\n$2`);
-  writeFileSync(path, next);
+  writeBlock("0003_crm_sales.sql", seedSql());
+  writeBlock("0004_crm_commission.sql", commissionSql());
 } else if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split("/").pop())) {
   console.log(seedSql()); // !# policy: console
 }
