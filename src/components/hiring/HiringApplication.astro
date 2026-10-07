@@ -1,12 +1,13 @@
 ---
 import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
+import HiringInterviews from "./HiringInterviews.astro";
 import { applicationStatuses } from "../../lib/ats";
 import { deskDate, deskPath, eventName, statusName, statusTone } from "../../lib/hiring/desk";
 import type { applicationPage } from "../../lib/hiring/pages";
 
 type Props = NonNullable<Awaited<ReturnType<typeof applicationPage>>>;
-const { lang, vi, user, application, answers, files, notes, events } = Astro.props;
-const saved = Astro.url.searchParams.get("saved");
+const { lang, vi, user, application, answers, files, notes, events, interviews, scorecards, flash } = Astro.props;
+const saved = flash.saved === "1" || (!!flash.saved && !["interview", "scorecard"].includes(flash.saved));
 ---
 <WorkspaceShell title={application.full_name} lang={lang} user={user} module="hiring" current="applications">
   <p class="crm-eyebrow"><a class="crm-link" href={deskPath(lang, "/admin/jobs/applications")}>{vi ? "Ứng viên" : "Candidates"}</a> / {application.job_title} / {application.public_id}</p>
@@ -40,6 +41,7 @@ const saved = Astro.url.searchParams.get("saved");
         {files.length ? <ul class="crm-list">{files.map((file) => <li class="crm-row"><a class="crm-row-title" href={`/api/admin/files/${file.id}`}>{file.filename}</a><span class="crm-row-meta"><span>{file.kind === "resume" ? "CV" : file.prompt || (vi ? "Tệp bài test" : "Test file")}</span><span>{Math.ceil(file.size_bytes / 1024)} KB</span></span></li>)}</ul> : <p class="crm-empty">{vi ? "Không có tệp." : "No files."}</p>}
         <p class="crm-help">{vi ? "Tệp lưu riêng tư, chỉ mở qua phiên đăng nhập có quyền tuyển dụng." : "Files are private and open only through a signed-in session with hiring access."}</p>
       </section>
+      <HiringInterviews lang={lang} user={user} applicationId={application.id} interviews={interviews} scorecards={scorecards} flash={flash} />
     </div>
     <aside class="crm-grid">
       {user.can("hiring.applications.manage") && <section class="crm-sheet" aria-labelledby="notes-h"><h2 class="crm-h2" id="notes-h">{vi ? "Ghi chú riêng" : "Private notes"}</h2>

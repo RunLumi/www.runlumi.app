@@ -148,3 +148,15 @@ test("required job questions are enforced and answers/files are committed togeth
   assert.equal(state.rows.filter(row => row.sql.includes("INSERT INTO application_answers")).length, 1);
   assert.equal(state.rows.filter(row => row.sql.includes("INSERT INTO application_files")).length, 2);
 });
+
+test("Vietnamese applications return to the Vietnamese careers page", async () => {
+  const state = fixture();
+  const data = form();
+  data.set("lang", "vi");
+  const response = await submit(request(data), state);
+  assert.match(response.headers.get("Location") ?? "", /^\/vi\/jobs\/gtm-specialist\?applied=/);
+  const invalid = form();
+  invalid.set("lang", "vi");
+  invalid.delete("consent");
+  assert.equal((await submit(request(invalid), fixture())).headers.get("Location"), "/vi/jobs/gtm-specialist?error=1");
+});

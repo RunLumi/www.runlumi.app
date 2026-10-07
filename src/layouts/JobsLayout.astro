@@ -6,12 +6,16 @@ import CompanyFooter from "../components/CompanyFooter.astro";
 interface Props {
   title: string;
   description?: string;
+  lang?: "en" | "vi";
+  /** Path of this page in the other language, for the language switch and hreflang. */
+  alternate?: string;
 }
 
-const { title, description = "Careers at Lumi" } = Astro.props;
+const { title, description = "Careers at Lumi", lang = "en", alternate } = Astro.props;
+const vi = lang === "vi";
 ---
 <!doctype html>
-<html lang="en">
+<html lang={lang}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width" />
@@ -19,24 +23,26 @@ const { title, description = "Careers at Lumi" } = Astro.props;
     <meta name="description" content={description} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title}</title>
+    {alternate && <link rel="alternate" hreflang={vi ? "en" : "vi"} href={`https://runlumi.app${alternate}`} />}
   </head>
   <body>
-    <a class="ats-skip" href="#main">Skip to content</a>
+    <a class="ats-skip" href="#main">{vi ? "Đến nội dung chính" : "Skip to content"}</a>
     <header class="ats-header">
       <div class="ats-shell ats-header-inner">
-        <a class="ats-brand" href="/jobs">
+        <a class="ats-brand" href={vi ? "/vi/jobs" : "/jobs"}>
           <img src="/brand/lumi-fulltext.svg" alt="Lumi" width="98" height="50" />
-          <span>Jobs</span>
+          <span>{vi ? "Tuyển dụng" : "Jobs"}</span>
         </a>
-        <nav class="ats-nav" aria-label="Jobs">
-          <a href="/about">About Lumi</a>
-          <a href="/jobs">Open roles</a>
+        <nav class="ats-nav" aria-label={vi ? "Tuyển dụng" : "Jobs"}>
+          <a href={vi ? "/vi/about" : "/about"}>{vi ? "Về Lumi" : "About Lumi"}</a>
+          <a href={vi ? "/vi/jobs" : "/jobs"}>{vi ? "Vị trí đang tuyển" : "Open roles"}</a>
+          {alternate && <a href={alternate} lang={vi ? "en" : "vi"} hreflang={vi ? "en" : "vi"}>{vi ? "English" : "Tiếng Việt"}</a>}
         </nav>
       </div>
     </header>
     <main id="main">
       <slot />
     </main>
-    <CompanyFooter lang="en" />
+    <CompanyFooter lang={lang} />
   </body>
 </html>

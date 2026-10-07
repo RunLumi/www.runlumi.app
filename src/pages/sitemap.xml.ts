@@ -4,7 +4,7 @@ import { companyRoutes } from "../data/company";
 export const prerender = false;
 
 const site = "https://runlumi.app";
-const fixed = ["/", "/vi", "/blog", "/vi/blog", "/rss.xml", "/vi/rss.xml", "/jobs", ...Object.values(companyRoutes).flatMap(route => [route.en, route.vi])];
+const fixed = ["/", "/vi", "/blog", "/vi/blog", "/rss.xml", "/vi/rss.xml", "/jobs", "/vi/jobs", ...Object.values(companyRoutes).flatMap(route => [route.en, route.vi])];
 const escapeXml = (value: string) => value
   .replace(/&/g, "&amp;")
   .replace(/</g, "&lt;")

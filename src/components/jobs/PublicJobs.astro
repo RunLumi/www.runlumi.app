@@ -1,0 +1,46 @@
+---
+import JobsLayout from "../../layouts/JobsLayout.astro";
+import type { Job } from "../../lib/ats";
+
+interface Props { lang: "en" | "vi"; jobs: Job[] }
+const { lang, jobs } = Astro.props;
+const vi = lang === "vi";
+const root = vi ? "/vi/jobs" : "/jobs";
+---
+<JobsLayout lang={lang} alternate={vi ? "/jobs" : "/vi/jobs"} title={vi ? "Tuyển dụng tại Lumi" : "Jobs at Lumi"} description={vi ? "Vị trí đang tuyển tại Lumi. Đội nhỏ, trách nhiệm rõ, công việc hữu ích." : "Open roles at Lumi. Small teams, clear ownership, useful work."}>
+  <section class="ats-page">
+    <div class="ats-shell">
+      <div class="ats-eyebrow">{vi ? "LUMI / TUYỂN DỤNG" : "LUMI / CAREERS"}</div>
+      <h1 class="ats-title">{vi ? "Làm việc để công ty tốt hơn lúc bạn đến." : "Do work that leaves the company better than you found it."}</h1>
+      <p class="ats-lede">{vi ? "Chúng tôi là một đội nhỏ xây phần mềm thực dụng cho doanh nghiệp thật. Suy nghĩ rõ ràng, phán đoán tốt và sự chăm chút cho công việc quan trọng hơn hình thức." : "We are a small team building practical software for real businesses. Clear thinking, good judgment and care for the work matter more than theatre."}</p>
+      <div class="ats-toolbar">
+        <span class="ats-count">{vi ? `${jobs.length} vị trí đang tuyển` : `${jobs.length} open ${jobs.length === 1 ? "role" : "roles"}`}</span>
+        <a class="ats-button secondary" href="mailto:hello@runlumi.app">{vi ? "Vẫn muốn chào chúng tôi" : "Say hello anyway"}</a>
+      </div>
+      {jobs.length ? (
+        <div class="job-list">
+          {jobs.map((job) => (
+            <a class="job-row" href={`${root}/${job.slug}`}>
+              <div>
+                <h2>{job.title}</h2>
+                <p>{job.summary}</p>
+                <div class="job-meta">
+                  {job.team && <span>{job.team}</span>}
+                  {job.location && <span>{job.location}</span>}
+                  {job.workplace_type && <span>{job.workplace_type}</span>}
+                  {job.employment_type && <span>{job.employment_type}</span>}
+                </div>
+              </div>
+              <span class="job-row-action">{vi ? "Xem vị trí →" : "View role →"}</span>
+            </a>
+          ))}
+        </div>
+      ) : (
+        <div class="ats-card ats-empty">
+          <h2>{vi ? "Hiện chưa có vị trí đang tuyển." : "No open roles right now."}</h2>
+          <p>{vi ? "Trang này chỉ đăng khi có vị trí thật. Bạn vẫn có thể viết cho chúng tôi nếu công việc của bạn đặc biệt phù hợp." : "We keep this page quiet when there is nothing real to apply for. You can still write to us if your work is unusually relevant."}</p>
+        </div>
+      )}
+    </div>
+  </section>
+</JobsLayout>
