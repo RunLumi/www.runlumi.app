@@ -1,0 +1,140 @@
+---
+import CrmShell from "../../layouts/CrmShell.astro";
+import Field from "./Field.astro";
+import FormNotices from "./FormNotices.astro";
+import Hidden from "./Hidden.astro";
+import { formatDate } from "../../lib/crm/i18n";
+import { formatVnd, vnDate } from "../../lib/crm/money";
+import { errorFor, valueFor } from "../../lib/crm/page";
+import { rateKeys, sellerTypes, type RateKey, type SellerType } from "../../lib/crm/commission";
+import type { CommissionProps } from "../../lib/crm/routes/commission";
+
+type Props = CommissionProps;
+const { ctx, state, view, people, person } = Astro.props;
+const { lang, vi, base } = ctx;
+const seesAll = ctx.actor.admin || ctx.actor.finance;
+const current = view.versions[0];
+const approved = view.versions.find((item) => item.body.status === "approved");
+const typeLabel: Record<SellerType, [string, string]> = {
+  partner_seller: ["Partner — full-cycle seller", "Cộng tác viên bán trọn"], partner_referral: ["Partner — referral", "Cộng tác viên giới thiệu"],
+  employee: ["Employee", "Nhân viên"], none: ["No commission", "Không hưởng hoa hồng"],
+};
+const rateLabel: Record<RateKey, [string, string]> = {
+  trust_kit: ["Trust Kit paid and delivered", "Trust Kit đã thu đủ và bàn giao"], starter_live: ["Starter — when live", "Starter — khi live"],
+  starter_retained: ["Starter — still live after holdback", "Starter — còn live sau thời gian giữ"], upgrade_live: ["Upgrade to Starter — when live", "Nâng cấp lên Starter — khi live"],
+  upgrade_retained: ["Upgrade — after holdback", "Nâng cấp — sau thời gian giữ"], renewal_pct: ["Renewal (% of cash)", "Gia hạn (% tiền thu)"],
+};
+const statusLabel: Record<string, [string, string, string]> = {
+  waiting: ["Waiting for payment/delivery", "Chờ thu đủ/bàn giao", ""], holdback: ["In holdback", "Đang trong thời gian giữ", "amber"],
+  earned: ["Earned", "Đã đủ điều kiện", "green"], forfeited: ["Not payable (refund)", "Không tính (đã hoàn tiền)", "red"], no_terms: ["No seller type set", "Chưa khai báo loại người bán", "amber"],
+};
+const name = (id: string) => view.names[id] ?? (id === ctx.actor.id ? ctx.actor.name : id);
+const money = (value: number) => formatVnd(value, vi);
+const rate = (type: Exclude<SellerType, "none">, key: RateKey) => current ? (key === "renewal_pct" ? `${current.body.rates[type][key]}%` : money(current.body.rates[type][key])) : "—";
+const total = (type: Exclude<SellerType, "none">) => current ? current.body.rates[type].starter_live + current.body.rates[type].starter_retained : 0;
+const viaUpgrade = (type: Exclude<SellerType, "none">) => current ? current.body.rates[type].trust_kit + current.body.rates[type].upgrade_live + current.body.rates[type].upgrade_retained : 0;
+const lines = view.lines.filter((line) => !person || line.user_id === person);
+const latestType = (userId: string) => view.terms.find((row) => row.user_id === userId && row.effective_from <= vnDate());
+const v = (intent: string, field: string, fallback: string | number = "") => valueFor(state, intent, field, fallback);
+const e = (intent: string, field: string) => errorFor(state, intent, field);
+---
+<CrmShell title={vi ? "Hoa hồng" : "Commission"} lang={lang} actor={ctx.actor} current="commission">
+  <div class="crm-head"><div>
+    <p class="crm-eyebrow">{vi ? "Hoa hồng" : "Commission"}</p>
+    <h1 class="crm-h1">{vi ? "Trả cho khách đã thu tiền, đã bàn giao và còn ở lại." : "Paid for customers who paid, were delivered and stayed."}</h1>
+    <p class="crm-lede">{vi ? "CRM tính dự kiến từ sổ thương mại và trạng thái bàn giao. CRM không chi tiền; tài chính ghi nhận khoản đã chi theo bảng kê." : "The CRM estimates from the ledger and delivery state. It pays nothing; finance records payouts made against a statement."}</p>
+  </div></div>
+  <FormNotices state={state} lang={lang} saved={Astro.url.searchParams.get("saved")} />
+  {!approved && <div class="crm-notice warn" role="status"><strong>{vi ? "Chính sách đang là ĐỀ XUẤT, chưa được duyệt." : "This policy is a PROPOSAL and has not been approved."}</strong>{vi ? "Số liệu bên dưới là mô phỏng chỉ để admin/tài chính xem. Cộng tác viên chưa thấy số; không ghi nhận chi trả cho tới khi admin lưu một phiên bản đã duyệt." : "Figures below are a simulation for admins and finance only. Collaborators see nothing, and no payout can be recorded until an admin saves an approved version."}</div>}
+  {!view.visible && <div class="crm-sheet"><p class="crm-empty">{vi ? "Chính sách hoa hồng chưa được duyệt. Khi được duyệt, bạn sẽ thấy các khoản dự kiến của mình tại đây." : "The commission policy has not been approved yet. Once it is, your estimated commission appears here."}</p></div>}
+
+  {view.visible && current && <section class="crm-sheet" id="policy" aria-labelledby="policy-h">
+    <h2 class="crm-h2" id="policy-h">{vi ? "Mức hoa hồng" : "Rates"} <span class:list={["crm-badge", current.body.status === "approved" ? "green" : "amber"]}>{current.body.status === "approved" ? (vi ? "Đã duyệt" : "Approved") : (vi ? "Đề xuất" : "Proposed")} · v{current.version}</span></h2>
+    <div class="crm-table-wrap"><table class="crm-table">
+      <thead><tr><th>{vi ? "Sự kiện" : "Event"}</th>{(["partner_seller", "partner_referral", "employee"] as const).map((type) => <th class="num">{typeLabel[type][vi ? 1 : 0]}</th>)}</tr></thead>
+      <tbody>
+        {rateKeys.map((key) => <tr><td>{rateLabel[key][vi ? 1 : 0]}</td>{(["partner_seller", "partner_referral", "employee"] as const).map((type) => <td class="num">{rate(type, key)}</td>)}</tr>)}
+        <tr><td><strong>{vi ? "Tổng cho một doanh nghiệp thành Starter (bán thẳng / qua Trust Kit)" : "Total per business that becomes a Starter (direct / via Trust Kit)"}</strong></td>{(["partner_seller", "partner_referral", "employee"] as const).map((type) => <td class="num"><strong>{money(total(type))} / {money(viaUpgrade(type))}</strong></td>)}</tr>
+      </tbody>
+    </table></div>
+    <p class="crm-help">{vi ? `Thời gian giữ: ${current.body.retention_days} ngày sau khi live, không hoàn tiền. Lead inbound do admin giao: ${current.body.inbound_pct}% mức trên. Giảm giá so với niêm yết làm giảm hoa hồng theo tỷ lệ; credit nâng cấp không tính là giảm giá. Hiệu lực từ ${formatDate(current.effective_from, lang)}. Nguồn: ${current.source_ref}.` : `Holdback: ${current.body.retention_days} days after going live, with no refund. Inbound leads assigned by an admin: ${current.body.inbound_pct}% of the above. Discounts below list scale commission down; the upgrade credit is not a discount. Effective ${formatDate(current.effective_from, lang)}. Source: ${current.source_ref}.`}</p>
+    {ctx.actor.admin && <details class="crm-disclosure" open={state.intent === "policy_save"}>
+      <summary>{vi ? "Lưu phiên bản mới (hoặc duyệt)" : "Save a new version (or approve)"}</summary>
+      <form class="crm-form" method="post" action="#policy">
+        <Hidden intent="policy_save" state={state} />
+        <div class="crm-table-wrap"><table class="crm-table">
+          <thead><tr><th>{vi ? "Sự kiện" : "Event"}</th>{(["partner_seller", "partner_referral", "employee"] as const).map((type) => <th>{typeLabel[type][vi ? 1 : 0]}</th>)}</tr></thead>
+          <tbody>{rateKeys.map((key) => <tr><td>{rateLabel[key][vi ? 1 : 0]}</td>{(["partner_seller", "partner_referral", "employee"] as const).map((type) => <td><input class="crm-input" name={`rate.${type}.${key}`} aria-label={`${typeLabel[type][vi ? 1 : 0]} — ${rateLabel[key][vi ? 1 : 0]}`} inputmode="numeric" value={v("policy_save", `rate.${type}.${key}`, current.body.rates[type][key])} aria-invalid={e("policy_save", `rate.${type}.${key}`) ? "true" : undefined} /></td>)}</tr>)}</tbody>
+        </table></div>
+        <div class="crm-form-grid">
+          <Field name="retention_days" label={vi ? "Thời gian giữ (ngày)" : "Holdback (days)"} lang={lang} value={v("policy_save", "retention_days", current.body.retention_days)} error={e("policy_save", "retention_days")} inputmode="numeric" />
+          <Field name="inbound_pct" label={vi ? "Lead inbound (% mức)" : "Inbound leads (% of rate)"} lang={lang} value={v("policy_save", "inbound_pct", current.body.inbound_pct)} error={e("policy_save", "inbound_pct")} inputmode="numeric" />
+          <Field name="effective_from" type="date" label={vi ? "Hiệu lực từ (theo ngày khách chấp thuận)" : "Effective from (by acceptance date)"} lang={lang} value={v("policy_save", "effective_from", vnDate())} error={e("policy_save", "effective_from")} />
+          <Field name="status" type="select" label={vi ? "Trạng thái" : "Status"} lang={lang} value={v("policy_save", "status", "proposed")} options={[{ value: "proposed", label: vi ? "Đề xuất (chỉ mô phỏng)" : "Proposed (simulation only)" }, { value: "approved", label: vi ? "Đã duyệt (cho phép ghi chi trả)" : "Approved (payouts may be recorded)" }]} />
+          <Field name="source_ref" label={vi ? "Quyết định / nguồn" : "Decision / source"} lang={lang} value={v("policy_save", "source_ref")} error={e("policy_save", "source_ref")} required maxlength={300} wide help={vi ? "Ví dụ: founder duyệt ngày…, biên bản…" : "For example: approved by the founder on …, minutes …"} />
+        </div>
+        <p class="crm-help">{vi ? "Phiên bản cũ không bị sửa. Giao dịch dùng phiên bản đã duyệt có hiệu lực tại ngày khách chấp thuận." : "Earlier versions are never edited. A deal uses the approved version in force on its acceptance date."}</p>
+        <div class="crm-actions"><button class="crm-button" type="submit">{vi ? "Lưu phiên bản" : "Save version"}</button></div>
+      </form>
+    </details>}
+  </section>}
+
+  {view.visible && <section class="crm-sheet" id="people" aria-labelledby="people-h">
+    <h2 class="crm-h2" id="people-h">{seesAll ? (vi ? "Theo người" : "By person") : (vi ? "Của bạn" : "Yours")}</h2>
+    {view.people.length ? <div class="crm-table-wrap"><table class="crm-table">
+      <thead><tr><th>{vi ? "Người" : "Person"}</th><th class="num">{vi ? "Đủ điều kiện" : "Earned"}</th><th class="num">{vi ? "Đang giữ" : "Holdback"}</th><th class="num">{vi ? "Chờ thu/bàn giao" : "Waiting"}</th><th class="num">{vi ? "Đã chi" : "Paid"}</th><th class="num">{vi ? "Số dư" : "Balance"}</th>{seesAll && <th class="num">{vi ? "Mô phỏng (chưa duyệt)" : "Simulated (unapproved)"}</th>}</tr></thead>
+      <tbody>{view.people.map((row) => <tr>
+        <td>{seesAll ? <a class="crm-link" href={`?person=${encodeURIComponent(row.user_id)}#lines`}>{name(row.user_id)}</a> : name(row.user_id)}{row.missing_terms > 0 && <span class="crm-badge amber" style="margin-left:6px">{vi ? "chưa khai báo loại" : "no seller type"}</span>}</td>
+        <td class="num">{money(row.earned)}</td><td class="num">{money(row.holdback)}</td><td class="num">{money(row.waiting)}</td><td class="num">{money(row.paid)}</td>
+        <td class="num"><strong>{money(row.balance)}</strong>{row.balance < 0 && <span class="crm-meta"><br />{vi ? "cần thu hồi" : "to recover"}</span>}</td>
+        {seesAll && <td class="num">{money(row.simulated)}</td>}
+      </tr>)}</tbody>
+    </table></div> : <p class="crm-empty">{vi ? "Chưa có giao dịch tính hoa hồng." : "No commissionable deals yet."}</p>}
+    {ctx.actor.finance && (approved ? <details class="crm-disclosure" open={state.intent === "payout"}>
+      <summary>{vi ? "Ghi nhận đã chi theo bảng kê" : "Record a payout made against a statement"}</summary>
+      <form class="crm-form" method="post" action="#people">
+        <Hidden intent="payout" state={state} />
+        <div class="crm-form-grid">
+          <Field name="user_id" type="select" label={vi ? "Người nhận" : "Recipient"} lang={lang} value={v("payout", "user_id")} options={people.map((item) => ({ value: item.id, label: item.label }))} />
+          <Field name="period" label={vi ? "Kỳ (YYYY-MM)" : "Period (YYYY-MM)"} lang={lang} value={v("payout", "period", vnDate().slice(0, 7))} error={e("payout", "period")} />
+          <Field name="amount_vnd" label={vi ? "Số tiền (âm nếu thu hồi)" : "Amount (negative to recover)"} lang={lang} value={v("payout", "amount_vnd")} error={e("payout", "amount_vnd")} />
+          <Field name="evidence" label={vi ? "Bằng chứng chi (mã chuyển khoản, chứng từ)" : "Payment evidence (transfer ref, voucher)"} lang={lang} value={v("payout", "evidence")} error={e("payout", "evidence")} required maxlength={500} />
+          <Field name="note" id="payout-note" label={vi ? "Ghi chú (thuế đã khấu trừ, …)" : "Note (tax withheld, …)"} lang={lang} value={v("payout", "note")} maxlength={500} wide />
+        </div>
+        <p class="crm-help">{vi ? "Ghi số tiền trước thuế theo bảng kê. Khấu trừ 10% TNCN khi một lần chi từ 2.000.000đ cho cá nhân không có hợp đồng lao động (kế toán xác nhận). Không chia nhỏ lần chi." : "Record the gross amount on the statement. Withhold 10% PIT on a single payment of 2,000,000đ or more to a person without a labour contract (accountant to confirm). Do not split payments."}</p>
+        <div class="crm-actions"><button class="crm-button" type="submit">{vi ? "Ghi nhận" : "Record"}</button></div>
+      </form>
+    </details> : <p class="crm-help">{vi ? "Chỉ ghi nhận chi trả sau khi có chính sách đã duyệt." : "Payouts can be recorded only under an approved policy."}</p>)}
+  </section>}
+
+  {view.visible && <section class="crm-sheet" id="lines" aria-labelledby="lines-h">
+    <h2 class="crm-h2" id="lines-h">{vi ? "Chi tiết theo giao dịch" : "By deal"}{person && seesAll && <> — {name(person)} <a class="crm-link" href="?#lines">{vi ? "(tất cả)" : "(everyone)"}</a></>}</h2>
+    {lines.length ? <div class="crm-table-wrap"><table class="crm-table">
+      <thead><tr><th>{vi ? "Giao dịch" : "Deal"}</th>{seesAll && <th>{vi ? "Người" : "Person"}</th>}<th>{vi ? "Khoản" : "Component"}</th><th class="num">{vi ? "Số tiền" : "Amount"}</th><th>{vi ? "Trạng thái" : "Status"}</th><th>{vi ? "Đủ điều kiện từ" : "Eligible from"}</th></tr></thead>
+      <tbody>{lines.map((line) => <tr>
+        <td><a class="crm-link" href={`${base}/${line.opportunity_id}`}>{line.title}</a>{line.role === "referrer" && <span class="crm-meta"> · {vi ? "giới thiệu" : "referral"}</span>}</td>
+        {seesAll && <td>{name(line.user_id)}</td>}
+        <td>{rateLabel[line.component][vi ? 1 : 0]}</td>
+        <td class="num">{line.status === "no_terms" ? "—" : money(line.amount)}</td>
+        <td><span class:list={["crm-badge", statusLabel[line.status][2]]}>{statusLabel[line.status][vi ? 1 : 0]}</span>{line.simulated && <span class="crm-badge amber" style="margin-left:4px">{vi ? "mô phỏng" : "simulated"}</span>}</td>
+        <td>{line.eligible_on ? formatDate(line.eligible_on, lang) : "—"}</td>
+      </tr>)}</tbody>
+    </table></div> : <p class="crm-empty">{vi ? "Không có dòng nào." : "No lines."}</p>}
+  </section>}
+
+  {ctx.actor.admin && <section class="crm-sheet" id="terms" aria-labelledby="terms-h">
+    <h2 class="crm-h2" id="terms-h">{vi ? "Loại người bán" : "Seller terms"}</h2>
+    <p class="crm-help">{vi ? "Mỗi giao dịch dùng loại có hiệu lực tại ngày khách chấp thuận. Admin/founder mặc định không hưởng hoa hồng. Hợp đồng cộng tác viên chỉ nên quy định kết quả, không quản lý như nhân viên." : "A deal uses the type in force on its acceptance date. Admins/founders earn nothing by default. Partner contracts should define outcomes, not manage partners like employees."}</p>
+    <ul class="crm-list">{people.map((item) => { const row = latestType(item.id); return <li class="crm-row"><span>{item.label}</span><span class="crm-row-side"><span class:list={["crm-badge", row ? "" : "amber"]}>{row ? typeLabel[row.seller_type][vi ? 1 : 0] : (vi ? "Chưa khai báo" : "Not set")}</span>{row && <span class="crm-meta">{vi ? "từ" : "from"} {formatDate(row.effective_from, lang)}</span>}</span></li>; })}</ul>
+    <form class="crm-form" method="post" action="#terms">
+      <Hidden intent="seller_terms" state={state} />
+      <div class="crm-form-grid">
+        <Field name="user_id" id="t-user" type="select" label={vi ? "Người" : "Person"} lang={lang} value={v("seller_terms", "user_id")} error={e("seller_terms", "user_id")} options={people.map((item) => ({ value: item.id, label: item.label }))} />
+        <Field name="seller_type" type="select" label={vi ? "Loại" : "Type"} lang={lang} value={v("seller_terms", "seller_type", "partner_seller")} error={e("seller_terms", "seller_type")} options={sellerTypes.map((type) => ({ value: type, label: typeLabel[type][vi ? 1 : 0] }))} />
+        <Field name="effective_from" id="t-from" type="date" label={vi ? "Hiệu lực từ" : "Effective from"} lang={lang} value={v("seller_terms", "effective_from", vnDate())} error={e("seller_terms", "effective_from")} />
+        <Field name="note" id="t-note" label={vi ? "Ghi chú (số hợp đồng…)" : "Note (contract no. …)"} lang={lang} value={v("seller_terms", "note")} maxlength={500} />
+      </div>
+      <div class="crm-actions"><button class="crm-button secondary" type="submit">{vi ? "Lưu" : "Save"}</button></div>
+    </form>
+  </section>}
+</CrmShell>

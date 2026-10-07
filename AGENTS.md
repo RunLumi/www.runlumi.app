@@ -76,6 +76,7 @@ including CMS-only changes through EmDash API/MCP.
 - Finance and fulfillment are CRM capabilities, independent of ATS access and of the EmDash admin role.
 - `/api/intake/local` accepts only HMAC-signed enquiries addressed to Lumi from local.runlumi.app. Never route enquiries from customers' Starter sites into this CRM.
 - The CRM never messages customers, buys domains, publishes sites, takes payments or pays commission; do-not-contact applies across every channel and playbook.
+- Commission is a versioned policy (`docs/crm/COMMISSION.md`). An unapproved version is an admin/finance-only simulation; never show estimates to collaborators or record payouts without an approved version. Commission is earned only on confirmed cash for delivered, retained customers.
 - Hiring and CRM administration requires EmDash admin role; CRM collaborators must never gain access to candidate applications or files.
 
 ## Finish gate

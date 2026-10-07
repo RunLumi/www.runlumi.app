@@ -56,6 +56,14 @@ Bạn chỉ thấy các cơ hội được giao cho mình. Nếu một doanh ngh
   - Muốn sang "đã live" phải kiểm tra đủ: Gọi, Zalo, Maps, form gửi đến đúng nơi, QR, HTTPS và hiển thị di động. Mỗi mục đánh dấu đạt hoặc không áp dụng.
 - **Bị chặn.** Đánh dấu bị chặn kèm nguyên nhân. Mục này sẽ hiện trên trang Hôm nay của người phụ trách.
 
+## Hoa hồng
+
+- **Trước khi duyệt:** chính sách ở trạng thái *đề xuất*. Chỉ admin và tài chính thấy số mô phỏng.
+- **Sau khi duyệt:** mỗi người bán thấy các khoản của mình tại *Hoa hồng*, kèm trạng thái: chờ thu/bàn giao, đang giữ, đã đủ điều kiện.
+- **Cách tính:** hoa hồng chỉ tính trên khách đã thu đủ, đã bàn giao và còn ở lại sau thời gian giữ. Hoàn tiền làm mất khoản tương ứng.
+- **Chi trả:** tài chính chi ngoài CRM, rồi ghi nhận lại theo bảng kê.
+- **Chi tiết:** xem [COMMISSION.md](COMMISSION.md).
+
 ## Admin
 
 - **Cấp quyền.**

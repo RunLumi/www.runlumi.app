@@ -380,3 +380,27 @@ test("revocation and disabled EmDash accounts take effect on the next request; r
   assert.ok([303, 403].includes(disabled.status), `disabled EmDash user blocked (${disabled.status})`);
   content(`UPDATE users SET disabled = 0 WHERE id = ${q(S.a.id)}`);
 });
+
+test("14. commission: proposal is admin-only simulation; approval shows each seller their own lines", async () => {
+  const before = await S.a.get("/crm/commission");
+  assert.equal(before.status, 200);
+  assert.doesNotMatch(before.html, /class="crm-table"/, "collaborators see no amounts before approval");
+  await S.admin.post("/crm/commission", { intent: "seller_terms", user_id: S.a.id, seller_type: "partner_seller", effective_from: "2026-01-01" });
+  await S.admin.post("/crm/commission", { intent: "seller_terms", user_id: S.fin.id, seller_type: "employee", effective_from: "2026-01-01" });
+  const simulated = await S.fin.get(`/crm/commission?person=${S.a.id}`);
+  assert.match(simulated.html, /simulated|mô phỏng/);
+  assert.equal((await S.fin.post("/crm/commission", { intent: "payout", user_id: S.a.id, period: "2026-10", amount_vnd: "100000", evidence: "TEST" })).status, 422, "no payouts before approval");
+  assert.equal((await S.a.post("/crm/commission", { intent: "policy_save", status: "approved" })).status, 403);
+  const rates = {};
+  for (const type of ["partner_seller", "partner_referral", "employee"]) for (const [key, value] of Object.entries({ trust_kit: 100000, starter_live: 300000, starter_retained: 100000, upgrade_live: 200000, upgrade_retained: 100000, renewal_pct: 10 })) rates[`rate.${type}.${key}`] = String(value);
+  assert.equal((await S.admin.post("/crm/commission", { intent: "policy_save", status: "approved", effective_from: "2026-01-01", retention_days: "60", inbound_pct: "50", source_ref: "TEST approval in an isolated database", ...rates })).status, 303);
+  const mine = await S.a.get("/crm/commission");
+  assert.match(mine.html, /Đã đủ điều kiện|Earned|Đang trong thời gian giữ|In holdback/);
+  assert.ok(mine.html.includes("Garage Trust"), "A sees lines for deals A sold");
+  assert.ok(!mine.html.includes(S.b.name), "A does not see other people's lines");
+  assert.equal((await S.a.post("/crm/commission", { intent: "payout", user_id: S.a.id, period: "2026-10", amount_vnd: "100000", evidence: "TEST" })).status, 403);
+  assert.equal((await S.fin.post("/crm/commission", { intent: "payout", user_id: S.a.id, period: "2026-10", amount_vnd: "100000", evidence: "TEST-PAYOUT" })).status, 303);
+  assert.equal(jobs(`SELECT COUNT(*) AS n FROM crm_commission_payouts WHERE user_id = ${q(S.a.id)} AND evidence = 'TEST-PAYOUT'`)[0].n, 1);
+  // Restore the proposal so later runs start from an unapproved policy again.
+  jobs("DELETE FROM crm_commission_payouts; DELETE FROM crm_policies WHERE policy_key = 'local-commission' AND version > 1");
+});

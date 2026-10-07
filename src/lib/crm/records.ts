@@ -18,7 +18,7 @@ export type Relation = typeof relations[number];
 export interface Opportunity {
   id: string; account_id: string; primary_contact_id: string | null; title: string; playbook_id: string; stage_id: string;
   outcome: "open" | "won" | "lost" | "paused"; owner_id: string | null; seller_id: string | null; created_by: string;
-  source_channel: SourceChannel; source_detail: string; referrer: string; parent_id: string | null; relation: Relation;
+  source_channel: SourceChannel; source_detail: string; referrer: string; referrer_id: string | null; parent_id: string | null; relation: Relation;
   offer_id: string | null; estimated_value_vnd: number | null; fields: string; checks: string; next_action: string;
   next_action_due: string | null; lost_reason: string; cohort_key: string | null; service_period_start: string | null;
   service_period_end: string | null; renewal_due_on: string | null; needs_review: number; legacy_data: string | null;

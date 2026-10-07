@@ -2,9 +2,10 @@
 
 The CRM at `/crm` and `/vi/crm` is Lumi's own sales workspace. Collaborators, founders and operations use it to run several B2B sales models in one place: Lumi Local, Lumi solution/AI-workflow sales, and renewals and expansions.
 
-It is not an ERP, an accounting system, a bulk-messaging tool, or a CRM for Lumi Local customers. It records and coordinates work. It never sends customer messages, buys domains, publishes sites, takes payments or pays commission.
+It is not an ERP, an accounting system, a bulk-messaging tool, or a CRM for Lumi Local customers. It records and coordinates work. It never sends customer messages, buys domains, publishes sites, takes payments or pays commission (it estimates commission and records payouts made elsewhere).
 
 - User guide (Vietnamese): [HUONG-DAN.md](HUONG-DAN.md)
+- Commission analysis and policy (Vietnamese): [COMMISSION.md](COMMISSION.md)
 - Release, migration and recovery: [RUNBOOK.md](RUNBOOK.md)
 
 ## 1. Starting point and defects fixed
@@ -55,7 +56,7 @@ Sources: `RunLumi/local.runlumi` `PRICING.md`, `COPY.md`, `STRATEGY.md` and `doc
 | **30-day boundary** | The window opens on the calendar date the Trust Kit payment was received (Asia/Ho_Chi_Minh) and **includes day 30**. Paid 1 Sep → eligible through 1 Oct. | **Assumption — the sources say only "within 30 days"; please confirm.** Chosen as the customer-favourable reading, in line with "never retroactively remove earned credit" (STRATEGY.md:54) and the "Day 29–30" follow-up cadence (FIELD_PLAYBOOK.md:202). Change it by saving a new offer version with a different `credit_days`. |
 | Credit anchor | Server dates only: payment date set by finance, acceptance date not earlier than the quote's entry date (admins may backdate with evidence) | Prevents backdating past the window |
 | Refunds | Recorded as facts, with evidence and a reason. No refund policy is implied. | STRATEGY.md:41 says no refund guarantee without an operating policy |
-| Commission | Not calculated or paid. Attribution is kept for later reporting. | STRATEGY.md:68 says amounts are unapproved |
+| Commission | Versioned policy `local-commission`. Version 1 is a **proposal**: admins and finance see a simulation; collaborators see nothing and no payout can be recorded until an admin saves an approved version. The CRM estimates and records payouts; it never pays. | STRATEGY.md:68 says amounts are unapproved; analysis in [COMMISSION.md](COMMISSION.md) |
 | Cohort gate | Cohort of 30. Continue if ≥6 paying businesses, ≥2 paid Starters, average preview time ≤5 minutes, and no manual Google management. Scale gate: CAC ≤600k, median fulfillment ≤120 min, p90 ≤240 min, positive contribution after reserve; unknown costs fail. Review trigger: 20 owner conversations with 0 Starters. | STRATEGY.md:51–56, stored as policy `local-cohort-gate@1` |
 | Older thresholds | Not used | `docs/archive/STRATEGY-RESEARCH-2026-10.md` and RESEARCH-DISTRIBUTION-MODEL.md:71 are historical (STRATEGY.md:21) |
 | Starter scope | Not a store, booking system or CRM. QR artwork only. No GBP management or Google credentials. No ranking or revenue promises. Alerts only where implemented. | COPY.md:13–40; shown in the frozen quote terms |

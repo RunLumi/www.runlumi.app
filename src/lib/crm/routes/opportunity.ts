@@ -5,6 +5,7 @@ import {
 } from "../commercial";
 import { type Offer, type OfferRow, allPlaybookVersions, getPlaybook, latestPlaybooks, offersForPlaybook, parseOffer } from "../config";
 import { NotFoundError } from "../core";
+import { setReferrer } from "../commission-store";
 import { type Fulfillment, createHandoff, fulfillmentAction, getFulfillment, updateHandoff } from "../fulfillment";
 import type { Lang } from "../i18n";
 import { type CreditDecision, type LedgerSummary, type PaymentState, paymentState, summarizeLedger, vnDate } from "../money";
@@ -69,6 +70,7 @@ export async function opportunityRoute(astro: AstroGlobal, lang: Lang): Promise<
     linked: async (form) => `${ctx.base}/${(await createLinked(ctx.db, ctx.actor, edit(), form)).id}`,
     playbook_change: async (form) => { await changePlaybook(ctx.db, ctx.actor, opportunity, form); return here; },
     move_account: async (form) => { await moveToAccount(ctx.db, ctx.actor, opportunity, form); return here; },
+    referrer: async (form) => { await setReferrer(ctx.db, ctx.contentDb, ctx.actor, opportunity, form); return `${here}#details`; },
   });
   if (posted instanceof Response) return posted;
 
@@ -87,7 +89,7 @@ export async function opportunityRoute(astro: AstroGlobal, lang: Lang): Promise<
   const creditOffer = offers.find((offer) => offer.rules.credit);
   const credit = creditOffer ? await creditFor(ctx.db, opportunity, creditOffer, vnDate()) : null;
   const summary = summarizeLedger(ledger);
-  const people = [opportunity.owner_id, opportunity.seller_id, opportunity.created_by, ...ledger.flatMap((entry) => [entry.recorded_by, entry.confirmed_by]), fulfillment?.assignee_id].filter((id): id is string => !!id && !id.includes(":"));
+  const people = [opportunity.owner_id, opportunity.seller_id, opportunity.referrer_id, opportunity.created_by, ...ledger.flatMap((entry) => [entry.recorded_by, entry.confirmed_by]), fulfillment?.assignee_id].filter((id): id is string => !!id && !id.includes(":"));
   const latest = await latestPlaybooks(ctx.db, { activeOnly: true });
   return {
     ctx, state: posted ?? emptyState, access, playbook, transitions, offers, quoteOffers, quotes, ledger, summary, payment: paymentState(summary), credit,
