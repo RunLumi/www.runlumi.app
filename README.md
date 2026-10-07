@@ -26,6 +26,8 @@ Public:
 
 - `/` — English landing page, prerendered
 - `/vi` — Vietnamese landing page, prerendered
+- `/about` and `/vi/about` — company introduction, prerendered
+- `/vision` and `/vi/vision` — Lumi product vision, prerendered
 - `/jobs` — public careers index
 - `/jobs/[slug]` — role detail + application + work sample
 
@@ -168,6 +170,11 @@ npm run deploy
 ```
 
 ## Design
+
+Company details and EN/VI introduction/vision copy are maintained in
+`src/data/company.ts`. The shared `CompanyFooter.astro` serves the landing,
+Journal, company and public careers pages. See [the company copy contract](docs/company-pages.md)
+for provenance and claim limits.
 
 The hiring experience follows the same **Civic Editorial Intelligence** contract as the main site: warm paper, lit sheets, civic navy, restrained Lumi Blue, evidence-first hierarchy and no generic HR-dashboard visual noise.
 

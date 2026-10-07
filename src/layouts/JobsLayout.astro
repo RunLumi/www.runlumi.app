@@ -1,6 +1,7 @@
 ---
 // Public careers pages. Private hiring pages use WorkspaceShell.
 import "../styles/jobs.css";
+import CompanyFooter from "../components/CompanyFooter.astro";
 
 interface Props {
   title: string;
@@ -33,7 +34,7 @@ const vi = lang === "vi";
           <span>{vi ? "Tuyển dụng" : "Jobs"}</span>
         </a>
         <nav class="ats-nav" aria-label={vi ? "Tuyển dụng" : "Jobs"}>
-          <a href={vi ? "/vi/" : "/"}>{vi ? "Về Lumi" : "About Lumi"}</a>
+          <a href={vi ? "/vi/about" : "/about"}>{vi ? "Về Lumi" : "About Lumi"}</a>
           <a href={vi ? "/vi/jobs" : "/jobs"}>{vi ? "Vị trí đang tuyển" : "Open roles"}</a>
           {alternate && <a href={alternate} lang={vi ? "en" : "vi"} hreflang={vi ? "en" : "vi"}>{vi ? "English" : "Tiếng Việt"}</a>}
         </nav>
@@ -42,11 +43,6 @@ const vi = lang === "vi";
     <main id="main">
       <slot />
     </main>
-    <footer class="ats-footer">
-      <div class="ats-shell">
-        <span>© 2026 Cloudjet Solutions Pte. Ltd.</span>
-        <a href="mailto:hello@runlumi.app">hello@runlumi.app</a>
-      </div>
-    </footer>
+    <CompanyFooter lang={lang} />
   </body>
 </html>

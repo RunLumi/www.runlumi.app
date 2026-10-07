@@ -1,0 +1,13 @@
+---
+interface Props { name: "facebook" | "zalo" | "linkedin" | "menu" | "arrow" | "up"; size?: number }
+const { name, size = 20 } = Astro.props;
+const paths = {
+  facebook: "M14 21v-8h3l.5-4H14V7c0-1 .5-2 2-2h2V2h-3c-3.5 0-5 2-5 5v2H7v4h3v8",
+  zalo: "M21 11c0 5-4 9-9 9H9l-5 2 1-5a9 9 0 1 1 16-6Z M8 7h8l-8 8h8",
+  linkedin: "M4 9v11 M4 4v.01 M9 20V9h4v2c1-2 6-3 6 3v6 M13 13v7",
+  menu: "M4 6h16 M4 12h16 M4 18h16",
+  arrow: "M4 12h16 M14 6l6 6-6 6",
+  up: "M12 20V4 M6 10l6-6 6 6",
+};
+---
+<svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d={paths[name]} /></svg>

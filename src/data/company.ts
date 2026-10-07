@@ -1,0 +1,117 @@
+export type CompanyLocale = "en" | "vi";
+export const company = {
+  email: "hi@runlumi.app",
+  name: "CLOUDJET SOLUTIONS PTE. LTD.",
+  singaporeAddress: "71 Ayer Rajah Crescent, #02-10/11, Singapore 139951",
+  uen: "201708398E",
+  vietnamAddress: "Lầu 2, Tòa nhà F Central, 16A Lê Hồng Phong, Phường 12, Quận 10, TP. Hồ Chí Minh",
+  taxId: "0312033924",
+  duns: "659404865",
+  social: [
+    { name: "Facebook", icon: "facebook", href: "https://www.facebook.com/lumi.ai.workspace" },
+    { name: "Zalo OA", icon: "zalo", href: "https://zalo.me/446719740430528402" },
+    { name: "LinkedIn", icon: "linkedin", href: "https://www.linkedin.com/company/lumi-ai-workspace/" },
+  ],
+} as const;
+
+export const companyRoutes = {
+  about: { en: "/about", vi: "/vi/about" },
+  vision: { en: "/vision", vi: "/vi/vision" },
+} as const;
+
+export const companyContent = {
+  en: {
+    home: "Home", aboutLabel: "About", visionLabel: "Vision", system: "The Lumi system", contact: "Talk to Lumi",
+    company: "Company information", singapore: "Singapore legal entity", registered: "Registered office",
+    vietnam: "Vietnam operations office", tax: "Tax ID", social: "Official channels", footerNav: "Company navigation",
+    careers: "Careers", journal: "Journal", top: "Back to top",
+    about: {
+      title: "About Lumi | Cloudjet Solutions",
+      description: "Lumi is developed by Cloudjet Solutions: an AI operating layer built around company context, evidence and human control.",
+      eyebrow: "Cloudjet Solutions / Lumi", heading: "About Lumi",
+      lead: "Cloudjet Solutions develops Lumi around the work that connects people, data and business software. Our focus is the question, decision or handoff that needs context from more than one system.",
+      storyHeading: "Start with the work already there.",
+      story: "Cloudjet Solutions builds and implements business software. With Lumi, we bring that practical approach to an AI operating model: start with the systems a company uses, the information people need and the decisions they are responsible for.",
+      detail: "The design connects a single front door, Lumi Assistant, to three capabilities: Workspace for coordination, BI for understanding and Agents for bounded action. Shared context and clear permissions belong beneath all three.",
+      principlesHeading: "How we approach the work",
+      principles: [
+        { heading: "Concrete scope", body: "Begin with one workflow, its owner, the systems involved and a useful result. Agree on access and responsibilities before implementation." },
+        { heading: "Inspectable evidence", body: "Put sources, freshness and limitations beside an answer. Treat a plausible explanation as something to check before acting on it." },
+        { heading: "Human responsibility", body: "Define what may be delegated, what needs approval and how the result will be verified. Keep the person responsible for the decision in view." },
+      ],
+      next: "Explore Lumi’s vision", cta: "Bring one workflow to the conversation.",
+    },
+    vision: {
+      title: "Lumi Vision | Your company, working as one",
+      description: "Lumi’s vision: connect company context, evidence, decisions and bounded work across existing systems, with people in control.",
+      eyebrow: "Lumi’s direction", heading: "Lumi’s vision",
+      lead: "We want the work of a company to hold together: the question beside its evidence, the decision beside its owner, and the next step beside the context needed to carry it out.",
+      storyHeading: "A company should not have to start over at every handoff.",
+      story: "A report, a conversation and an operating decision often live in separate tools. Lumi’s mission is to build an operating layer that connects that context, so people can understand what needs attention and decide what happens next.",
+      detail: "This is a direction for the product, not a promise that every workflow is already connected. Adoption should begin with a bounded job, agreed access and a checkable result. Expand only when the work justifies it.",
+      principlesHeading: "What guides the product",
+      principles: [
+        { heading: "Work with existing systems", body: "Build around the software, records and responsibilities a company already has. Agree on the connections needed for the chosen workflow." },
+        { heading: "Earn trust through evidence", body: "Make conclusions traceable and uncertainty visible. Judge an improvement against the actual work, rather than the fluency of an answer." },
+        { heading: "Preserve human judgment", body: "Use AI to prepare, coordinate and carry out work within defined limits. Set approval boundaries around actions that affect people, money or external systems." },
+      ],
+      next: "About the company behind Lumi", cta: "Choose a real piece of work to start with.",
+    },
+    modelLabel: "Design model", modelHeading: "One way in. Three connected capabilities.",
+    people: "People", assistant: "Lumi Assistant", assistantDetail: "Ask · Delegate · Follow through",
+    capabilities: [
+      { name: "Workspace", role: "Coordinate", text: "Priorities, decisions and commitments.", href: "https://workspace.runlumi.app" },
+      { name: "BI", role: "Understand", text: "Business questions and the records behind an answer.", href: "https://about.bi.runlumi.app" },
+      { name: "Agents", role: "Act", text: "Bounded jobs, approvals and verification.", href: "https://agents.runlumi.app" },
+    ],
+    foundation: "Shared context · Evidence · Permissions · Workflow state",
+    existing: "The systems your company already uses", ctaDetail: "Tell us where work gets stuck, which systems you use and what a useful result would look like.",
+  },
+  vi: {
+    home: "Trang chủ", aboutLabel: "Giới thiệu", visionLabel: "Tầm nhìn", system: "Hệ thống Lumi", contact: "Trao đổi với Lumi",
+    company: "Thông tin công ty", singapore: "Pháp nhân Singapore", registered: "Trụ sở đăng ký",
+    vietnam: "Văn phòng vận hành tại Việt Nam", tax: "Mã số thuế", social: "Kênh chính thức", footerNav: "Điều hướng công ty",
+    careers: "Tuyển dụng", journal: "Góc nhìn", top: "Về đầu trang",
+    about: {
+      title: "Về Lumi | Cloudjet Solutions",
+      description: "Lumi được phát triển bởi Cloudjet Solutions: lớp vận hành AI dựa trên ngữ cảnh doanh nghiệp, bằng chứng và quyền quyết định của con người.",
+      eyebrow: "Cloudjet Solutions / Lumi", heading: "Về Lumi",
+      lead: "Cloudjet Solutions phát triển Lumi từ những công việc nối giữa con người, dữ liệu và phần mềm doanh nghiệp. Chúng tôi tập trung vào các câu hỏi, quyết định và khâu bàn giao cần ngữ cảnh từ nhiều hệ thống.",
+      storyHeading: "Bắt đầu từ công việc đang có.",
+      story: "Cloudjet Solutions xây dựng và triển khai phần mềm doanh nghiệp. Với Lumi, chúng tôi đưa cách tiếp cận thực tế đó vào mô hình vận hành cùng AI: bắt đầu từ hệ thống doanh nghiệp đang dùng, thông tin mọi người cần và những quyết định họ chịu trách nhiệm.",
+      detail: "Mô hình thiết kế kết nối Lumi Assistant, điểm bắt đầu chung, với ba năng lực: Workspace để phối hợp, BI để hiểu và Agents để thực hiện công việc có giới hạn. Ngữ cảnh chung và quyền truy cập rõ ràng là nền tảng của cả ba.",
+      principlesHeading: "Cách chúng tôi tiếp cận công việc",
+      principles: [
+        { heading: "Phạm vi cụ thể", body: "Bắt đầu từ một quy trình, người phụ trách, các hệ thống liên quan và kết quả cần đạt. Thống nhất quyền truy cập và trách nhiệm trước khi triển khai." },
+        { heading: "Bằng chứng có thể kiểm tra", body: "Đặt nguồn, độ mới và giới hạn bên cạnh câu trả lời. Kiểm tra một lời giải thích có vẻ hợp lý trước khi dùng nó để hành động." },
+        { heading: "Trách nhiệm thuộc về con người", body: "Xác định việc được giao cho AI, việc cần phê duyệt và cách kiểm tra kết quả. Luôn rõ ai chịu trách nhiệm cho quyết định." },
+      ],
+      next: "Tìm hiểu tầm nhìn Lumi", cta: "Bắt đầu cuộc trao đổi từ một quy trình.",
+    },
+    vision: {
+      title: "Tầm nhìn Lumi | Cả doanh nghiệp, cùng một nhịp",
+      description: "Tầm nhìn Lumi: kết nối ngữ cảnh, bằng chứng, quyết định và công việc có giới hạn trên các hệ thống đang dùng, với con người giữ quyền chủ động.",
+      eyebrow: "Định hướng Lumi", heading: "Tầm nhìn Lumi",
+      lead: "Chúng tôi hướng tới một doanh nghiệp có công việc nối liền: câu hỏi đi cùng bằng chứng, quyết định có người chịu trách nhiệm và bước tiếp theo có đủ ngữ cảnh để thực hiện.",
+      storyHeading: "Mỗi lần bàn giao không nên là một lần bắt đầu lại.",
+      story: "Báo cáo, cuộc trao đổi và quyết định vận hành thường nằm ở những công cụ khác nhau. Sứ mệnh của Lumi là xây dựng lớp vận hành kết nối ngữ cảnh đó, để con người hiểu việc gì cần chú ý và quyết định bước tiếp theo.",
+      detail: "Đây là định hướng sản phẩm, không phải lời hứa rằng mọi quy trình đã được kết nối. Việc áp dụng nên bắt đầu từ một công việc có giới hạn, quyền truy cập được thống nhất và kết quả có thể kiểm tra. Chỉ mở rộng khi công việc thực tế cho thấy cần thiết.",
+      principlesHeading: "Những điều định hướng sản phẩm",
+      principles: [
+        { heading: "Đi cùng hệ thống đang dùng", body: "Thiết kế quanh phần mềm, hồ sơ và trách nhiệm doanh nghiệp đang có. Thống nhất những kết nối cần cho quy trình đã chọn." },
+        { heading: "Tạo niềm tin bằng bằng chứng", body: "Cho phép truy về nguồn của kết luận và nhìn thấy điều chưa chắc chắn. Đánh giá cải tiến qua công việc thực tế, thay vì độ trôi chảy của câu trả lời." },
+        { heading: "Giữ quyền suy xét của con người", body: "Dùng AI để chuẩn bị, phối hợp và thực hiện trong phạm vi xác định. Đặt ranh giới phê duyệt cho hành động ảnh hưởng đến con người, tiền bạc hoặc hệ thống bên ngoài." },
+      ],
+      next: "Về đơn vị phát triển Lumi", cta: "Chọn một công việc thực tế để bắt đầu.",
+    },
+    modelLabel: "Mô hình thiết kế", modelHeading: "Một điểm bắt đầu. Ba năng lực kết nối.",
+    people: "Con người", assistant: "Lumi Assistant", assistantDetail: "Hỏi · Giao việc · Theo đến kết quả",
+    capabilities: [
+      { name: "Workspace", role: "Phối hợp", text: "Ưu tiên, quyết định và cam kết.", href: "https://workspace.runlumi.app" },
+      { name: "BI", role: "Hiểu", text: "Câu hỏi kinh doanh và hồ sơ làm căn cứ trả lời.", href: "https://about.bi.runlumi.app" },
+      { name: "Agents", role: "Thực hiện", text: "Công việc có giới hạn, phê duyệt và kiểm tra.", href: "https://agents.runlumi.app" },
+    ],
+    foundation: "Ngữ cảnh chung · Bằng chứng · Quyền truy cập · Trạng thái công việc",
+    existing: "Những hệ thống doanh nghiệp đang dùng", ctaDetail: "Cho Lumi biết việc thường mắc ở đâu, hệ thống đang dùng và kết quả bạn mong đợi.",
+  },
+} as const;
