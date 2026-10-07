@@ -1,6 +1,7 @@
 ---
 // Public careers pages. Private hiring pages use WorkspaceShell.
 import "../styles/jobs.css";
+import CompanyFooter from "../components/CompanyFooter.astro";
 
 interface Props {
   title: string;
@@ -28,7 +29,7 @@ const { title, description = "Careers at Lumi" } = Astro.props;
           <span>Jobs</span>
         </a>
         <nav class="ats-nav" aria-label="Jobs">
-          <a href="/">About Lumi</a>
+          <a href="/about">About Lumi</a>
           <a href="/jobs">Open roles</a>
         </nav>
       </div>
@@ -36,11 +37,6 @@ const { title, description = "Careers at Lumi" } = Astro.props;
     <main id="main">
       <slot />
     </main>
-    <footer class="ats-footer">
-      <div class="ats-shell">
-        <span>© 2026 Cloudjet Solutions Pte. Ltd.</span>
-        <a href="mailto:hello@runlumi.app">hello@runlumi.app</a>
-      </div>
-    </footer>
+    <CompanyFooter lang="en" />
   </body>
 </html>

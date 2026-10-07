@@ -1,0 +1,35 @@
+---
+import { company, companyContent, companyRoutes, type CompanyLocale } from "../data/company";
+import { content } from "../data/content";
+import PublicIcon from "./PublicIcon.astro";
+import "../styles/company-footer.css";
+interface Props { lang: CompanyLocale; contact?: string; journal?: boolean }
+const { lang, contact = "mailto:hello@runlumi.app", journal = false } = Astro.props;
+const c = companyContent[lang];
+const home = lang === "vi" ? "/vi" : "/";
+---
+<footer class="company-footer">
+  <div class="shell">
+    <div class="company-footer-top">
+      <div class="company-footer-brand">
+        <a href={home} aria-label={lang === "vi" ? "Trang chủ Lumi" : "Lumi home"}><img src="/brand/lumi-fulltext.svg" alt="Lumi" width="98" height="50" /></a>
+        <p>{content[lang].footer.line}</p>
+        <nav class="company-social" aria-label={c.social}>{company.social.map(s => <a href={s.href} title={s.name} aria-label={s.name} target="_blank" rel="noopener noreferrer"><PublicIcon name={s.icon} /></a>)}</nav>
+      </div>
+      <nav class="company-footer-nav" aria-label={c.footerNav}>
+        <a href={companyRoutes.about[lang]}>{c.aboutLabel}</a><a href={companyRoutes.vision[lang]}>{c.visionLabel}</a>
+        <a href={lang === "vi" ? "/vi/blog" : "/blog"}>{c.journal}</a><a href="/jobs">{c.careers}</a>
+        {journal && <a href={lang === "vi" ? "/vi/rss.xml" : "/rss.xml"}>RSS</a>}
+        <a href={contact}>hello@runlumi.app</a><a href="https://github.com/RunLumi">GitHub</a>
+      </nav>
+    </div>
+    <section class="company-details" aria-labelledby="company-info-heading">
+      <h2 id="company-info-heading">{c.company}</h2>
+      <div class="company-offices">
+        <div><h3>{c.singapore}</h3><p class="company-legal-name">{company.name}</p><p class="company-office-label">{c.registered}</p><address>{company.singaporeAddress}</address><dl><div><dt>UEN</dt><dd>{company.uen}</dd></div></dl></div>
+        <div><h3>{c.vietnam}</h3><address>{company.vietnamAddress}</address><dl><div><dt>{c.tax}</dt><dd>{company.taxId}</dd></div><div><dt>D-U-N-S</dt><dd>{company.duns}</dd></div></dl></div>
+      </div>
+    </section>
+    <div class="company-footer-bottom"><p>© {new Date().getFullYear()} Cloudjet Solutions Pte. Ltd.</p><a href="#main">{c.top}<PublicIcon name="up" size={16} /></a></div>
+  </div>
+</footer>

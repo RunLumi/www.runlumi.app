@@ -1,0 +1,60 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import CompanyFooter from "./CompanyFooter.astro";
+import PublicIcon from "./PublicIcon.astro";
+import { companyContent, companyRoutes, type CompanyLocale } from "../data/company";
+import "../styles/company.css";
+interface Props { lang: CompanyLocale; kind: "about" | "vision" }
+const { lang, kind } = Astro.props;
+const c = companyContent[lang];
+const page = c[kind];
+const routes = companyRoutes[kind];
+const vi = lang === "vi";
+const home = vi ? "/vi" : "/";
+const other = vi ? "en" : "vi";
+const nextKind = kind === "about" ? "vision" : "about";
+const links = [
+  { href: companyRoutes.about[lang], label: c.aboutLabel },
+  { href: companyRoutes.vision[lang], label: c.visionLabel },
+  { href: home + "#stack", label: c.system },
+];
+---
+<BaseLayout lang={lang} title={page.title} description={page.description} canonicalPath={routes[lang]} alternateEnPath={routes.en} alternateViPath={routes.vi}>
+  <header class="site-header company-header">
+    <div class="shell header-inner glass">
+      <a class="brand" href={home} aria-label={vi ? "Trang chủ Lumi" : "Lumi home"}><img class="brand-mark" src="/brand/lumi-fulltext.svg" alt="Lumi" width="196" height="100" /></a>
+      <nav class="main-nav" aria-label={c.footerNav}>{links.map(link => <a href={link.href} aria-current={link.href === routes[lang] ? "page" : undefined}>{link.label}</a>)}</nav>
+      <div class="header-actions">
+        <a class="language-link" href={routes[other]} lang={other} aria-label={vi ? "Read in English" : "Đọc bằng tiếng Việt"}>{other.toUpperCase()}</a>
+        <a class="button button-sm" href={home + "#contact"}>{c.contact}</a>
+        <details class="mobile-menu"><summary aria-label={vi ? "Menu điều hướng" : "Navigation menu"}><PublicIcon name="menu" size={24} /></summary><nav class="mobile-nav" aria-label={c.footerNav}>{links.map(link => <a href={link.href} aria-current={link.href === routes[lang] ? "page" : undefined}>{link.label}</a>)}<a href={home + "#contact"}>{c.contact}</a></nav></details>
+      </div>
+    </div>
+  </header>
+  <main id="main" class="company-main">
+    <div class="shell">
+      <nav class="company-breadcrumb" aria-label={vi ? "Đường dẫn" : "Breadcrumb"}><a href={home}>{c.home}</a><span aria-hidden="true">/</span><span>{kind === "about" ? c.aboutLabel : c.visionLabel}</span></nav>
+      <section class="company-intro" aria-labelledby="company-title"><p class="company-eyebrow">{page.eyebrow}</p><h1 id="company-title">{page.heading}</h1><p class="company-lead">{page.lead}</p><a class="text-link" href={companyRoutes[nextKind][lang]}>{page.next}<PublicIcon name="arrow" size={18} /></a></section>
+      <section class="company-story" aria-labelledby="company-story-title"><h2 id="company-story-title">{page.storyHeading}</h2><div><p>{page.story}</p><p>{page.detail}</p></div></section>
+      <section class="company-model" aria-labelledby="company-model-title">
+        <p class="company-eyebrow">{c.modelLabel}</p><h2 id="company-model-title">{c.modelHeading}</h2>
+        <div class="company-system">
+          <p class="company-people">{c.people}</p><div class="company-assistant"><img src="/favicon.svg" alt="" width="32" height="32" /><div><h3>{c.assistant}</h3><p>{c.assistantDetail}</p></div></div>
+          <div class="company-capabilities">{c.capabilities.map(item => <a href={item.href}><p class="company-role">{item.role}</p><h3>Lumi {item.name}<PublicIcon name="arrow" size={18} /></h3><p>{item.text}</p></a>)}</div>
+          <p class="company-foundation">{c.foundation}</p><p class="company-existing">{c.existing}</p>
+        </div>
+      </section>
+    </div>
+    <section class="company-principles" aria-labelledby="company-principles-title"><div class="shell"><h2 id="company-principles-title">{page.principlesHeading}</h2><div class="company-principle-grid">{page.principles.map((item, index) => <div><p class="company-index">0{index + 1}</p><h3>{item.heading}</h3><p>{item.body}</p></div>)}</div></div></section>
+    <section class="shell company-next" aria-labelledby="company-next-title"><div><h2 id="company-next-title">{page.cta}</h2><p>{c.ctaDetail}</p></div><a class="button" href={home + "#contact"}>{c.contact}<PublicIcon name="arrow" /></a></section>
+  </main>
+  <CompanyFooter lang={lang} />
+  <script>
+    document.querySelectorAll<HTMLDetailsElement>(".company-header .mobile-menu").forEach(menu => {
+      menu.querySelectorAll("a").forEach(link => link.addEventListener("click", () => { menu.open = false; }));
+      document.addEventListener("keydown", event => {
+        if (event.key === "Escape" && menu.open) { menu.open = false; menu.querySelector("summary")?.focus(); }
+      });
+    });
+  </script>
+</BaseLayout>
