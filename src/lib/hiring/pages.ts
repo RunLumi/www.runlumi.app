@@ -3,7 +3,7 @@ import type { AstroGlobal } from "astro";
 import { type AdminApplicationRow, type Job, type JobQuestion, envFromLocals, getAdminJobs, getApplication, getApplications, getJobById, getQuestions } from "../ats";
 import type { WorkspaceUser } from "../workspace/roles";
 import type { Lang } from "./desk";
-import { DEFAULT_RETENTION_DAYS, type InterviewRow, RETENTION_STATUSES, type ScorecardRow } from "./interviews";
+import { type InterviewRow, RETENTION_STATUSES, type ScorecardRow, retentionCutoff } from "./interviews";
 
 export interface DeskBase { lang: Lang; vi: boolean; user: WorkspaceUser }
 type JobListRow = Job & { application_count: number; unread_count: number };
@@ -38,13 +38,13 @@ export async function applicationsPage(astro: AstroGlobal, lang: Lang) {
   ]);
   // Retention preview: closed applications last updated on or before the cutoff.
   const requested = astro.url.searchParams.get("cutoff") ?? "";
-  const cutoff = /^\d{4}-\d{2}-\d{2}$/.test(requested) ? requested : new Date(Date.now() + 7 * 3_600_000 - DEFAULT_RETENTION_DAYS * 86_400_000).toISOString().slice(0, 10);
+  const cutoff = /^\d{4}-\d{2}-\d{2}$/.test(requested) ? requested : retentionCutoff();
   const until = new Date(`${cutoff}T23:59:59.999+07:00`).toISOString();
   const purgeable = (await DB.prepare(`SELECT COUNT(*) AS n FROM applications WHERE status IN (${RETENTION_STATUSES.map(() => "?").join(", ")}) AND updated_at <= ?`).bind(...RETENTION_STATUSES, until).first<{ n: number }>())?.n ?? 0;
   const query = astro.url.searchParams;
   return {
     ...base(astro, lang), jobs, applications, jobId, status, stageCounts: Object.fromEntries(stages.results.map((row) => [row.status, row.count])) as Record<string, number>,
-    retention: { cutoff, purgeable, purged: query.get("purged"), error: !!query.get("purge_error") },
+    retention: { cutoff, maxCutoff: retentionCutoff(), purgeable, purged: query.get("purged"), error: !!query.get("purge_error"), window: query.get("purge_error") === "window" },
   };
 }
 

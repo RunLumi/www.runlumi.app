@@ -21,13 +21,13 @@ Both share one identity (EmDash), one role model and one navigation shell. Every
 
 | Interviews | None | Each application has scheduled interviews, by stage, in Vietnam time, with a status (scheduled, done, cancelled, no-show). The desk sends no invitations. |
 | Evaluation | Free-text notes only | Scorecards, one per person per interview: four criteria on a 1–4 scale (no neutral middle), a recommendation and required evidence. Colleagues' scorecards stay hidden until you submit your own, so reviews stay independent. |
-| Retention | Delete one application at a time | HR previews and confirms a cutoff, then rejected or withdrawn applications last updated before it are deleted with their files, interviews and scorecards. At most 200 per run. Each run is audited. Nothing runs automatically. |
+| Retention | Delete one application at a time | **Policy (owner, 2026-10-08): 60 days.** Rejected or withdrawn applications are kept for 60 days after their last update, then deleted with their files, interviews and scorecards. The Overview shows HR how many are due. HR confirms each run (at most 200 per run) and every run is audited. A cutoff inside the 60 days is refused. Candidates see the policy in the consent text. |
 | Public careers pages | English only | `/jobs` and `/vi/jobs` are peers; the application form returns to the candidate's language. Role content is published in the language HR writes it in. |
 
 Remaining gaps, not built:
 - Per-role hiring managers who see only the roles they own.
 - Calendar invitations.
-- A legally confirmed retention period: the cutoff is chosen by HR each time.
+- Automatic deletion: HR runs it. A scheduled job can be added later around `RETENTION_DAYS` in `src/lib/hiring/interviews.ts`.
 
 ## 2. Roles
 
