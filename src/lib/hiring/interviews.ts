@@ -60,9 +60,19 @@ export function visibleScorecards<T extends Pick<ScorecardRow, "author_id">>(car
   return mine.length ? { mine, others, hidden: 0 } : { mine, others: [], hidden: others.length };
 }
 
-/** Closed applications whose last update is on or before the cutoff date. */
+/**
+ * Retention policy confirmed by the owner on 2026-10-08: applications that
+ * are not moving forward or were withdrawn are kept for 60 days after their
+ * last update, then deleted with their files, interviews and scorecards.
+ */
 export const RETENTION_STATUSES = ["rejected", "withdrawn"] as const;
-export const DEFAULT_RETENTION_DAYS = 180;
+export const RETENTION_DAYS = 60;
+export const DEFAULT_RETENTION_DAYS = RETENTION_DAYS;
+
+/** Last calendar day (Asia/Ho_Chi_Minh) whose closed applications are due for deletion. */
+export function retentionCutoff(now = Date.now(), days = RETENTION_DAYS): string {
+  return new Date(now + 7 * 3_600_000 - days * 86_400_000).toISOString().slice(0, 10);
+}
 
 export function parseLocalDateTime(value: string): string | null {
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) return null;

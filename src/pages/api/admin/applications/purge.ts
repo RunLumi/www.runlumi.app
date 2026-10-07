@@ -2,7 +2,7 @@ import type { APIRoute } from "astro";
 import { envFromLocals, nowIso } from "../../../../lib/ats";
 import { badRequest, redirect303, sameOrigin } from "../../../../lib/http";
 import { deskActor, deskForbidden, deskPath, postLang } from "../../../../lib/hiring/desk";
-import { RETENTION_STATUSES } from "../../../../lib/hiring/interviews";
+import { RETENTION_STATUSES, retentionCutoff } from "../../../../lib/hiring/interviews";
 
 export const prerender = false;
 
@@ -19,6 +19,8 @@ export const POST: APIRoute = async (context) => {
   const back = deskPath(postLang(context.request, form), "/admin/jobs/applications");
   const cutoff = String(form.get("cutoff") ?? "");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(cutoff) || form.get("confirm") !== "1") return redirect303(`${back}?purge_error=1#retention`);
+  // The policy keeps closed applications for 60 days; a later cutoff is refused.
+  if (cutoff > retentionCutoff()) return redirect303(`${back}?purge_error=window#retention`);
   const until = new Date(`${cutoff}T23:59:59.999+07:00`).toISOString();
   const { DB, FILES } = envFromLocals(context.locals);
   const placeholders = RETENTION_STATUSES.map(() => "?").join(", ");

@@ -147,6 +147,8 @@ test("interviews and independent scorecards; retention deletes only closed, old 
   assert.equal((await apply(slug, `TEST Still Open ${run}`)).status, 303);
   const open = jobs(`SELECT id FROM applications WHERE job_id = ${q(ids.job)} AND id != ${q(app)} LIMIT 1`)[0].id;
   jobs(`UPDATE applications SET updated_at = '2026-01-01T00:00:00.000Z' WHERE id = ${q(open)}`);
+  const tooRecent = new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10);
+  assert.match((await S.hr.post("/api/admin/applications/purge", { cutoff: tooRecent, confirm: "1" })).location, /purge_error=window/, "nothing inside the 60 days can be deleted");
   const preview = await S.hr.get("/admin/jobs/applications?cutoff=2026-02-01");
   assert.match(preview.html, /would be deleted/);
   assert.match((await S.hr.post("/api/admin/applications/purge", { cutoff: "2026-02-01" })).location, /purge_error/, "confirmation required");
