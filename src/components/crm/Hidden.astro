@@ -1,0 +1,10 @@
+---
+// Hidden inputs every mutating form carries: intent, a one-time request key
+// (idempotency) and, for versioned records, the version the user saw.
+import { type FormState, requestKey } from "../../lib/crm/page";
+interface Props { intent: string; state: FormState; version?: number }
+const { intent, state, version } = Astro.props;
+---
+<input type="hidden" name="intent" value={intent} />
+<input type="hidden" name="request_key" value={requestKey(state, intent)} />
+{version !== undefined && <input type="hidden" name="version" value={version} />}

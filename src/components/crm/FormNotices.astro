@@ -1,0 +1,14 @@
+---
+// Page-level feedback for the form that was just submitted.
+import type { FormState } from "../../lib/crm/page";
+import { errorText, type Lang, t } from "../../lib/crm/i18n";
+
+interface Props { state: FormState; lang: Lang; intents?: string[]; saved?: string | null; fieldLabels?: Record<string, string> }
+const { state, lang, intents, saved, fieldLabels = {} } = Astro.props;
+const mine = !intents || intents.includes(state.intent);
+const errors = mine ? Object.entries(state.errors) : [];
+---
+{saved && !state.intent && <div class="crm-notice good" role="status">{t(lang, "saved")}</div>}
+{mine && state.conflict && <div class="crm-notice warn" role="alert"><strong>{t(lang, "conflict_title")}</strong>{t(lang, "conflict_body")}</div>}
+{mine && state.serverError && <div class="crm-notice bad" role="alert">{t(lang, "server_error")}</div>}
+{errors.length > 0 && <div class="crm-notice bad" role="alert"><strong>{t(lang, "err_title")}</strong><ul>{errors.map(([field, code]) => <li><a href={`#f-${field.replace(/[^a-zA-Z0-9_-]/g, "-")}`}>{fieldLabels[field] ? `${fieldLabels[field]}: ` : ""}{errorText(lang, code)}</a></li>)}</ul></div>}

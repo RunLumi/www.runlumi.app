@@ -1,0 +1,23 @@
+---
+import CrmShell from "../../layouts/CrmShell.astro";
+import { formatDate, label } from "../../lib/crm/i18n";
+import type { FulfillmentProps } from "../../lib/crm/routes/fulfillment";
+
+type Props = FulfillmentProps;
+const { ctx, rows, names } = Astro.props;
+const { lang, vi, base } = ctx;
+---
+<CrmShell title={vi ? "Bàn giao" : "Fulfillment"} lang={lang} actor={ctx.actor} current="fulfillment">
+  <div class="crm-head"><div>
+    <p class="crm-eyebrow">{vi ? "Bàn giao" : "Fulfillment"}</p>
+    <h1 class="crm-h1">{vi ? "Việc đang thực hiện sau bán." : "Work in delivery after the sale."}</h1>
+    <p class="crm-lede">{vi ? "CRM ghi nhận và điều phối; không mua tên miền, không xuất bản website, không thu tiền hay gửi tin cho khách." : "The CRM records and coordinates; it never buys domains, publishes sites, collects money or messages customers."}</p>
+  </div></div>
+  <section class="crm-sheet">
+    {rows.length ? <ul class="crm-list">{rows.map((row) => <li class="crm-row">
+      <a class="crm-row-title" href={`${base}/${row.opportunity_id}#fulfillment`}>{row.title}</a>
+      <span class="crm-row-side">{row.blocked ? <span class="crm-badge red">{vi ? "Bị chặn" : "Blocked"}</span> : null}<span class="crm-badge blue">{label(lang, "fulfillment", row.status)}</span></span>
+      <span class="crm-row-meta"><span>{label(lang, "fulfillmentKind", row.kind)}</span><span>{row.account_name}</span><span>{vi ? "Hẹn giao" : "Due"} {formatDate(row.delivery_date, lang)}</span><span>{vi ? "Thực hiện" : "Assignee"}: {row.assignee_id ? names[row.assignee_id]?.name ?? "—" : (vi ? "chưa giao" : "unassigned")}</span>{row.blocked ? <span>{row.blocked_reason}</span> : null}</span>
+    </li>)}</ul> : <p class="crm-empty">{vi ? "Không có việc bàn giao đang mở." : "No open delivery work."}</p>}
+  </section>
+</CrmShell>

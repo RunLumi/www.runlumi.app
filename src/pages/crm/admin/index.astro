@@ -1,0 +1,9 @@
+---
+import AdminView from "../../../components/crm/AdminView.astro";
+import { adminRoute } from "../../../lib/crm/routes/admin";
+
+export const prerender = false;
+const result = await adminRoute(Astro, "en");
+if (result instanceof Response) return result;
+---
+<AdminView {...result} />

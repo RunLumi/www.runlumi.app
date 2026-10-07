@@ -1,0 +1,9 @@
+---
+import TodayView from "../../components/crm/TodayView.astro";
+import { todayRoute } from "../../lib/crm/routes/today";
+
+export const prerender = false;
+const result = await todayRoute(Astro, "en");
+if (result instanceof Response) return result;
+---
+<TodayView {...result} />

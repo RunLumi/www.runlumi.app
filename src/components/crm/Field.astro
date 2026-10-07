@@ -1,0 +1,25 @@
+---
+// One labelled control with its error. The value is whatever the caller
+// resolved (re-rendered input or stored data); errors use the shared codes.
+import { errorText, type Lang } from "../../lib/crm/i18n";
+
+interface Props {
+  name: string; label: string; lang: Lang; value?: string; error?: string; help?: string;
+  type?: "text" | "email" | "tel" | "date" | "time" | "url" | "number" | "textarea" | "select";
+  options?: { value: string; label: string }[]; required?: boolean; wide?: boolean; maxlength?: number; placeholder?: string; inputmode?: "numeric" | "text" | "tel" | "email";
+  id?: string; autocomplete?: string;
+}
+const { name, label, lang, value = "", error, help, type = "text", options = [], required = false, wide = false, maxlength, placeholder, inputmode, autocomplete } = Astro.props;
+const id = Astro.props.id ?? `f-${name.replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+const describedBy = [help ? `${id}-help` : "", error ? `${id}-error` : ""].filter(Boolean).join(" ") || undefined;
+---
+<div class:list={["crm-field", { wide }]} data-invalid={error ? "" : undefined}>
+  <label for={id}>{label}{required && <span aria-hidden="true"> *</span>}</label>
+  {type === "textarea"
+    ? <textarea class="crm-textarea" id={id} name={name} required={required} maxlength={maxlength} aria-invalid={error ? "true" : undefined} aria-describedby={describedBy} placeholder={placeholder}>{value}</textarea>
+    : type === "select"
+      ? <select class="crm-select" id={id} name={name} required={required} aria-invalid={error ? "true" : undefined} aria-describedby={describedBy}>{options.map((option) => <option value={option.value} selected={option.value === value}>{option.label}</option>)}</select>
+      : <input class="crm-input" id={id} name={name} type={type} value={value} required={required} maxlength={maxlength} placeholder={placeholder} inputmode={inputmode} autocomplete={autocomplete} aria-invalid={error ? "true" : undefined} aria-describedby={describedBy} />}
+  {help && <span class="crm-help" id={`${id}-help`}>{help}</span>}
+  {error && <span class="crm-error" id={`${id}-error`}>{errorText(lang, error)}</span>}
+</div>

@@ -1,0 +1,9 @@
+---
+import OffersView from "../../../../components/crm/OffersView.astro";
+import { offersRoute } from "../../../../lib/crm/routes/admin";
+
+export const prerender = false;
+const result = await offersRoute(Astro, "vi");
+if (result instanceof Response) return result;
+---
+<OffersView {...result} />

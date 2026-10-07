@@ -1,0 +1,59 @@
+---
+import CrmShell from "../../layouts/CrmShell.astro";
+import Field from "./Field.astro";
+import FormNotices from "./FormNotices.astro";
+import Hidden from "./Hidden.astro";
+import { label } from "../../lib/crm/i18n";
+import { formatVnd } from "../../lib/crm/money";
+import { chargeTypes } from "../../lib/crm/seed";
+import type { OffersProps } from "../../lib/crm/routes/admin";
+import type { Offer } from "../../lib/crm/config";
+
+type Props = OffersProps;
+const { ctx, state, versions, latest } = Astro.props;
+const { lang, vi, base } = ctx;
+const editKey = Astro.url.searchParams.get("edit");
+const editing = latest.find((offer) => offer.offer_key === editKey) ?? null;
+const isNew = Astro.url.searchParams.has("new");
+const posted = state.intent === "offer_save";
+const val = (name: string, fallback: string | number | null | undefined) => posted ? (state.values[name] ?? "") : fallback === null || fallback === undefined ? "" : String(fallback);
+const err = (name: string) => posted ? state.errors[name] : undefined;
+const show = (offer: Offer | null) => !!offer || isNew;
+---
+<CrmShell title={vi ? "Gói và giá" : "Offers"} lang={lang} actor={ctx.actor} current="admin">
+  <p class="crm-eyebrow"><a class="crm-link" href={`${base}/admin`}>{vi ? "Quản trị" : "Admin"}</a> / {vi ? "Gói" : "Offers"}</p>
+  <div class="crm-head"><div>
+    <h1 class="crm-h1">{vi ? "Gói, giá và điều kiện có phiên bản." : "Versioned offers, prices and conditions."}</h1>
+    <p class="crm-lede">{vi ? "Đổi giá tạo phiên bản mới với nguồn và ngày hiệu lực. Báo giá và credit đã chấp thuận giữ nguyên điều khoản đã chốt. Gói không bao giờ bị xóa; chỉ ngừng dùng cho báo giá mới." : "A price change creates a new version with source and effective date. Accepted quotes and credits keep their frozen terms. Offers are never deleted, only retired from new quotes."}</p>
+  </div><a class="crm-button" href="?new">{vi ? "Gói mới" : "New offer"}</a></div>
+  <FormNotices state={state} lang={lang} saved={Astro.url.searchParams.get("saved")} />
+  <section class="crm-sheet">
+    <ul class="crm-list">{latest.map((offer) => <li class="crm-row">
+      <strong>{vi ? offer.name_vi : offer.name_en} <span class="crm-meta">{offer.offer_key} · v{offer.version}</span></strong>
+      <span class="crm-row-side"><span class="crm-badge crm-num">{offer.list_price_vnd === null ? label(lang, "charge", "custom") : `${formatVnd(offer.list_price_vnd, vi)} · ${label(lang, "charge", offer.charge_type)}`}</span><span class:list={["crm-badge", offer.active ? "green" : ""]}>{offer.active ? (vi ? "Đang dùng" : "Active") : (vi ? "Ngừng dùng" : "Retired")}</span></span>
+      <span class="crm-row-meta"><span>{vi ? "Hiệu lực" : "Effective"} {offer.effective_from}</span><span>{offer.source_ref}</span>{offer.rules.credit && <span>{vi ? `Credit từ ${offer.rules.credit.from_offer} trong ${offer.rules.credit.window_days} ngày` : `Credit from ${offer.rules.credit.from_offer} within ${offer.rules.credit.window_days} days`}</span>}<span>{versions.filter((item) => item.offer_key === offer.offer_key).length} {vi ? "phiên bản" : "versions"}</span></span>
+      <div class="crm-actions"><a class="crm-button small secondary" href={`?edit=${offer.offer_key}`}>{vi ? "Phiên bản mới" : "New version"}</a>
+        <form method="post"><Hidden intent="offer_active" state={state} /><input type="hidden" name="offer_key" value={offer.offer_key} /><input type="hidden" name="active" value={offer.active ? "0" : "1"} /><button class="crm-button small secondary" type="submit">{offer.active ? (vi ? "Ngừng dùng" : "Retire") : (vi ? "Dùng lại" : "Reactivate")}</button></form></div>
+    </li>)}</ul>
+  </section>
+  {show(editing) && <form class="crm-sheet crm-form" method="post" style="margin-top:18px">
+    <Hidden intent="offer_save" state={state} /><input type="hidden" name="is_new" value={isNew ? "1" : "0"} />
+    <h2 class="crm-h2">{isNew ? (vi ? "Gói mới" : "New offer") : `${editing!.offer_key} → v${editing!.version + 1}`}</h2>
+    <div class="crm-form-grid">
+      <div class="crm-field"><label for="o-key">{vi ? "Mã" : "Key"}</label><input class="crm-input" id="o-key" name="offer_key" value={val("offer_key", editing?.offer_key)} readonly={!isNew} required maxlength="48" />{err("offer_key") && <span class="crm-error">{err("offer_key") === "taken" ? (vi ? "Mã đã tồn tại." : "Key exists.") : (vi ? "Mã không hợp lệ." : "Invalid key.")}</span>}</div>
+      <Field name="name_en" label="Name (EN)" lang={lang} value={val("name_en", editing?.name_en)} error={err("name_en")} required maxlength={160} />
+      <Field name="name_vi" label="Tên (VI)" lang={lang} value={val("name_vi", editing?.name_vi)} required maxlength={160} />
+      <Field name="charge_type" type="select" label={vi ? "Kỳ tính phí" : "Charge period"} lang={lang} value={val("charge_type", editing?.charge_type ?? "one_time")} error={err("charge_type")} options={chargeTypes.map((value) => ({ value, label: label(lang, "charge", value) }))} />
+      <Field name="list_price_vnd" label={vi ? "Giá niêm yết (VND; để trống nếu báo giá theo dự án)" : "List price (VND; blank if quoted per deal)"} lang={lang} value={val("list_price_vnd", editing?.list_price_vnd)} error={err("list_price_vnd")} inputmode="numeric" />
+      <Field name="effective_from" type="date" label={vi ? "Hiệu lực từ" : "Effective from"} lang={lang} value={val("effective_from", "")} error={err("effective_from")} required />
+      <Field name="source_ref" label={vi ? "Nguồn quyết định (tài liệu, commit, người duyệt)" : "Decision source (document, commit, approver)"} lang={lang} value={val("source_ref", "")} error={err("source_ref")} required maxlength={300} wide />
+      <Field name="scope_en" type="textarea" label="Scope (EN)" lang={lang} value={val("scope_en", editing?.scope_en)} wide />
+      <Field name="scope_vi" type="textarea" label="Phạm vi (VI)" lang={lang} value={val("scope_vi", editing?.scope_vi)} wide />
+      <Field name="conditions_en" type="textarea" label="Conditions and exclusions (EN)" lang={lang} value={val("conditions_en", editing?.conditions_en)} wide />
+      <Field name="conditions_vi" type="textarea" label="Điều kiện và loại trừ (VI)" lang={lang} value={val("conditions_vi", editing?.conditions_vi)} wide />
+      <Field name="credit_from" label={vi ? "Credit từ gói (mã; tùy chọn)" : "Credit from offer (key; optional)"} lang={lang} value={val("credit_from", editing?.rules.credit?.from_offer)} error={err("credit_from")} maxlength={48} />
+      <Field name="credit_days" label={vi ? "Cửa sổ credit (ngày, tính cả ngày cuối)" : "Credit window (days, last day included)"} lang={lang} value={val("credit_days", editing?.rules.credit?.window_days)} error={err("credit_days")} inputmode="numeric" />
+    </div>
+    <div class="crm-actions"><button class="crm-button" type="submit">{isNew ? (vi ? "Tạo gói" : "Create offer") : (vi ? "Lưu phiên bản mới" : "Save new version")}</button><a class="crm-link" href={`${base}/admin/offers`}>{vi ? "Hủy" : "Cancel"}</a></div>
+  </form>}
+</CrmShell>

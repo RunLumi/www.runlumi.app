@@ -1,0 +1,107 @@
+---
+import CrmShell from "../../layouts/CrmShell.astro";
+import FormNotices from "./FormNotices.astro";
+import Hidden from "./Hidden.astro";
+import { formatDateTime } from "../../lib/crm/i18n";
+import { fieldTypes, milestones, outcomes, type PlaybookDef } from "../../lib/crm/playbook";
+import type { PlaybooksProps } from "../../lib/crm/routes/admin";
+
+type Props = PlaybooksProps;
+const { ctx, state, versions, latest, offers, editing, isNew } = Astro.props;
+const { lang, vi, base } = ctx;
+const posted = state.intent === "playbook_save";
+const sv = (name: string, fallback: string) => posted ? (state.values[name] ?? "") : fallback;
+const def: PlaybookDef = editing?.def ?? { stages: [], fields: [], checklist: [], offers: [] };
+const showEditor = !!editing || isNew;
+const pad = <T,>(items: T[], extra: number) => [...items.map((item) => item as T | null), ...Array.from({ length: extra }, () => null)];
+const stageRows = pad(def.stages, 3);
+const fieldRows = pad(def.fields, 3);
+const checkRows = pad(def.checklist, 2);
+const selectedOffers = posted ? (state.values.offers ?? "").split(",") : def.offers;
+const key = isNew ? "" : editing?.playbook_key ?? "";
+---
+<CrmShell title="Playbooks" lang={lang} actor={ctx.actor} current="admin">
+  <p class="crm-eyebrow"><a class="crm-link" href={`${base}/admin`}>{vi ? "Quản trị" : "Admin"}</a> / Playbooks</p>
+  <div class="crm-head"><div>
+    <h1 class="crm-h1">{vi ? "Quy trình bán có phiên bản." : "Versioned sales playbooks."}</h1>
+    <p class="crm-lede">{vi ? "Lưu luôn tạo phiên bản mới. Cơ hội cũ giữ phiên bản đang dùng; cơ hội mới dùng phiên bản mới nhất. Chỉ dùng kiểu trường an toàn — không SQL, không mã, không biểu thức." : "Saving always creates a new version. Existing opportunities keep theirs; new ones use the latest. Only safe field types — no SQL, code or expressions."}</p>
+  </div><a class="crm-button" href="?new">{vi ? "Playbook mới" : "New playbook"}</a></div>
+  <FormNotices state={state} lang={lang} saved={Astro.url.searchParams.get("saved")} />
+  {posted && state.errors.definition && <pre class="crm-notice bad" style="white-space:pre-wrap">{state.errors.definition}</pre>}
+
+  <section class="crm-sheet" aria-labelledby="list-h">
+    <h2 class="crm-h2" id="list-h">{vi ? "Danh sách" : "Playbooks"}</h2>
+    <ul class="crm-list">{latest.map((item) => <li class="crm-row">
+      <strong>{vi ? item.name_vi : item.name_en} <span class="crm-meta">{item.playbook_key} · v{item.version}</span></strong>
+      <span class="crm-row-side"><span class:list={["crm-badge", item.active ? "green" : ""]}>{item.active ? (vi ? "Đang dùng" : "Active") : (vi ? "Ngừng dùng" : "Inactive")}</span></span>
+      <span class="crm-row-meta"><span>{item.def.stages.length} {vi ? "giai đoạn" : "stages"}</span><span>{item.def.fields.length} {vi ? "trường" : "fields"}</span><span>{versions.filter((version) => version.playbook_key === item.playbook_key).length} {vi ? "phiên bản" : "versions"}</span></span>
+      {item.kind !== "legacy" && <div class="crm-actions">
+        <a class="crm-button small secondary" href={`?edit=${item.playbook_key}`}>{vi ? "Sửa (phiên bản mới)" : "Edit (new version)"}</a>
+        <a class="crm-button small secondary" href={`?new&from=${item.id}`}>{vi ? "Nhân bản thành playbook mới" : "Clone as new playbook"}</a>
+        <form method="post"><Hidden intent="playbook_active" state={state} /><input type="hidden" name="playbook_key" value={item.playbook_key} /><input type="hidden" name="active" value={item.active ? "0" : "1"} /><button class="crm-button small secondary" type="submit">{item.active ? (vi ? "Ngừng dùng" : "Deactivate") : (vi ? "Dùng lại" : "Activate")}</button></form>
+      </div>}
+    </li>)}</ul>
+  </section>
+
+  {showEditor && <form class="crm-sheet crm-form" method="post" aria-label={vi ? "Trình sửa playbook" : "Playbook editor"}>
+    <Hidden intent="playbook_save" state={state} /><input type="hidden" name="is_new" value={isNew ? "1" : "0"} />
+    <h2 class="crm-h2">{isNew ? (vi ? "Playbook mới" : "New playbook") : `${vi ? editing!.name_vi : editing!.name_en} → v${editing!.version + 1}`}</h2>
+    <div class="crm-form-grid">
+      <div class="crm-field"><label for="pb-key">{vi ? "Mã (chữ thường, -)" : "Key (lowercase, -)"}</label><input class="crm-input" id="pb-key" name="playbook_key" value={sv("playbook_key", key)} readonly={!isNew} required maxlength="48" /></div>
+      <div class="crm-field"><label for="pb-kind">{vi ? "Loại" : "Kind"}</label><select class="crm-select" id="pb-kind" name="kind">{["acquisition", "solution", "renewal"].map((kind) => <option value={kind} selected={sv("kind", editing?.kind ?? "acquisition") === kind}>{kind}</option>)}</select></div>
+      <div class="crm-field"><label for="pb-en">Name (EN)</label><input class="crm-input" id="pb-en" name="name_en" value={sv("name_en", isNew ? "" : editing?.name_en ?? "")} required maxlength="120" /></div>
+      <div class="crm-field"><label for="pb-vi">Tên (VI)</label><input class="crm-input" id="pb-vi" name="name_vi" value={sv("name_vi", isNew ? "" : editing?.name_vi ?? "")} required maxlength="120" /></div>
+      <div class="crm-field wide"><label for="pb-den">Description (EN)</label><input class="crm-input" id="pb-den" name="description_en" value={sv("description_en", editing?.description_en ?? "")} maxlength="500" /></div>
+      <div class="crm-field wide"><label for="pb-dvi">Mô tả (VI)</label><input class="crm-input" id="pb-dvi" name="description_vi" value={sv("description_vi", editing?.description_vi ?? "")} maxlength="500" /></div>
+    </div>
+
+    <fieldset class="crm-fieldset"><legend>{vi ? "Giai đoạn (theo thứ tự; để trống mã để bỏ dòng)" : "Stages (in order; leave the id blank to drop a row)"}</legend>
+      <div class="crm-table-wrap"><table class="crm-table"><thead><tr><th>#</th><th>ID</th><th>EN</th><th>VI</th><th>{vi ? "Kết quả" : "Outcome"}</th><th>Milestone</th><th>{vi ? "Điều kiện vào (mã trường, cách nhau dấu phẩy)" : "Entry requirements (keys, comma-separated)"}</th><th>{vi ? "Bỏ qua được" : "Skippable"}</th></tr></thead>
+      <tbody>{stageRows.map((stage, index) => <tr>
+        <td><input class="crm-input" style="width:64px" name={`s.${index}.order`} aria-label={`order ${index + 1}`} value={sv(`s.${index}.order`, String(index + 1))} inputmode="numeric" /></td>
+        <td><input class="crm-input" name={`s.${index}.id`} aria-label={`stage ${index + 1} id`} value={sv(`s.${index}.id`, stage?.id ?? "")} maxlength="40" /></td>
+        <td><input class="crm-input" name={`s.${index}.en`} aria-label={`stage ${index + 1} EN`} value={sv(`s.${index}.en`, stage?.en ?? "")} maxlength="120" /></td>
+        <td><input class="crm-input" name={`s.${index}.vi`} aria-label={`stage ${index + 1} VI`} value={sv(`s.${index}.vi`, stage?.vi ?? "")} maxlength="120" /></td>
+        <td><select class="crm-select" name={`s.${index}.outcome`} aria-label={`stage ${index + 1} outcome`}>{outcomes.map((outcome) => <option value={outcome} selected={sv(`s.${index}.outcome`, stage?.outcome ?? "open") === outcome}>{outcome}</option>)}</select></td>
+        <td><select class="crm-select" name={`s.${index}.milestone`} aria-label={`stage ${index + 1} milestone`}><option value="">—</option>{milestones.map((milestone) => <option value={milestone} selected={sv(`s.${index}.milestone`, stage?.milestone ?? "") === milestone}>{milestone}</option>)}</select></td>
+        <td><input class="crm-input" name={`s.${index}.requires`} aria-label={`stage ${index + 1} requirements`} value={sv(`s.${index}.requires`, stage?.requires?.join(", ") ?? "")} maxlength="400" /></td>
+        <td><input type="checkbox" name={`s.${index}.skippable`} value="1" aria-label={`stage ${index + 1} skippable`} checked={posted ? state.values[`s.${index}.skippable`] === "1" : !!stage?.skippable} /></td>
+      </tr>)}</tbody></table></div>
+      <p class="crm-help">{vi ? "Điều kiện dựng sẵn: accepted_quote, primary_contact, next_step." : "Built-in requirements: accepted_quote, primary_contact, next_step."}</p>
+    </fieldset>
+
+    <fieldset class="crm-fieldset"><legend>{vi ? "Trường thông tin" : "Fields"}</legend>
+      <div class="crm-table-wrap"><table class="crm-table"><thead><tr><th>#</th><th>{vi ? "Mã" : "Key"}</th><th>EN</th><th>VI</th><th>{vi ? "Kiểu" : "Type"}</th><th>{vi ? "Hiện từ giai đoạn" : "Shown from stage"}</th><th>{vi ? "Lựa chọn (mỗi dòng: giá_trị|EN|VI)" : "Options (one per line: value|EN|VI)"}</th></tr></thead>
+      <tbody>{fieldRows.map((field, index) => <tr>
+        <td><input class="crm-input" style="width:64px" name={`f.${index}.order`} aria-label={`field order ${index + 1}`} value={sv(`f.${index}.order`, String(index + 1))} inputmode="numeric" /></td>
+        <td><input class="crm-input" name={`f.${index}.key`} aria-label={`field ${index + 1} key`} value={sv(`f.${index}.key`, field?.key ?? "")} maxlength="40" /></td>
+        <td><input class="crm-input" name={`f.${index}.en`} aria-label={`field ${index + 1} EN`} value={sv(`f.${index}.en`, field?.en ?? "")} maxlength="120" /></td>
+        <td><input class="crm-input" name={`f.${index}.vi`} aria-label={`field ${index + 1} VI`} value={sv(`f.${index}.vi`, field?.vi ?? "")} maxlength="120" /></td>
+        <td><select class="crm-select" name={`f.${index}.type`} aria-label={`field ${index + 1} type`}>{fieldTypes.map((type) => <option value={type} selected={sv(`f.${index}.type`, field?.type ?? "text") === type}>{type}</option>)}</select></td>
+        <td><input class="crm-input" name={`f.${index}.stage`} aria-label={`field ${index + 1} stage`} value={sv(`f.${index}.stage`, field?.stage ?? "")} maxlength="40" /></td>
+        <td><textarea class="crm-textarea" style="min-height:44px" name={`f.${index}.options`} aria-label={`field ${index + 1} options`}>{sv(`f.${index}.options`, field?.options?.map((option) => `${option.value}|${option.en}|${option.vi}`).join("\n") ?? "")}</textarea></td>
+      </tr>)}</tbody></table></div>
+    </fieldset>
+
+    <fieldset class="crm-fieldset"><legend>Checklist</legend>
+      <div class="crm-table-wrap"><table class="crm-table"><thead><tr><th>#</th><th>{vi ? "Mã" : "Key"}</th><th>EN</th><th>VI</th><th>{vi ? "Hiện từ giai đoạn" : "Shown from stage"}</th></tr></thead>
+      <tbody>{checkRows.map((check, index) => <tr>
+        <td><input class="crm-input" style="width:64px" name={`c.${index}.order`} aria-label={`check order ${index + 1}`} value={sv(`c.${index}.order`, String(index + 1))} inputmode="numeric" /></td>
+        <td><input class="crm-input" name={`c.${index}.key`} aria-label={`check ${index + 1} key`} value={sv(`c.${index}.key`, check?.key ?? "")} maxlength="40" /></td>
+        <td><input class="crm-input" name={`c.${index}.en`} aria-label={`check ${index + 1} EN`} value={sv(`c.${index}.en`, check?.en ?? "")} maxlength="120" /></td>
+        <td><input class="crm-input" name={`c.${index}.vi`} aria-label={`check ${index + 1} VI`} value={sv(`c.${index}.vi`, check?.vi ?? "")} maxlength="120" /></td>
+        <td><input class="crm-input" name={`c.${index}.stage`} aria-label={`check ${index + 1} stage`} value={sv(`c.${index}.stage`, check?.stage ?? "")} maxlength="40" /></td>
+      </tr>)}</tbody></table></div>
+    </fieldset>
+
+    <fieldset class="crm-fieldset"><legend>{vi ? "Gói được phép dùng" : "Allowed offers"}</legend>
+      {offers.map((offer) => <label class="crm-check"><input type="checkbox" name="offers" value={offer.offer_key} checked={selectedOffers.includes(offer.offer_key)} /><span>{vi ? offer.name_vi : offer.name_en} <span class="crm-meta">{offer.offer_key}{offer.active ? "" : (vi ? " · ngừng dùng" : " · inactive")}</span></span></label>)}
+    </fieldset>
+    <div class="crm-actions"><button class="crm-button" type="submit">{isNew ? (vi ? "Tạo playbook" : "Create playbook") : (vi ? "Lưu thành phiên bản mới" : "Save as new version")}</button><a class="crm-link" href={`${base}/admin/playbooks`}>{vi ? "Hủy" : "Cancel"}</a></div>
+  </form>}
+
+  <section class="crm-sheet" aria-labelledby="hist-h">
+    <h2 class="crm-h2" id="hist-h">{vi ? "Lịch sử phiên bản" : "Version history"}</h2>
+    <ul class="crm-list">{versions.map((item) => <li class="crm-row"><span>{item.playbook_key} v{item.version}</span><span class="crm-row-side crm-meta">{formatDateTime(item.created_at, lang)}</span></li>)}</ul>
+  </section>
+</CrmShell>
