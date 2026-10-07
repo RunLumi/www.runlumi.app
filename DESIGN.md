@@ -444,6 +444,38 @@ Avoid:
 The four-point clarity mark means Lumi found, clarified, or verified something useful.
 Use it rarely.
 
+## Development default: distinctive, useful icons
+
+Treat icon selection as design work. Icons should make an action immediately
+recognizable or give a service a concrete visual identity. Choose the most
+specific readable metaphor available; do not fill every section with the same
+checkmark, shield, globe, or generic AI sparkle. A consistent drawing language
+should still contain varied, purposeful silhouettes. Do not add icons to every
+heading merely to fill space.
+
+For this landing site:
+
+- Preserve the existing 1.75–2px line language and folded-L geometry. Reuse an existing SVG before adding a glyph; put repeated glyphs behind one owned component rather than copying paths across templates. Do not add an icon package solely for a few symbols.
+- Use objects that explain the workflow: a document for a source, connected nodes for a handoff, and a directional path for an action. Navigation arrows, menu, and close controls stay conventional. An icon must not imply a verified integration, completed run, or evidence-backed result the page has not established.
+- Give related product chapters distinct silhouettes while preserving one optical style. Use Civic Navy by default and Lumi Blue for emphasis; status colors still require real semantics. An optional paper/white folded-corner frame or short rail belongs around a prominent editorial glyph, never around every row or button.
+- Keep the logo separate. The clarity mark retains its existing meaning and rare use; it is not a generic AI emblem. Inspectable workflow artifacts still carry the product explanation; an oversized interface icon is not a substitute.
+
+Before shipping an icon change, review the glyphs together at their actual
+rendered sizes, including 16/20/24px where used. Check recognizable silhouettes,
+optical balance, consistent strokes, negative space, and contrast on every
+material and state. Remove framing or simplify the symbol if it crowds the glyph.
+Keep visible labels for unfamiliar actions; icon-only controls need an accessible
+name, visible keyboard focus, and a hit area independent of drawing size. Hide
+decorative SVGs from assistive technology when text or a named control supplies
+the meaning. Essential status also needs text, never color or a mark alone.
+
+Inspect supported locales at 320/375/768/1440px, including long Vietnamese labels
+and diacritics, touch and keyboard use, and forced colors. Keep glyphs from
+shrinking or colliding with text. Follow the existing motion rules; no decorative
+bounce, glow, or continuous spinning. Replace vague or repetitive metaphors;
+remove decoration that contributes no meaning. These are acceptance requirements
+for future implementation, not evidence that a UI change has shipped.
+
 ---
 
 # 11. Photography
