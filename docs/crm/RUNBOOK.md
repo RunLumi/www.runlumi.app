@@ -154,3 +154,14 @@ Verify after applying:
 ```
 
 `new` must equal `old`. HR staff need the HR role granted on `/workspace/users`; before this change, hiring required the EmDash admin role.
+
+### Release record: Workspace roles (2026-10-08)
+
+| Item | Value |
+|---|---|
+| PR / merge SHA | RunLumi/www.runlumi.app#31 → `e236272`. Hosted CI did not start (Actions budget). The same gates ran locally on head `58cc522`: lint, 55 unit tests, local migration, build, plus 6/6 Workspace and 14/14 CRM integration blocks on a real Worker, D1 and EmDash. |
+| Backup | `backups/lumi-jobs-pre-0005.sql` (private, git-ignored) |
+| Migration | `0005_workspace_roles.sql` applied to the remote database: 0 CRM members → 0 Workspace members (none existed yet); 9 applications unchanged |
+| Worker version | `11b36e6c-f37f-448d-93ac-ddc87270ce8b` at 100% (`npm run deploy` from `e236272`) |
+| Verified without a session | `/` and `/jobs` return 200. `/workspace`, `/workspace/users`, `/admin/jobs`, `/admin/jobs/applications`, `/crm`, `/crm/commission`, `/admin/crm` and their `/vi` peers redirect (303) to EmDash sign-in. Hiring APIs return 401. Intake rejects an unknown source. New routes returned 404 for under a minute while the version propagated, then served correctly. |
+| Pending (needs the owner's EmDash session) | Sign in as Admin, grant roles on `/vi/workspace/users`, then check the navigation and hiring desk with a real HR account and a real sales account |
