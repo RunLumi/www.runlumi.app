@@ -33,20 +33,22 @@ Remaining gaps, not built:
 
 **EmDash admin (role 50) is the Workspace Admin.** It holds every permission and is never stored in the Workspace tables. The other roles are granted on **Admin → Users and roles** (`/workspace/users`) and can be combined.
 
-| Permission | Admin | HR | Sales Manager | Sales Executive | Finance | Fulfillment |
-|---|:-:|:-:|:-:|:-:|:-:|:-:|
-| `workspace.access` (Overview) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `users.manage` (users and roles) | ✓ | | | | | |
-| `hiring.access` (roles, candidates, private files) | ✓ | ✓ | | | | |
-| `hiring.jobs.manage` | ✓ | ✓ | | | | |
-| `hiring.applications.manage` (stage, notes) | ✓ | ✓ | | | | |
-| `hiring.applications.delete` | ✓ | ✓ | | | | |
-| `hiring.export` (CSV) | ✓ | ✓ | | | | |
-| `crm.access` (own opportunities) | ✓ | | ✓ | ✓ | ✓ | ✓ |
-| `crm.team` (every opportunity, assignment, inbound queue, cohorts) | ✓ | | ✓ | | | |
-| `crm.configure` (playbooks, offers, commission policy, seller terms) | ✓ | | | | | |
-| `crm.finance` (confirm payments, refunds, voids, payouts) | ✓ | | | | ✓ | |
-| `crm.fulfillment` (delivery, owner approval, launch checks) | ✓ | | | | | ✓ |
+| Permission | Admin | HR | Sales Manager | Sales Executive | Partner | Finance | Fulfillment |
+|---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
+| `workspace.access` (Overview) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `users.manage` (users and roles) | ✓ | | | | | | |
+| `hiring.access` (roles, candidates, private files) | ✓ | ✓ | | | | | |
+| `hiring.jobs.manage` | ✓ | ✓ | | | | | |
+| `hiring.applications.manage` (stage, notes) | ✓ | ✓ | | | | | |
+| `hiring.applications.delete` | ✓ | ✓ | | | | | |
+| `hiring.export` (CSV) | ✓ | ✓ | | | | | |
+| `crm.access` (own opportunities) | ✓ | | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `crm.refer` (refer a business to the team, follow its status) | ✓ | | ✓ | ✓ | ✓ | | |
+| `crm.payments.report` (report a payment received, pending confirmation) | ✓ | | ✓ | ✓ | | | |
+| `crm.team` (every opportunity, assignment, inbound and referral queues, cohorts) | ✓ | | ✓ | | | | |
+| `crm.configure` (playbooks, offers, commission policy, seller terms) | ✓ | | | | | | |
+| `crm.finance` (confirm payments, refunds, voids, payouts) | ✓ | | | | | ✓ | |
+| `crm.fulfillment` (delivery, owner approval, launch checks) | ✓ | | | | | | ✓ |
 
 **Invariants**
 - **CRM roles never open candidate records or files.** HR never opens the CRM.
@@ -55,6 +57,9 @@ Remaining gaps, not built:
 - **Admins are not grantable.** EmDash admins cannot be granted Workspace roles; they already hold every permission.
 - **Sales Managers cannot credit themselves.** They see only their own commission, never the simulation. They cannot set referral credit, and cannot assign an unattributed deal or enquiry to themselves, since that would make them the credited seller.
 - **Only Admins lift do-not-contact.**
+- **Partners (Cộng tác viên) are outside staff.** They work their own opportunities and refer businesses on *CRM → Referrals*. A referral starts unassigned, with the partner recorded as referrer; a Sales Manager assigns it on *Operations*. After that the partner sees only the stage and outcome, never notes, contacts or money. Partners cannot report payments: customers pay Lumi directly and staff record it. Their commission needs seller terms (full-cycle or referral) declared on *Commission*; the users page flags partners without them.
+
+Migration `0007_workspace_partner_role.sql` rebuilds `workspace_roles` so its CHECK constraint accepts `partner`; existing rows are copied unchanged.
 
 Migration `0005_workspace_roles.sql` carries existing access over unchanged:
 - every `crm_members` row becomes a Workspace member with the **Sales Executive** role, keeping its enabled flag;
@@ -68,8 +73,9 @@ The old tables are kept for recovery and are no longer read.
 Overview            /workspace                 counts per module the person can open
 Hiring              /admin/jobs                Roles · Candidates
 CRM                 /crm                       Today · Pipeline · New · Reports · Commission
+                                               · Referrals (refer)
                                                · Fulfillment (fulfillment or team)
-                                               · Operations (team: inbound queue, cohorts)
+                                               · Operations (team: inbound and referral queues, cohorts)
                                                · Playbooks · Offers (configure)
 Admin               /workspace/users           Users and roles
 ```
@@ -100,5 +106,6 @@ The following ran against a local Worker with D1 and real EmDash sessions:
   - 200/403 per role and module;
   - manager versus executive scope;
   - the bilingual hiring desk, with real actors and confirmed deletes;
-  - revoke and restore.
+  - revoke and restore;
+  - partners: referral with consent, the manager's referral queue and assignment, status-only follow-up, no payment reporting.
 - `tests/integration/crm.integration.test.mjs`: all CRM acceptance blocks, re-run on top of the new roles.

@@ -126,7 +126,8 @@ Nhân viên hợp lý khi một người làm cả **bán hàng và vận hành 
 
 - **Chính sách `local-commission`:** có phiên bản, trạng thái `proposed` hoặc `approved`. Admin sửa mức tại *Hoa hồng*. Mỗi lần lưu tạo phiên bản mới. Phiên bản cũ không bị sửa.
 - **Loại người bán:** mỗi thành viên có một loại (partner bán trọn / partner giới thiệu / nhân viên / không hưởng hoa hồng) kèm ngày hiệu lực. Giao dịch dùng loại có hiệu lực tại ngày khách chấp thuận. Founder và admin để "không hưởng".
-- **Ai được tính:** người bán là người được ghi công trên cơ hội (`seller_id`). Giao lại cho người khác không đổi ghi công. Người giới thiệu do admin đặt trên cơ hội.
+- **Vai trò Cộng tác viên:** cấp trên *Người dùng và vai trò*. Cộng tác viên tự bán cơ hội của mình hoặc giới thiệu khách ở *CRM → Giới thiệu khách*. Họ không báo cáo thanh toán; khách trả thẳng cho Lumi.
+- **Ai được tính:** người bán là người được ghi công trên cơ hội (`seller_id`). Giao lại cho người khác không đổi ghi công. Người giới thiệu được ghi tự động khi gửi qua *Giới thiệu khách*, hoặc do admin đặt trên cơ hội.
 - **Cách tính:** CRM tính từ sổ thương mại (thu, hoàn, credit), trạng thái bàn giao và ngày live. Mỗi dòng có trạng thái: *chờ thu/bàn giao*, *chờ hết thời gian giữ*, *đã đủ điều kiện*, *chưa khai báo loại người bán*.
 - **Chi trả:** CRM **không chi tiền**. Khi chính sách đã duyệt, tài chính ghi nhận "đã chi theo bảng kê" (số tiền, kỳ, bằng chứng). CRM hiện số dư từng người; số dư âm nghĩa là phải thu hồi.
 - **Quyền xem:** trước khi duyệt, chỉ admin/tài chính thấy số dự kiến. Sau khi duyệt, mỗi cộng tác viên thấy dòng của chính mình.

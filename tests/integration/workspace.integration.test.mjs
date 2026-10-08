@@ -167,3 +167,41 @@ test("revoking a role takes effect on the next request and is audited", async ()
   assert.equal((await S.hr.get("/admin/jobs")).status, 200);
   assert.equal(jobs(`SELECT COUNT(*) AS n FROM workspace_audit WHERE target_user_id = ${q(S.hr.id)} AND action = 'access_revoked'`)[0].n, 1);
 });
+
+test("partners refer businesses, follow status only, and never record payments", async () => {
+  S.partner = await userSession(S.admin, { email: `test-ctv-${run}@example.test`, name: `TEST Partner ${run}` });
+  assert.equal((await S.admin.post("/workspace/users", { intent: "grant", email: S.partner.email, roles: ["partner"] })).status, 303);
+  const users = await S.admin.get("/workspace/users");
+  assert.match(users.html, /Seller terms not set/, "admins are reminded to declare partner seller terms");
+  const home = await S.partner.get("/vi/crm");
+  assert.match(pages(home.html), /Giới thiệu khách/);
+  assert.doesNotMatch(pages(home.html), /Vận hành|Bàn giao/);
+  assert.equal((await S.partner.get("/crm/admin")).status, 403);
+  assert.equal((await S.partner.get("/admin/jobs")).status, 403);
+  assert.equal((await S.hr.get("/crm/referrals")).status, 403, "HR cannot refer");
+
+  const business = `TEST Referred Bakery ${run}`;
+  const refer = (fields) => S.partner.post("/crm/referrals", { intent: "refer", business, contact_name: "TEST Owner", phone: `09${String(Date.now()).slice(-8)}`, need: "Customers cannot find opening hours", playbook_key: "local-preview", ...fields });
+  assert.equal((await refer({})).status, 422, "consent is required");
+  const sent = await refer({ consent: "1" });
+  assert.equal(sent.status, 303);
+  const [row] = jobs(`SELECT id, owner_id, seller_id, referrer_id, source_channel FROM crm_opportunities WHERE title = ${q(business)}`);
+  assert.deepEqual([row.owner_id, row.seller_id, row.referrer_id, row.source_channel], [null, null, S.partner.id, "referral"]);
+  assert.match((await S.partner.get("/crm/referrals")).html, new RegExp(`${business}[\\s\\S]*Waiting for assignment`));
+
+  const ops = await S.manager.get("/crm/admin");
+  assert.match(ops.html, new RegExp(business), "managers see the referral queue");
+  assert.doesNotMatch((await S.exec.get("/crm/pipeline")).html, new RegExp(business), "executives do not see unassigned referrals");
+  const version = jobs(`SELECT version FROM crm_opportunities WHERE id = ${q(row.id)}`)[0].version;
+  assert.equal((await S.manager.post("/crm/admin", { intent: "referral_assign", opportunity_id: row.id, version, owner_id: S.exec.id })).status, 303);
+  assert.equal(jobs(`SELECT owner_id FROM crm_opportunities WHERE id = ${q(row.id)}`)[0].owner_id, S.exec.id);
+  assert.equal((await S.exec.get(`/crm/${row.id}`)).status, 200);
+  assert.equal((await S.partner.get(`/crm/${row.id}`)).status, 404, "the referrer cannot open the assigned deal");
+  assert.match((await S.partner.get("/crm/referrals")).html, /Assigned to the team/);
+
+  const own = idFrom((await S.partner.post("/crm/new", { intent: "create", playbook_key: "local-preview", source_channel: "field_visit", account_name: `TEST Partner Own ${run}` })).location);
+  const page = await S.partner.get(`/crm/${own}`);
+  assert.equal(page.status, 200, "partners can sell their own deals");
+  assert.doesNotMatch(page.html, /name="intent" value="payment"/, "no payment form for partners");
+  assert.equal((await S.partner.post(`/crm/${own}`, { intent: "payment", version: Number(/name="version" value="(\d+)"/.exec(page.html)[1]), amount: "399000", method: "bank_transfer", paid_on: "2026-10-01" })).status, 403);
+});

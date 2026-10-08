@@ -10,7 +10,7 @@ import type { IntakePayload } from "../../lib/crm/intake";
 import { costCategories } from "../../lib/crm/tasks";
 
 type Props = AdminProps;
-const { ctx, state, inbound, owners, cohorts, playbooks } = Astro.props;
+const { ctx, state, inbound, referrals, referrerNames, owners, cohorts, playbooks } = Astro.props;
 const { lang, vi, base } = ctx;
 const v = (intent: string, name: string, fallback = "") => valueFor(state, intent, name, fallback);
 const e = (intent: string, name: string) => errorFor(state, intent, name);
@@ -40,6 +40,20 @@ const payload = (raw: string) => { try { return JSON.parse(raw) as IntakePayload
           <button class="crm-button small secondary" type="submit">{vi ? "Bỏ qua" : "Dismiss"}</button></form>
       </div>
     </li>; })}</ul> : <p class="crm-empty">{vi ? "Không có yêu cầu đang chờ." : "No enquiries waiting."}</p>}
+  </section>
+
+  <section class="crm-sheet" id="referrals" aria-labelledby="ref-h">
+    <h2 class="crm-h2" id="ref-h">{vi ? "Khách được giới thiệu chờ phân công" : "Referred businesses waiting for an owner"}<span class="crm-count">{referrals.length}</span></h2>
+    <p class="crm-help">{vi ? "Cộng tác viên hoặc nhân viên giới thiệu; người giới thiệu được ghi công, người được giao là người bán." : "Referred by partners or staff; the referrer keeps referral credit and the assignee becomes the seller."}</p>
+    {referrals.length ? <ul class="crm-list">{referrals.map((row) => <li class="crm-row">
+      <a class="crm-row-title" href={`${base}/${row.id}`}>{row.title}</a>
+      <span class="crm-row-meta"><span>{vi ? "Giới thiệu bởi" : "Referred by"} {row.referrer_id ? referrerNames[row.referrer_id]?.name ?? "—" : "—"}</span><span>{new Date(row.created_at).toLocaleDateString(vi ? "vi-VN" : "en-GB", { timeZone: "Asia/Ho_Chi_Minh" })}</span><span>{row.next_action}</span></span>
+      <form class="crm-actions" method="post" action="#referrals"><Hidden intent="referral_assign" state={state} version={row.version} /><input type="hidden" name="opportunity_id" value={row.id} />
+        <label class="crm-label" for={`ref-owner-${row.id}`}>{vi ? "Giao cho" : "Assign to"}</label>
+        <select class="crm-select" style="width:auto" id={`ref-owner-${row.id}`} name="owner_id"><option value="">{vi ? "Chọn người" : "Choose"}</option>{owners.filter((owner) => owner.id !== ctx.actor.id || ctx.actor.configure).map((owner) => <option value={owner.id}>{owner.label}</option>)}</select>
+        <button class="crm-button small" type="submit">{vi ? "Giao" : "Assign"}</button>
+      </form>
+    </li>)}</ul> : <p class="crm-empty">{vi ? "Không có khách được giới thiệu đang chờ." : "No referrals waiting."}</p>}
   </section>
 
   <section class="crm-sheet" id="cohorts" aria-labelledby="cohorts-h">

@@ -4,7 +4,7 @@ import WorkspaceShell from "./WorkspaceShell.astro";
 import type { CrmActor } from "../lib/crm/access";
 import type { Lang } from "../lib/crm/i18n";
 
-interface Props { title: string; lang: Lang; actor: CrmActor; current?: "today" | "pipeline" | "new" | "reports" | "commission" | "fulfillment" | "admin" | "playbooks" | "offers" }
+interface Props { title: string; lang: Lang; actor: CrmActor; current?: "today" | "pipeline" | "new" | "referrals" | "reports" | "commission" | "fulfillment" | "admin" | "playbooks" | "offers" }
 const { title, lang, current } = Astro.props;
 const user = Astro.locals.workspace!;
 ---
