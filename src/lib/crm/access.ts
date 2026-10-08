@@ -14,11 +14,15 @@ export interface CrmActor {
   configure: boolean;
   finance: boolean;
   fulfillment: boolean;
+  /** May refer businesses to the team (partners, sales). */
+  refer: boolean;
+  /** May report a payment received for finance to confirm (staff, not partners). */
+  reportPayments: boolean;
 }
 
 export function actorFrom(user: WorkspaceUser): CrmActor | null {
   if (!user.can("crm.access")) return null;
-  return { id: user.id, name: user.name, email: user.email, manager: user.can("crm.team"), configure: user.can("crm.configure"), finance: user.can("crm.finance"), fulfillment: user.can("crm.fulfillment") };
+  return { id: user.id, name: user.name, email: user.email, manager: user.can("crm.team"), configure: user.can("crm.configure"), finance: user.can("crm.finance"), fulfillment: user.can("crm.fulfillment"), refer: user.can("crm.refer"), reportPayments: user.can("crm.payments.report") };
 }
 
 export async function crmActor(locals: App.Locals, db: D1Database): Promise<CrmActor | null> {
@@ -54,7 +58,7 @@ export function accountScope(actor: CrmActor, alias = "a"): SqlScope {
 }
 
 /** Roles that can own opportunities. */
-export const SELLING_ROLES = ["sales_manager", "sales_executive"] as const;
+export const SELLING_ROLES = ["sales_manager", "sales_executive", "partner"] as const;
 
 /** Managers may assign themselves, active admins, or enabled sales members; others only themselves. */
 export async function assignableOwner(db: D1Database, contentDb: D1Database, actor: CrmActor, ownerId: string): Promise<boolean> {
@@ -82,7 +86,7 @@ export async function inactiveOwnerIds(db: D1Database, contentDb: D1Database): P
   const owners = (await db.prepare("SELECT DISTINCT owner_id FROM crm_opportunities WHERE owner_id IS NOT NULL AND outcome IN ('open', 'paused') LIMIT 500").all<{ owner_id: string }>()).results.map((row) => row.owner_id);
   if (!owners.length) return [];
   const users = await emdashUsers(contentDb, owners);
-  const enabled = new Set((await db.prepare(`SELECT DISTINCT m.user_id FROM workspace_members m JOIN workspace_roles r ON r.user_id = m.user_id WHERE m.enabled = 1 AND r.role IN ('sales_manager', 'sales_executive')`).all<{ user_id: string }>()).results.map((row) => row.user_id));
+  const enabled = new Set((await db.prepare(`SELECT DISTINCT m.user_id FROM workspace_members m JOIN workspace_roles r ON r.user_id = m.user_id WHERE m.enabled = 1 AND r.role IN ('sales_manager', 'sales_executive', 'partner')`).all<{ user_id: string }>()).results.map((row) => row.user_id));
   return owners.filter((id) => {
     const user = users.get(id);
     return !user || user.disabled !== 0 || (user.role !== 50 && !enabled.has(id));

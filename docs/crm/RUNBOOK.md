@@ -180,3 +180,16 @@ The migration is additive. It creates `application_interviews` and `application_
 | Worker version | `75772476-2a19-4ce7-9576-d66608b534d8` at 100% |
 | Verified without a session | `/jobs` and `/vi/jobs` return 200; the Vietnamese copy and `hreflang` are present. Private pages redirect to sign-in. The interview, scorecard and purge APIs return 401. |
 | Pending (owner) | Invite HR and sales staff in EmDash, grant roles on `/vi/workspace/users`, and check the signed-in pages with real accounts |
+
+## 9. Partner role migration (`0007_workspace_partner_role.sql`)
+
+The migration rebuilds `workspace_roles` (SQLite cannot alter a CHECK constraint) so it accepts `partner`. Existing role rows are copied unchanged and the `workspace_roles_role` index is recreated. No CRM or hiring table changes.
+
+```bash
+./node_modules/.bin/wrangler d1 export lumi-jobs --remote --output backups/lumi-jobs-pre-0007.sql
+./node_modules/.bin/wrangler d1 execute lumi-jobs --remote --command "SELECT COUNT(*) AS roles FROM workspace_roles"
+npm run db:migrate
+./node_modules/.bin/wrangler d1 execute lumi-jobs --remote --command "SELECT COUNT(*) AS roles FROM workspace_roles; SELECT sql FROM sqlite_master WHERE name = 'workspace_roles'"
+```
+
+The role count must be unchanged and the stored CHECK must list `partner`.

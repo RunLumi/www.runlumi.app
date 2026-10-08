@@ -54,7 +54,7 @@ export interface UsersState { errors: Record<string, string>; values: Record<str
 
 export async function usersPage(astro: AstroGlobal, lang: Lang): Promise<Response | {
   lang: Lang; vi: boolean; user: WorkspaceUser; members: MemberRow[]; accounts: { id: string; email: string; name: string | null; role: number }[];
-  audit: AuditRow[]; names: Record<string, string>; state: UsersState;
+  audit: AuditRow[]; names: Record<string, string>; state: UsersState; withTerms: Set<string>;
 }> {
   const user = astro.locals.workspace!;
   const { DB, CONTENT_DB } = envFromLocals(astro.locals);
@@ -84,5 +84,7 @@ export async function usersPage(astro: AstroGlobal, lang: Lang): Promise<Respons
   const accounts = (await CONTENT_DB.prepare("SELECT id, email, name, role FROM users WHERE disabled = 0 ORDER BY role DESC, name, email LIMIT 300").all<{ id: string; email: string; name: string | null; role: number }>()).results;
   const audit = await recentAudit(DB);
   const names = Object.fromEntries([...accounts.map((account) => [account.id, account.name || account.email]), ...members.map((member) => [member.user_id, member.name || member.email])]);
-  return { lang, vi: lang === "vi", user, members, accounts, audit, names, state };
+  // Partners earn commission only once their seller terms are declared.
+  const withTerms = new Set((await DB.prepare("SELECT DISTINCT user_id FROM crm_seller_terms").all<{ user_id: string }>()).results.map((row) => row.user_id));
+  return { lang, vi: lang === "vi", user, members, accounts, audit, names, state, withTerms };
 }

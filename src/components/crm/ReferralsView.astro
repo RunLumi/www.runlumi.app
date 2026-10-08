@@ -1,0 +1,57 @@
+---
+import CrmShell from "../../layouts/CrmShell.astro";
+import Field from "./Field.astro";
+import FormNotices from "./FormNotices.astro";
+import Hidden from "./Hidden.astro";
+import { formatDate, label } from "../../lib/crm/i18n";
+import { errorFor, valueFor } from "../../lib/crm/page";
+import type { ReferralsProps } from "../../lib/crm/routes/referrals";
+
+type Props = ReferralsProps;
+const { ctx, state, playbooks, referrals, stageNames } = Astro.props;
+const { lang, vi, base } = ctx;
+const v = (name: string, fallback = "") => valueFor(state, "refer", name, fallback);
+const e = (name: string) => errorFor(state, "refer", name);
+const stageOf = (row: { playbook_id: string; stage_id: string }) => stageNames[`${row.playbook_id.split("@")[0]}:${row.stage_id}`] ?? row.stage_id;
+const tone: Record<string, string> = { open: "blue", won: "green", lost: "", paused: "amber" };
+const fieldLabels: Record<string, string> = vi
+  ? { business: "Doanh nghiệp", contact_name: "Người liên hệ", phone: "Điện thoại / Zalo", email: "Email", need: "Nhu cầu", playbook_key: "Loại nhu cầu", consent: "Xác nhận đồng ý liên hệ" }
+  : { business: "Business", contact_name: "Contact", phone: "Phone / Zalo", email: "Email", need: "Need", playbook_key: "Kind of need", consent: "Contact consent" };
+---
+<CrmShell title={vi ? "Giới thiệu khách" : "Referrals"} lang={lang} actor={ctx.actor} current="referrals">
+  <div class="crm-head"><div>
+    <p class="crm-eyebrow">{vi ? "Giới thiệu khách" : "Referrals"}</p>
+    <h1 class="crm-h1">{vi ? "Giới thiệu một doanh nghiệp cho đội Lumi." : "Introduce a business to the Lumi team."}</h1>
+    <p class="crm-lede">{vi ? "Quản lý bán hàng sẽ giao cho người phụ trách. Bạn được ghi công là người giới thiệu và theo dõi trạng thái tại đây; hoa hồng giới thiệu tính theo chính sách đã duyệt." : "A Sales Manager assigns it to an owner. You are credited as the referrer and can follow its status here; referral commission follows the approved policy."}</p>
+  </div><a class="crm-button secondary" href={`${base}/commission`}>{vi ? "Hoa hồng của tôi" : "My commission"}</a></div>
+  <FormNotices state={state} lang={lang} saved={Astro.url.searchParams.get("saved")} fieldLabels={fieldLabels} />
+  <div class="crm-grid two">
+    <section class="crm-sheet" id="mine" aria-labelledby="mine-h">
+      <h2 class="crm-h2" id="mine-h">{vi ? "Khách tôi đã giới thiệu" : "Businesses I referred"}<span class="crm-count">{referrals.length}</span></h2>
+      {referrals.length ? <ul class="crm-list">{referrals.map((row) => <li class="crm-row">
+        <strong>{row.title}</strong>
+        <span class="crm-row-side"><span class="crm-badge blue">{stageOf(row)}</span><span class:list={["crm-badge", tone[row.outcome]]}>{label(lang, "outcome", row.outcome)}</span></span>
+        <span class="crm-row-meta"><span>{formatDate(row.created_at, lang)}</span><span>{row.assigned ? (vi ? "Đã có người phụ trách" : "Assigned to the team") : (vi ? "Chờ phân công" : "Waiting for assignment")}</span></span>
+      </li>)}</ul> : <p class="crm-empty">{vi ? "Bạn chưa giới thiệu khách nào." : "You have not referred anyone yet."}</p>}
+      <p class="crm-help">{vi ? "Để bảo vệ khách hàng, sau khi giao cho người phụ trách bạn chỉ thấy giai đoạn và kết quả, không thấy ghi chú hay thanh toán." : "To protect customers, once assigned you see the stage and outcome only, not notes or payments."}</p>
+    </section>
+    <aside class="crm-sheet" aria-labelledby="new-h">
+      <h2 class="crm-h2" id="new-h">{vi ? "Giới thiệu khách mới" : "Refer a business"}</h2>
+      <form class="crm-form" method="post" action="#new-h">
+        <Hidden intent="refer" state={state} />
+        <Field name="business" label={fieldLabels.business} lang={lang} value={v("business")} error={e("business")} required maxlength={160} />
+        <Field name="industry" label={vi ? "Ngành" : "Industry"} lang={lang} value={v("industry")} maxlength={120} />
+        <Field name="region" label={vi ? "Khu vực" : "Area"} lang={lang} value={v("region")} maxlength={120} />
+        <Field name="contact_name" label={fieldLabels.contact_name} lang={lang} value={v("contact_name")} error={e("contact_name")} required maxlength={160} />
+        <Field name="phone" type="tel" label={fieldLabels.phone} lang={lang} value={v("phone")} error={e("phone")} required maxlength={40} inputmode="tel" />
+        <Field name="email" type="email" label="Email" lang={lang} value={v("email")} error={e("email")} maxlength={254} />
+        <Field name="playbook_key" type="select" label={fieldLabels.playbook_key} lang={lang} value={v("playbook_key", playbooks[0]?.playbook_key ?? "")} error={e("playbook_key")} options={playbooks.map((item) => ({ value: item.playbook_key, label: vi ? item.name_vi : item.name_en }))} />
+        <Field name="need" type="textarea" label={vi ? "Họ đang cần gì, theo lời họ" : "What they need, in their words"} lang={lang} value={v("need")} error={e("need")} required maxlength={1500} />
+        <label class="crm-check"><input type="checkbox" name="consent" value="1" required checked={v("consent") === "1"} /><span>{vi ? "Tôi xác nhận doanh nghiệp này đã đồng ý để Lumi liên hệ." : "I confirm this business agreed to be contacted by Lumi."}</span></label>
+        {e("consent") && <p class="crm-error">{vi ? "Cần xác nhận khách đã đồng ý được liên hệ." : "Confirm the business agreed to be contacted."}</p>}
+        <p class="crm-help">{vi ? "Không hứa giá, giảm giá, thứ hạng hay kết quả thay Lumi; không xin mật khẩu hay quyền Google." : "Do not promise prices, discounts, rankings or results for Lumi, and never ask for passwords or Google access."}</p>
+        <div class="crm-actions"><button class="crm-button" type="submit">{vi ? "Gửi giới thiệu" : "Send referral"}</button></div>
+      </form>
+    </aside>
+  </div>
+</CrmShell>

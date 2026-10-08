@@ -180,6 +180,7 @@ export async function withdrawQuote(db: D1Database, actor: CrmActor, opportunity
 
 /** Sellers record a payment claim with evidence; it counts only after finance confirms. */
 export async function recordPayment(db: D1Database, actor: CrmActor, opportunity: Opportunity, form: FormData): Promise<void> {
+  if (!actor.finance && !actor.reportPayments) throw new ForbiddenError();
   const errors = new Errors();
   const amount = parseVnd(errors.text(form, "amount_vnd", 20, true));
   const occurredOn = errors.text(form, "occurred_on", 10, true);

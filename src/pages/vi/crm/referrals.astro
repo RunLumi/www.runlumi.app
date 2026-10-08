@@ -1,0 +1,9 @@
+---
+import ReferralsView from "../../../components/crm/ReferralsView.astro";
+import { referralsRoute } from "../../../lib/crm/routes/referrals";
+
+export const prerender = false;
+const result = await referralsRoute(Astro, "vi");
+if (result instanceof Response) return result;
+---
+<ReferralsView {...result} />

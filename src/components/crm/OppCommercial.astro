@@ -120,7 +120,7 @@ const creditReason: Record<string, [string, string]> = {
     </form>)}
   </div>}
 
-  {(canEdit || actor.finance) && <details class="crm-disclosure" open={state.intent === "payment"}>
+  {((canEdit && actor.reportPayments) || actor.finance) && <details class="crm-disclosure" open={state.intent === "payment"}>
     <summary>{actor.finance ? (vi ? "Ghi nhận thanh toán (đã xác nhận)" : "Record a payment (confirmed)") : (vi ? "Báo cáo đã nhận thanh toán (chờ xác nhận)" : "Report a payment (awaits confirmation)")}</summary>
     <form class="crm-form" method="post" action="#commercial">
       <Hidden intent="payment" state={state} />
@@ -137,6 +137,7 @@ const creditReason: Record<string, [string, string]> = {
     </form>
   </details>}
 
+  {canEdit && !actor.reportPayments && !actor.finance && <p class="crm-help">{vi ? "Cộng tác viên không nhận tiền của khách. Khách thanh toán trực tiếp cho Lumi; tài chính ghi nhận và hoa hồng của bạn tính theo khoản đã xác nhận." : "Partners never collect customer money. Customers pay Lumi directly; finance records it and your commission follows confirmed payments."}</p>}
   {actor.finance && payments.length > 0 && <details class="crm-disclosure" open={state.intent === "refund"}>
     <summary>{vi ? "Hoàn tiền" : "Refund"}</summary>
     <form class="crm-form" method="post" action="#commercial">

@@ -1,5 +1,7 @@
 import type { AstroGlobal } from "astro";
-import { type OwnerOption, ownerOptions } from "../access";
+import { type OwnerOption, displayNames, ownerOptions } from "../access";
+import { type QueuedReferral, unassignedReferrals } from "../referrals";
+import { assignOwner, loadOpportunity } from "../records";
 import { assignInbound, dismissInbound, saveCohort, setCostingComplete } from "../admin";
 import {
   type Offer, type OfferInput, allOfferVersions, allPlaybookVersions, latestOffers, latestPlaybooks, parsePlaybookForm, saveOfferVersion, savePlaybookVersion, setOfferActive, setPlaybookActive,
@@ -16,7 +18,7 @@ import { ValidationError } from "../core";
 
 export interface AdminProps {
   ctx: Ctx; state: FormState;
-  inbound: InboundRow[]; owners: OwnerOption[]; cohorts: CohortRow[]; playbooks: Playbook[];
+  inbound: InboundRow[]; referrals: QueuedReferral[]; referrerNames: Record<string, { name: string; active: boolean }>; owners: OwnerOption[]; cohorts: CohortRow[]; playbooks: Playbook[];
 }
 
 /** CRM operations (inbound queue, cohorts) need the team permission; configuration needs Admin. */
@@ -32,6 +34,11 @@ export async function adminRoute(astro: AstroGlobal, lang: Lang): Promise<AdminP
   const here = astro.url.pathname;
   const posted = await handlePost(astro, ctx, {
     inbound_assign: async (form) => { await assignInbound(ctx.db, ctx.contentDb, ctx.actor, form); return `${here}#inbound`; },
+    referral_assign: async (form) => {
+      const access = await loadOpportunity(ctx.db, ctx.actor, String(form.get("opportunity_id") ?? ""));
+      await assignOwner(ctx.db, ctx.contentDb, ctx.actor, access.opportunity, form);
+      return `${here}#referrals`;
+    },
     inbound_dismiss: async (form) => { await dismissInbound(ctx.db, ctx.actor, form); return `${here}#inbound`; },
     cohort: async (form) => { await saveCohort(ctx.db, ctx.actor, form); return `${here}#cohorts`; },
     costing: async (form) => { await setCostingComplete(ctx.db, ctx.actor, form); return `${here}#cohorts`; },
@@ -43,8 +50,10 @@ export async function adminRoute(astro: AstroGlobal, lang: Lang): Promise<AdminP
     },
   });
   if (posted instanceof Response) return posted;
+  const queued = await unassignedReferrals(ctx.db);
   return {
     ctx, state: posted ?? emptyState,
+    referrals: queued, referrerNames: await displayNames(ctx.contentDb, queued.map((row) => row.referrer_id ?? "")),
     inbound: await inboundQueue(ctx.db), owners: await ownerOptions(ctx.db, ctx.contentDb, ctx.actor),
     cohorts: (await ctx.db.prepare("SELECT * FROM crm_cohorts ORDER BY starts_on DESC LIMIT 50").all<CohortRow>()).results,
     playbooks: await latestPlaybooks(ctx.db),

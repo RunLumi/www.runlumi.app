@@ -51,7 +51,7 @@ including CMS-only changes through EmDash API/MCP.
 ## Workspace roles contract
 
 - Private modules (Hiring, CRM, and later ones) share one EmDash identity, one Workspace allowlist (`workspace_members`), combinable roles (`workspace_roles`) and one permission map in `src/lib/workspace/roles.ts`. See [docs/workspace/README.md](docs/workspace/README.md).
-- Roles: Admin (EmDash role 50; never stored), HR, Sales Manager, Sales Executive, Finance and Fulfillment. Check permissions, never role names, in routes, APIs, queries and navigation.
+- Roles: Admin (EmDash role 50; never stored), HR, Sales Manager, Sales Executive, Partner (Cộng tác viên), Finance and Fulfillment. Check permissions, never role names, in routes, APIs, queries and navigation.
 - Only Admins manage users and roles (`/workspace/users`); every access change is written to `workspace_audit`. Nobody changes their own access.
 - Navigation comes from `src/lib/workspace/nav.ts` and shows only entries the person may open; every private page renders inside `WorkspaceShell` and has a `/vi` peer.
 
@@ -74,7 +74,7 @@ including CMS-only changes through EmDash API/MCP.
 - `/crm` and `/vi/crm` are peer, private sales workspaces using EmDash authentication.
 - Admins grant CRM roles (Sales Manager, Sales Executive, Finance, Fulfillment) to existing active EmDash non-admin users on `/workspace/users`.
 - Workspace membership is an explicit user-ID allowlist in the hiring D1 database; resolve identity details from EmDash when needed. EmDash CMS roles below admin grant no CRM or hiring access.
-- Sales Executives see and edit only opportunities assigned to their EmDash user ID. Sales Managers and Admins see every opportunity and reassign them; only Admins configure playbooks, offers and commission policy.
+- Sales Executives and Partners see and edit only opportunities assigned to their EmDash user ID. Partners refer businesses into an unassigned queue (consent required) and then see only stage and outcome; they never report or handle payments. Sales Managers and Admins see every opportunity and reassign them; only Admins configure playbooks, offers and commission policy.
 - Enforce ownership and CRM membership on every server route and D1 query; hide other owners' lead records as not found.
 - Store leads and activity in the hiring D1 database. Store no EmDash credentials, passkeys, or session data there.
 - Every change and note has an actor and timestamp. Versioned updates reject stale edits. Keep prospect records private and never place them in client-side source.

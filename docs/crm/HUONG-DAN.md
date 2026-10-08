@@ -1,12 +1,14 @@
 # Hướng dẫn sử dụng CRM Lumi
 
-Địa chỉ: `https://runlumi.app/vi/workspace` (Tổng quan) và `https://runlumi.app/vi/crm` (CRM). Thêm `/vi` để dùng tiếng Việt; bỏ `/vi` để dùng tiếng Anh. Đăng nhập bằng tài khoản EmDash. Admin phải cấp vai trò trước thì bạn mới vào được: Nhân viên bán hàng, Quản lý bán hàng, Tài chính hoặc Bàn giao. Vai trò Nhân sự (HR) dùng phân hệ Tuyển dụng.
+Địa chỉ: `https://runlumi.app/vi/workspace` (Tổng quan) và `https://runlumi.app/vi/crm` (CRM). Thêm `/vi` để dùng tiếng Việt; bỏ `/vi` để dùng tiếng Anh. Đăng nhập bằng tài khoản EmDash. Admin phải cấp vai trò trước thì bạn mới vào được: Nhân viên bán hàng, Cộng tác viên, Quản lý bán hàng, Tài chính hoặc Bàn giao. Vai trò Nhân sự (HR) dùng phân hệ Tuyển dụng.
 
 Thanh điều hướng có hai tầng. Tầng trên chuyển giữa các phân hệ: Tổng quan, Tuyển dụng, CRM, Quản trị. Tầng dưới là các trang trong phân hệ đang mở. Bạn chỉ thấy những mục vai trò của mình được phép.
 
 CRM chỉ để ghi chép và điều phối công việc. CRM không tự gửi tin cho khách, không mua tên miền, không xuất bản website, không thu tiền và không tính hoa hồng.
 
-## Cộng tác viên bán hàng
+## Người bán hàng (Nhân viên bán hàng và Cộng tác viên)
+
+Phần này áp dụng cho cả Nhân viên bán hàng và Cộng tác viên. Những điểm riêng của Cộng tác viên nằm ở mục ngay sau.
 
 1. **Hôm nay.** Mở trang này đầu mỗi ngày. Trang cho thấy:
    - việc quá hạn và việc đến hạn hôm nay;
@@ -43,6 +45,24 @@ CRM chỉ để ghi chép và điều phối công việc. CRM không tự gửi
 
 Bạn chỉ thấy các cơ hội được giao cho mình. Nếu một doanh nghiệp có cơ hội của người khác, bạn không thấy cơ hội đó.
 
+## Cộng tác viên (vai trò "Cộng tác viên")
+
+Cộng tác viên là người ngoài công ty, hưởng hoa hồng theo kết quả. Có hai cách làm việc:
+
+1. **Tự bán.** Tạo cơ hội ở *Tạo mới* và làm như người bán ở trên. Bạn chỉ thấy cơ hội của mình.
+2. **Giới thiệu khách.** Mở *CRM → Giới thiệu khách*, điền tên doanh nghiệp, người liên hệ, số điện thoại/Zalo và nhu cầu theo lời khách.
+   - Bắt buộc xác nhận **khách đã đồng ý để Lumi liên hệ**. Không có sự đồng ý thì đừng gửi.
+   - Số đã yêu cầu ngừng liên hệ sẽ bị từ chối.
+   - Quản lý bán hàng sẽ giao khách cho người phụ trách. Bạn được ghi là **người giới thiệu**, kể cả khi người khác bán.
+   - Sau khi giao, bạn chỉ thấy giai đoạn và kết quả, không thấy ghi chú, liên hệ hay thanh toán. Điều này bảo vệ dữ liệu khách.
+
+Điều Cộng tác viên **không** làm:
+- Không nhận tiền thay Lumi và không báo cáo thanh toán. Khách chuyển khoản thẳng cho Lumi; nhân viên ghi nhận.
+- Không hứa giá, giảm giá, thứ hạng Google hay số khách; không xin mật khẩu hay quyền Google.
+- Không vào được phân hệ Tuyển dụng, trang Vận hành hay dữ liệu của người khác.
+
+Hoa hồng của bạn hiện ở trang *Hoa hồng* sau khi admin khai báo loại người bán (bán trọn hoặc giới thiệu) và chính sách đã được duyệt.
+
 ## Tài chính (quyền "Tài chính")
 
 - **Xác nhận hoặc từ chối thanh toán.** Mở mục *Thanh toán chờ xác nhận* trong Báo cáo, hoặc phần thương mại của từng cơ hội. Muốn từ chối phải ghi lý do.
@@ -69,14 +89,15 @@ Bạn chỉ thấy các cơ hội được giao cho mình. Nếu một doanh ngh
 ## Quản lý bán hàng (Sales Manager)
 
 - Thấy mọi cơ hội của cả đội và giao lại cho người khác. Giao lại không đổi người bán được ghi công.
-- Trang *Vận hành* gồm hàng chờ yêu cầu từ website và cohort.
+- Trang *Vận hành* gồm hàng chờ yêu cầu từ website, **khách được giới thiệu chờ phân công** và cohort. Giao khách được giới thiệu cho một người bán; người giới thiệu vẫn giữ ghi công.
 - Không sửa được playbook, gói, chính sách hoa hồng hay người dùng; các việc đó thuộc về Admin.
 
 ## Admin
 
 - **Cấp quyền.**
   - Tạo hoặc mời tài khoản trong EmDash trước.
-  - Vào *Quản trị → Người dùng và vai trò*, cấp vai trò bằng email. Vai trò gồm: Nhân sự (HR), Quản lý bán hàng, Nhân viên bán hàng, Tài chính, Bàn giao; có thể kết hợp nhiều vai trò.
+  - Vào *Quản trị → Người dùng và vai trò*, cấp vai trò bằng email. Vai trò gồm: Nhân sự (HR), Quản lý bán hàng, Nhân viên bán hàng, Cộng tác viên, Tài chính, Bàn giao; có thể kết hợp nhiều vai trò.
+  - Với Cộng tác viên, khai báo thêm loại người bán ở *Hoa hồng → Loại người bán*. Trang người dùng nhắc khi còn thiếu.
   - Không cần nâng ai lên admin EmDash.
   - Vai trò CRM không mở được hồ sơ ứng viên, và HR không vào được CRM.
 - **Thu hồi.**

@@ -22,7 +22,7 @@ test("admins hold every permission; roles hold only their own", () => {
 });
 
 test("every role is allowed by the database constraint", () => {
-  const sql = readFileSync(new URL("../migrations/0005_workspace_roles.sql", import.meta.url), "utf8");
+  const sql = readFileSync(new URL("../migrations/0007_workspace_partner_role.sql", import.meta.url), "utf8");
   for (const role of roles) assert.ok(sql.includes(`'${role}'`), role);
   for (const role of roles) assert.ok(ROLE_PERMISSIONS[role].includes("workspace.access"), `${role} can reach the Workspace home`);
 });
@@ -37,4 +37,14 @@ test("navigation lists only modules and pages a person may open", () => {
   assert.equal(moduleForPath("/vi/admin/jobs/applications/x"), "hiring");
   assert.equal(switchLocale(new URL("https://runlumi.app/vi/admin/jobs?job=1")), "/admin/jobs?job=1");
   assert.equal(switchLocale(new URL("https://runlumi.app/workspace/users")), "/vi/workspace/users");
+});
+
+test("partners sell or refer but never handle money, team-wide data or hiring", () => {
+  const partner = user(["partner"]);
+  assert.ok(partner.can("crm.access") && partner.can("crm.refer"));
+  for (const permission of ["crm.team", "crm.configure", "crm.finance", "crm.fulfillment", "crm.payments.report", "hiring.access", "users.manage"] as const) assert.ok(!partner.can(permission), permission);
+  assert.ok(user(["sales_executive"]).can("crm.payments.report"), "staff still report payments");
+  const crm = modules.find((module) => module.key === "crm")!;
+  assert.ok(visibleLinks(partner, crm).some((link) => link.key === "referrals"));
+  assert.ok(!visibleLinks(user(["finance"]), crm).some((link) => link.key === "referrals"));
 });
