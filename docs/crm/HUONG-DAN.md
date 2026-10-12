@@ -16,7 +16,11 @@ Phần này áp dụng cho cả Nhân viên bán hàng và Cộng tác viên. Nh
    - cơ hội đang thiếu bước tiếp theo;
    - credit Trust Kit sắp hết hạn;
    - các khoản gia hạn sắp tới.
-2. **Tạo mới.** Chỉ bắt buộc 3 thông tin: tên doanh nghiệp, quy trình bán và kênh. Các thông tin khám phá nhu cầu sẽ hiện ra khi cơ hội tới đúng giai đoạn.
+2. **Tạo mới.** Chọn quy trình bán, kênh và khách hàng theo một trong hai cách:
+   - **Khách có sẵn:** chọn người liên hệ trong danh sách (nhóm theo công ty). CRM gắn cơ hội vào công ty và người liên hệ đó, không tạo bản ghi mới. Trên trang *Công ty* và *Liên hệ* có link "Tạo cơ hội" mở sẵn khách đó.
+   - **Khách mới:** nhập tên doanh nghiệp và người liên hệ. CRM tự tạo công ty và người liên hệ rồi gắn vào cơ hội. Nếu bạn đã có công ty trùng tên, CRM nhắc chọn khách có sẵn. Muốn tạo riêng (ví dụ chi nhánh khác), đánh dấu "Vẫn tạo công ty mới".
+
+   Các thông tin khám phá nhu cầu sẽ hiện ra khi cơ hội tới đúng giai đoạn.
 3. **Chuyển giai đoạn.** Hệ thống báo trước còn thiếu gì để sang bước sau.
    - Bước được đánh dấu "có thể bỏ qua" (preview, demo, pilot) chỉ bỏ được khi ghi lý do.
    - Chuyển sang "không phù hợp", "thua" hoặc "tạm hoãn" cũng phải ghi lý do.

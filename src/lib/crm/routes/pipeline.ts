@@ -1,6 +1,7 @@
 import type { AstroGlobal } from "astro";
 import { type OwnerOption, displayNames, inactiveOwnerIds, ownerOptions } from "../access";
 import { type Offer, latestOffers, latestPlaybooks } from "../config";
+import { type PickableContact, createOpportunityForContact, pickableContacts } from "../directory";
 import type { Lang } from "../i18n";
 import { type Ctx, type FormState, context, emptyState, handlePost, page } from "../page";
 import type { Playbook } from "../playbook";
@@ -29,17 +30,21 @@ export async function pipelineRoute(astro: AstroGlobal, lang: Lang): Promise<Pip
   return { ctx, filters, playbooks, offers: await latestOffers(ctx.db), ...list, counts, owners, ownerNames, cohorts };
 }
 
-export interface NewProps { ctx: Ctx; state: FormState; playbooks: Playbook[]; owners: OwnerOption[] }
+export interface NewProps { ctx: Ctx; state: FormState; playbooks: Playbook[]; owners: OwnerOption[]; customers: PickableContact[] }
 
 export async function newRoute(astro: AstroGlobal, lang: Lang): Promise<NewProps | Response> {
   const ctx = await context(astro, lang);
   if (ctx instanceof Response) return ctx;
   const posted = await handlePost(astro, ctx, {
-    create: async (form) => `${ctx.base}/${(await quickCreate(ctx.db, ctx.contentDb, ctx.actor, form)).id}`,
+    // An existing contact (and so its company), or a new company and contact.
+    create: async (form) => form.get("contact_id")
+      ? `${ctx.base}/${await createOpportunityForContact(ctx.db, ctx.contentDb, ctx.actor, form)}`
+      : `${ctx.base}/${(await quickCreate(ctx.db, ctx.contentDb, ctx.actor, form)).id}`,
   });
   if (posted instanceof Response) return posted;
   return {
     ctx, state: posted ?? emptyState, playbooks: await latestPlaybooks(ctx.db, { activeOnly: true }),
     owners: ctx.actor.manager ? await ownerOptions(ctx.db, ctx.contentDb, ctx.actor) : [],
+    customers: await pickableContacts(ctx.db, ctx.actor),
   };
 }

@@ -35,7 +35,7 @@ const requested = Astro.url.searchParams.get("account") ?? "";
         {rows.length ? <ul class="crm-list">{rows.map((row) => <li class="crm-row">
           <a class="crm-row-title" href={`${base}/accounts/${row.account_id}#contacts`}>{row.name}</a>
           <span class="crm-row-side"><span class="crm-badge">{label(lang, "role", row.role)}</span>{row.do_not_contact || row.account_dnc ? <span class="crm-badge red">{vi ? "Không liên hệ" : "Do not contact"}</span> : <span class="crm-badge">{label(lang, "consent", row.consent_status)}</span>}</span>
-          <span class="crm-row-meta"><span>{row.account_name}</span>{row.phone && <span>{row.phone}</span>}{row.email && <span>{row.email}</span>}<span>{vi ? "Quản lý" : "Managed by"}: {manager(row.owner_id)}</span></span>
+          <span class="crm-row-meta"><span>{row.account_name}</span>{row.phone && <span>{row.phone}</span>}{row.email && <span>{row.email}</span>}<span>{vi ? "Quản lý" : "Managed by"}: {manager(row.owner_id)}</span>{!row.do_not_contact && !row.account_dnc && <a class="crm-link" href={`${base}/new?contact=${row.id}`}>{vi ? "Tạo cơ hội" : "New opportunity"}</a>}</span>
         </li>)}</ul> : <p class="crm-empty">{filters.q || filters.owner ? (vi ? "Không có người liên hệ khớp bộ lọc." : "No contacts match these filters.") : (vi ? "Chưa có người liên hệ nào bạn được xem." : "No contacts you can see yet.")}</p>}
         <DirectoryTools vi={vi} manager={actor.manager} filters={filters} owners={owners} page={page} pages={pages} position="bottom" searchLabel="" />
       </section>

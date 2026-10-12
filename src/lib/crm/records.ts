@@ -1,6 +1,6 @@
 // Accounts, contacts and opportunities. Every query that returns a record is
 // scoped by access.ts; a record outside the scope is reported as not found.
-import { type CrmActor, assignableOwner, contactScope, opportunityScope, readableScope } from "./access";
+import { type CrmActor, accountScope, assignableOwner, contactScope, opportunityScope, readableScope } from "./access";
 import { getPlaybook, latestPlaybooks } from "./config";
 import {
   ConflictError, Errors, ForbiddenError, NotFoundError, ValidationError, emailPattern, eventStatement, fail, newId, normalizePhone, nowIso, once, onceGuarded,
@@ -107,6 +107,7 @@ export async function quickCreate(db: D1Database, contentDb: D1Database, actor: 
     owner_id: errors.text(form, "owner_id", 128),
     next_action: errors.text(form, "next_action", 500),
     next_action_due: errors.text(form, "next_action_due", 10),
+    title: errors.text(form, "title", 160),
   };
   if (input.email && !emailPattern.test(input.email)) errors.add("email", "invalid");
   const phoneNorm = normalizePhone(input.phone);
@@ -122,6 +123,12 @@ export async function quickCreate(db: D1Database, contentDb: D1Database, actor: 
   if (actor.manager && !await assignableOwner(db, contentDb, actor, owner)) errors.add("owner_id", "invalid");
   errors.throwIfAny();
   if (phoneNorm && await phoneSuppressed(db, phoneNorm)) fail("phone", "suppressed");
+  // A company the person can already see should be picked, not created twice.
+  // Only visible companies are checked, so nobody learns about others' records.
+  if (form.get("allow_duplicate") !== "1") {
+    const visible = accountScope(actor);
+    if (await db.prepare(`SELECT 1 FROM crm_accounts a WHERE a.name = ? COLLATE NOCASE AND ${visible.sql} LIMIT 1`).bind(input.account_name, ...visible.args).first()) fail("account_name", "exists");
+  }
 
   const now = nowIso();
   const accountId = newId("acc");
@@ -135,7 +142,7 @@ export async function quickCreate(db: D1Database, contentDb: D1Database, actor: 
       .bind(contactId, accountId, input.contact_name, input.contact_role, input.email, input.phone, phoneNorm, owner, actor.id, now, now),
     db.prepare(`INSERT INTO crm_opportunities (id, account_id, primary_contact_id, title, playbook_id, stage_id, outcome, owner_id, seller_id, created_by, source_channel, source_detail, referrer, relation, fields, next_action, next_action_due, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, 'open', ?, ?, ?, ?, ?, ?, 'new', ?, ?, ?, ?, ?)`)
-      .bind(id, accountId, contactId, input.account_name, playbook!.id, firstStage, owner, owner, actor.id, input.source_channel, input.source_detail, input.referrer,
+      .bind(id, accountId, contactId, input.title || input.account_name, playbook!.id, firstStage, owner, owner, actor.id, input.source_channel, input.source_detail, input.referrer,
         JSON.stringify(Object.fromEntries(Object.entries({ industry: input.industry, location: input.region }).filter(([key, value]) => value && playbook!.def.fields.some((field) => field.key === key)))),
         input.next_action, input.next_action_due || null, now, now),
     db.prepare("INSERT INTO crm_stage_history (id, opportunity_id, playbook_id, from_stage, to_stage, actor_id, created_at) VALUES (?, ?, ?, NULL, ?, ?, ?)").bind(newId("stg"), id, playbook!.id, firstStage, actor.id, now),

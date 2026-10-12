@@ -90,3 +90,28 @@ test("a contact who asked not to be contacted cannot be given a new opportunity"
   assert.equal((await S.manager.post(`/crm/accounts/${ids.account}`, { intent: "dnc", contact_id: ids.minh, do_not_contact: "1", dnc_reason: "TEST asked by phone" })).status, 303);
   assert.equal((await S.manager.post(`/crm/accounts/${ids.account}`, { intent: "opportunity", contact_id: ids.minh, playbook_key: "local-preview", source_channel: "field_visit", owner_id: S.two.id })).status, 422);
 });
+
+test("the new-opportunity page picks an existing customer, or creates the company and contact", async () => {
+  const company = await S.one.post("/crm/accounts", { intent: "account_create", name: `TEST Spa Hoa ${run}`, contact_name: `TEST Chị Hoa ${run}`, contact_role: "owner" });
+  const accountId = accountFrom(company.location);
+  const [hoa] = contactsOf(accountId);
+  const form = await S.one.get(`/vi/crm/new?contact=${hoa.id}`);
+  assert.match(form.html, new RegExp(`<option value="${hoa.id}" selected`), "a linked contact is preselected");
+  assert.match(form.html, /Khách mới — tạo công ty và người liên hệ bên dưới/);
+  assert.ok(!(await S.two.get("/crm/new")).html.includes(hoa.id), "others' customers are not offered");
+  const companiesBefore = jobs("SELECT COUNT(*) AS n FROM crm_accounts")[0].n;
+  const picked = await S.one.post("/crm/new", { intent: "create", playbook_key: "local-preview", source_channel: "phone", contact_id: hoa.id, account_name: "ignored", contact_name: "ignored", source_detail: "TEST called back" });
+  assert.equal(picked.status, 303);
+  const opp = jobs(`SELECT account_id, primary_contact_id, owner_id, title, source_detail FROM crm_opportunities WHERE id = ${q(idFrom(picked.location))}`)[0];
+  assert.deepEqual(opp, { account_id: accountId, primary_contact_id: hoa.id, owner_id: S.one.id, title: `TEST Spa Hoa ${run}`, source_detail: "TEST called back" });
+  assert.equal(jobs("SELECT COUNT(*) AS n FROM crm_accounts")[0].n, companiesBefore, "no company is created when one is picked");
+  assert.equal((await S.two.post("/crm/new", { intent: "create", playbook_key: "local-preview", source_channel: "phone", contact_id: hoa.id })).status, 422, "nobody opens deals on contacts they cannot see");
+  const duplicate = await S.one.post("/crm/new", { intent: "create", playbook_key: "local-preview", source_channel: "field_visit", account_name: `test spa hoa ${run}`, contact_name: "TEST Anh Nam" });
+  assert.equal(duplicate.status, 422, "an existing company name is caught");
+  assert.match(duplicate.html, /name="allow_duplicate"/);
+  const branch = await S.one.post("/crm/new", { intent: "create", playbook_key: "local-preview", source_channel: "field_visit", account_name: `test spa hoa ${run}`, contact_name: "TEST Anh Nam", allow_duplicate: "1", title: "TEST branch two" });
+  assert.equal(branch.status, 303, "a deliberate second company is allowed");
+  const created = jobs(`SELECT o.title, a.owner_id, c.name FROM crm_opportunities o JOIN crm_accounts a ON a.id = o.account_id JOIN crm_contacts c ON c.id = o.primary_contact_id WHERE o.id = ${q(idFrom(branch.location))}`)[0];
+  assert.deepEqual(created, { title: "TEST branch two", owner_id: S.one.id, name: "TEST Anh Nam" }, "a new customer creates its company and contact");
+  assert.equal((await S.two.post("/crm/new", { intent: "create", playbook_key: "local-preview", source_channel: "field_visit", account_name: `TEST Spa Hoa ${run}`, contact_name: "TEST x" })).status, 303, "names of companies you cannot see are not revealed");
+});
