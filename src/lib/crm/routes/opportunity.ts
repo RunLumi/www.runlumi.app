@@ -12,9 +12,10 @@ import { type CreditDecision, type LedgerSummary, type PaymentState, paymentStat
 import { type Ctx, type FormState, context, emptyState, handlePost, notFound } from "../page";
 import { type Playbook, type TransitionCheck, checkTransition } from "../playbook";
 import {
-  type Access, type Contact, type Opportunity, accountContacts, addNote, assignOwner, changePlaybook, createLinked, loadOpportunity, moveStage, moveToAccount,
-  recentEvents, relatedOpportunities, requireEdit, saveDetails, saveFields, transitionContext,
+  type Access, type Contact, type Opportunity, addNote, assignOwner, changePlaybook, createLinked, loadOpportunity, moveStage, moveToAccount,
+  recentEvents, relatedOpportunities, requireEdit, saveDetails, saveFields, setPrimaryContact, transitionContext,
 } from "../records";
+import { visibleContacts } from "../directory";
 import { type CostRow, type Task, createTask, logCost, opportunityCosts, opportunityTasks, updateTask } from "../tasks";
 
 export interface OppProps {
@@ -52,6 +53,7 @@ export async function opportunityRoute(astro: AstroGlobal, lang: Lang): Promise<
     fields: async (form) => { await saveFields(ctx.db, ctx.actor, edit(), playbook, form); return `${here}#discovery`; },
     stage: async (form) => { await moveStage(ctx.db, ctx.actor, edit(), playbook, form); return `${here}#stage`; },
     assign: async (form) => { await assignOwner(ctx.db, ctx.contentDb, ctx.actor, opportunity, form); return here; },
+    primary_contact: async (form) => { await setPrimaryContact(ctx.db, ctx.actor, edit(), form); return `${here}#contacts`; },
     note: async (form) => { await addNote(ctx.db, ctx.actor, edit(), form); return `${here}#activity`; },
     task_create: async (form) => { await createTask(ctx.db, ctx.actor, edit(), form); return `${here}#tasks`; },
     task_update: async (form) => { await updateTask(ctx.db, ctx.actor, edit(), form); return `${here}#tasks`; },
@@ -79,7 +81,7 @@ export async function opportunityRoute(astro: AstroGlobal, lang: Lang): Promise<
   const full = access.canEdit;
   const [quotes, ledger, fulfillment, tasks, costs, contacts, related, events, context2, offers] = await Promise.all([
     quotesNow(), opportunityLedger(ctx.db, opportunity.id), getFulfillment(ctx.db, opportunity.id), full ? opportunityTasks(ctx.db, opportunity.id) : [],
-    full ? opportunityCosts(ctx.db, opportunity.id) : [], accountContacts(ctx.db, opportunity.account_id), relatedOpportunities(ctx.db, ctx.actor, opportunity),
+    full ? opportunityCosts(ctx.db, opportunity.id) : [], visibleContacts(ctx.db, ctx.actor, opportunity.account_id), relatedOpportunities(ctx.db, ctx.actor, opportunity),
     full ? recentEvents(ctx.db, opportunity.id) : [], transitionContext(ctx.db, opportunity), offersForPlaybook(ctx.db, playbook),
   ]);
   const transitions = Object.fromEntries(playbook.def.stages.filter((stage) => stage.id !== opportunity.stage_id).map((stage) => [stage.id, checkTransition(playbook.def, opportunity.stage_id, stage.id, context2)]));

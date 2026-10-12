@@ -1,6 +1,6 @@
 // Accounts, contacts and opportunities. Every query that returns a record is
 // scoped by access.ts; a record outside the scope is reported as not found.
-import { type CrmActor, opportunityScope, readableScope, assignableOwner } from "./access";
+import { type CrmActor, assignableOwner, contactScope, opportunityScope, readableScope } from "./access";
 import { getPlaybook, latestPlaybooks } from "./config";
 import {
   ConflictError, Errors, ForbiddenError, NotFoundError, ValidationError, emailPattern, eventStatement, fail, newId, normalizePhone, nowIso, once, onceGuarded,
@@ -27,12 +27,13 @@ export interface Opportunity {
 }
 export interface Account {
   id: string; name: string; industry: string; region: string; address: string; phone_norm: string; do_not_contact: number;
-  dnc_reason: string; notes: string; version: number; created_at: string; updated_at: string;
+  dnc_reason: string; notes: string; owner_id: string | null; version: number; created_at: string; updated_at: string;
 }
 export interface Contact {
   id: string; account_id: string; name: string; role: typeof contactRoles[number]; email: string; phone: string; zalo: string;
   contact_basis: string; preferred_channel: string; consent_status: "unknown" | "granted" | "refused" | "withdrawn";
-  consent_evidence: string; do_not_contact: number; dnc_reason: string; dnc_recorded_at: string | null; version: number;
+  consent_evidence: string; do_not_contact: number; dnc_reason: string; dnc_recorded_at: string | null; owner_id: string | null; version: number;
+  created_at: string;
 }
 
 const OPP_SELECT = "SELECT o.*, a.name AS account_name, a.industry, a.region, a.do_not_contact AS account_dnc FROM crm_opportunities o JOIN crm_accounts a ON a.id = o.account_id";
@@ -110,7 +111,8 @@ export async function quickCreate(db: D1Database, contentDb: D1Database, actor: 
   if (input.email && !emailPattern.test(input.email)) errors.add("email", "invalid");
   const phoneNorm = normalizePhone(input.phone);
   if (input.phone && (phoneNorm.length < 8 || phoneNorm.length > 15)) errors.add("phone", "invalid");
-  if ((input.phone || input.email) && !input.contact_name) errors.add("contact_name", "required");
+  // Every opportunity names one company and one contact at that company.
+  if (!input.contact_name) errors.add("contact_name", "required");
   if (!sourceChannels.includes(input.source_channel)) errors.add("source_channel", "invalid");
   if (!contactRoles.includes(input.contact_role as typeof contactRoles[number])) errors.add("contact_role", "invalid");
   if (input.next_action_due && !isIsoDate(input.next_action_due)) errors.add("next_action_due", "invalid");
@@ -123,14 +125,14 @@ export async function quickCreate(db: D1Database, contentDb: D1Database, actor: 
 
   const now = nowIso();
   const accountId = newId("acc");
-  const contactId = input.contact_name ? newId("con") : null;
+  const contactId = newId("con");
   const id = newId("opp");
   const firstStage = playbook!.def.stages[0].id;
   const statements = [
-    db.prepare("INSERT INTO crm_accounts (id, name, industry, region, phone_norm, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
-      .bind(accountId, input.account_name, input.industry, input.region, phoneNorm, actor.id, now, now),
-    ...(contactId ? [db.prepare("INSERT INTO crm_contacts (id, account_id, name, role, email, phone, phone_norm, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-      .bind(contactId, accountId, input.contact_name, input.contact_role, input.email, input.phone, phoneNorm, actor.id, now, now)] : []),
+    db.prepare("INSERT INTO crm_accounts (id, name, industry, region, phone_norm, owner_id, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+      .bind(accountId, input.account_name, input.industry, input.region, phoneNorm, owner, actor.id, now, now),
+    db.prepare("INSERT INTO crm_contacts (id, account_id, name, role, email, phone, phone_norm, owner_id, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+      .bind(contactId, accountId, input.contact_name, input.contact_role, input.email, input.phone, phoneNorm, owner, actor.id, now, now),
     db.prepare(`INSERT INTO crm_opportunities (id, account_id, primary_contact_id, title, playbook_id, stage_id, outcome, owner_id, seller_id, created_by, source_channel, source_detail, referrer, relation, fields, next_action, next_action_due, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, 'open', ?, ?, ?, ?, ?, ?, 'new', ?, ?, ?, ?, ?)`)
       .bind(id, accountId, contactId, input.account_name, playbook!.id, firstStage, owner, owner, actor.id, input.source_channel, input.source_detail, input.referrer,
@@ -246,10 +248,28 @@ export async function assignOwner(db: D1Database, contentDb: D1Database, actor: 
   const result = await onceGuarded(db, actor, requestKey(form), "assign", opportunity.id, guard, [
     eventStatement(db, actor, "assigned", { from: opportunity.owner_id, to: ownerId }, { opportunityId: opportunity.id, accountId: opportunity.account_id }, guard),
     db.prepare(`UPDATE crm_inbound SET status = 'assigned', handled_by = ?, handled_at = ? WHERE opportunity_id = ? AND status = 'queued' AND ${guard.sql}`).bind(actor.id, now, opportunity.id, ...guard.args),
+    // A company or contact nobody manages yet (website enquiry, referral) goes to the new owner.
+    db.prepare(`UPDATE crm_accounts SET owner_id = ?, updated_at = ? WHERE id = ? AND owner_id IS NULL AND ${guard.sql}`).bind(ownerId, now, opportunity.account_id, ...guard.args),
+    db.prepare(`UPDATE crm_contacts SET owner_id = ?, updated_at = ? WHERE id = ? AND owner_id IS NULL AND ${guard.sql}`).bind(ownerId, now, opportunity.primary_contact_id ?? "", ...guard.args),
     // seller_id is filled only if attribution was never recorded (inbound queue).
     // The versioned update runs last so earlier guarded statements still match.
     db.prepare("UPDATE crm_opportunities SET owner_id = ?, seller_id = COALESCE(seller_id, ?), version = version + 1, updated_at = ? WHERE id = ? AND version = ?")
       .bind(ownerId, ownerId, now, opportunity.id, version),
+  ]);
+  if (!result.changed) throw new ConflictError();
+}
+
+/** Names which of the company's contacts this opportunity is with. */
+export async function setPrimaryContact(db: D1Database, actor: CrmActor, opportunity: Opportunity, form: FormData): Promise<void> {
+  const version = parseVersion(form);
+  const contactId = typeof form.get("contact_id") === "string" ? String(form.get("contact_id")) : "";
+  const visible = contactScope(actor);
+  const contact = await db.prepare(`SELECT c.id FROM crm_contacts c WHERE c.id = ? AND c.account_id = ? AND ${visible.sql}`).bind(contactId, opportunity.account_id, ...visible.args).first<{ id: string }>();
+  if (!contact) fail("contact_id", "invalid");
+  const guard = guardFor(opportunity, version, actor);
+  const result = await onceGuarded(db, actor, requestKey(form), "primary_contact", opportunity.id, guard, [
+    eventStatement(db, actor, "primary_contact", { from: opportunity.primary_contact_id, to: contactId }, { opportunityId: opportunity.id, accountId: opportunity.account_id }, guard),
+    db.prepare("UPDATE crm_opportunities SET primary_contact_id = ?, version = version + 1, updated_at = ? WHERE id = ? AND version = ?").bind(contactId, nowIso(), opportunity.id, version),
   ]);
   if (!result.changed) throw new ConflictError();
 }
@@ -336,109 +356,10 @@ export async function changePlaybook(db: D1Database, actor: CrmActor, opportunit
   if (!result.changed) throw new ConflictError();
 }
 
-export async function loadAccount(db: D1Database, actor: CrmActor, id: string): Promise<Account> {
-  const scope = readableScope(actor, "ox");
-  const row = await db.prepare(`SELECT a.* FROM crm_accounts a WHERE a.id = ? AND ${actor.manager ? "1 = 1" : `EXISTS (SELECT 1 FROM crm_opportunities ox WHERE ox.account_id = a.id AND ${scope.sql})`}`)
-    .bind(id, ...(actor.manager ? [] : scope.args)).first<Account>();
-  if (!row) throw new NotFoundError();
-  return row;
-}
-
-export async function accountContacts(db: D1Database, accountId: string): Promise<Contact[]> {
-  return (await db.prepare("SELECT * FROM crm_contacts WHERE account_id = ? ORDER BY created_at LIMIT 100").bind(accountId).all<Contact>()).results;
-}
-
 /** Opportunities on an account the actor may read. Others' records stay hidden. */
 export async function accountOpportunities(db: D1Database, actor: CrmActor, accountId: string): Promise<Opportunity[]> {
   const scope = readableScope(actor);
   return (await db.prepare(`${OPP_SELECT} WHERE o.account_id = ? AND ${scope.sql} ORDER BY o.created_at LIMIT 100`).bind(accountId, ...scope.args).all<Opportunity>()).results;
-}
-
-export async function canEditAccount(db: D1Database, actor: CrmActor, accountId: string): Promise<boolean> {
-  if (actor.manager) return true;
-  return !!await db.prepare("SELECT 1 FROM crm_opportunities WHERE account_id = ? AND owner_id = ? LIMIT 1").bind(accountId, actor.id).first();
-}
-
-export async function saveContact(db: D1Database, actor: CrmActor, accountId: string, form: FormData): Promise<void> {
-  if (!await canEditAccount(db, actor, accountId)) throw new ForbiddenError();
-  const errors = new Errors();
-  const contactId = errors.text(form, "contact_id", 60);
-  const name = errors.text(form, "name", 160, true);
-  const role = errors.text(form, "role", 20) || "other";
-  const email = errors.text(form, "email", 254);
-  const phone = errors.text(form, "phone", 40);
-  const zalo = errors.text(form, "zalo", 80);
-  const contact_basis = errors.text(form, "contact_basis", 500);
-  const preferred_channel = errors.text(form, "preferred_channel", 20);
-  const consent_status = errors.text(form, "consent_status", 20) || "unknown";
-  const consent_evidence = errors.text(form, "consent_evidence", 500);
-  if (!contactRoles.includes(role as typeof contactRoles[number])) errors.add("role", "invalid");
-  if (email && !emailPattern.test(email)) errors.add("email", "invalid");
-  const phoneNorm = normalizePhone(phone);
-  if (phone && (phoneNorm.length < 8 || phoneNorm.length > 15)) errors.add("phone", "invalid");
-  if (!contactChannels.includes(preferred_channel as typeof contactChannels[number])) errors.add("preferred_channel", "invalid");
-  if (!["unknown", "granted", "refused", "withdrawn"].includes(consent_status)) errors.add("consent_status", "invalid");
-  if (consent_status === "granted" && !consent_evidence) errors.add("consent_evidence", "required");
-  errors.throwIfAny();
-  const now = nowIso();
-  const target = { accountId };
-  if (!contactId) {
-    const id = newId("con");
-    await once(db, actor, requestKey(form), "contact_add", id, [
-      db.prepare("INSERT INTO crm_contacts (id, account_id, name, role, email, phone, phone_norm, zalo, contact_basis, preferred_channel, consent_status, consent_evidence, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-        .bind(id, accountId, name, role, email, phone, phoneNorm, zalo, contact_basis, preferred_channel, consent_status, consent_evidence, actor.id, now, now),
-      eventStatement(db, actor, "contact_added", { contact_id: id, role }, target),
-    ]);
-    return;
-  }
-  const version = parseVersion(form);
-  // Withdrawn or refused consent also stops contact; it cannot be lifted here.
-  const dnc = consent_status === "withdrawn" || consent_status === "refused";
-  const guard = { sql: "EXISTS (SELECT 1 FROM crm_contacts WHERE id = ? AND account_id = ? AND version = ?)", args: [contactId, accountId, version] };
-  const result = await onceGuarded(db, actor, requestKey(form), "contact_edit", contactId, guard, [
-    eventStatement(db, actor, "contact_updated", { contact_id: contactId, consent_status }, target, guard),
-    db.prepare(`UPDATE crm_contacts SET name = ?, role = ?, email = ?, phone = ?, phone_norm = ?, zalo = ?, contact_basis = ?, preferred_channel = ?, consent_status = ?, consent_evidence = ?,
-      do_not_contact = CASE WHEN ? = 1 THEN 1 ELSE do_not_contact END, dnc_reason = CASE WHEN ? = 1 AND do_not_contact = 0 THEN 'consent ' || ? ELSE dnc_reason END,
-      dnc_recorded_by = CASE WHEN ? = 1 AND do_not_contact = 0 THEN ? ELSE dnc_recorded_by END, dnc_recorded_at = CASE WHEN ? = 1 AND do_not_contact = 0 THEN ? ELSE dnc_recorded_at END,
-      version = version + 1, updated_at = ? WHERE id = ? AND account_id = ? AND version = ?`)
-      .bind(name, role, email, phone, phoneNorm, zalo, contact_basis, preferred_channel, consent_status, consent_evidence, dnc ? 1 : 0, dnc ? 1 : 0, consent_status, dnc ? 1 : 0, actor.id, dnc ? 1 : 0, now, now, contactId, accountId, version),
-  ]);
-  if (!result.changed) throw new ConflictError();
-}
-
-/** Anyone working the account can stop contact; only an admin can lift it, with evidence. */
-export async function setDoNotContact(db: D1Database, actor: CrmActor, accountId: string, form: FormData): Promise<void> {
-  if (!await canEditAccount(db, actor, accountId)) throw new ForbiddenError();
-  const errors = new Errors();
-  const contactId = errors.text(form, "contact_id", 60);
-  const value = form.get("do_not_contact") === "1";
-  const reason = errors.text(form, "dnc_reason", 500, true);
-  errors.throwIfAny();
-  if (!value && !actor.configure) throw new ForbiddenError();
-  const now = nowIso();
-  const statements = contactId
-    ? [db.prepare("UPDATE crm_contacts SET do_not_contact = ?, dnc_reason = ?, dnc_recorded_by = ?, dnc_recorded_at = ?, version = version + 1, updated_at = ? WHERE id = ? AND account_id = ?").bind(value ? 1 : 0, reason, actor.id, now, now, contactId, accountId)]
-    : [db.prepare("UPDATE crm_accounts SET do_not_contact = ?, dnc_reason = ?, version = version + 1, updated_at = ? WHERE id = ?").bind(value ? 1 : 0, reason, now, accountId)];
-  await once(db, actor, requestKey(form), "dnc", accountId, [...statements, eventStatement(db, actor, value ? "do_not_contact_set" : "do_not_contact_lifted", { contact_id: contactId || null, reason }, { accountId })]);
-}
-
-export async function saveAccount(db: D1Database, actor: CrmActor, account: Account, form: FormData): Promise<void> {
-  if (!await canEditAccount(db, actor, account.id)) throw new ForbiddenError();
-  const version = parseVersion(form);
-  const errors = new Errors();
-  const name = errors.text(form, "name", 160, true);
-  const industry = errors.text(form, "industry", 120);
-  const region = errors.text(form, "region", 120);
-  const address = errors.text(form, "address", 300);
-  const notes = errors.text(form, "notes", 3000);
-  errors.throwIfAny();
-  const guard = { sql: "EXISTS (SELECT 1 FROM crm_accounts WHERE id = ? AND version = ?)", args: [account.id, version] };
-  const result = await onceGuarded(db, actor, requestKey(form), "account", account.id, guard, [
-    eventStatement(db, actor, "account_updated", { from: { name: account.name, industry: account.industry, region: account.region }, to: { name, industry, region } }, { accountId: account.id }, guard),
-    db.prepare("UPDATE crm_accounts SET name = ?, industry = ?, region = ?, address = ?, notes = ?, version = version + 1, updated_at = ? WHERE id = ? AND version = ?")
-      .bind(name, industry, region, address, notes, nowIso(), account.id, version),
-  ]);
-  if (!result.changed) throw new ConflictError();
 }
 
 /** Admin-only merge of a duplicate: moves one opportunity to another existing account. */
@@ -455,13 +376,6 @@ export async function moveToAccount(db: D1Database, actor: CrmActor, opportunity
     db.prepare("UPDATE crm_opportunities SET account_id = ?, primary_contact_id = NULL, version = version + 1, updated_at = ? WHERE id = ? AND version = ?").bind(targetId, now, opportunity.id, version),
   ]);
   if (!result.changed) throw new ConflictError();
-}
-
-/** Admin view: accounts that share a phone number or name with this one. */
-export async function possibleDuplicates(db: D1Database, account: Account): Promise<Pick<Account, "id" | "name" | "region">[]> {
-  return (await db.prepare(
-    "SELECT id, name, region FROM crm_accounts WHERE id != ? AND ((phone_norm != '' AND phone_norm = ?) OR (name = ? COLLATE NOCASE)) LIMIT 10",
-  ).bind(account.id, account.phone_norm, account.name).all<Pick<Account, "id" | "name" | "region">>()).results;
 }
 
 export interface Filters { playbook: string; stage: string; owner: string; channel: string; cohort: string; industry: string; region: string; offer: string; outcome: string; q: string }

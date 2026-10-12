@@ -14,7 +14,7 @@ const ids = {};
 const intakeSecret = process.env.CRM_INTAKE_SECRET ?? "local-test-secret-not-for-production-0123456789";
 
 async function create(session, fields) {
-  const response = await session.post("/crm/new", { intent: "create", source_channel: "field_visit", contact_role: "owner", ...fields });
+  const response = await session.post("/crm/new", { intent: "create", source_channel: "field_visit", contact_role: "owner", contact_name: "TEST Contact", ...fields });
   assert.equal(response.status, 303, `create failed: ${response.status} ${response.html.slice(0, 300)}`);
   return idFrom(response.location);
 }

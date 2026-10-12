@@ -1,0 +1,62 @@
+---
+import CrmShell from "../../layouts/CrmShell.astro";
+import DirectoryTools from "./DirectoryTools.astro";
+import Field from "./Field.astro";
+import FormNotices from "./FormNotices.astro";
+import Hidden from "./Hidden.astro";
+import { options } from "../../lib/crm/i18n";
+import { errorFor, valueFor } from "../../lib/crm/page";
+import type { CompaniesProps } from "../../lib/crm/routes/directory";
+
+type Props = CompaniesProps;
+const { ctx, state, filters, rows, total, page, pages, owners, names } = Astro.props;
+const { lang, vi, base, actor } = ctx;
+const v = (name: string, fallback = "") => valueFor(state, "account_create", name, fallback);
+const e = (name: string) => errorFor(state, "account_create", name);
+const manager = (id: string | null) => id ? (names[id]?.name ?? (id === actor.id ? actor.name : (vi ? "Tài khoản không hoạt động" : "Inactive account"))) : (vi ? "Chưa có người quản lý" : "Nobody yet");
+const fieldLabels: Record<string, string> = vi
+  ? { name: "Tên công ty", owner_id: "Người quản lý", contact_name: "Người liên hệ", contact_phone: "Điện thoại", contact_email: "Email", contact_consent_evidence: "Bằng chứng đồng ý" }
+  : { name: "Company name", owner_id: "Managed by", contact_name: "Contact", contact_phone: "Phone", contact_email: "Email", contact_consent_evidence: "Consent evidence" };
+---
+<CrmShell title={vi ? "Công ty" : "Companies"} lang={lang} actor={actor} current="companies">
+  <div class="crm-head"><div>
+    <p class="crm-eyebrow">{vi ? "Công ty" : "Companies"}</p>
+    <h1 class="crm-h1">{vi ? "Công ty và người phụ trách." : "Companies and who manages them."}</h1>
+    <p class="crm-lede">{actor.manager
+      ? (vi ? `${total} công ty. Bạn thấy toàn bộ công ty của đội.` : `${total} companies. You see every company on the team.`)
+      : (vi ? `${total} công ty bạn quản lý hoặc đang có cơ hội.` : `${total} companies you manage or have opportunities with.`)}</p>
+  </div><a class="crm-button secondary" href={`${base}/contacts`}>{vi ? "Người liên hệ" : "Contacts"}</a></div>
+  <FormNotices state={state} lang={lang} fieldLabels={fieldLabels} />
+  <div class="crm-grid two">
+    <div>
+      <DirectoryTools vi={vi} manager={actor.manager} filters={filters} owners={owners} page={page} pages={pages} position="top" searchLabel={vi ? "Tìm theo tên, ngành, khu vực" : "Search name, industry, area"} />
+      <section class="crm-sheet" aria-label={vi ? "Danh sách công ty" : "Company list"} style="margin-top:18px">
+        {rows.length ? <ul class="crm-list">{rows.map((row) => <li class="crm-row">
+          <a class="crm-row-title" href={`${base}/accounts/${row.id}`}>{row.name}</a>
+          <span class="crm-row-side">{row.do_not_contact ? <span class="crm-badge red">{vi ? "Không liên hệ" : "Do not contact"}</span> : null}<span class="crm-badge">{vi ? `${row.contacts} liên hệ` : `${row.contacts} contacts`}</span><span class:list={["crm-badge", row.open_opportunities ? "blue" : ""]}>{vi ? `${row.open_opportunities} cơ hội mở` : `${row.open_opportunities} open`}</span></span>
+          <span class="crm-row-meta">{[row.industry, row.region].filter(Boolean).length > 0 && <span>{[row.industry, row.region].filter(Boolean).join(" · ")}</span>}<span>{vi ? "Quản lý" : "Managed by"}: {manager(row.owner_id)}</span></span>
+        </li>)}</ul> : <p class="crm-empty">{filters.q || filters.owner ? (vi ? "Không có công ty khớp bộ lọc." : "No companies match these filters.") : (vi ? "Chưa có công ty nào. Tạo công ty đầu tiên ở bên cạnh." : "No companies yet. Add the first one alongside.")}</p>}
+        <DirectoryTools vi={vi} manager={actor.manager} filters={filters} owners={owners} page={page} pages={pages} position="bottom" searchLabel="" />
+      </section>
+    </div>
+    <aside class="crm-sheet" id="new-company" aria-labelledby="new-company-h">
+      <h2 class="crm-h2" id="new-company-h">{vi ? "Thêm công ty" : "Add a company"}</h2>
+      <p class="crm-help">{vi ? "Tạo công ty và người liên hệ trước; mở cơ hội và giao cho người bán sau, trên trang công ty." : "Add the company and its contacts first; open an opportunity and assign it later, on the company page."}</p>
+      <form class="crm-form" method="post" action="#new-company">
+        <Hidden intent="account_create" state={state} />
+        <Field name="name" label={fieldLabels.name} lang={lang} value={v("name")} error={e("name")} required maxlength={160} autocomplete="organization" />
+        <Field name="industry" label={vi ? "Ngành" : "Industry"} lang={lang} value={v("industry")} maxlength={120} />
+        <Field name="region" label={vi ? "Khu vực" : "Area"} lang={lang} value={v("region")} maxlength={120} />
+        <Field name="address" label={vi ? "Địa chỉ" : "Address"} lang={lang} value={v("address")} maxlength={300} />
+        {actor.manager && <Field name="owner_id" type="select" label={fieldLabels.owner_id} lang={lang} value={v("owner_id", actor.id)} error={e("owner_id")} options={owners.map((owner) => ({ value: owner.id, label: owner.label }))} />}
+        <fieldset class="crm-fieldset"><legend>{vi ? "Người liên hệ đầu tiên (không bắt buộc)" : "First contact (optional)"}</legend>
+          <Field name="contact_name" label={fieldLabels.contact_name} lang={lang} value={v("contact_name")} error={e("contact_name")} maxlength={160} autocomplete="off" />
+          <Field name="contact_role" type="select" label={vi ? "Vai trò" : "Role"} lang={lang} value={v("contact_role", "owner")} error={e("contact_role")} options={options(lang, "role")} />
+          <Field name="contact_phone" type="tel" label={fieldLabels.contact_phone} lang={lang} value={v("contact_phone")} error={e("contact_phone")} maxlength={40} inputmode="tel" autocomplete="off" />
+          <Field name="contact_email" type="email" label="Email" lang={lang} value={v("contact_email")} error={e("contact_email")} maxlength={254} autocomplete="off" />
+        </fieldset>
+        <div class="crm-actions"><button class="crm-button" type="submit">{vi ? "Tạo công ty" : "Create company"}</button></div>
+      </form>
+    </aside>
+  </div>
+</CrmShell>

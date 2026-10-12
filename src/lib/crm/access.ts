@@ -50,11 +50,47 @@ export function readableScope(actor: CrmActor, alias = "o"): SqlScope {
   return { sql: `(${parts.join(" OR ")})`, args: [actor.id] };
 }
 
-/** Accounts are visible only through an opportunity the person may read. */
+/**
+ * Companies a person may see: every one for the team; otherwise the companies
+ * they manage, companies where they manage a contact, and companies of
+ * opportunities they may read.
+ */
 export function accountScope(actor: CrmActor, alias = "a"): SqlScope {
   if (actor.manager) return { sql: "1 = 1", args: [] };
   const readable = readableScope(actor, "ox");
-  return { sql: `EXISTS (SELECT 1 FROM crm_opportunities ox WHERE ox.account_id = ${alias}.id AND ${readable.sql})`, args: readable.args };
+  return {
+    sql: `(${alias}.owner_id = ? OR EXISTS (SELECT 1 FROM crm_contacts cx WHERE cx.account_id = ${alias}.id AND cx.owner_id = ?) OR EXISTS (SELECT 1 FROM crm_opportunities ox WHERE ox.account_id = ${alias}.id AND ${readable.sql}))`,
+    args: [actor.id, actor.id, ...readable.args],
+  };
+}
+
+/** Companies a person may work on: the team, the company's manager, or an owner of one of its opportunities. */
+export function accountEditScope(actor: CrmActor, alias = "a"): SqlScope {
+  if (actor.manager) return { sql: "1 = 1", args: [] };
+  return { sql: `(${alias}.owner_id = ? OR EXISTS (SELECT 1 FROM crm_opportunities oe WHERE oe.account_id = ${alias}.id AND oe.owner_id = ?))`, args: [actor.id, actor.id] };
+}
+
+/**
+ * Contacts a person may see: every one for the team; otherwise contacts they
+ * manage, contacts of companies they manage, and the contact named on an
+ * opportunity they may read. Other people's contacts stay hidden.
+ */
+export function contactScope(actor: CrmActor, alias = "c"): SqlScope {
+  if (actor.manager) return { sql: "1 = 1", args: [] };
+  const readable = readableScope(actor, "oc");
+  return {
+    sql: `(${alias}.owner_id = ? OR EXISTS (SELECT 1 FROM crm_accounts ac WHERE ac.id = ${alias}.account_id AND ac.owner_id = ?) OR EXISTS (SELECT 1 FROM crm_opportunities oc WHERE oc.primary_contact_id = ${alias}.id AND ${readable.sql}))`,
+    args: [actor.id, actor.id, ...readable.args],
+  };
+}
+
+/** Contacts a person may edit: as above, but through opportunities they own rather than merely read. */
+export function contactEditScope(actor: CrmActor, alias = "c"): SqlScope {
+  if (actor.manager) return { sql: "1 = 1", args: [] };
+  return {
+    sql: `(${alias}.owner_id = ? OR EXISTS (SELECT 1 FROM crm_accounts ae WHERE ae.id = ${alias}.account_id AND ae.owner_id = ?) OR EXISTS (SELECT 1 FROM crm_opportunities oe WHERE oe.primary_contact_id = ${alias}.id AND oe.owner_id = ?))`,
+    args: [actor.id, actor.id, actor.id],
+  };
 }
 
 /** Roles that can own opportunities. */
