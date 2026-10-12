@@ -66,12 +66,18 @@ const minutes = costs.reduce((sum, cost) => sum + (cost.minutes ?? 0), 0);
     </form>}
   </section>
 
-  <section class="crm-sheet" aria-labelledby="contacts-h">
+  <section class="crm-sheet" id="contacts" aria-labelledby="contacts-h">
     <h2 class="crm-h2" id="contacts-h">{vi ? "Người liên hệ" : "Contacts"}</h2>
+    <p class="crm-help">{vi ? "Cơ hội gắn với một người liên hệ chính của doanh nghiệp." : "An opportunity is with one main contact at the business."}</p>
     {opp.account_dnc ? <p class="crm-notice bad">{vi ? "Doanh nghiệp yêu cầu không liên hệ." : "This business asked not to be contacted."}</p> : null}
     {contacts.length ? <ul class="crm-list">{contacts.map((contact) => <li class="crm-row"><span><strong>{contact.name}</strong> · {label(lang, "role", contact.role)}</span>
-      <span class="crm-row-side">{contact.do_not_contact ? <span class="crm-badge red">{vi ? "Không liên hệ" : "Do not contact"}</span> : <span class="crm-badge">{label(lang, "consent", contact.consent_status)}</span>}</span>
+      <span class="crm-row-side">{contact.id === opp.primary_contact_id && <span class="crm-badge blue">{vi ? "Liên hệ chính" : "Main contact"}</span>}{contact.do_not_contact ? <span class="crm-badge red">{vi ? "Không liên hệ" : "Do not contact"}</span> : <span class="crm-badge">{label(lang, "consent", contact.consent_status)}</span>}</span>
       <span class="crm-row-meta">{contact.phone && <span>{contact.phone}</span>}{contact.zalo && <span>Zalo {contact.zalo}</span>}{contact.email && <span>{contact.email}</span>}{contact.preferred_channel && <span>{vi ? "Ưu tiên" : "Prefers"} {label(lang, "contactChannel", contact.preferred_channel)}</span>}</span></li>)}</ul> : <p class="crm-empty">{vi ? "Chưa có người liên hệ." : "No contacts yet."}</p>}
+    {access.canEdit && contacts.length > 0 && <form class="crm-form" method="post" action="#contacts" style="margin-top:12px">
+      <Hidden intent="primary_contact" state={state} version={opp.version} />
+      <Field name="contact_id" id="primary-contact" type="select" label={vi ? "Liên hệ chính" : "Main contact"} lang={lang} value={opp.primary_contact_id ?? ""} error={e("primary_contact", "contact_id")} options={[...(opp.primary_contact_id ? [] : [{ value: "", label: vi ? "Chọn người liên hệ" : "Choose a contact" }]), ...contacts.map((contact) => ({ value: contact.id, label: `${contact.name}${contact.do_not_contact ? (vi ? " — không liên hệ" : " — do not contact") : ""}` }))]} />
+      <div class="crm-actions"><button class="crm-button secondary small" type="submit">{vi ? "Đổi liên hệ chính" : "Change main contact"}</button></div>
+    </form>}
     <a class="crm-link" href={`${base}/accounts/${opp.account_id}#contacts`}>{vi ? "Quản lý người liên hệ và quyền liên hệ" : "Manage contacts and contact permission"}</a>
   </section>
 

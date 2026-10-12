@@ -1,0 +1,82 @@
+---
+import CrmShell from "../../layouts/CrmShell.astro";
+import Field from "./Field.astro";
+import FormNotices from "./FormNotices.astro";
+import Hidden from "./Hidden.astro";
+import { formatDate } from "../../lib/crm/i18n";
+import { errorFor, valueFor } from "../../lib/crm/page";
+import type { ApiToken } from "../../lib/crm/api/tokens";
+import type { ApiTokensProps } from "../../lib/crm/routes/api";
+
+type Props = ApiTokensProps;
+const { ctx, state, tokens, all, names, created, origin, toolList } = Astro.props;
+const { lang, vi, actor } = ctx;
+const v = (name: string, fallback = "") => valueFor(state, "token_create", name, fallback);
+const e = (name: string) => errorFor(state, "token_create", name);
+const now = Date.now();
+const status = (token: ApiToken) => token.revoked_at ? ["red", vi ? "Đã thu hồi" : "Revoked"] : Date.parse(token.expires_at) <= now ? ["amber", vi ? "Hết hạn" : "Expired"] : ["green", vi ? "Đang dùng được" : "Active"];
+const fieldLabels: Record<string, string> = vi ? { name: "Tên token", scope: "Quyền", days: "Thời hạn" } : { name: "Token name", scope: "Scope", days: "Lifetime" };
+const mcpUrl = `${origin}/api/crm/mcp`;
+---
+<CrmShell title={vi ? "API và agent" : "API and agents"} lang={lang} actor={actor} current="api">
+  <div class="crm-head"><div>
+    <p class="crm-eyebrow">{vi ? "API và agent" : "API and agents"}</p>
+    <h1 class="crm-h1">{vi ? "Cho agent AI cập nhật CRM thay bạn." : "Let an AI agent update the CRM for you."}</h1>
+    <p class="crm-lede">{vi
+      ? "Token cá nhân cho REST API và MCP server. Agent hành động với đúng quyền của bạn: chỉ thấy và sửa những gì bạn thấy và sửa được. Không có thanh toán, hoa hồng, bàn giao hay tuyển dụng."
+      : "Personal tokens for the REST API and MCP server. An agent acts with exactly your permissions: it sees and changes only what you can. No payments, commission, fulfillment or hiring."}</p>
+  </div></div>
+  <FormNotices state={state} lang={lang} saved={Astro.url.searchParams.get("saved")} fieldLabels={fieldLabels} />
+  {created && (created.secret
+    ? <section class="crm-notice good" role="status" aria-labelledby="secret-h">
+        <strong id="secret-h">{vi ? "Token mới — sao chép ngay, sẽ không hiện lại." : "New token — copy it now; it will not be shown again."}</strong>
+        <p><code class="crm-secret">{created.secret}</code></p>
+        <p>{vi ? "Lưu trong trình quản lý mật khẩu hoặc biến môi trường. Không dán vào chat, tài liệu hay mã nguồn." : "Keep it in a password manager or an environment variable. Never paste it into chats, documents or source code."}</p>
+      </section>
+    : <div class="crm-notice warn" role="status">{vi ? "Token đã được tạo ở lần gửi trước; không thể hiện lại. Nếu chưa lưu, hãy thu hồi và tạo token mới." : "This token was created by an earlier submission and cannot be shown again. If you did not save it, revoke it and create another."}</div>)}
+  <div class="crm-grid two">
+    <div>
+      <section class="crm-sheet" id="tokens" aria-labelledby="tokens-h">
+        <h2 class="crm-h2" id="tokens-h">{vi ? "Token của bạn" : "Your tokens"}<span class="crm-count">{tokens.length}</span></h2>
+        {tokens.length ? <ul class="crm-list">{tokens.map((token) => <li class="crm-row">
+          <strong>{token.name}</strong>
+          <span class="crm-row-side"><span class:list={["crm-badge", status(token)[0]]}>{status(token)[1]}</span><span class="crm-badge">{token.scope === "write" ? (vi ? "Đọc và ghi" : "Read and write") : (vi ? "Chỉ đọc" : "Read only")}</span></span>
+          <span class="crm-row-meta"><span class="crm-num">{token.prefix}…</span><span>{vi ? "Tạo" : "Created"} {formatDate(token.created_at, lang)}</span><span>{vi ? "Hết hạn" : "Expires"} {formatDate(token.expires_at, lang)}</span><span>{vi ? "Dùng lần cuối" : "Last used"} {token.last_used_at ? formatDate(token.last_used_at, lang) : "—"}</span></span>
+          {!token.revoked_at && <form class="crm-actions" method="post" action="#tokens"><Hidden intent="token_revoke" state={state} /><input type="hidden" name="token_id" value={token.id} /><button class="crm-button small danger" type="submit">{vi ? "Thu hồi" : "Revoke"}</button></form>}
+        </li>)}</ul> : <p class="crm-empty">{vi ? "Bạn chưa có token nào." : "You have no tokens yet."}</p>}
+      </section>
+      <section class="crm-sheet" id="connect" aria-labelledby="connect-h">
+        <h2 class="crm-h2" id="connect-h">{vi ? "Kết nối agent" : "Connect an agent"}</h2>
+        <p>MCP server (Streamable HTTP): <code class="crm-url">{mcpUrl}</code></p>
+        <p class="crm-help">{vi ? "Claude Code — chạy trong terminal, thay token của bạn:" : "Claude Code — run in a terminal with your token:"}</p>
+        <pre class="crm-code"><code>{`claude mcp add --transport http lumi-crm ${mcpUrl} \\\n  --header "Authorization: Bearer $LUMI_CRM_TOKEN"`}</code></pre>
+        <p class="crm-help">{vi ? "REST API:" : "REST API:"}</p>
+        <pre class="crm-code"><code>{`curl -H "Authorization: Bearer $LUMI_CRM_TOKEN" ${origin}/api/crm/v1/companies?q=bakery`}</code></pre>
+        <p class="crm-help">{vi ? "Giới hạn 120 yêu cầu mỗi phút cho mỗi token. Mọi thay đổi qua API đều ghi vào lịch sử với tên bạn và tên token." : "Limit: 120 requests per minute per token. Every change made through the API appears in history with your name and the token's name."}</p>
+        <details class="crm-disclosure"><summary>{vi ? `Công cụ có sẵn (${toolList.length})` : `Available tools (${toolList.length})`}</summary>
+          <ul class="crm-list">{toolList.map((tool) => <li class="crm-row"><span class="crm-num">{tool.name}</span><span class="crm-row-side"><span class="crm-badge">{tool.write ? (vi ? "ghi" : "write") : (vi ? "đọc" : "read")}</span></span><span class="crm-row-meta"><span>{tool.title}</span></span></li>)}</ul>
+        </details>
+      </section>
+      {actor.configure && <section class="crm-sheet" id="all-tokens" aria-labelledby="all-h">
+        <h2 class="crm-h2" id="all-h">{vi ? "Token của người khác (admin)" : "Other people's tokens (admin)"}<span class="crm-count">{all.length}</span></h2>
+        {all.length ? <ul class="crm-list">{all.map((token) => <li class="crm-row">
+          <strong>{names[token.user_id]?.name ?? (vi ? "Tài khoản không hoạt động" : "Inactive account")} · {token.name}</strong>
+          <span class="crm-row-side"><span class:list={["crm-badge", status(token)[0]]}>{status(token)[1]}</span><span class="crm-badge">{token.scope}</span></span>
+          <span class="crm-row-meta"><span class="crm-num">{token.prefix}…</span><span>{vi ? "Hết hạn" : "Expires"} {formatDate(token.expires_at, lang)}</span><span>{vi ? "Dùng lần cuối" : "Last used"} {token.last_used_at ? formatDate(token.last_used_at, lang) : "—"}</span></span>
+          {!token.revoked_at && <form class="crm-actions" method="post" action="#all-tokens"><Hidden intent="token_revoke" state={state} /><input type="hidden" name="token_id" value={token.id} /><button class="crm-button small danger" type="submit">{vi ? "Thu hồi" : "Revoke"}</button></form>}
+        </li>)}</ul> : <p class="crm-empty">{vi ? "Chưa ai khác tạo token." : "Nobody else has a token."}</p>}
+      </section>}
+    </div>
+    <aside class="crm-sheet" id="new-token" aria-labelledby="new-token-h">
+      <h2 class="crm-h2" id="new-token-h">{vi ? "Tạo token" : "Create a token"}</h2>
+      <form class="crm-form" method="post" action="#new-token">
+        <Hidden intent="token_create" state={state} />
+        <Field name="name" label={fieldLabels.name} lang={lang} value={v("name")} error={e("name")} required maxlength={80} help={vi ? "Ví dụ: Claude trên laptop" : "For example: Claude on my laptop"} />
+        <Field name="scope" type="select" label={fieldLabels.scope} lang={lang} value={v("scope", "read")} error={e("scope")} options={[{ value: "read", label: vi ? "Chỉ đọc" : "Read only" }, { value: "write", label: vi ? "Đọc và ghi" : "Read and write" }]} />
+        <Field name="days" type="select" label={fieldLabels.days} lang={lang} value={v("days", "90")} error={e("days")} options={[30, 90, 365].map((days) => ({ value: String(days), label: vi ? `${days} ngày` : `${days} days` }))} />
+        <p class="crm-help">{vi ? "Token ngừng hoạt động ngay khi bị thu hồi, hết hạn, hoặc khi bạn mất quyền CRM." : "A token stops working as soon as it is revoked or expires, or when you lose CRM access."}</p>
+        <div class="crm-actions"><button class="crm-button" type="submit">{vi ? "Tạo token" : "Create token"}</button></div>
+      </form>
+    </aside>
+  </div>
+</CrmShell>

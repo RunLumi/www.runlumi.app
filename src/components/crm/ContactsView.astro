@@ -1,0 +1,61 @@
+---
+import CrmShell from "../../layouts/CrmShell.astro";
+import DirectoryTools from "./DirectoryTools.astro";
+import Field from "./Field.astro";
+import FormNotices from "./FormNotices.astro";
+import Hidden from "./Hidden.astro";
+import { label, options } from "../../lib/crm/i18n";
+import { errorFor, valueFor } from "../../lib/crm/page";
+import type { ContactsProps } from "../../lib/crm/routes/directory";
+
+type Props = ContactsProps;
+const { ctx, state, filters, rows, total, page, pages, owners, names, accounts } = Astro.props;
+const { lang, vi, base, actor } = ctx;
+const v = (name: string, fallback = "") => valueFor(state, "contact_create", name, fallback);
+const e = (name: string) => errorFor(state, "contact_create", name);
+const manager = (id: string | null) => id ? (names[id]?.name ?? (id === actor.id ? actor.name : (vi ? "Tài khoản không hoạt động" : "Inactive account"))) : (vi ? "Chưa có người quản lý" : "Nobody yet");
+const fieldLabels: Record<string, string> = vi
+  ? { account_id: "Công ty", name: "Tên", phone: "Điện thoại", email: "Email", owner_id: "Người quản lý", consent_evidence: "Bằng chứng đồng ý" }
+  : { account_id: "Company", name: "Name", phone: "Phone", email: "Email", owner_id: "Managed by", consent_evidence: "Consent evidence" };
+const requested = Astro.url.searchParams.get("account") ?? "";
+---
+<CrmShell title={vi ? "Người liên hệ" : "Contacts"} lang={lang} actor={actor} current="contacts">
+  <div class="crm-head"><div>
+    <p class="crm-eyebrow">{vi ? "Người liên hệ" : "Contacts"}</p>
+    <h1 class="crm-h1">{vi ? "Người liên hệ ở các công ty." : "People at the companies you work with."}</h1>
+    <p class="crm-lede">{actor.manager
+      ? (vi ? `${total} người liên hệ. Bạn thấy toàn bộ người liên hệ của đội.` : `${total} contacts. You see every contact on the team.`)
+      : (vi ? `${total} người liên hệ bạn quản lý, thuộc công ty bạn quản lý, hoặc gắn với cơ hội của bạn.` : `${total} contacts you manage, at companies you manage, or on your opportunities.`)}</p>
+  </div><a class="crm-button secondary" href={`${base}/accounts`}>{vi ? "Công ty" : "Companies"}</a></div>
+  <FormNotices state={state} lang={lang} fieldLabels={fieldLabels} />
+  <div class="crm-grid two">
+    <div>
+      <DirectoryTools vi={vi} manager={actor.manager} filters={filters} owners={owners} page={page} pages={pages} position="top" searchLabel={vi ? "Tìm theo tên, số điện thoại, email, công ty" : "Search name, phone, email, company"} />
+      <section class="crm-sheet" aria-label={vi ? "Danh sách người liên hệ" : "Contact list"} style="margin-top:18px">
+        {rows.length ? <ul class="crm-list">{rows.map((row) => <li class="crm-row">
+          <a class="crm-row-title" href={`${base}/accounts/${row.account_id}#contacts`}>{row.name}</a>
+          <span class="crm-row-side"><span class="crm-badge">{label(lang, "role", row.role)}</span>{row.do_not_contact || row.account_dnc ? <span class="crm-badge red">{vi ? "Không liên hệ" : "Do not contact"}</span> : <span class="crm-badge">{label(lang, "consent", row.consent_status)}</span>}</span>
+          <span class="crm-row-meta"><span>{row.account_name}</span>{row.phone && <span>{row.phone}</span>}{row.email && <span>{row.email}</span>}<span>{vi ? "Quản lý" : "Managed by"}: {manager(row.owner_id)}</span></span>
+        </li>)}</ul> : <p class="crm-empty">{filters.q || filters.owner ? (vi ? "Không có người liên hệ khớp bộ lọc." : "No contacts match these filters.") : (vi ? "Chưa có người liên hệ nào bạn được xem." : "No contacts you can see yet.")}</p>}
+        <DirectoryTools vi={vi} manager={actor.manager} filters={filters} owners={owners} page={page} pages={pages} position="bottom" searchLabel="" />
+      </section>
+    </div>
+    <aside class="crm-sheet" id="new-contact" aria-labelledby="new-contact-h">
+      <h2 class="crm-h2" id="new-contact-h">{vi ? "Thêm người liên hệ" : "Add a contact"}</h2>
+      {accounts.length ? <form class="crm-form" method="post" action="#new-contact">
+        <Hidden intent="contact_create" state={state} />
+        <Field name="account_id" type="select" label={fieldLabels.account_id} lang={lang} value={v("account_id", requested)} error={e("account_id")} required options={[{ value: "", label: vi ? "Chọn công ty" : "Choose a company" }, ...accounts.map((item) => ({ value: item.id, label: item.region ? `${item.name} — ${item.region}` : item.name }))]} />
+        <Field name="name" label={fieldLabels.name} lang={lang} value={v("name")} error={e("name")} required maxlength={160} autocomplete="off" />
+        <Field name="role" type="select" label={vi ? "Vai trò" : "Role"} lang={lang} value={v("role", "decision_maker")} error={e("role")} options={options(lang, "role")} />
+        <Field name="phone" type="tel" label={fieldLabels.phone} lang={lang} value={v("phone")} error={e("phone")} maxlength={40} inputmode="tel" autocomplete="off" />
+        <Field name="email" type="email" label="Email" lang={lang} value={v("email")} error={e("email")} maxlength={254} autocomplete="off" />
+        <Field name="zalo" label="Zalo" lang={lang} value={v("zalo")} maxlength={80} />
+        <Field name="contact_basis" label={vi ? "Căn cứ liên hệ" : "Basis for contact"} lang={lang} value={v("contact_basis")} maxlength={500} />
+        <Field name="consent_status" type="select" label={vi ? "Đồng ý liên hệ" : "Contact consent"} lang={lang} value={v("consent_status", "unknown")} error={e("consent_status")} options={options(lang, "consent")} />
+        <Field name="consent_evidence" label={fieldLabels.consent_evidence} lang={lang} value={v("consent_evidence")} error={e("consent_evidence")} maxlength={500} />
+        {actor.manager && <Field name="owner_id" type="select" label={fieldLabels.owner_id} lang={lang} value={v("owner_id", "")} error={e("owner_id")} options={[{ value: "", label: vi ? "Như người quản lý công ty" : "Same as the company's manager" }, ...owners.map((owner) => ({ value: owner.id, label: owner.label }))]} />}
+        <div class="crm-actions"><button class="crm-button" type="submit">{vi ? "Thêm người liên hệ" : "Add contact"}</button></div>
+      </form> : <p class="crm-empty">{vi ? "Hãy tạo công ty trước, rồi thêm người liên hệ." : "Add a company first, then its contacts."} <a class="crm-link" href={`${base}/accounts#new-company`}>{vi ? "Thêm công ty" : "Add a company"}</a></p>}
+    </aside>
+  </div>
+</CrmShell>

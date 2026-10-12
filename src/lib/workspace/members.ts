@@ -1,6 +1,6 @@
 // Workspace membership: who may sign into private modules and with which
 // roles. Identity details always come from EmDash (CONTENT_DB).
-import { type Role, roles, workspaceUser } from "./roles";
+import { type Role, roles, workspaceUser, permissionsFor } from "./roles";
 
 /** D1 allows at most 100 bound parameters per statement. */
 export const BIND_CHUNK = 90;
@@ -91,6 +91,9 @@ export async function saveMember(
   if (user.id === actor.id) throw new AccessError("user_id", "self");
   const now = new Date().toISOString();
   const before = (await db.prepare("SELECT role FROM workspace_roles WHERE user_id = ?").bind(user.id).all<{ role: Role }>()).results.map((row) => row.role);
+  // Losing CRM access ends the person's API tokens for good: restoring access
+  // later must not bring back a token that may have leaked in the meantime.
+  const endsTokens = !input.enabled || !permissionsFor(false, input.roles).has("crm.access");
   await db.batch([
     db.prepare("INSERT INTO workspace_members (user_id, enabled, granted_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET enabled = excluded.enabled, granted_by = excluded.granted_by, updated_at = excluded.updated_at")
       .bind(user.id, input.enabled ? 1 : 0, actor.id, now, now),
@@ -99,7 +102,8 @@ export async function saveMember(
       db.prepare("DELETE FROM workspace_roles WHERE user_id = ?").bind(user.id),
       ...input.roles.map((role) => db.prepare("INSERT INTO workspace_roles (user_id, role, granted_by, granted_at) VALUES (?, ?, ?, ?)").bind(user.id, role, actor.id, now)),
     ] : []),
-    auditStatement(db, actor, input.enabled ? "access_saved" : "access_revoked", user.id, { roles_before: before, roles_after: input.enabled ? input.roles : before }, now),
+    ...(endsTokens ? [db.prepare("UPDATE crm_api_tokens SET revoked_at = ?, revoked_by = ? WHERE user_id = ? AND revoked_at IS NULL").bind(now, actor.id, user.id)] : []),
+    auditStatement(db, actor, input.enabled ? "access_saved" : "access_revoked", user.id, { roles_before: before, roles_after: input.enabled ? input.roles : before, api_tokens_revoked: endsTokens }, now),
   ]);
   return user.id;
 }

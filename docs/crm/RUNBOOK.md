@@ -193,3 +193,18 @@ npm run db:migrate
 ```
 
 The role count must be unchanged and the stored CHECK must list `partner`.
+
+## 10. Companies, contacts and API migrations (`0008`, `0009`)
+
+- `0008_crm_directory_owners.sql` adds `owner_id` to `crm_accounts` and `crm_contacts`, with indexes. It backfills each row from the latest owned opportunity (for a contact: the opportunity naming it, else the company's), so current owners keep seeing what they see today. Rows without an owned opportunity stay unassigned (`NULL`), and the team assigns them on the company page.
+- `0009_crm_api_tokens.sql` creates `crm_api_tokens` (hashes only) and `crm_api_rate`.
+
+Both are additive. Back up, apply and verify:
+
+```bash
+./node_modules/.bin/wrangler d1 export lumi-jobs --remote --output backups/lumi-jobs-pre-0008.sql
+npm run db:migrate
+./node_modules/.bin/wrangler d1 execute lumi-jobs --remote --command "SELECT (SELECT COUNT(*) FROM crm_accounts) accounts, (SELECT COUNT(*) FROM crm_accounts WHERE owner_id IS NULL) unassigned_accounts, (SELECT COUNT(*) FROM crm_contacts WHERE owner_id IS NULL) unassigned_contacts, (SELECT COUNT(*) FROM crm_api_tokens) tokens"
+```
+
+`tokens` is 0 after the migration. To stop all API access at once in an incident, run `UPDATE crm_api_tokens SET revoked_at = <now>, revoked_by = 'incident' WHERE revoked_at IS NULL`, then tell users to create new tokens.

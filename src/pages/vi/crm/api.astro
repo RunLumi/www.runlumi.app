@@ -1,0 +1,9 @@
+---
+import ApiTokensView from "../../../components/crm/ApiTokensView.astro";
+import { apiTokensRoute } from "../../../lib/crm/routes/api";
+
+export const prerender = false;
+const result = await apiTokensRoute(Astro, "vi");
+if (result instanceof Response) return result;
+---
+<ApiTokensView {...result} />

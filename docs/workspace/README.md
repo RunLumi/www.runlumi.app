@@ -72,7 +72,7 @@ The old tables are kept for recovery and are no longer read.
 ```text
 Overview            /workspace                 counts per module the person can open
 Hiring              /admin/jobs                Roles · Candidates
-CRM                 /crm                       Today · Pipeline · New · Reports · Commission
+CRM                 /crm                       Today · Pipeline · Companies · Contacts · New · Reports · Commission · API and agents
                                                · Referrals (refer)
                                                · Fulfillment (fulfillment or team)
                                                · Operations (team: inbound and referral queues, cohorts)

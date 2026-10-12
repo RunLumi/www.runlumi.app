@@ -61,7 +61,7 @@ test("each role reaches only its modules; no role means no access", async () => 
 });
 
 test("sales manager works the whole team; sales executive only their own", async () => {
-  const create = async (session, name) => idFrom((await session.post("/crm/new", { intent: "create", playbook_key: "local-preview", source_channel: "field_visit", account_name: `${name} ${run}` })).location);
+  const create = async (session, name) => idFrom((await session.post("/crm/new", { intent: "create", playbook_key: "local-preview", source_channel: "field_visit", account_name: `${name} ${run}`, contact_name: "TEST Owner" })).location);
   ids.execOpp = await create(S.exec, "TEST Exec Garage");
   ids.managerOpp = await create(S.manager, "TEST Manager Spa");
   assert.equal((await S.manager.get(`/crm/${ids.execOpp}`)).status, 200);
@@ -199,7 +199,7 @@ test("partners refer businesses, follow status only, and never record payments",
   assert.equal((await S.partner.get(`/crm/${row.id}`)).status, 404, "the referrer cannot open the assigned deal");
   assert.match((await S.partner.get("/crm/referrals")).html, /Assigned to the team/);
 
-  const own = idFrom((await S.partner.post("/crm/new", { intent: "create", playbook_key: "local-preview", source_channel: "field_visit", account_name: `TEST Partner Own ${run}` })).location);
+  const own = idFrom((await S.partner.post("/crm/new", { intent: "create", playbook_key: "local-preview", source_channel: "field_visit", account_name: `TEST Partner Own ${run}`, contact_name: "TEST Owner" })).location);
   const page = await S.partner.get(`/crm/${own}`);
   assert.equal(page.status, 200, "partners can sell their own deals");
   assert.doesNotMatch(page.html, /name="intent" value="payment"/, "no payment form for partners");

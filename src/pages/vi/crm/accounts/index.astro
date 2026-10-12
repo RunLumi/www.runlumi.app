@@ -1,0 +1,9 @@
+---
+import CompaniesView from "../../../../components/crm/CompaniesView.astro";
+import { companiesRoute } from "../../../../lib/crm/routes/directory";
+
+export const prerender = false;
+const result = await companiesRoute(Astro, "vi");
+if (result instanceof Response) return result;
+---
+<CompaniesView {...result} />
