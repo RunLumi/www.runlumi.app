@@ -208,3 +208,14 @@ npm run db:migrate
 ```
 
 `tokens` is 0 after the migration. To stop all API access at once in an incident, run `UPDATE crm_api_tokens SET revoked_at = <now>, revoked_by = 'incident' WHERE revoked_at IS NULL`, then tell users to create new tokens.
+
+### Release record: partner role, companies and contacts, API and MCP (2026-10-12)
+
+| Item | Value |
+|---|---|
+| PRs / merge SHA | RunLumi/www.runlumi.app#37 (partner role, merged 2026-10-08, not deployed until now) and RunLumi/www.runlumi.app#38 → `5799beb`. Hosted CI did not start (Actions budget). Local gates on head `4093966`: lint, 62 unit tests, build, and 36/36 integration blocks on a fresh D1 (CRM 14, Workspace 9, Directory 6, API/MCP 7). |
+| Backup | `backups/lumi-jobs-pre-0007.sql` (private, git-ignored) |
+| Migrations | `0007`, `0008` and `0009` applied remotely. Afterwards: 2 role rows and 1 member unchanged; the stored `workspace_roles` CHECK lists `partner`; `crm_contacts.owner_id` exists; 0 companies (nothing to backfill); 0 API tokens; 9 applications unchanged |
+| Worker version | `b0a923ce-d840-4016-b51a-f7696803e35d` at 100% (`npm run deploy` from `5799beb`; preflight confirmed secrets) |
+| Verified without a session | `/` and `/jobs` return 200. `/crm`, `/crm/accounts`, `/crm/contacts`, `/crm/api`, `/crm/referrals`, `/workspace/users` and their `/vi` peers redirect (303) to EmDash sign-in. `/api/crm/v1/me` with no token and with an unknown token returns 401 (`private, no-store`). `GET /api/crm/mcp` returns 405; `POST initialize` without a token returns 401. Unknown REST path returns 404. A CRM-format token on `/api/admin/jobs/create` returns 401. Intake rejects an unknown source (403). |
+| Pending (owner, signed in) | Create a token on `/vi/crm/api`, connect an MCP client (e.g. Claude Code), run one read and one write call; grant real users their roles |
