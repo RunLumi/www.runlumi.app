@@ -227,3 +227,13 @@ The migration is additive:
 - it creates the index `crm_opportunities_owner_outcome` for the dashboard.
 
 No existing row changes. Back up first with `wrangler d1 export … --output backups/lumi-jobs-pre-0010.sql`, then run `npm run db:migrate`.
+
+### Release record: new-from-existing and sales dashboard (2026-10-12)
+
+| Item | Value |
+|---|---|
+| PRs / merge SHA | RunLumi/www.runlumi.app#40 → `bd94501`; RunLumi/www.runlumi.app#41 → `4336361`. #41 was rebased onto #40's merge with an identical tree to the tested head. Hosted CI did not start (Actions budget). Local gates: lint, 67 unit tests, build, and 42/42 integration blocks on a fresh D1. |
+| Backup / migration | `backups/lumi-jobs-pre-0010.sql`; `0010_crm_win_probability.sql` applied remotely. Afterwards: 5 companies, 5 contacts and 0 opportunities unchanged; 9 applications unchanged; the `win_probability` column exists. |
+| Worker version | `81715f24-5cdf-4f3a-9f21-6d2607dacfff` at 100% |
+| Verified | `/`, `/jobs` 200. `/crm`, `/vi/crm` (with filters), `/vi/crm/new`, `/crm/accounts`, `/crm/contacts` 303 to sign-in. With the owner's token: the API lists the 5 companies; MCP `update_opportunity` exposes `win_probability`. |
+| Pending (owner, signed in) | Open `/vi/crm` to see the dashboard; add expected value and probability on deals as they are created |
