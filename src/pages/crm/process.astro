@@ -1,0 +1,9 @@
+---
+import SalesProcessView from "../../components/crm/SalesProcessView.astro";
+import { context } from "../../lib/crm/page";
+
+export const prerender = false;
+const ctx = await context(Astro, "en");
+if (ctx instanceof Response) return ctx;
+---
+<SalesProcessView lang="en" actor={ctx.actor} />

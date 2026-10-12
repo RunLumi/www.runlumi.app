@@ -297,3 +297,27 @@ body.crm #emdash-toolbar, body.crm #emdash-toolbar-bootstrap { display: none !im
 /* Keep visually hidden labels inside scrolling tables from widening the page. */
 .crm-table-wrap { position: relative; }
 @media (max-width: 520px) { .dash-cell-bar, .dash-table thead th:last-child { display: none; } }
+
+/* Sales process guide: rendered Markdown (docs/Lumi_Quy_Trinh_Ban_Hang.md). */
+.guide { display: grid; grid-template-columns: minmax(0, 15rem) minmax(0, 1fr); gap: 18px; align-items: start; }
+.guide-toc { position: sticky; top: 132px; max-block-size: calc(100vh - 150px); overflow: auto; }
+.guide-toc ol { margin: 6px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; font-size: 15px; }
+.guide-toc a { color: var(--crm-navy); text-decoration: none; }
+.guide-toc a:hover { color: var(--crm-blue); text-decoration: underline; }
+.guide-body { min-width: 0; max-width: 78ch; line-height: 1.65; }
+.guide-body h1 { margin: 0 0 18px; color: var(--crm-navy); font-size: clamp(1.6rem, 1.3rem + 1.2vw, 2.2rem); line-height: 1.2; }
+.guide-body h2 { margin: 36px 0 12px; padding-top: 18px; border-top: 1px solid var(--crm-line); color: var(--crm-navy); font-size: 1.35rem; scroll-margin-top: 130px; }
+.guide-body h3 { margin: 26px 0 8px; color: var(--crm-navy); font-size: 1.1rem; scroll-margin-top: 130px; }
+.guide-body p, .guide-body ul, .guide-body ol { margin: 0 0 12px; }
+.guide-body li + li { margin-top: 4px; }
+.guide-body hr { display: none; }
+.guide-body blockquote { margin: 16px 0; padding: 12px 16px; border-left: 3px solid var(--crm-blue); border-radius: 0 var(--crm-radius) var(--crm-radius) 0; background: var(--crm-blue-soft); }
+.guide-body blockquote p:last-child { margin-bottom: 0; }
+.guide-body table { display: block; max-width: 100%; overflow-x: auto; margin: 12px 0 18px; border-collapse: collapse; font-size: 15px; }
+.guide-body th, .guide-body td { padding: 8px 10px; border: 1px solid var(--crm-line); text-align: left; vertical-align: top; }
+.guide-body thead th { background: var(--crm-paper); color: var(--crm-navy); }
+.guide-body thead th:empty { padding: 0; border: 0; }
+.guide-body code { padding: 1px 5px; border-radius: 4px; background: var(--crm-paper); font-size: .92em; }
+.guide-body pre { overflow-x: auto; padding: 12px 14px; border-radius: var(--crm-radius); background: var(--crm-paper); }
+.guide-body pre code { padding: 0; background: none; }
+@media (max-width: 900px) { .guide { grid-template-columns: minmax(0, 1fr); } .guide-toc { position: static; max-block-size: none; } }
