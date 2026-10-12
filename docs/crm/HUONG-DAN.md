@@ -49,6 +49,22 @@ Phần này áp dụng cho cả Nhân viên bán hàng và Cộng tác viên. Nh
 
 Bạn chỉ thấy các cơ hội được giao cho mình. Nếu một doanh nghiệp có cơ hội của người khác, bạn không thấy cơ hội đó.
 
+## Dashboard bán hàng (trang Hôm nay)
+
+- **Trên mỗi cơ hội** ghi hai ước tính:
+  - **Giá trị HĐ mong đợi** (VND).
+  - **Tỉ lệ thành công mong đợi** (0–100%).
+
+  Chưa biết thì để trống; CRM không coi ô trống là 0.
+- **Trang `/vi/crm`** mở đầu bằng *Tổng quan bán hàng*:
+  - **Các ô số liệu:** số cơ hội đang mở, tổng giá trị HĐ mong đợi, dự báo theo tỉ lệ (giá trị × tỉ lệ, chỉ tính cơ hội có đủ cả hai), tỉ lệ thắng 90 ngày, giá trị deal đã thắng 90 ngày. Giá trị deal đã thắng **chưa phải tiền đã thu**.
+  - **Biểu đồ giá trị đang mở** theo sản phẩm, hoặc theo giai đoạn khi đã chọn một sản phẩm.
+  - **Biểu đồ cơ hội mới và cơ hội thắng** trong 6 tháng, kèm bảng số liệu.
+  - Mỗi số liệu ghi rõ bao nhiêu cơ hội đã có giá trị và tỉ lệ.
+- **Ai thấy gì:**
+  - Nhân viên bán hàng và Cộng tác viên chỉ thấy số liệu của chính mình.
+  - Quản lý bán hàng và Admin thấy toàn công ty, có thể lọc theo nhân viên và sản phẩm (quy trình bán), và có thêm bảng *Theo nhân viên*.
+
 ## Công ty và người liên hệ
 
 - **Một công ty có nhiều người liên hệ.** Mỗi cơ hội gắn với **một công ty và một người liên hệ** của công ty đó.

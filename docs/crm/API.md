@@ -82,6 +82,8 @@ Send `Authorization: Bearer <token>`. Request bodies are JSON (`Content-Type: ap
 
 Search text in a `GET` query string can appear in request logs. Search by phone number or email through MCP, which sends the text in the body.
 
+**Forecast fields.** Opportunities carry `estimated_value_vnd`, the expected contract value in VND, and `win_probability`, the expected win probability from 0 to 100. Either may be `null`, which means unknown. `create_opportunity` and `update_opportunity` accept both.
+
 **Opportunity history.** `get_opportunity` returns only notes, stage, field, detail and contact events. Money, fulfillment, assignment and referral events stay in the CRM.
 
 ```bash

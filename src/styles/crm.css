@@ -246,3 +246,54 @@ body.crm #emdash-toolbar, body.crm #emdash-toolbar-bootstrap { display: none !im
 /* "or" separator between picking an existing customer and entering a new one. */
 .crm-divider { display: flex; align-items: center; gap: 12px; margin: 18px 0 6px; color: var(--crm-slate); font-size: var(--crm-small); text-transform: uppercase; letter-spacing: .06em; }
 .crm-divider::before, .crm-divider::after { content: ""; flex: 1; border-top: 1px solid var(--crm-line); }
+
+/* Sales dashboard (/crm). Magnitude uses one hue: the expected value is the
+   light part of a bar and the probability-weighted forecast its darker part.
+   New vs won uses two categorical hues validated for colour-vision deficiency
+   (Lumi blue, orange). Values are always labelled; colour never stands alone. */
+.crm { --dash-value: #7fb2d3; --dash-forecast: var(--crm-blue); --dash-created: var(--crm-blue); --dash-won: #eb6834; --dash-track: #eef1f6; }
+.dash { display: grid; gap: 18px; }
+.dash-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 12px 24px; }
+.dash-head .crm-h2 { margin: 0; }
+.dash-filters { display: flex; flex-wrap: wrap; align-items: end; gap: 10px 14px; }
+.dash-filters .crm-field { min-width: min(100%, 200px); }
+.dash-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 136px), 1fr)); gap: 12px; margin: 0; }
+.dash-kpi { padding: 14px 16px; border: 1px solid var(--crm-line); border-radius: var(--crm-radius); background: var(--crm-sheet); }
+.dash-kpi dt { color: var(--crm-slate); font-size: var(--crm-small); text-transform: uppercase; letter-spacing: .06em; font-weight: 650; }
+.dash-kpi dd { margin: 4px 0 0; }
+.dash-value { color: var(--crm-navy); font-size: clamp(1.5rem, 1.2rem + 1vw, 2rem); font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.dash-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 18px; }
+.dash-chart { margin: 0; padding: 16px; border: 1px solid var(--crm-line); border-radius: var(--crm-radius); background: var(--crm-sheet); min-width: 0; }
+.dash-chart figcaption { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 14px; margin-bottom: 14px; color: var(--crm-navy); }
+.dash-legend { display: inline-flex; flex-wrap: wrap; gap: 4px 14px; color: var(--crm-slate); font-size: var(--crm-meta); }
+.dash-legend > span { display: inline-flex; align-items: center; gap: 6px; }
+.dash-key { display: inline-block; inline-size: 12px; block-size: 12px; border-radius: 3px; }
+.dash-key.value { background: var(--dash-value); }
+.dash-key.forecast { background: var(--dash-forecast); }
+.dash-key.created { background: var(--dash-created); }
+.dash-key.won { background: var(--dash-won); }
+.dash-hbars { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.dash-hbars li { display: grid; grid-template-columns: minmax(0, 10rem) minmax(48px, 1fr) 4.5rem; gap: 10px; align-items: center; }
+.dash-label { overflow-wrap: anywhere; color: var(--crm-ink); font-size: 15px; }
+.dash-num { text-align: right; color: var(--crm-navy); font-weight: 650; font-variant-numeric: tabular-nums; }
+.dash-track { display: block; block-size: 12px; border-radius: 4px; background: var(--dash-track); overflow: hidden; }
+.dash-fill { display: block; block-size: 100%; border-radius: 0 4px 4px 0; }
+.dash-fill.value { background: var(--dash-value); }
+.dash-fill.forecast { background: var(--dash-forecast); }
+.dash-columns { list-style: none; margin: 0 0 8px; padding: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 8px; block-size: 180px; align-items: end; border-bottom: 1px solid var(--crm-line); }
+.dash-columns li { display: grid; grid-template-rows: 1fr auto; block-size: 100%; min-width: 0; }
+.dash-pair { display: flex; align-items: end; justify-content: center; gap: 2px; block-size: 100%; }
+.dash-col { position: relative; inline-size: min(18px, 40%); min-block-size: 0; border-radius: 4px 4px 0 0; }
+.dash-col.created { background: var(--dash-created); }
+.dash-col.won { background: var(--dash-won); }
+.dash-col b { position: absolute; inset-block-end: 100%; inset-inline: -8px; padding-bottom: 2px; color: var(--crm-ink); font-size: var(--crm-small); font-weight: 650; text-align: center; }
+.dash-month { padding-top: 6px; color: var(--crm-slate); font-size: var(--crm-small); text-align: center; white-space: nowrap; }
+.dash-table td, .dash-table th { vertical-align: middle; }
+.dash-table tbody th { color: var(--crm-ink); font-size: 15px; font-weight: 600; text-transform: none; letter-spacing: normal; white-space: normal; text-align: left; }
+.dash-cell-bar { min-inline-size: 120px; inline-size: 30%; }
+@media (max-width: 520px) { .dash-hbars li { grid-template-columns: minmax(0, 1fr) 4.5rem; } .dash-hbars .dash-track { grid-column: 1 / -1; grid-row: 2; } }
+@media (forced-colors: active) { .dash-fill, .dash-col, .dash-key { forced-color-adjust: none; border: 1px solid CanvasText; } }
+.crm-sr { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+/* Keep visually hidden labels inside scrolling tables from widening the page. */
+.crm-table-wrap { position: relative; }
+@media (max-width: 520px) { .dash-cell-bar, .dash-table thead th:last-child { display: none; } }

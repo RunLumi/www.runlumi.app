@@ -62,7 +62,8 @@ const outcomeTone: Record<string, string> = { open: "blue", won: "green", lost: 
         <span>{label(lang, "relation", row.relation)}</span>
         <span>{label(lang, "channel", row.source_channel)}</span>
         <span>{vi ? "Bước tiếp theo" : "Next"}: {row.next_action || "—"} · {formatDate(row.next_action_due, lang)}</span>
-        <span class="crm-num">{vi ? "Giá trị ước tính" : "Est. value"}: {formatVnd(row.estimated_value_vnd, vi)}</span>
+        <span class="crm-num">{vi ? "Giá trị HĐ mong đợi" : "Expected value"}: {formatVnd(row.estimated_value_vnd, vi)}</span>
+        <span class="crm-num">{vi ? "Tỉ lệ thành công" : "Win probability"}: {row.win_probability === null ? (vi ? "Chưa biết" : "Unknown") : `${row.win_probability}%`}</span>
         {ctx.actor.manager && <span>{vi ? "Phụ trách" : "Owner"}: {row.owner_id ? `${ownerNames[row.owner_id]?.name ?? (row.owner_id === ctx.actor.id ? ctx.actor.name : (vi ? "Tài khoản không hoạt động" : "Inactive account"))}${ownerNames[row.owner_id] && !ownerNames[row.owner_id].active ? (vi ? " (không hoạt động)" : " (inactive)") : ""}` : (vi ? "Chưa phân công" : "Unassigned")}</span>}
       </span>
     </li>)}</ul> : <p class="crm-empty">{vi ? "Không có cơ hội khớp bộ lọc." : "No opportunities match these filters."}</p>}

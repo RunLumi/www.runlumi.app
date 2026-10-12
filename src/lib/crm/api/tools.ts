@@ -86,7 +86,7 @@ function opportunity(row: Opportunity) {
   return {
     id: row.id, title: row.title, company_id: row.account_id, company_name: row.account_name, contact_id: row.primary_contact_id, playbook_id: row.playbook_id, stage_id: row.stage_id,
     outcome: row.outcome, owner_id: row.owner_id, relation: row.relation, source_channel: row.source_channel, next_action: row.next_action, next_action_due: row.next_action_due,
-    estimated_value_vnd: row.estimated_value_vnd, version: row.version, created_at: row.created_at, updated_at: row.updated_at,
+    estimated_value_vnd: row.estimated_value_vnd, win_probability: row.win_probability, version: row.version, created_at: row.created_at, updated_at: row.updated_at,
   };
 }
 
@@ -272,6 +272,8 @@ export const tools: Tool[] = [
       company_id: id("Company ID"), contact_id: id("Contact ID at that company"), playbook_key: text("Playbook key (see list_playbooks)", 60),
       source_channel: { type: "string", enum: [...sourceChannels] }, title: text("Title (default: company name)", 160), next_action: text("Next step", 500),
       next_action_due: { type: "string", format: "date", description: "YYYY-MM-DD" }, owner_id: text("Team-wide roles only: who owns it", 128),
+      estimated_value_vnd: { type: "integer", minimum: 0, description: "Expected contract value in VND; omit when unknown" },
+      win_probability: { type: "integer", minimum: 0, maximum: 100, description: "Expected win probability in %; omit when unknown" },
     }, ["company_id", "contact_id", "playbook_key", "source_channel"]),
     run: async (ctx, args) => {
       requireWrite(ctx.identity);
@@ -279,6 +281,7 @@ export const tools: Tool[] = [
       const id = await createOpportunityFor(ctx.db, ctx.contentDb, ctx.identity.actor, account, form({
         contact_id: str(args, "contact_id"), playbook_key: str(args, "playbook_key"), source_channel: str(args, "source_channel"), title: str(args, "title"),
         next_action: str(args, "next_action"), next_action_due: str(args, "next_action_due"), owner_id: str(args, "owner_id"),
+        estimated_value_vnd: str(args, "estimated_value_vnd"), win_probability: str(args, "win_probability"),
       }, ctx.requestKey));
       return opportunityDetail(ctx, id);
     },
@@ -288,7 +291,8 @@ export const tools: Tool[] = [
     description: "Changes the title, next step, next step date, estimated value or source detail of an opportunity you own. Only the fields you pass change.",
     inputSchema: schema({
       opportunity_id: id("Opportunity ID"), title: text("Title", 160), next_action: text("Next step", 500), next_action_due: { type: ["string", "null"], description: "YYYY-MM-DD, or null to clear" },
-      estimated_value_vnd: { type: ["integer", "null"], minimum: 0, description: "Estimated value in VND; null when unknown (never guess)" }, source_detail: text("Source detail", 300), version,
+      estimated_value_vnd: { type: ["integer", "null"], minimum: 0, description: "Expected contract value in VND; null when unknown (never guess)" },
+      win_probability: { type: ["integer", "null"], minimum: 0, maximum: 100, description: "Expected win probability in %, the seller's estimate; null when unknown" }, source_detail: text("Source detail", 300), version,
     }, ["opportunity_id"]),
     run: async (ctx, args) => {
       requireWrite(ctx.identity);
@@ -296,8 +300,9 @@ export const tools: Tool[] = [
       const pick = (key: keyof Opportunity & string) => has(args, key) ? str(args, key) : String(opp[key] ?? "");
       // Whole VND only: the form parser treats "." and "," as thousands separators.
       if (has(args, "estimated_value_vnd") && args.estimated_value_vnd !== null && !(Number.isSafeInteger(args.estimated_value_vnd) && Number(args.estimated_value_vnd) >= 0)) throw new ValidationError({ estimated_value_vnd: "invalid" });
+      if (has(args, "win_probability") && args.win_probability !== null && !(Number.isSafeInteger(args.win_probability) && Number(args.win_probability) >= 0 && Number(args.win_probability) <= 100)) throw new ValidationError({ win_probability: "invalid" });
       await saveDetails(ctx.db, ctx.identity.actor, opp, form({
-        title: pick("title"), next_action: pick("next_action"), next_action_due: pick("next_action_due"), estimated_value_vnd: pick("estimated_value_vnd"),
+        title: pick("title"), next_action: pick("next_action"), next_action_due: pick("next_action_due"), estimated_value_vnd: pick("estimated_value_vnd"), win_probability: pick("win_probability"),
         source_detail: pick("source_detail"), referrer: opp.referrer, cohort_key: opp.cohort_key ?? "", service_period_start: opp.service_period_start ?? "",
         service_period_end: opp.service_period_end ?? "", renewal_due_on: opp.renewal_due_on ?? "", version: versionArg(args, opp.version),
       }, ctx.requestKey));

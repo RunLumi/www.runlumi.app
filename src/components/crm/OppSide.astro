@@ -28,7 +28,8 @@ const minutes = costs.reduce((sum, cost) => sum + (cost.minutes ?? 0), 0);
       <div><dt>{vi ? "Kênh" : "Channel"}</dt><dd>{label(lang, "channel", opp.source_channel)}</dd></div>
       <div><dt>{vi ? "Giới thiệu" : "Referred by"}</dt><dd>{opp.referrer_id ? person(opp.referrer_id) : opp.referrer || "—"}</dd></div>
       <div><dt>{vi ? "Chi tiết nguồn" : "Source detail"}</dt><dd>{opp.source_detail || "—"}</dd></div>
-      <div><dt>{vi ? "Giá trị ước tính" : "Estimated value"}</dt><dd class="crm-num">{formatVnd(opp.estimated_value_vnd, vi)}</dd></div>
+      <div><dt>{vi ? "Giá trị HĐ mong đợi" : "Expected contract value"}</dt><dd class="crm-num">{formatVnd(opp.estimated_value_vnd, vi)}</dd></div>
+      <div><dt>{vi ? "Tỉ lệ thành công mong đợi" : "Expected win probability"}</dt><dd class="crm-num">{opp.win_probability === null ? (vi ? "Chưa biết" : "Unknown") : `${opp.win_probability}%`}</dd></div>
       <div><dt>Cohort</dt><dd>{opp.cohort_key ?? "—"}</dd></div>
       <div><dt>{vi ? "Tạo bởi" : "Created by"}</dt><dd>{person(opp.created_by)} · {formatDate(opp.created_at, lang)}</dd></div>
       {(opp.service_period_start || opp.renewal_due_on) && <div><dt>{vi ? "Kỳ dịch vụ" : "Service period"}</dt><dd>{formatDate(opp.service_period_start, lang)} → {formatDate(opp.service_period_end, lang)}</dd></div>}
@@ -38,11 +39,12 @@ const minutes = costs.reduce((sum, cost) => sum + (cost.minutes ?? 0), 0);
       <summary>{vi ? "Sửa bước tiếp theo và chi tiết" : "Edit next step and details"}</summary>
       <form class="crm-form" method="post" action="#details">
         <Hidden intent="details" state={state} version={opp.version} />
-        {state.intent === "details" && state.conflict && <p class="crm-help">{vi ? "Giá trị mới nhất" : "Latest values"}: {opp.title} · {opp.next_action || "—"} · {formatDate(opp.next_action_due, lang)} · {formatVnd(opp.estimated_value_vnd, vi)}</p>}
+        {state.intent === "details" && state.conflict && <p class="crm-help">{vi ? "Giá trị mới nhất" : "Latest values"}: {opp.title} · {opp.next_action || "—"} · {formatDate(opp.next_action_due, lang)} · {formatVnd(opp.estimated_value_vnd, vi)} · {opp.win_probability === null ? "—" : `${opp.win_probability}%`}</p>}
         <Field name="title" id="d-title" label={vi ? "Tên cơ hội" : "Opportunity name"} lang={lang} value={v("details", "title", opp.title)} error={e("details", "title")} required maxlength={160} />
         <Field name="next_action" id="d-next" label={vi ? "Bước tiếp theo" : "Next step"} lang={lang} value={v("details", "next_action", opp.next_action)} error={e("details", "next_action")} maxlength={500} />
         <Field name="next_action_due" id="d-due" type="date" label={vi ? "Ngày" : "Date"} lang={lang} value={v("details", "next_action_due", opp.next_action_due)} error={e("details", "next_action_due")} />
-        <Field name="estimated_value_vnd" id="d-value" label={vi ? "Giá trị ước tính (VND; để trống nếu chưa biết)" : "Estimated value (VND; blank if unknown)"} lang={lang} value={v("details", "estimated_value_vnd", opp.estimated_value_vnd)} error={e("details", "estimated_value_vnd")} inputmode="numeric" />
+        <Field name="estimated_value_vnd" id="d-value" label={vi ? "Giá trị HĐ mong đợi (VND; để trống nếu chưa biết)" : "Expected contract value (VND; blank if unknown)"} lang={lang} value={v("details", "estimated_value_vnd", opp.estimated_value_vnd)} error={e("details", "estimated_value_vnd")} inputmode="numeric" />
+        <Field name="win_probability" id="d-prob" label={vi ? "Tỉ lệ thành công mong đợi (%; để trống nếu chưa biết)" : "Expected win probability (%; blank if unknown)"} lang={lang} value={v("details", "win_probability", opp.win_probability)} error={e("details", "win_probability")} inputmode="numeric" maxlength={4} help={vi ? "Ước tính của bạn từ 0 đến 100, dùng cho dự báo trên dashboard." : "Your estimate from 0 to 100, used for the dashboard forecast."} />
         <Field name="referrer" id="d-ref" label={vi ? "Người giới thiệu" : "Referred by"} lang={lang} value={v("details", "referrer", opp.referrer)} maxlength={160} />
         <Field name="source_detail" id="d-src" label={vi ? "Chi tiết nguồn" : "Source detail"} lang={lang} value={v("details", "source_detail", opp.source_detail)} maxlength={300} />
         <Field name="cohort_key" id="d-cohort" type="select" label="Cohort" lang={lang} value={v("details", "cohort_key", opp.cohort_key)} error={e("details", "cohort_key")} options={[{ value: "", label: vi ? "Không thuộc cohort" : "No cohort" }, ...cohorts.map((key) => ({ value: key, label: key }))]} />

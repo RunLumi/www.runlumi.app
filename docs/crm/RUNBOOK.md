@@ -219,3 +219,11 @@ npm run db:migrate
 | Worker version | `b0a923ce-d840-4016-b51a-f7696803e35d` at 100% (`npm run deploy` from `5799beb`; preflight confirmed secrets) |
 | Verified without a session | `/` and `/jobs` return 200. `/crm`, `/crm/accounts`, `/crm/contacts`, `/crm/api`, `/crm/referrals`, `/workspace/users` and their `/vi` peers redirect (303) to EmDash sign-in. `/api/crm/v1/me` with no token and with an unknown token returns 401 (`private, no-store`). `GET /api/crm/mcp` returns 405; `POST initialize` without a token returns 401. Unknown REST path returns 404. A CRM-format token on `/api/admin/jobs/create` returns 401. Intake rejects an unknown source (403). |
 | Pending (owner, signed in) | Create a token on `/vi/crm/api`, connect an MCP client (e.g. Claude Code), run one read and one write call; grant real users their roles |
+
+## 11. Win probability migration (`0010_crm_win_probability.sql`)
+
+The migration is additive:
+- it adds `crm_opportunities.win_probability` (0–100, `NULL` means unknown);
+- it creates the index `crm_opportunities_owner_outcome` for the dashboard.
+
+No existing row changes. Back up first with `wrangler d1 export … --output backups/lumi-jobs-pre-0010.sql`, then run `npm run db:migrate`.

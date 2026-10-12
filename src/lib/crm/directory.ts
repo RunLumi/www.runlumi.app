@@ -8,7 +8,7 @@ import {
   ConflictError, Errors, ForbiddenError, NotFoundError, emailPattern, eventStatement, fail, newId, normalizePhone, nowIso, once, onceGuarded,
 } from "./core";
 import { isIsoDate } from "./playbook";
-import { type Account, type Contact, type SourceChannel, contactChannels, contactRoles, parseVersion, phoneSuppressed, sourceChannels } from "./records";
+import { type Account, type Contact, type SourceChannel, contactChannels, contactRoles, dealForecast, parseVersion, phoneSuppressed, sourceChannels } from "./records";
 
 export const DIRECTORY_PAGE_SIZE = 50;
 const consentStatuses = ["unknown", "granted", "refused", "withdrawn"] as const;
@@ -323,6 +323,7 @@ export async function createOpportunityFor(db: D1Database, contentDb: D1Database
   const nextActionDue = errors.text(form, "next_action_due", 10);
   const sourceDetail = errors.text(form, "source_detail", 300);
   const referrer = errors.text(form, "referrer", 160);
+  const forecast = dealForecast(errors, form);
   if (sourceChannel && !sourceChannels.includes(sourceChannel)) errors.add("source_channel", "invalid");
   if (nextActionDue && !isIsoDate(nextActionDue)) errors.add("next_action_due", "invalid");
   const playbook = (await latestPlaybooks(db, { activeOnly: true })).find((item) => item.playbook_key === playbookKey);
@@ -337,9 +338,9 @@ export async function createOpportunityFor(db: D1Database, contentDb: D1Database
   const firstStage = playbook!.def.stages[0].id;
   const fields = Object.fromEntries(Object.entries({ industry: account.industry, location: account.region }).filter(([key, value]) => value && playbook!.def.fields.some((item) => item.key === key)));
   const result = await once(db, actor, requestKey(form), "account_opportunity", id, [
-    db.prepare(`INSERT INTO crm_opportunities (id, account_id, primary_contact_id, title, playbook_id, stage_id, outcome, owner_id, seller_id, created_by, source_channel, source_detail, referrer, relation, fields, next_action, next_action_due, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, 'open', ?, ?, ?, ?, ?, ?, 'new', ?, ?, ?, ?, ?)`)
-      .bind(id, account.id, contact!.id, title, playbook!.id, firstStage, owner, owner, actor.id, sourceChannel, sourceDetail, referrer, JSON.stringify(fields), nextAction, nextActionDue || null, now, now),
+    db.prepare(`INSERT INTO crm_opportunities (id, account_id, primary_contact_id, title, playbook_id, stage_id, outcome, owner_id, seller_id, created_by, source_channel, source_detail, referrer, relation, estimated_value_vnd, win_probability, fields, next_action, next_action_due, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, 'open', ?, ?, ?, ?, ?, ?, 'new', ?, ?, ?, ?, ?, ?, ?)`)
+      .bind(id, account.id, contact!.id, title, playbook!.id, firstStage, owner, owner, actor.id, sourceChannel, sourceDetail, referrer, forecast.value, forecast.probability, JSON.stringify(fields), nextAction, nextActionDue || null, now, now),
     db.prepare("INSERT INTO crm_stage_history (id, opportunity_id, playbook_id, from_stage, to_stage, actor_id, created_at) VALUES (?, ?, ?, NULL, ?, ?, ?)").bind(newId("stg"), id, playbook!.id, firstStage, actor.id, now),
     eventStatement(db, actor, "created", { playbook: playbook!.id, stage: firstStage, owner_id: owner, source_channel: sourceChannel, contact_id: contact!.id }, { opportunityId: id, accountId: account.id }),
     db.prepare("UPDATE crm_accounts SET owner_id = ?, updated_at = ? WHERE id = ? AND owner_id IS NULL").bind(owner, now, account.id),

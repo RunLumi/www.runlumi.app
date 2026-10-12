@@ -164,9 +164,10 @@ test("tokens stop at revocation and when Workspace access is removed; never open
 
 test("each token is limited to 120 requests a minute", async () => {
   const token = await newToken(S.manager, "TEST burst", "read");
+  // Windows are fixed minutes, so a burst may straddle a boundary: keep going
+  // until the limit trips, which must happen within two windows' budget.
   const statuses = [];
-  for (let index = 0; index < 125; index += 1) statuses.push((await call(token, "GET", "/api/crm/v1/me")).status);
-  // A minute boundary may reset the window mid-loop; the limit must still trip once 120 are spent.
-  assert.ok(statuses.includes(429), "the limit applies");
+  while (statuses.length < 245 && statuses.at(-1) !== 429) statuses.push((await call(token, "GET", "/api/crm/v1/me")).status);
+  assert.equal(statuses.at(-1), 429, "the limit applies");
   assert.ok(statuses.filter((status) => status === 200).length >= 120);
 });
