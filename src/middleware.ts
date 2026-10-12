@@ -30,7 +30,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const path = context.url.pathname;
   const vi = path.startsWith("/vi/");
   const area = path === "/admin/jobs/login" ? undefined : areas.find((item) => item.test(path));
-  const isPrivate = !!area || path.startsWith("/api/intake/");
+  const isPrivate = !!area || path.startsWith("/api/intake/") || path.startsWith("/api/crm/");
 
   if (area) {
     if (!activeUser(context.locals)) {

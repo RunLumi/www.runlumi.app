@@ -74,7 +74,11 @@ export function makeUser(base: { id: string; name: string; email: string }, admi
  */
 export async function workspaceUser(locals: App.Locals, db: D1Database): Promise<WorkspaceUser | null> {
   const user = activeUser(locals);
-  if (!user) return null;
+  return user ? workspaceUserFor(db, user) : null;
+}
+
+/** Permissions for an active EmDash user (session or API token): admin, or enabled member roles. */
+export async function workspaceUserFor(db: D1Database, user: { id: string; name?: string | null; email: string; role: number }): Promise<WorkspaceUser | null> {
   const base = { id: user.id, name: user.name || user.email, email: user.email };
   if (user.role === 50) return makeUser(base, true, []);
   const rows = (await db.prepare(

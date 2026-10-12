@@ -45,6 +45,30 @@ Phần này áp dụng cho cả Nhân viên bán hàng và Cộng tác viên. Nh
 
 Bạn chỉ thấy các cơ hội được giao cho mình. Nếu một doanh nghiệp có cơ hội của người khác, bạn không thấy cơ hội đó.
 
+## Công ty và người liên hệ
+
+- **Một công ty có nhiều người liên hệ.** Mỗi cơ hội gắn với **một công ty và một người liên hệ** của công ty đó.
+- **Tạo trước, bán sau.**
+  - Vào *CRM → Công ty* để thêm công ty, có thể kèm người liên hệ đầu tiên.
+  - Thêm người liên hệ ở *CRM → Liên hệ* hoặc trên trang công ty.
+  - Khi có nhu cầu, mở cơ hội ngay trên trang công ty: chọn người liên hệ, quy trình bán và kênh.
+- **Người quản lý.** Mỗi công ty và mỗi người liên hệ có một người quản lý. Bạn quản lý những gì mình tạo. Quản lý bán hàng và Admin giao lại công ty (có thể chuyển kèm người liên hệ) và từng người liên hệ.
+- **Ai thấy gì.**
+  - Quản lý bán hàng và Admin thấy mọi công ty và người liên hệ.
+  - Những người khác thấy: người liên hệ mình quản lý, người liên hệ của công ty mình quản lý, và người liên hệ gắn với cơ hội của mình.
+- **Giao cơ hội.** Quản lý bán hàng mở cơ hội và giao cho nhân viên. Nhân viên mở cơ hội cho chính mình.
+- **Không liên hệ.** Người liên hệ hoặc công ty đã yêu cầu không liên hệ thì không mở được cơ hội mới. Số điện thoại đó cũng không thêm lại được.
+
+## API và agent AI
+
+- **Tạo token.** Vào *CRM → API và agent*, tạo token *chỉ đọc* hoặc *đọc và ghi*, thời hạn 30, 90 hoặc 365 ngày.
+- **Lưu ngay.** Token chỉ hiện **một lần**. Lưu vào trình quản lý mật khẩu hoặc biến môi trường. Không dán vào chat, tài liệu hay mã nguồn.
+- **Quyền.** Agent hành động với đúng quyền của bạn: chỉ thấy và sửa những gì bạn thấy và sửa được. Lịch sử ghi rõ thay đổi nào đến từ API và từ token nào.
+- **Agent làm được:** tìm và đọc dữ liệu, tạo công ty, người liên hệ và cơ hội, cập nhật thông tin, ghi trường khám phá nhu cầu, chuyển giai đoạn khi đủ điều kiện, thêm ghi chú, ghi nhận yêu cầu không liên hệ.
+- **Agent không làm được:** thanh toán, báo giá, bàn giao, hoa hồng, giao người phụ trách, cấu hình, tuyển dụng.
+- **Kết nối Claude Code:** dùng lệnh trên trang *API và agent*. Chi tiết kỹ thuật xem [API.md](API.md).
+- **Mất token hoặc nghi bị lộ:** bấm *Thu hồi* ngay rồi tạo token mới.
+
 ## Cộng tác viên (vai trò "Cộng tác viên")
 
 Cộng tác viên là người ngoài công ty, hưởng hoa hồng theo kết quả. Có hai cách làm việc:

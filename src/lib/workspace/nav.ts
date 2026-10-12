@@ -26,6 +26,7 @@ export const modules: NavModule[] = [
       { key: "referrals", en: "Referrals", vi: "Giới thiệu khách", path: "/crm/referrals", anyOf: ["crm.refer"] },
       { key: "reports", en: "Reports", vi: "Báo cáo", path: "/crm/reports" },
       { key: "commission", en: "Commission", vi: "Hoa hồng", path: "/crm/commission" },
+      { key: "api", en: "API & agents", vi: "API và agent", path: "/crm/api" },
       { key: "fulfillment", en: "Fulfillment", vi: "Bàn giao", path: "/crm/fulfillment", anyOf: ["crm.fulfillment", "crm.team"] },
       { key: "operations", en: "Operations", vi: "Vận hành", path: "/crm/admin", anyOf: ["crm.team"] },
       { key: "playbooks", en: "Playbooks", vi: "Playbook", path: "/crm/admin/playbooks", anyOf: ["crm.configure"] },
