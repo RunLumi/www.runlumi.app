@@ -34,7 +34,7 @@ const fieldLabels: Record<string, string> = vi
         {rows.length ? <ul class="crm-list">{rows.map((row) => <li class="crm-row">
           <a class="crm-row-title" href={`${base}/accounts/${row.id}`}>{row.name}</a>
           <span class="crm-row-side">{row.do_not_contact ? <span class="crm-badge red">{vi ? "Không liên hệ" : "Do not contact"}</span> : null}<span class="crm-badge">{vi ? `${row.contacts} liên hệ` : `${row.contacts} contacts`}</span><span class:list={["crm-badge", row.open_opportunities ? "blue" : ""]}>{vi ? `${row.open_opportunities} cơ hội mở` : `${row.open_opportunities} open`}</span></span>
-          <span class="crm-row-meta">{[row.industry, row.region].filter(Boolean).length > 0 && <span>{[row.industry, row.region].filter(Boolean).join(" · ")}</span>}<span>{vi ? "Quản lý" : "Managed by"}: {manager(row.owner_id)}</span></span>
+          <span class="crm-row-meta">{[row.industry, row.region].filter(Boolean).length > 0 && <span>{[row.industry, row.region].filter(Boolean).join(" · ")}</span>}<span>{vi ? "Quản lý" : "Managed by"}: {manager(row.owner_id)}</span>{!row.do_not_contact && row.contacts > 0 && <a class="crm-link" href={`${base}/new?company=${row.id}`}>{vi ? "Tạo cơ hội" : "New opportunity"}</a>}</span>
         </li>)}</ul> : <p class="crm-empty">{filters.q || filters.owner ? (vi ? "Không có công ty khớp bộ lọc." : "No companies match these filters.") : (vi ? "Chưa có công ty nào. Tạo công ty đầu tiên ở bên cạnh." : "No companies yet. Add the first one alongside.")}</p>}
         <DirectoryTools vi={vi} manager={actor.manager} filters={filters} owners={owners} page={page} pages={pages} position="bottom" searchLabel="" />
       </section>

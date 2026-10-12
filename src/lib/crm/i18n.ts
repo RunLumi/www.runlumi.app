@@ -32,6 +32,7 @@ const dict = {
   err_not_draft: ["This quote is no longer a draft.", "Báo giá không còn là bản nháp."],
   err_credit_available: ["A Trust Kit credit now applies. Withdraw this quote and create a new one.", "Khoản credit Trust Kit nay đã áp dụng được. Rút báo giá này và tạo báo giá mới."],
   err_self_assign: ["Ask an admin to assign this to you: it would credit you as the seller.", "Nhờ admin giao cho bạn: thao tác này sẽ ghi công bạn là người bán."],
+  err_exists: ["You already have a company with this name. Pick it under Existing customer, or tick \"Create a separate company anyway\".", "Đã có công ty trùng tên. Hãy chọn ở mục Khách có sẵn, hoặc đánh dấu \"Vẫn tạo công ty mới\"."],
   err_too_many_tokens: ["You already have 10 active tokens. Revoke one first.", "Bạn đã có 10 token đang hoạt động. Hãy thu hồi bớt trước."],
   err_not_found: ["No matching active account.", "Không tìm thấy tài khoản đang hoạt động phù hợp."],
   conflict_title: ["Someone else changed this record.", "Người khác vừa thay đổi hồ sơ này."],

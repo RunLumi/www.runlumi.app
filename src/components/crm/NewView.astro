@@ -2,26 +2,32 @@
 import CrmShell from "../../layouts/CrmShell.astro";
 import Field from "./Field.astro";
 import FormNotices from "./FormNotices.astro";
-import { options, t } from "../../lib/crm/i18n";
+import { errorText, label, options, t } from "../../lib/crm/i18n";
 import { errorFor, requestKey, valueFor } from "../../lib/crm/page";
 import type { NewProps } from "../../lib/crm/routes/pipeline";
 
 type Props = NewProps;
-const { ctx, state, playbooks, owners } = Astro.props;
+const { ctx, state, playbooks, owners, customers } = Astro.props;
 const { lang, vi } = ctx;
 const v = (name: string, fallback = "") => valueFor(state, "create", name, fallback);
 const e = (name: string) => errorFor(state, "create", name);
 const requested = Astro.url.searchParams.get("playbook") ?? "";
 const defaultPlaybook = playbooks.some((item) => item.playbook_key === requested) ? requested : playbooks[0]?.playbook_key ?? "";
+// ?contact=con_… or ?company=acc_… preselect an existing customer (links from the Contacts and Companies pages).
+const linkedContact = Astro.url.searchParams.get("contact") ?? "";
+const linkedCompany = Astro.url.searchParams.get("company") ?? "";
+const preselected = customers.find((item) => item.contact_id === linkedContact)?.contact_id ?? customers.find((item) => item.account_id === linkedCompany)?.contact_id ?? "";
+const chosen = v("contact_id", preselected);
+const companies = [...new Map(customers.map((item) => [item.account_id, item])).values()];
 const fieldLabels: Record<string, string> = vi
-  ? { account_name: "Doanh nghiệp", contact_name: "Người liên hệ", phone: "Điện thoại / Zalo", email: "Email", playbook_key: "Quy trình bán", source_channel: "Kênh", next_action_due: "Ngày bước tiếp theo", owner_id: "Người phụ trách" }
-  : { account_name: "Business", contact_name: "Contact", phone: "Phone / Zalo", email: "Email", playbook_key: "Sales playbook", source_channel: "Channel", next_action_due: "Next step date", owner_id: "Owner" };
+  ? { contact_id: "Khách có sẵn", account_name: "Doanh nghiệp", contact_name: "Người liên hệ", phone: "Điện thoại / Zalo", email: "Email", playbook_key: "Quy trình bán", source_channel: "Kênh", next_action_due: "Ngày bước tiếp theo", owner_id: "Người phụ trách" }
+  : { contact_id: "Existing customer", account_name: "Business", contact_name: "Contact", phone: "Phone / Zalo", email: "Email", playbook_key: "Sales playbook", source_channel: "Channel", next_action_due: "Next step date", owner_id: "Owner" };
 ---
 <CrmShell title={vi ? "Tạo cơ hội" : "New opportunity"} lang={lang} actor={ctx.actor} current="new">
   <div class="crm-head"><div>
     <p class="crm-eyebrow">{vi ? "Tạo nhanh" : "Quick create"}</p>
     <h1 class="crm-h1">{vi ? "Ghi lại cơ hội trong một phút." : "Capture an opportunity in a minute."}</h1>
-    <p class="crm-lede">{vi ? "Chỉ cần tên doanh nghiệp, quy trình bán và kênh. Thông tin khám phá nhu cầu sẽ xuất hiện đúng giai đoạn." : "Only the business, playbook and channel are required. Discovery fields appear at the stage they matter."}</p>
+    <p class="crm-lede">{vi ? "Chọn khách có sẵn, hoặc nhập khách mới: CRM tự tạo công ty và người liên hệ. Thông tin khám phá nhu cầu sẽ xuất hiện đúng giai đoạn." : "Pick an existing customer, or enter a new one and the CRM creates the company and contact for you. Discovery fields appear at the stage they matter."}</p>
   </div></div>
   <FormNotices state={state} lang={lang} fieldLabels={fieldLabels} />
   <form class="crm-sheet crm-form" method="post" novalidate>
@@ -33,21 +39,45 @@ const fieldLabels: Record<string, string> = vi
       </div>
       {e("playbook_key") && <p class="crm-error">{vi ? "Chọn một quy trình bán." : "Choose a playbook."}</p>}
     </fieldset>
-    <div class="crm-form-grid">
-      <Field name="account_name" label={fieldLabels.account_name} lang={lang} value={v("account_name")} error={e("account_name")} required maxlength={160} autocomplete="organization" />
-      <Field name="industry" label={vi ? "Ngành" : "Industry"} lang={lang} value={v("industry")} error={e("industry")} maxlength={120} />
-      <Field name="region" label={vi ? "Khu vực" : "Area / region"} lang={lang} value={v("region")} error={e("region")} maxlength={120} />
-      <Field name="source_channel" type="select" label={fieldLabels.source_channel} lang={lang} value={v("source_channel", "field_visit")} error={e("source_channel")} required options={options(lang, "channel")} />
-      <Field name="contact_name" label={fieldLabels.contact_name} lang={lang} value={v("contact_name")} error={e("contact_name")} maxlength={160} autocomplete="off" />
-      <Field name="contact_role" type="select" label={vi ? "Vai trò" : "Role"} lang={lang} value={v("contact_role", "owner")} error={e("contact_role")} options={options(lang, "role")} />
-      <Field name="phone" type="tel" label={fieldLabels.phone} lang={lang} value={v("phone")} error={e("phone")} maxlength={40} inputmode="tel" autocomplete="off" />
-      <Field name="email" type="email" label="Email" lang={lang} value={v("email")} error={e("email")} maxlength={254} autocomplete="off" />
-      <Field name="source_detail" label={vi ? "Chi tiết nguồn" : "Source detail"} lang={lang} value={v("source_detail")} error={e("source_detail")} maxlength={300} />
-      <Field name="referrer" label={vi ? "Người giới thiệu" : "Referred by"} lang={lang} value={v("referrer")} error={e("referrer")} maxlength={160} />
-      <Field name="next_action" label={vi ? "Bước tiếp theo" : "Next step"} lang={lang} value={v("next_action")} error={e("next_action")} maxlength={500} />
-      <Field name="next_action_due" type="date" label={fieldLabels.next_action_due} lang={lang} value={v("next_action_due")} error={e("next_action_due")} />
-      {ctx.actor.manager && <Field name="owner_id" type="select" label={fieldLabels.owner_id} lang={lang} value={v("owner_id", ctx.actor.id)} error={e("owner_id")} options={owners.map((owner) => ({ value: owner.id, label: owner.label }))} />}
-    </div>
+
+    <fieldset class="crm-fieldset" id="customer"><legend>{vi ? "Khách hàng" : "Customer"} *</legend>
+      {customers.length > 0 ? <div class:list={["crm-field wide"]} data-invalid={e("contact_id") ? "" : undefined}>
+        <label for="f-contact_id">{fieldLabels.contact_id}</label>
+        <select class="crm-select" id="f-contact_id" name="contact_id" aria-describedby="f-contact_id-help" aria-invalid={e("contact_id") ? "true" : undefined}>
+          <option value="" selected={!chosen}>{vi ? "Khách mới — tạo công ty và người liên hệ bên dưới" : "New customer — create the company and contact below"}</option>
+          {companies.map((company) => <optgroup label={company.region ? `${company.account_name} — ${company.region}` : company.account_name}>
+            {customers.filter((item) => item.account_id === company.account_id).map((item) => <option value={item.contact_id} selected={chosen === item.contact_id}>{`${item.contact_name} · ${label(lang, "role", item.role)} — ${item.account_name}`}</option>)}
+          </optgroup>)}
+        </select>
+        <span class="crm-help" id="f-contact_id-help">{vi ? "Chọn người liên hệ ở công ty có sẵn; khi đó phần khách mới bên dưới được bỏ qua. Khách đã yêu cầu không liên hệ không có trong danh sách." : "Pick a contact at an existing company; the new-customer fields below are then ignored. Customers who asked not to be contacted are not listed."}</span>
+        {e("contact_id") && <span class="crm-error">{errorText(lang, e("contact_id"))}</span>}
+      </div> : <p class="crm-help">{vi ? "Bạn chưa có khách nào để chọn; nhập khách mới bên dưới." : "You have no existing customers to pick yet; enter a new one below."}</p>}
+
+      <p class="crm-divider" aria-hidden="true"><span>{vi ? "hoặc khách mới" : "or a new customer"}</span></p>
+      <p class="crm-help">{vi ? "Khi tạo khách mới, cần tên doanh nghiệp và người liên hệ. CRM tạo công ty và người liên hệ, rồi gắn vào cơ hội." : "For a new customer, the business and contact names are required. The CRM creates the company and the contact and links them to the opportunity."}</p>
+      <div class="crm-form-grid">
+        <Field name="account_name" label={`${fieldLabels.account_name} (${vi ? "khách mới" : "new customer"})`} lang={lang} value={v("account_name")} error={e("account_name")} maxlength={160} autocomplete="organization" />
+        <Field name="industry" label={vi ? "Ngành" : "Industry"} lang={lang} value={v("industry")} error={e("industry")} maxlength={120} />
+        <Field name="region" label={vi ? "Khu vực" : "Area / region"} lang={lang} value={v("region")} error={e("region")} maxlength={120} />
+        <Field name="contact_name" label={`${fieldLabels.contact_name} (${vi ? "khách mới" : "new customer"})`} lang={lang} value={v("contact_name")} error={e("contact_name")} maxlength={160} autocomplete="off" />
+        <Field name="contact_role" type="select" label={vi ? "Vai trò" : "Role"} lang={lang} value={v("contact_role", "owner")} error={e("contact_role")} options={options(lang, "role")} />
+        <Field name="phone" type="tel" label={fieldLabels.phone} lang={lang} value={v("phone")} error={e("phone")} maxlength={40} inputmode="tel" autocomplete="off" />
+        <Field name="email" type="email" label="Email" lang={lang} value={v("email")} error={e("email")} maxlength={254} autocomplete="off" />
+      </div>
+      {e("account_name") === "exists" && <label class="crm-check"><input type="checkbox" name="allow_duplicate" value="1" /><span>{vi ? "Vẫn tạo công ty mới (ví dụ: chi nhánh khác cùng tên)" : "Create a separate company anyway (for example, another branch with the same name)"}</span></label>}
+    </fieldset>
+
+    <fieldset class="crm-fieldset"><legend>{vi ? "Cơ hội" : "Opportunity"}</legend>
+      <div class="crm-form-grid">
+        <Field name="title" label={vi ? "Tên cơ hội (mặc định là tên công ty)" : "Title (defaults to the company name)"} lang={lang} value={v("title")} error={e("title")} maxlength={160} />
+        <Field name="source_channel" type="select" label={fieldLabels.source_channel} lang={lang} value={v("source_channel", "field_visit")} error={e("source_channel")} required options={options(lang, "channel")} />
+        <Field name="source_detail" label={vi ? "Chi tiết nguồn" : "Source detail"} lang={lang} value={v("source_detail")} error={e("source_detail")} maxlength={300} />
+        <Field name="referrer" label={vi ? "Người giới thiệu" : "Referred by"} lang={lang} value={v("referrer")} error={e("referrer")} maxlength={160} />
+        <Field name="next_action" label={vi ? "Bước tiếp theo" : "Next step"} lang={lang} value={v("next_action")} error={e("next_action")} maxlength={500} />
+        <Field name="next_action_due" type="date" label={fieldLabels.next_action_due} lang={lang} value={v("next_action_due")} error={e("next_action_due")} />
+        {ctx.actor.manager && <Field name="owner_id" type="select" label={fieldLabels.owner_id} lang={lang} value={v("owner_id", ctx.actor.id)} error={e("owner_id")} options={owners.map((owner) => ({ value: owner.id, label: owner.label }))} />}
+      </div>
+    </fieldset>
     <p class="crm-help">{vi ? "Không nhập mật khẩu, quyền truy cập Google hay dữ liệu khách hàng cuối vào đây." : "Never enter passwords, Google access or end-customer data here."}</p>
     <div class="crm-actions"><button class="crm-button" type="submit">{vi ? "Tạo cơ hội" : "Create opportunity"}</button><a class="crm-link" href={ctx.base}>{t(lang, "cancel")}</a></div>
   </form>

@@ -242,3 +242,7 @@ body.crm #emdash-toolbar, body.crm #emdash-toolbar-bootstrap { display: none !im
 .crm-code { max-width: 100%; margin: 6px 0 12px; padding: 12px 14px; overflow-x: auto; border: 1px solid var(--crm-line); border-radius: 8px; background: var(--crm-paper); font-size: 14px; line-height: 1.5; }
 .crm-secret { display: block; padding: 10px 12px; border: 1px dashed var(--crm-line); border-radius: 6px; background: var(--crm-sheet); font-size: 15px; word-break: break-all; user-select: all; }
 .crm-url { overflow-wrap: anywhere; }
+
+/* "or" separator between picking an existing customer and entering a new one. */
+.crm-divider { display: flex; align-items: center; gap: 12px; margin: 18px 0 6px; color: var(--crm-slate); font-size: var(--crm-small); text-transform: uppercase; letter-spacing: .06em; }
+.crm-divider::before, .crm-divider::after { content: ""; flex: 1; border-top: 1px solid var(--crm-line); }

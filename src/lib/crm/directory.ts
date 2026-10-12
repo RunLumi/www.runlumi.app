@@ -321,6 +321,8 @@ export async function createOpportunityFor(db: D1Database, contentDb: D1Database
   const title = errors.text(form, "title", 160) || account.name;
   const nextAction = errors.text(form, "next_action", 500);
   const nextActionDue = errors.text(form, "next_action_due", 10);
+  const sourceDetail = errors.text(form, "source_detail", 300);
+  const referrer = errors.text(form, "referrer", 160);
   if (sourceChannel && !sourceChannels.includes(sourceChannel)) errors.add("source_channel", "invalid");
   if (nextActionDue && !isIsoDate(nextActionDue)) errors.add("next_action_due", "invalid");
   const playbook = (await latestPlaybooks(db, { activeOnly: true })).find((item) => item.playbook_key === playbookKey);
@@ -335,15 +337,46 @@ export async function createOpportunityFor(db: D1Database, contentDb: D1Database
   const firstStage = playbook!.def.stages[0].id;
   const fields = Object.fromEntries(Object.entries({ industry: account.industry, location: account.region }).filter(([key, value]) => value && playbook!.def.fields.some((item) => item.key === key)));
   const result = await once(db, actor, requestKey(form), "account_opportunity", id, [
-    db.prepare(`INSERT INTO crm_opportunities (id, account_id, primary_contact_id, title, playbook_id, stage_id, outcome, owner_id, seller_id, created_by, source_channel, relation, fields, next_action, next_action_due, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, 'open', ?, ?, ?, ?, 'new', ?, ?, ?, ?, ?)`)
-      .bind(id, account.id, contact!.id, title, playbook!.id, firstStage, owner, owner, actor.id, sourceChannel, JSON.stringify(fields), nextAction, nextActionDue || null, now, now),
+    db.prepare(`INSERT INTO crm_opportunities (id, account_id, primary_contact_id, title, playbook_id, stage_id, outcome, owner_id, seller_id, created_by, source_channel, source_detail, referrer, relation, fields, next_action, next_action_due, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, 'open', ?, ?, ?, ?, ?, ?, 'new', ?, ?, ?, ?, ?)`)
+      .bind(id, account.id, contact!.id, title, playbook!.id, firstStage, owner, owner, actor.id, sourceChannel, sourceDetail, referrer, JSON.stringify(fields), nextAction, nextActionDue || null, now, now),
     db.prepare("INSERT INTO crm_stage_history (id, opportunity_id, playbook_id, from_stage, to_stage, actor_id, created_at) VALUES (?, ?, ?, NULL, ?, ?, ?)").bind(newId("stg"), id, playbook!.id, firstStage, actor.id, now),
     eventStatement(db, actor, "created", { playbook: playbook!.id, stage: firstStage, owner_id: owner, source_channel: sourceChannel, contact_id: contact!.id }, { opportunityId: id, accountId: account.id }),
     db.prepare("UPDATE crm_accounts SET owner_id = ?, updated_at = ? WHERE id = ? AND owner_id IS NULL").bind(owner, now, account.id),
     db.prepare("UPDATE crm_contacts SET owner_id = ?, updated_at = ? WHERE id = ? AND owner_id IS NULL").bind(owner, now, contact!.id),
   ]);
   return result.refId;
+}
+
+export interface PickableContact { contact_id: string; contact_name: string; role: string; account_id: string; account_name: string; region: string }
+
+/**
+ * Contacts an opportunity can be opened with: visible to the person, at a
+ * company they work on, and neither asked not to be contacted.
+ */
+export async function pickableContacts(db: D1Database, actor: CrmActor): Promise<PickableContact[]> {
+  const companies = accountEditScope(actor);
+  const contacts = contactScope(actor);
+  return (await db.prepare(`SELECT c.id AS contact_id, c.name AS contact_name, c.role, a.id AS account_id, a.name AS account_name, a.region
+    FROM crm_contacts c JOIN crm_accounts a ON a.id = c.account_id
+    WHERE c.do_not_contact = 0 AND a.do_not_contact = 0 AND ${companies.sql} AND ${contacts.sql}
+    ORDER BY a.name COLLATE NOCASE, a.id, c.name COLLATE NOCASE LIMIT 500`).bind(...companies.args, ...contacts.args).all<PickableContact>()).results;
+}
+
+/** New-opportunity page: the contact picked implies its company. */
+export async function createOpportunityForContact(db: D1Database, contentDb: D1Database, actor: CrmActor, form: FormData): Promise<string> {
+  const contactId = field(form, "contact_id");
+  const scope = contactScope(actor);
+  const contact = await db.prepare(`SELECT c.account_id FROM crm_contacts c WHERE c.id = ? AND ${scope.sql}`).bind(contactId, ...scope.args).first<{ account_id: string }>();
+  if (!contact) fail("contact_id", "invalid");
+  let account: Account;
+  try {
+    account = await loadAccount(db, actor, contact!.account_id);
+  } catch (error) {
+    if (error instanceof NotFoundError) fail("contact_id", "invalid");
+    throw error;
+  }
+  return createOpportunityFor(db, contentDb, actor, account!, form);
 }
 
 /** Team view: companies that share a phone number or name with this one. */
