@@ -2,6 +2,8 @@
 
 Địa chỉ: `https://runlumi.app/vi/workspace` (Tổng quan) và `https://runlumi.app/vi/crm` (CRM). Thêm `/vi` để dùng tiếng Việt; bỏ `/vi` để dùng tiếng Anh. Đăng nhập bằng tài khoản EmDash. Admin phải cấp vai trò trước thì bạn mới vào được: Nhân viên bán hàng, Cộng tác viên, Quản lý bán hàng, Tài chính hoặc Bàn giao. Vai trò Nhân sự (HR) dùng phân hệ Tuyển dụng.
 
+**Quy trình bán hàng** đọc ở *CRM → Quy trình bán hàng* (`/vi/crm/process`). Trang hiển thị trực tiếp file `docs/Lumi_Quy_Trinh_Ban_Hang.md`: muốn sửa quy trình thì sửa file Markdown này rồi deploy.
+
 Thanh điều hướng có hai tầng. Tầng trên chuyển giữa các phân hệ: Tổng quan, Tuyển dụng, CRM, Quản trị. Tầng dưới là các trang trong phân hệ đang mở. Bạn chỉ thấy những mục vai trò của mình được phép.
 
 CRM chỉ để ghi chép và điều phối công việc. CRM không tự gửi tin cho khách, không mua tên miền, không xuất bản website, không thu tiền và không tính hoa hồng.

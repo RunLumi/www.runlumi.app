@@ -205,3 +205,18 @@ test("partners refer businesses, follow status only, and never record payments",
   assert.doesNotMatch(page.html, /name="intent" value="payment"/, "no payment form for partners");
   assert.equal((await S.partner.post(`/crm/${own}`, { intent: "payment", version: Number(/name="version" value="(\d+)"/.exec(page.html)[1]), amount: "399000", method: "bank_transfer", paid_on: "2026-10-01" })).status, 403);
 });
+
+test("the sales process guide renders the Markdown source for CRM roles only", async () => {
+  const { readFileSync } = await import("node:fs");
+  const source = readFileSync(new URL("../../docs/Lumi_Quy_Trinh_Ban_Hang.md", import.meta.url), "utf8");
+  const title = /^# (.+)$/m.exec(source)[1].trim();
+  const sections = [...source.matchAll(/^## (.+)$/gm)].map((match) => match[1].trim());
+  const escape = (text) => text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+  const page = await S.exec.get("/vi/crm/process");
+  assert.equal(page.status, 200);
+  assert.ok(page.html.includes(escape(title)), "the page shows the Markdown title");
+  for (const section of sections) assert.ok(page.html.includes(escape(section)), `section "${section}" is rendered`);
+  assert.match(page.html, /<table>/, "Markdown tables render as tables");
+  assert.equal((await S.partner.get("/crm/process")).status, 200, "partners read it too");
+  assert.equal((await S.hr.get("/crm/process")).status, 403, "HR has no CRM access");
+});
