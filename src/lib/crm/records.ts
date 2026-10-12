@@ -19,7 +19,7 @@ export interface Opportunity {
   id: string; account_id: string; primary_contact_id: string | null; title: string; playbook_id: string; stage_id: string;
   outcome: "open" | "won" | "lost" | "paused"; owner_id: string | null; seller_id: string | null; created_by: string;
   source_channel: SourceChannel; source_detail: string; referrer: string; referrer_id: string | null; parent_id: string | null; relation: Relation;
-  offer_id: string | null; estimated_value_vnd: number | null; fields: string; checks: string; next_action: string;
+  offer_id: string | null; estimated_value_vnd: number | null; win_probability: number | null; fields: string; checks: string; next_action: string;
   next_action_due: string | null; lost_reason: string; cohort_key: string | null; service_period_start: string | null;
   service_period_end: string | null; renewal_due_on: string | null; needs_review: number; legacy_data: string | null;
   version: number; created_at: string; updated_at: string; closed_at: string | null;
@@ -85,6 +85,20 @@ export async function phoneSuppressed(db: D1Database, phoneNorm: string): Promis
   return !!row;
 }
 
+/**
+ * Expected contract value (VND) and expected win probability (%), both
+ * optional: blank means unknown, never zero.
+ */
+export function dealForecast(errors: Errors, form: FormData): { value: number | null; probability: number | null } {
+  const cleaned = errors.text(form, "estimated_value_vnd", 20).replace(/[.,\s₫đ]/gi, "");
+  const validValue = /^\d{1,13}$/.test(cleaned) && Number(cleaned) <= 1_000_000_000_000;
+  if (cleaned && !validValue) errors.add("estimated_value_vnd", "invalid");
+  const percent = errors.text(form, "win_probability", 5).replace(/\s*%$/, "");
+  const validPercent = /^\d{1,3}$/.test(percent) && Number(percent) <= 100;
+  if (percent && !validPercent) errors.add("win_probability", "invalid");
+  return { value: cleaned && validValue ? Number(cleaned) : null, probability: percent && validPercent ? Number(percent) : null };
+}
+
 export interface QuickCreate {
   account_name: string; industry: string; region: string; contact_name: string; contact_role: string; phone: string; email: string;
   playbook_key: string; source_channel: SourceChannel; source_detail: string; referrer: string; owner_id: string; next_action: string; next_action_due: string;
@@ -109,6 +123,7 @@ export async function quickCreate(db: D1Database, contentDb: D1Database, actor: 
     next_action_due: errors.text(form, "next_action_due", 10),
     title: errors.text(form, "title", 160),
   };
+  const forecast = dealForecast(errors, form);
   if (input.email && !emailPattern.test(input.email)) errors.add("email", "invalid");
   const phoneNorm = normalizePhone(input.phone);
   if (input.phone && (phoneNorm.length < 8 || phoneNorm.length > 15)) errors.add("phone", "invalid");
@@ -140,9 +155,9 @@ export async function quickCreate(db: D1Database, contentDb: D1Database, actor: 
       .bind(accountId, input.account_name, input.industry, input.region, phoneNorm, owner, actor.id, now, now),
     db.prepare("INSERT INTO crm_contacts (id, account_id, name, role, email, phone, phone_norm, owner_id, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
       .bind(contactId, accountId, input.contact_name, input.contact_role, input.email, input.phone, phoneNorm, owner, actor.id, now, now),
-    db.prepare(`INSERT INTO crm_opportunities (id, account_id, primary_contact_id, title, playbook_id, stage_id, outcome, owner_id, seller_id, created_by, source_channel, source_detail, referrer, relation, fields, next_action, next_action_due, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, 'open', ?, ?, ?, ?, ?, ?, 'new', ?, ?, ?, ?, ?)`)
-      .bind(id, accountId, contactId, input.title || input.account_name, playbook!.id, firstStage, owner, owner, actor.id, input.source_channel, input.source_detail, input.referrer,
+    db.prepare(`INSERT INTO crm_opportunities (id, account_id, primary_contact_id, title, playbook_id, stage_id, outcome, owner_id, seller_id, created_by, source_channel, source_detail, referrer, relation, estimated_value_vnd, win_probability, fields, next_action, next_action_due, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, 'open', ?, ?, ?, ?, ?, ?, 'new', ?, ?, ?, ?, ?, ?, ?)`)
+      .bind(id, accountId, contactId, input.title || input.account_name, playbook!.id, firstStage, owner, owner, actor.id, input.source_channel, input.source_detail, input.referrer, forecast.value, forecast.probability,
         JSON.stringify(Object.fromEntries(Object.entries({ industry: input.industry, location: input.region }).filter(([key, value]) => value && playbook!.def.fields.some((field) => field.key === key)))),
         input.next_action, input.next_action_due || null, now, now),
     db.prepare("INSERT INTO crm_stage_history (id, opportunity_id, playbook_id, from_stage, to_stage, actor_id, created_at) VALUES (?, ?, ?, NULL, ?, ?, ?)").bind(newId("stg"), id, playbook!.id, firstStage, actor.id, now),
@@ -158,28 +173,26 @@ export async function saveDetails(db: D1Database, actor: CrmActor, opportunity: 
   const title = errors.text(form, "title", 160, true);
   const next_action = errors.text(form, "next_action", 500);
   const next_action_due = errors.text(form, "next_action_due", 10);
-  const rawValue = errors.text(form, "estimated_value_vnd", 20);
+  const forecast = dealForecast(errors, form);
   const referrer = errors.text(form, "referrer", 160);
   const source_detail = errors.text(form, "source_detail", 300);
   const cohort_key = errors.text(form, "cohort_key", 60);
   const period = ["service_period_start", "service_period_end", "renewal_due_on"].map((key) => errors.text(form, key, 10));
   if (next_action_due && !isIsoDate(next_action_due)) errors.add("next_action_due", "invalid");
   period.forEach((value, index) => { if (value && !isIsoDate(value)) errors.add(["service_period_start", "service_period_end", "renewal_due_on"][index], "invalid"); });
-  const cleaned = rawValue.replace(/[.,\s₫đ]/gi, "");
-  if (cleaned && (!/^\d{1,13}$/.test(cleaned) || Number(cleaned) > 1_000_000_000_000)) errors.add("estimated_value_vnd", "invalid");
   if (cohort_key && !await db.prepare("SELECT 1 FROM crm_cohorts WHERE cohort_key = ?").bind(cohort_key).first()) errors.add("cohort_key", "invalid");
   errors.throwIfAny();
-  const value = cleaned ? Number(cleaned) : null;
+  const value = forecast.value;
   const guard = guardFor(opportunity, version, actor);
   const now = nowIso();
   const result = await onceGuarded(db, actor, requestKey(form), "details", opportunity.id, guard, [
     eventStatement(db, actor, "details", {
-      from: { title: opportunity.title, estimated_value_vnd: opportunity.estimated_value_vnd, next_action: opportunity.next_action, next_action_due: opportunity.next_action_due, cohort_key: opportunity.cohort_key },
-      to: { title, estimated_value_vnd: value, next_action, next_action_due: next_action_due || null, cohort_key: cohort_key || null },
+      from: { title: opportunity.title, estimated_value_vnd: opportunity.estimated_value_vnd, win_probability: opportunity.win_probability, next_action: opportunity.next_action, next_action_due: opportunity.next_action_due, cohort_key: opportunity.cohort_key },
+      to: { title, estimated_value_vnd: value, win_probability: forecast.probability, next_action, next_action_due: next_action_due || null, cohort_key: cohort_key || null },
     }, { opportunityId: opportunity.id, accountId: opportunity.account_id }, guard),
-    db.prepare(`UPDATE crm_opportunities SET title = ?, next_action = ?, next_action_due = ?, estimated_value_vnd = ?, referrer = ?, source_detail = ?, cohort_key = ?,
+    db.prepare(`UPDATE crm_opportunities SET title = ?, next_action = ?, next_action_due = ?, estimated_value_vnd = ?, win_probability = ?, referrer = ?, source_detail = ?, cohort_key = ?,
       service_period_start = ?, service_period_end = ?, renewal_due_on = ?, version = version + 1, updated_at = ? WHERE id = ? AND version = ?`)
-      .bind(title, next_action, next_action_due || null, value, referrer, source_detail, cohort_key || null, period[0] || null, period[1] || null, period[2] || null, now, opportunity.id, version),
+      .bind(title, next_action, next_action_due || null, value, forecast.probability, referrer, source_detail, cohort_key || null, period[0] || null, period[1] || null, period[2] || null, now, opportunity.id, version),
   ]);
   if (!result.changed) throw new ConflictError();
   return result.duplicate;

@@ -1,11 +1,12 @@
 ---
 import CrmShell from "../../layouts/CrmShell.astro";
+import SalesDashboard from "./SalesDashboard.astro";
 import { formatDate, label } from "../../lib/crm/i18n";
 import type { TodayProps } from "../../lib/crm/routes/today";
 import type { TodayTask, TodayOpp } from "../../lib/crm/today";
 
 type Props = TodayProps;
-const { ctx, data, stageNames } = Astro.props;
+const { ctx, data, stageNames, dashboard, owners, playbooks, names } = Astro.props;
 const { lang, vi, base } = ctx;
 const stageOf = (opp: TodayOpp) => stageNames[`${opp.playbook_id.split("@")[0]}:${opp.stage_id}`] ?? opp.stage_id;
 const total = data.overdue.length + data.dueToday.length;
@@ -31,7 +32,9 @@ const lanes: { title: string; tone: string; tasks: TodayTask[]; empty: string }[
   </div>}
   {ctx.actor.finance && data.pendingPayments > 0 && <div class="crm-notice" role="status"><a class="crm-link" href={`${base}/reports#pending`}>{vi ? `${data.pendingPayments} khoản thanh toán chờ xác nhận.` : `${data.pendingPayments} payments await confirmation.`}</a></div>}
 
-  <div class="crm-grid cols">
+  <SalesDashboard lang={lang} vi={vi} manager={ctx.actor.manager} dashboard={dashboard} owners={owners} playbooks={playbooks} names={names} selfName={ctx.actor.name} />
+
+  <div class="crm-grid cols" style="margin-top:18px">
     {lanes.map((lane) => <section class:list={["crm-sheet crm-lane", lane.tone]} aria-labelledby={`lane-${lane.tone}`}>
       <h2 class="crm-h2" id={`lane-${lane.tone}`}>{lane.title}<span class="crm-count">{lane.tasks.length}</span></h2>
       {lane.tasks.length ? <ul class="crm-list">{lane.tasks.map((task) => <li class="crm-row">

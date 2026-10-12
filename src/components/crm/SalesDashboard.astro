@@ -1,0 +1,113 @@
+---
+// Sales dashboard at the top of /crm. Server-rendered HTML/CSS charts, no
+// client script: every bar carries a native tooltip (title) and a direct
+// label, and each chart has a table view. Colours follow the data's job:
+// one hue for magnitude (expected value, with the forecast as a darker part
+// of the same bar) and two validated categorical hues for created vs won.
+import type { OwnerOption } from "../../lib/crm/access";
+import { CLOSED_WINDOW_DAYS, type Dashboard, compactVnd } from "../../lib/crm/dashboard";
+import type { Lang } from "../../lib/crm/i18n";
+import { formatVnd } from "../../lib/crm/money";
+import type { Playbook } from "../../lib/crm/playbook";
+
+interface Props {
+  lang: Lang; vi: boolean; manager: boolean; dashboard: Dashboard; owners: OwnerOption[]; playbooks: Playbook[];
+  names: Record<string, { name: string; active: boolean }>; selfName: string;
+}
+const { vi, manager, dashboard, owners, playbooks, names, selfName } = Astro.props;
+const { open, closed, winRate, breakdown, months, filters } = dashboard;
+const product = playbooks.find((item) => item.playbook_key === filters.playbook);
+const ownerName = (id: string) => id ? names[id]?.name ?? (vi ? "Tài khoản không hoạt động" : "Inactive account") : (vi ? "Chưa phân công" : "Unassigned");
+const scopeLabel = !manager ? (vi ? `Của bạn (${selfName})` : `Yours (${selfName})`)
+  : filters.owner ? (vi ? `Của ${ownerName(filters.owner)}` : `${ownerName(filters.owner)}'s`) : (vi ? "Toàn công ty" : "Whole company");
+const keyLabel = (key: string) => {
+  if (breakdown.by === "playbook") {
+    const found = playbooks.find((item) => item.playbook_key === key);
+    return found ? (vi ? found.name_vi : found.name_en) : key;
+  }
+  const stage = product?.def.stages.find((item) => item.id === key);
+  return stage ? (vi ? stage.vi : stage.en) : key;
+};
+const vnd = (amount: number) => compactVnd(amount, vi);
+// A total with nothing behind it is unknown, not zero.
+const known = (amount: number, counted: number) => counted > 0 ? vnd(amount) : "—";
+const pct = (part: number, whole: number) => whole > 0 ? Math.max(part > 0 ? 2 : 0, Math.round((part / whole) * 100)) : 0;
+const maxValue = Math.max(0, ...breakdown.rows.map((row) => row.value));
+const maxMonth = Math.max(1, ...months.map((row) => Math.max(row.created, row.won)));
+const monthLabel = (key: string) => {
+  const [year, month] = key.split("-");
+  return vi ? `T${Number(month)}/${year.slice(2)}` : new Date(`${key}-01T00:00:00Z`).toLocaleDateString("en-GB", { month: "short", year: "2-digit", timeZone: "UTC" });
+};
+const ownerRows = dashboard.owners ?? [];
+const maxOwner = Math.max(0, ...ownerRows.map((row) => row.value));
+const coverage = (part: number, whole: number) => vi ? `${part}/${whole} cơ hội` : `${part} of ${whole} deals`;
+---
+<section class="crm-sheet dash" id="dashboard" aria-labelledby="dash-h">
+  <div class="dash-head">
+    <div>
+      <h2 class="crm-h2" id="dash-h">{vi ? "Tổng quan bán hàng" : "Sales overview"}</h2>
+      <p class="crm-meta">{scopeLabel}{product ? ` · ${vi ? product.name_vi : product.name_en}` : (vi ? " · mọi sản phẩm" : " · all products")}</p>
+    </div>
+    <form class="dash-filters" method="get" action="#dashboard" aria-label={vi ? "Lọc dashboard" : "Filter the dashboard"}>
+      {manager && <div class="crm-field"><label for="dash-owner">{vi ? "Nhân viên" : "Seller"}</label>
+        <select class="crm-select" id="dash-owner" name="owner"><option value="">{vi ? "Toàn công ty" : "Whole company"}</option>{owners.map((owner) => <option value={owner.id} selected={filters.owner === owner.id}>{owner.label}</option>)}</select></div>}
+      <div class="crm-field"><label for="dash-product">{vi ? "Sản phẩm (quy trình bán)" : "Product (playbook)"}</label>
+        <select class="crm-select" id="dash-product" name="product"><option value="">{vi ? "Mọi sản phẩm" : "All products"}</option>{playbooks.map((item) => <option value={item.playbook_key} selected={filters.playbook === item.playbook_key}>{vi ? item.name_vi : item.name_en}</option>)}</select></div>
+      <div class="crm-actions"><button class="crm-button secondary small" type="submit">{vi ? "Xem" : "Apply"}</button>{(filters.owner || filters.playbook) && <a class="crm-link" href="?#dashboard">{vi ? "Bỏ lọc" : "Clear"}</a>}</div>
+    </form>
+  </div>
+
+  <dl class="dash-kpis">
+    <div class="dash-kpi"><dt>{vi ? "Cơ hội đang mở" : "Open deals"}</dt><dd class="dash-value">{open.deals}</dd></div>
+    <div class="dash-kpi"><dt>{vi ? "Giá trị HĐ mong đợi" : "Expected contract value"}</dt><dd class="dash-value" title={formatVnd(open.value, vi)}>{known(open.value, open.valued)}</dd><dd class="crm-help">{vi ? "đã có giá trị: " : "with a value: "}{coverage(open.valued, open.deals)}</dd></div>
+    <div class="dash-kpi"><dt>{vi ? "Dự báo theo tỉ lệ thành công" : "Probability-weighted forecast"}</dt><dd class="dash-value" title={formatVnd(Math.round(open.forecast), vi)}>{known(open.forecast, open.forecastable)}</dd><dd class="crm-help">{vi ? "đủ giá trị và tỉ lệ: " : "with value and probability: "}{coverage(open.forecastable, open.deals)}</dd></div>
+    <div class="dash-kpi"><dt>{vi ? `Tỉ lệ thắng ${CLOSED_WINDOW_DAYS} ngày` : `Win rate, ${CLOSED_WINDOW_DAYS} days`}</dt><dd class="dash-value">{winRate === null ? "—" : `${winRate}%`}</dd><dd class="crm-help">{vi ? `${closed.won} thắng · ${closed.lost} thua` : `${closed.won} won · ${closed.lost} lost`}</dd></div>
+    <div class="dash-kpi"><dt>{vi ? `Đã chốt ${CLOSED_WINDOW_DAYS} ngày` : `Won, ${CLOSED_WINDOW_DAYS} days`}</dt><dd class="dash-value" title={formatVnd(closed.wonValue, vi)}>{known(closed.wonValue, closed.wonValued)}</dd><dd class="crm-help">{vi ? "giá trị mong đợi của deal thắng; chưa phải tiền đã thu" : "expected value of won deals; not cash collected"}</dd></div>
+  </dl>
+
+  <div class="dash-grid">
+    <figure class="dash-chart" aria-labelledby="chart-value-h">
+      <figcaption id="chart-value-h"><strong>{breakdown.by === "stage" ? (vi ? "Giá trị đang mở theo giai đoạn" : "Open value by stage") : (vi ? "Giá trị đang mở theo sản phẩm" : "Open value by product")}</strong>
+        <span class="dash-legend"><span><i class="dash-key value" aria-hidden="true"></i>{vi ? "Giá trị HĐ mong đợi" : "Expected value"}</span><span><i class="dash-key forecast" aria-hidden="true"></i>{vi ? "Dự báo theo tỉ lệ" : "Weighted forecast"}</span></span></figcaption>
+      {breakdown.rows.length ? <ul class="dash-hbars">{breakdown.rows.map((row) => <li title={`${keyLabel(row.key)}: ${formatVnd(row.value, vi)} · ${vi ? "dự báo" : "forecast"} ${formatVnd(Math.round(row.forecast), vi)} · ${row.deals} ${vi ? "cơ hội" : "deals"}`}>
+        <span class="dash-label">{keyLabel(row.key)} <span class="crm-meta">({row.deals})</span></span>
+        <span class="dash-track" aria-hidden="true"><span class="dash-fill value" style={`inline-size:${pct(row.value, maxValue)}%`}><span class="dash-fill forecast" style={`inline-size:${pct(row.forecast, row.value)}%`}></span></span></span>
+        <span class="dash-num">{known(row.value, row.valued)}</span>
+      </li>)}</ul> : <p class="crm-empty">{vi ? "Chưa có cơ hội đang mở." : "No open deals."}</p>}
+      {breakdown.rows.some((row) => row.valued < row.deals) && <p class="crm-help">{vi ? "Cơ hội chưa có giá trị được đếm nhưng không cộng vào giá trị." : "Deals without a value are counted but add nothing to the value."}</p>}
+    </figure>
+
+    <figure class="dash-chart" aria-labelledby="chart-month-h">
+      <figcaption id="chart-month-h"><strong>{vi ? "Cơ hội mới và cơ hội thắng theo tháng" : "New and won deals per month"}</strong>
+        <span class="dash-legend"><span><i class="dash-key created" aria-hidden="true"></i>{vi ? "Mới" : "New"}</span><span><i class="dash-key won" aria-hidden="true"></i>{vi ? "Thắng" : "Won"}</span></span></figcaption>
+      <ol class="dash-columns" aria-hidden="true">{months.map((row) => <li title={`${monthLabel(row.month)}: ${row.created} ${vi ? "mới" : "new"} · ${row.won} ${vi ? "thắng" : "won"}`}>
+        <span class="dash-pair">
+          <span class="dash-col created" style={`block-size:${pct(row.created, maxMonth)}%`}><b>{row.created || ""}</b></span>
+          <span class="dash-col won" style={`block-size:${pct(row.won, maxMonth)}%`}><b>{row.won || ""}</b></span>
+        </span>
+        <span class="dash-month">{monthLabel(row.month)}</span>
+      </li>)}</ol>
+      <details class="crm-disclosure"><summary>{vi ? "Xem dạng bảng" : "View as table"}</summary>
+        <div class="crm-table-wrap"><table class="crm-table"><thead><tr><th scope="col">{vi ? "Tháng" : "Month"}</th><th scope="col">{vi ? "Mới" : "New"}</th><th scope="col">{vi ? "Thắng" : "Won"}</th></tr></thead>
+          <tbody>{months.map((row) => <tr><th scope="row">{monthLabel(row.month)}</th><td class="crm-num">{row.created}</td><td class="crm-num">{row.won}</td></tr>)}</tbody></table></div>
+      </details>
+    </figure>
+  </div>
+
+  {dashboard.owners && <figure class="dash-chart" aria-labelledby="chart-owner-h">
+    <figcaption id="chart-owner-h"><strong>{vi ? "Theo nhân viên (đang mở)" : "By seller (open deals)"}</strong></figcaption>
+    {ownerRows.length ? <div class="crm-table-wrap"><table class="crm-table dash-table">
+      <thead><tr><th scope="col">{vi ? "Nhân viên" : "Seller"}</th><th scope="col">{vi ? "Cơ hội" : "Deals"}</th><th scope="col">{vi ? "Giá trị HĐ mong đợi" : "Expected value"}</th><th scope="col">{vi ? "Dự báo" : "Forecast"}</th><th scope="col"><span class="crm-sr">{vi ? "Biểu đồ" : "Chart"}</span></th></tr></thead>
+      <tbody>{ownerRows.map((row) => <tr>
+        <th scope="row">{row.key ? <a class="crm-link" href={`?owner=${encodeURIComponent(row.key)}${filters.playbook ? `&product=${encodeURIComponent(filters.playbook)}` : ""}#dashboard`}>{ownerName(row.key)}</a> : ownerName(row.key)}</th>
+        <td class="crm-num">{row.deals}</td>
+        <td class="crm-num" title={formatVnd(row.value, vi)}>{known(row.value, row.valued)}{row.valued < row.deals && <span class="crm-meta"> ({coverage(row.valued, row.deals)})</span>}</td>
+        <td class="crm-num" title={formatVnd(Math.round(row.forecast), vi)}>{known(row.forecast, row.forecastable)}</td>
+        <td class="dash-cell-bar" aria-hidden="true"><span class="dash-track"><span class="dash-fill value" style={`inline-size:${pct(row.value, maxOwner)}%`}><span class="dash-fill forecast" style={`inline-size:${pct(row.forecast, row.value)}%`}></span></span></span></td>
+      </tr>)}</tbody>
+    </table></div> : <p class="crm-empty">{vi ? "Chưa có cơ hội đang mở." : "No open deals."}</p>}
+  </figure>}
+  <p class="crm-help">{vi
+    ? "Số liệu tính từ cơ hội bạn được giao" + (manager ? " (quản lý: toàn công ty)" : "") + ". Dự báo = giá trị HĐ mong đợi × tỉ lệ thành công mong đợi, chỉ với cơ hội có đủ cả hai; giá trị chưa biết không bị tính là 0."
+    : "Figures come from deals you own" + (manager ? " (managers: the whole company)" : "") + ". Forecast = expected contract value × expected win probability, only for deals with both; unknown values are never counted as 0."}</p>
+</section>

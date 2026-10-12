@@ -73,6 +73,8 @@ const fieldLabels: Record<string, string> = vi
         <Field name="source_channel" type="select" label={fieldLabels.source_channel} lang={lang} value={v("source_channel", "field_visit")} error={e("source_channel")} required options={options(lang, "channel")} />
         <Field name="source_detail" label={vi ? "Chi tiết nguồn" : "Source detail"} lang={lang} value={v("source_detail")} error={e("source_detail")} maxlength={300} />
         <Field name="referrer" label={vi ? "Người giới thiệu" : "Referred by"} lang={lang} value={v("referrer")} error={e("referrer")} maxlength={160} />
+        <Field name="estimated_value_vnd" label={vi ? "Giá trị HĐ mong đợi (VND)" : "Expected contract value (VND)"} lang={lang} value={v("estimated_value_vnd")} error={e("estimated_value_vnd")} inputmode="numeric" help={vi ? "Để trống nếu chưa biết." : "Leave blank if unknown."} />
+        <Field name="win_probability" label={vi ? "Tỉ lệ thành công mong đợi (%)" : "Expected win probability (%)"} lang={lang} value={v("win_probability")} error={e("win_probability")} inputmode="numeric" maxlength={4} help={vi ? "0–100; để trống nếu chưa biết." : "0–100; blank if unknown."} />
         <Field name="next_action" label={vi ? "Bước tiếp theo" : "Next step"} lang={lang} value={v("next_action")} error={e("next_action")} maxlength={500} />
         <Field name="next_action_due" type="date" label={fieldLabels.next_action_due} lang={lang} value={v("next_action_due")} error={e("next_action_due")} />
         {ctx.actor.manager && <Field name="owner_id" type="select" label={fieldLabels.owner_id} lang={lang} value={v("owner_id", ctx.actor.id)} error={e("owner_id")} options={owners.map((owner) => ({ value: owner.id, label: owner.label }))} />}
