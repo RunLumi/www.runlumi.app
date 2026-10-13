@@ -52,7 +52,7 @@ test("event cards show money and owners, link to the CRM, and never use markdown
   assert.match(lost, /Thua: .*"red"|"red".*Thua/);
   assert.match(lost, /Đã có website/);
   assert.match(JSON.stringify(eventCard(facts("do_not_contact_set", { opportunity: null, body: { reason: "Gọi điện yêu cầu" } }))), /Yêu cầu không liên hệ/);
-  assert.equal(eventCard(facts("note")), null, "notes are never announced");
+  assert.equal(eventCard(facts("cost_logged")), null, "time and cost logs stay quiet");
   assert.match(JSON.stringify(eventCard(facts("created", { opportunity: { ...opp, outcome: "open", value: null, probability: null } }))), /Chưa biết/, "unknown is shown as unknown, not 0");
 });
 
@@ -76,7 +76,7 @@ async function seed() {
   const event = (id: string, kind: string, offsetMs: number) => db.raw.exec(`INSERT INTO crm_events (id, opportunity_id, account_id, actor_id, actor_name, kind, body, created_at) VALUES ('${id}', 'opp_1', 'acc_1', 'u_lan', 'Chị Lan', '${kind}', '{}', '${at(offsetMs)}')`);
   event("evt_before", "created", -60_000);
   event("evt_new", "created", 1_000);
-  event("evt_note", "note", 2_000);
+  event("evt_quiet", "cost_logged", 2_000);
   return { db, content, now: () => new Date(Date.parse(marker.created_at) + 60_000) };
 }
 
@@ -113,4 +113,33 @@ test("the digest goes out once a day, Monday to Saturday", async () => {
   assert.equal(await sendDigest(at("2026-10-19T01:37:00Z")), "sent", "Monday 08:37 in Vietnam");
   assert.equal(await sendDigest(at("2026-10-19T01:47:00Z")), "skipped", "once per day");
   assert.equal(calls, 1);
+});
+
+test("free text is excerpted with phone numbers and emails masked, amounts and dates kept", async () => {
+  const { excerpt, detailChanges } = await import("../src/lib/crm/lark/cards.ts");
+  const masked = excerpt("Gọi anh Phong 0902 968 235 hoặc +84 902.968.235, mail phong@example.vn; báo giá 150.000.000đ ngày 2026-10-13, cọc 1.990.000");
+  assert.doesNotMatch(masked, /968|phong@/);
+  assert.equal((masked.match(/\[số điện thoại\]/g) ?? []).length, 2);
+  assert.match(masked, /\[email\]/);
+  assert.match(masked, /150\.000\.000đ/);
+  assert.match(masked, /2026-10-13/);
+  assert.ok(excerpt("x".repeat(500)).length <= 280);
+  const changes = detailChanges({ from: { estimated_value_vnd: null, win_probability: 30, next_action: "", next_action_due: null, title: "A" }, to: { estimated_value_vnd: 1990000, win_probability: 60, next_action: "Gửi demo", next_action_due: "2026-10-16", title: "A" } });
+  assert.deepEqual(changes.map(([label]) => label), ["Giá trị HĐ mong đợi", "Tỉ lệ thành công", "Bước tiếp theo"]);
+  assert.match(changes[0][1], /Chưa biết → 1\.990\.000/);
+  assert.match(changes[2][1], /Gửi demo \(hạn 16\/10\)/);
+  assert.deepEqual(detailChanges({ from: { cohort_key: null }, to: { cohort_key: "c1" } }), [], "a cohort-only save is not announced");
+});
+
+test("the richer feed covers notes, quotes, tasks, delivery and companies", () => {
+  const card = (kind: string, extra: Partial<EventFacts> = {}) => JSON.stringify(eventCard(facts(kind, { opportunity: { ...opp, outcome: "open", stage: "Đã trao đổi với chủ" }, ...extra })));
+  assert.match(card("note", { body: { text: "Chủ hẹn thứ Sáu, số 0902968235" } }), /Ghi chú:.*\[số điện thoại\]/);
+  assert.match(card("quote_created", { body: { offer: "local-starter@1", price_vnd: 1990000 }, offerName: "Starter" }), /Báo giá mới.*Starter.*1\.990\.000/);
+  assert.match(card("task_created", { body: { kind: "demo", title: "Demo bản xem thử", due_on: "2026-10-16" } }), /Demo: Demo bản xem thử.*16\/10/);
+  assert.match(card("task_completed", { body: { kind: "call", outcome: "no_answer" } }), /Gọi xong: Không nghe máy/);
+  assert.match(card("fulfillment_status", { body: { from: "ready_to_publish", to: "live" } }), /Website đã live.*"green"|"green".*Website đã live/);
+  assert.match(card("fields", { body: { changed: ["friction", "owner_name"] }, fieldLabels: { friction: "Vướng mắc", owner_name: "Chủ / quản lý" } }), /Vướng mắc, Chủ \/ quản lý/);
+  assert.match(card("account_created", { opportunity: null, ownerTo: "Chị Lan" }), /Công ty mới.*Chị Lan/);
+  assert.equal(eventCard(facts("details", { body: { from: {}, to: {} } })), null);
+  assert.equal(eventCard(facts("task_cancelled")), null, "cancelled tasks stay quiet");
 });

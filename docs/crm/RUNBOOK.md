@@ -285,15 +285,21 @@ The CRM posts to one internal Lark group (larksuite.com) through a **custom bot*
 
 ### What is posted
 
-- **Right after a change**, sent with `waitUntil` once the page has responded:
-  - a new opportunity, or a follow-on (upgrade, renewal, expansion);
-  - a website enquiry or a referral waiting for assignment;
-  - an assignment;
-  - a stage change, with won and lost highlighted and the loss reason;
-  - an accepted quote, labelled as not yet paid;
-  - a payment confirmed by finance;
-  - a do-not-contact request.
-- **Never:** phone numbers, emails, note text, candidate data.
+On 2026-10-13 the owner asked for an engaging feed covering day-to-day activity. Each post is sent with `waitUntil` once the page has responded, and each card links to the record.
+
+| Area | Announced |
+|---|---|
+| Opportunities | new and follow-on opportunities; assignment; stage change (won and lost highlighted, with reason); detail changes: expected value, win probability, next step and date, and name, each shown as before → after |
+| Notes and discovery | notes, as a ≤280-character excerpt with phone numbers and emails masked; discovery fields, naming *which* fields changed but not their values |
+| Queues | website enquiries and referrals waiting for assignment; tasks marked as needing help |
+| Quotes and money | quote created, withdrawn or accepted (labelled not yet paid); payment reported (pending), payment confirmed, refund, voided entry |
+| Tasks | task scheduled (kind, title, due date); task completed with its outcome; meeting confirmed by the customer |
+| Delivery | handoff started; status changes (live and accepted highlighted); blocked or unblocked; owner approval; delivery accepted |
+| Companies | new company; contact added (role only); company handed over |
+| Safety | do-not-contact requests |
+
+- **Quiet on purpose:** cancelled tasks, time and cost logs, configuration, commission, tokens, saves that change nothing visible (for example cohort-only).
+- **Never sent:** contact phone numbers or emails, discovery field values, candidate data.
 - **Customer text** is sent as plain text, so it cannot mention people or carry markdown.
 - **Morning digest at 08:37 Vietnam time, Monday to Saturday** (none on Sunday). It covers:
   - the open pipeline: value and weighted forecast, each with how many deals it covers;
