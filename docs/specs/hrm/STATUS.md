@@ -1,73 +1,99 @@
 # HRM — Implementation status
 
-Updated: 2026-10-13. Goal active; no HRM phase is complete yet.
+Updated: 2026-10-14. The overall HRM goal is active. P1 is implemented in PR #50; no phase has been released.
 
-## Checkout and resume
+## Current state and ownership
 
-- Worktree: `/Users/james/.codex/worktrees/hrm-p1/www.runlumi`; branch `codex/hrm-p1`; base `ab87173864f97e683e7cdf8aad7c80827524894c`.
-- Original checkout has unrelated untracked hiring/security documentation; preserve it.
-- This task owns HRM source/routes/tests/migrations and necessary Workspace integration. No production HR data or grants authorized.
-- A task-owned `node_modules` symlink points to original installed dependencies; do not commit it or delete its target. Host Node 22.14 requires `NODE_OPTIONS=--experimental-strip-types` for TS tests.
-- GitHub Actions budget previously prevented jobs starting; local checks do not count as hosted PASS. Cloudflare Builds API access previously returned 403 and dashboard failed; revalidate before release claims.
+- The user checkout at `/Volumes/SSD/www.runlumi` remains on `codex/restore-repo-privacy-todo` with unrelated untracked files `docs/hiring/recruitment-worklog.md` and `docs/security-publication-review.md`. They were not modified.
+- HRM work is in the isolated clone `/private/tmp/runlumi-hrm`, branch `codex/hrm-p1`, based on `ab87173864f97e683e7cdf8aad7c80827524894c`. Local dependency files are a task-local copy; they are not committed.
+- PR #50 is open. Its head and hosted check state must be read again after the final P1 status/test update. P1 has not been merged.
+- No real employee, policy, contract or payroll data was used. Production HRM remains closed. No production access grant or deployment was made.
 
-## Owner decisions
+## Owner decisions and unresolved policy
 
-- 2026-10-13: HRM Admin and System Super Admin may approve HRM operations. System Super Admin remains EmDash role 50. HRM Admin is a separate combinable Workspace role, without user/role administration, ATS or CRM permissions. Self-approval remains prohibited.
-- 2026-10-13: policies/templates not yet finalized; build configurable workflows and keep production closed. No invented legal entity, retention period, tax/insurance formula or valid signing policy.
-- Technical proposal P1: HRM metadata in existing business D1 with `hrm_` tables; private files in `hrm/` namespace of existing FILES R2 binding, using distinct metadata and endpoints. No file reused from ATS or public EmDash media. Reassess physical bucket separation before activation if custody requirements demand it.
-
-- Owner clarification, 2026-10-13: policy authors upload DOCX; employees and HR submit PDF evidence; each affirmative acknowledgement must store actor and server confirmation time tied to immutable issue/version/checksum and display it in the UI. This records acknowledgement, not electronic signature.
+- 2026-10-13: HRM Admin and System Super Admin (EmDash role 50) may approve HRM operations; nobody may approve their own submission. HRM Admin does not receive user/role administration, ATS or CRM access.
+- 2026-10-13: legal entity, policy text, category-specific retention, signing method and payroll rules are not finalized. Build configurable workflows and keep production closed until the responsible owner/reviewer configures them.
+- 2026-10-13: authorized policy users upload DOCX source files. Employees and HR upload PDF evidence. An affirmative acknowledgement stores the EmDash actor, server UTC timestamp and exact issued version/checksum, and displays the confirmation time. Acknowledgement is not an electronic signature.
+- Separate payroll preparer and approver identities, specialist-reviewed calculations, and jurisdiction-specific tax/insurance rules remain unresolved. The System Super Admin approval capability does not waive payroll self-approval controls.
 
 ## Phase gates
 
-| Phase | Contract | Integration | Release | Next step |
+| Phase | Contract Gate | Integration Gate | Release state | Dependency / next action |
 |---|---|---|---|---|
-| P0 | UNPROVEN: roles clarified; policy configuration unapproved | UNPROVEN | CLOSED by owner | Record configurable activation prerequisites |
-| P1 | UNPROVEN | UNPROVEN | Not released | Implement scoped employee/profile/record/file workflows and bilingual pages |
-| P2 | UNPROVEN | UNPROVEN | Not released | Wait for P1 integration before legal/onboarding implementation |
-| P3 | UNPROVEN | UNPROVEN | Not released | Time/leave after base identities and workflow custody |
-| P4 | UNPROVEN | UNPROVEN | Not released | Payroll requires independently reviewed policies/calculation evidence |
-| P5 | UNPROVEN | UNPROVEN | Not released | Services, operation and restore evidence |
+| P0 — policy and ownership | BLOCKED: core roles clarified; legal entity, purpose/legal basis, retention by category, signing method and payroll reviewers are unapproved | UNPROVEN | CLOSED by owner decision | Keep the live switch off; record approved policy owners before production activation |
+| P1 — employee profile and private files | PASS for the technical P1 contract: additive schema, independent grants, EmDash link, private-file custody and EN/VI routes are implemented; retention remains configurable and production closed | UNPROVEN: local Worker/D1/R2 P1 tests pass, but HRM-18 and the full HRM-20 browser/accessibility checks are not proven; hosted checks must pass on the final PR head | NOT MERGED | Finish exact-head hosted checks; obtain an accessible browser runner for required viewport/keyboard checks; do not merge before the full gate |
+| P2 — legal papers and onboarding TODO | BLOCKED | BLOCKED | NOT RELEASED | Start after P1; implement DOCX issue snapshots, PDF evidence and timestamped acknowledgement, contracts/NDA/COI, onboarding workflow and lifecycle transfer |
+| P3 — schedules, attendance and leave | BLOCKED | BLOCKED | NOT RELEASED | Requires reviewed calendar/shift/accrual/leave rules and locked attendance inputs |
+| P4 — payroll and payslips | BLOCKED | BLOCKED | NOT RELEASED | Requires specialist-approved inputs/rules, independent preparer/approver and an independently checked parallel run |
+| P5 — employee services and operations | BLOCKED | BLOCKED | NOT RELEASED | Requires prior phase gates, retention/legal-hold decisions and D1/R2 recovery evidence |
+
+## P1 implemented scope
+
+- Migration `0012_hrm_records.sql` adds HRM role grants and structured people, employment periods, profile/history, change-request, private-file, idempotency and audit tables without removing old role grants.
+- Workspace roles remain separate for Employee, People Manager, HRM Officer and HRM Admin; System Super Admin remains EmDash role 50. HR/Finance/Sales/Partner do not gain HRM access through their old roles. Users and grants are still managed through the shared EmDash/Workspace contract.
+- HR creates a record by selecting one active EmDash account; it does not auto-link by matching email. A person can have separate employment periods.
+- Employee self-service and scoped HR/manager views cover contact, personal, identity/CCCD, dependents, bank and tax/insurance fields. Riskier changes enter a versioned reviewer workflow; stale updates conflict. Actor, server time and audit history are retained.
+- HRM file endpoints use private R2 objects under the `hrm/` namespace, signature-checked PDF/JPEG/PNG, a 5 MB cap, quarantine/review and authenticated no-store downloads. HR review is not an antivirus-scan claim.
+- HRM is guarded by `HRM_LIVE_ENABLED` and reviewed settings. The production switch remains off.
+- HRM page POST forms retain a bounded same-origin URL-encoded request clone before adapter consumption; oversized forms are rejected. Profile routes return mutation Responses instead of rendering them as page data.
+- P2 policy-document acknowledgement, employment signing and onboarding task workflows are specified but not implemented in P1.
 
 ## Requirement-to-evidence matrix
 
-| Requirement | Phase | Implementation/test/evidence | Status |
-|---|---|---|---|
-| §1–3 identity, roles, EN/VI navigation | P1 | Pending | UNPROVEN |
-| §4 employee profiles and changes | P1 | Pending | UNPROVEN |
-| §5 dependents, identity and private files | P1 | Pending | UNPROVEN |
-| §6 contracts, NDA, COI and evidence | P2 | Pending | UNPROVEN |
-| §7 lifecycle; §7.1–7.3 onboarding todo | P2 | Pending | UNPROVEN |
-| §8 time and calendars | P3 | Pending | UNPROVEN |
-| §9 leave and concurrency | P3 | Pending | UNPROVEN |
-| §10 payroll/payslips | P4 | Pending | UNPROVEN |
-| §11 benefits/assets/learning/HR requests | P5 | Pending | UNPROVEN |
-| §12 shared persistence/audit/custody | P1–P5 | Pending | UNPROVEN |
-| §13 retention/hold/restore/runbooks | P1–P5 | Pending | UNPROVEN |
-| HRM-01–05 | P1 | Pending | UNPROVEN |
-| HRM-06–09 | P2–P4 | Pending | UNPROVEN |
-| HRM-10–12 | P2 | Pending | UNPROVEN |
-| HRM-13–15 | P4 | Pending | UNPROVEN |
-| HRM-16 | P1 | Pending | UNPROVEN |
-| HRM-17–18 | P1–P2 | Pending | UNPROVEN |
-| HRM-19–21 | P1–P5 | Pending | UNPROVEN |
-| HRM-22–25 | P2 | Pending | UNPROVEN |
+The status is for the complete acceptance criterion in §14, not only its P1 subset.
+
+| ID | Requirement → code/test evidence | Status |
+|---|---|---|
+| HRM-01 | `service.ts`, authenticated file routes; integration rejects employee A opening B's profile/file. Payslip isolation belongs to P4 and is not implemented. | UNPROVEN — P1 profile/file subset passes locally |
+| HRM-02 | `workspace/roles.ts`, `middleware.ts`, `tests/hrm.test.ts`; CRM Finance/ATS HR/Partner/Sales roles are independent; legacy regressions pass. | PASS — tested scope only |
+| HRM-03 | Scoped `listPeople` query and manager profile authorization; integration checks direct report scope and hides identity/bank. | PASS — tested scope only |
+| HRM-04 | EmDash-backed Workspace lookup; integration revokes employee grant and verifies the next request is denied. Background-job revoke behavior awaits later phases. | UNPROVEN — request-path subset passes |
+| HRM-05 | Version guard and immutable history in `service.ts`/migration 0012; integration races two changes against one bank revision and checks stale approval conflicts. | PASS — tested record workflow |
+| HRM-06 | Schedule/holiday/shift calculation not implemented. | BLOCKED — P3 |
+| HRM-07 | Leave accrual/hold/retry ledger not implemented. | BLOCKED — P3 |
+| HRM-08 | Delegated leave approval and manager-change routing not implemented. | BLOCKED — P2/P3 |
+| HRM-09 | Locked attendance/payroll correction flow not implemented. | BLOCKED — P3/P4 |
+| HRM-10 | Policy/document states and timestamped issue acknowledgement are specified; P2 workflow not implemented. | BLOCKED — P2 |
+| HRM-11 | Contract/NDA versioning and verified-signature callback not implemented; no provider selected. | BLOCKED — P2 |
+| HRM-12 | COI disclosure/review/mitigation workflow not implemented. | BLOCKED — P2 |
+| HRM-13 | Payroll calculation and independent-currency/commission inputs not implemented. | BLOCKED — P4 |
+| HRM-14 | Payroll separation of duties, approval invalidation and publish idempotency not implemented. | BLOCKED — P4 |
+| HRM-15 | Payslip publication versus reconciled payment evidence not implemented. | BLOCKED — P4 |
+| HRM-16 | File API, MIME signature, size, quarantine, cross-user denial, unauthenticated 401, no-store download and file-review timestamp are tested in local HRM integration; MIME signature validator has unit coverage. Export remains P5. | PASS — P1 private-file checks |
+| HRM-17 | ATS-to-HRM controlled transfer and independent document retention not implemented. | BLOCKED — P2 |
+| HRM-18 | Separate employment-period schema exists. Rehire/offboarding and legal-hold deletion behavior are not fully implemented or tested. | UNPROVEN — schema only |
+| HRM-19 | HRM notification/outbox behavior is not implemented; CRM notifications remain separate. | BLOCKED — P5 |
+| HRM-20 | EN/VI routes and content parity are checked in local integration. Browser sizes, keyboard/focus, reduced motion, overflow and no-JS workflows were not verified because the available browser backend blocked local URLs and Chrome was unavailable. | UNPROVEN |
+| HRM-21 | Joint D1/R2 restore and checksum reconciliation not implemented. | BLOCKED — P5 |
+| HRM-22 | Versioned onboarding templates/plans/idempotent tasks not implemented. | BLOCKED — P2 |
+| HRM-23 | Onboarding dependencies, signed evidence and authorized waivers not implemented. | BLOCKED — P2 |
+| HRM-24 | Buddy/manager task visibility against restricted source records not implemented. | BLOCKED — P2 |
+| HRM-25 | Onboarding cancellation, reassignment queue and offboarding/revocation workflow not implemented. | BLOCKED — P2 |
+
+| Spec section | Implementation/evidence | Status |
+|---|---|---|
+| §1–3 identity, roles and navigation | EmDash/Workspace contract, HRM capability map, EN/VI routes; integration and role unit tests | PASS for P1 scope |
+| §4–5 profile, dependents, identity and files | Migration 0012, P1 pages/services, local Worker/D1/R2 integration | PASS for implemented P1 scope |
+| §6 legal papers, contracts, NDA and COI | README spec and owner DOCX/PDF direction only | BLOCKED — P2 |
+| §7 onboarding/offboarding | README spec only | BLOCKED — P2 |
+| §8–9 schedule, attendance and leave | README spec only | BLOCKED — P3 |
+| §10 payroll/payslips | README spec only; no policy/formula assumed | BLOCKED — P4 |
+| §11 employee services | README spec only | BLOCKED — P5 |
+| §12 data custody/audit | P1 D1/R2, audit/revision and access controls; later lifecycle/export work remains | UNPROVEN overall |
+| §13 retention, legal hold, export, backup/restore | Configurable activation prerequisite and design contract; category policy and enforcement/recovery not implemented | UNPROVEN |
 
 ## Verification log
 
-- Initial implementation exists in the isolated checkout: additive 0012 migration, independent HRM grants, profile/record validators and approval service. It is NOT YET verified or integrated.
-- Isolated temporary clone created from `origin/main` at `ab87173864f97e683e7cdf8aad7c80827524894c`; branch `codex/hrm-p1` in `/private/tmp/runlumi-hrm`. This avoids writing into the concurrently checked-out privacy branch. No PR exists for P1 yet.
-- Monthly engineering review already recorded complete for October; no extra guidance change inferred.
-- Next: build P1 vertical slice, then unit/migration and real Worker/D1/R2/EmDash integration before claiming PASS.
+- `npm run ci:verify`: PASS locally on the isolated clone — lint, 83 unit tests, Astro check and build. The build has an existing large-chunk warning and an unrelated Hiring unused-import hint. A local listener required sandbox escalation; no production service was contacted.
+- `npm run test:integration`: PASS locally — one HRM P1 suite plus 43 CRM/Workspace/ATS/directory/API/dashboard regression tests against an isolated Astro Worker, EmDash sessions, temporary D1 and local R2. The final HRM suite covers roles, closed/live gates, employee A/B scope, manager restrictions, CSRF, identity submission/review timestamps, stale bank revisions, MIME mismatch rejection, unauthenticated/cross-user file denial, quarantine, file review timestamps, no-store download and revocation.
+- Migration exercise: PASS with Python SQLite applying migrations 0001–0012; pre-existing HR/Finance/Sales/Partner grants and ATS actor columns survived the 0012 role expansion, and a new HRM grant was accepted. This is migration-level evidence, separate from Worker integration.
+- Browser QA: UNPROVEN. The Playwright wrapper was blocked by the machine's `pkg-age-guard`; the CUA in-app browser returned `ERR_BLOCKED_BY_CLIENT` for both local loopback hosts and Chrome was unavailable. No screenshots, viewport, keyboard or no-JS claims are made.
+- Local synthetic browser Worker was stopped. Its temporary D1 and `.dev.vars` were removed and verified absent.
+- Hosted GitHub checks and post-merge Cloudflare deployment are separate proof layers; read their state on the final PR head before changing any gate.
 
-## Latest P1 work (2026-10-13)
+## Next actions
 
-- Implemented: roles `employee`, `people_manager`, `hrm_officer`, `hrm_admin`; System Super Admin remains EmDash role 50. HRM grants remain separate from ATS/CRM and users administration. A runtime `HRM_LIVE_ENABLED` switch defaults off.
-- Implemented: stable `hrm_people` identity with separate `hrm_employments`, allowing rehire as another immutable employment period. New role/profile fields are EN/VI and use EmDash session identity.
-- Implemented: effective date/status/contact/work fields; separated record kinds for contact, personal, identity/CCCD, dependents, banking and tax; server validation; self-edit versus submitted/reviewed workflow; revision guards and idempotency; audit/history triggers and immutable snapshots.
-- Implemented: private R2 `hrm/` uploads for signature-checked PDF/JPEG/PNG, 5 MB ceiling, per-person/per-record permission checks, quarantine, review reason/actor/time, no-store attachment downloads and upload cleanup when DB commit fails. No antivirus scan claim; manual review remains distinct.
-- Implemented: EN/VI overview, employee profile, scoped people listing, work record admin, policy setup, API endpoints, phone styles and authenticated file flows. Access remains closed for all HRM non-admin users unless the deployment switch and owner-reviewed settings are ready.
-- Local verification: lint PASS; 83 unit tests PASS; Astro check PASS; build PASS after using a separate lockfile-aligned dependency tree. Python SQLite migration exercise PASS for role preservation, multiple employment periods and immutable history. These do not establish Worker integration.
-- P1 PR #50 remains draft. Hosted run 38429258438 passed install, lint, unit tests and D1 migrations. CRM, Workspace and ATS integration cases passed; the HRM Employee Manager people-list query still returns HTTP 500. A development-only diagnostic now logs a bounded database error message without logging form/record values; the integration assertion includes the safe response body. Fix and rerun before the P1 Integration Gate passes. No merge or production activation.
-- P1 PR #50 remains draft. Hosted run 38429258438 passed install, lint, unit tests and D1 migrations. CRM, Workspace and ATS integration cases passed; the HRM Employee Manager people-list query still returns HTTP 500. A development-only diagnostic now logs a bounded database error message without logging form/record values; the integration assertion includes the safe response body. Fix and rerun before the P1 Integration Gate passes. No merge or production activation.
-- Owner policy-file direction (2026-10-13): HRM Admin authors DOCX policy sources; employee/HR evidence comes as PDF; explicit acknowledgement captures the server timestamp and exact issued version. Implement this in P2 without claiming acknowledgement is an electronic signature.
+1. Publish the final integration assertions and this status file to PR #50.
+2. Read back the final PR head and wait for its hosted checks. Do not merge a head with pending/failed checks.
+3. Obtain an accessible browser runner or local browser route, then verify EN/VI at 320–430 px, 1280 px and large desktop; keyboard/focus, reduced motion, overflow and native form behavior. Until then P1 Integration Gate remains UNPROVEN and PR #50 stays unmerged.
+4. Keep P0 production configuration closed until the owner approves entity, purposes, policy, category retention and signing. Continue P2 only after P1 is merged under its full gate.
