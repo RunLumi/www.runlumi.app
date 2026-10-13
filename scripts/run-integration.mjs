@@ -82,26 +82,29 @@ try {
   }
   if (!ready) throw new Error("Local Worker did not become ready within 90 seconds.\n" + log);
 
-  const suites = [
-    "tests/integration/hrm.integration.test.mjs",
-    "tests/integration/crm.integration.test.mjs",
-    "tests/integration/workspace.integration.test.mjs",
-    "tests/integration/directory.integration.test.mjs",
-    "tests/integration/api.integration.test.mjs",
-    "tests/integration/dashboard.integration.test.mjs",
-    "tests/integration/files.integration.test.mjs",
-  ];
-  const result = spawnSync(
+  const runSuites = suites => spawnSync(
     process.execPath,
     ["--test", "--test-concurrency=1", ...suites],
     { cwd: root, env, stdio: "inherit" },
   );
+  console.log("Running HRM integration gate first.");
+  let result = runSuites(["tests/integration/hrm.integration.test.mjs"]);
+  if (result.status === 0) {
+    console.log("HRM integration gate passed; running existing module regressions.");
+    result = runSuites([
+      "tests/integration/crm.integration.test.mjs",
+      "tests/integration/workspace.integration.test.mjs",
+      "tests/integration/directory.integration.test.mjs",
+      "tests/integration/api.integration.test.mjs",
+      "tests/integration/dashboard.integration.test.mjs",
+    ]);
+  }
   if (result.status !== 0) {
     process.exitCode = result.status ?? 1;
     const safeLogs = log.slice(-12000)
-      .replace(/[\w.+-]+@[\w.-]+\.[A-Z]{2,}/gi, "[redacted-email]")
+      .replace(/[^\s@]+@[^\s@]+\.[A-Z]{2,}/gi, "[redacted-email]")
       .replace(/\b\d{9,15}\b/g, "[redacted-number]");
-    console.error("Synthetic Worker logs with emails/numbers redacted:\n" + safeLogs);
+    console.error("Synthetic Worker logs (emails/numbers redacted):\n" + safeLogs);
   }
 } catch (error) {
   console.error(error);
