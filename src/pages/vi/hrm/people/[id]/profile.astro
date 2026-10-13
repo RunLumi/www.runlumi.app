@@ -8,11 +8,10 @@ export const prerender=false;
 let data;
 try {
   data=await profilePage(Astro,"vi",Astro.params.id??"");
-  if(!(data instanceof Response)) {
-    const env=envFromLocals(Astro.locals);
-    const section=Astro.url.searchParams.get("section")??"contact";
-    data.files=await listFiles(env.DB,Astro.locals.workspace!,data.person,section==="contact"?"personal":section);
-  }
+  if(data instanceof Response)return data;
+  const env=envFromLocals(Astro.locals);
+  const section=Astro.url.searchParams.get("section")??"contact";
+  data.files=await listFiles(env.DB,Astro.locals.workspace!,data.person,section==="contact"?"personal":section);
 } catch(error) {
   if(typeof error==="object"&&error!==null&&"status" in error&&Number(error.status)===404)return new Response('Không tìm thấy hồ sơ.',{status:404,headers:{"Cache-Control":"private, no-store"}});
   const user=Astro.locals.workspace!;
