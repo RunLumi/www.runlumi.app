@@ -67,7 +67,11 @@ export async function profilePage(astro:AstroGlobal,lang:Lang,personId?:string):
     return redirect(astro,{section:kind,saved:decision});
    }
    throw new HrmError("invalid_action");
-  }catch(error){notice=error instanceof HrmError?error.message:"internal_error";if(error instanceof HrmError)astro.response.status=error.status;}
+  }catch(error){
+    notice=error instanceof HrmError?error.message:"internal_error";
+    astro.response.status=error instanceof HrmError?error.status:500;
+    if(import.meta.env.DEV&&!(error instanceof HrmError))console.error("[hrm] profile mutation failed:",error instanceof Error?(error.name+": "+error.message.slice(0,240)):"unknown error");
+  }
  }
  const [records,changes]=await Promise.all([recordsFor(env.DB,user,person,kind),changesFor(env.DB,user,person,kind)]);
  return {...base(lang,user),title:lang==="vi"?"Hồ sơ nhân viên":"Employee profile",person,kind,records,changes,saved:astro.url.searchParams.has("saved"),error:notice};
