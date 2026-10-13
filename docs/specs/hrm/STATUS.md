@@ -6,7 +6,7 @@ Updated: 2026-10-14. The overall HRM goal is active. P1 is implemented in PR #50
 
 - The user checkout at `/Volumes/SSD/www.runlumi` remains on `codex/restore-repo-privacy-todo` with unrelated untracked files `docs/hiring/recruitment-worklog.md` and `docs/security-publication-review.md`. They were not modified.
 - HRM work is in the isolated clone `/private/tmp/runlumi-hrm`, branch `codex/hrm-p1`, based on `ab87173864f97e683e7cdf8aad7c80827524894c`. Local dependency files are a task-local copy; they are not committed.
-- PR #50 is open. Its head and hosted check state must be read again after the final P1 status/test update. P1 has not been merged.
+- PR #50 is open; always read the live head and hosted checks directly before any merge because this file is not a live check feed. P1 has not been merged.
 - No real employee, policy, contract or payroll data was used. Production HRM remains closed. No production access grant or deployment was made.
 
 ## Owner decisions and unresolved policy
@@ -93,7 +93,6 @@ The status is for the complete acceptance criterion in §14, not only its P1 sub
 
 ## Next actions
 
-1. Publish the final integration assertions and this status file to PR #50.
-2. Read back the final PR head and wait for its hosted checks. Do not merge a head with pending/failed checks.
-3. Obtain an accessible browser runner or local browser route, then verify EN/VI at 320–430 px, 1280 px and large desktop; keyboard/focus, reduced motion, overflow and native form behavior. Until then P1 Integration Gate remains UNPROVEN and PR #50 stays unmerged.
-4. Keep P0 production configuration closed until the owner approves entity, purposes, policy, category retention and signing. Continue P2 only after P1 is merged under its full gate.
+1. Read the live PR #50 head and wait for hosted checks on that exact SHA. Do not merge a head with pending/failed checks.
+2. Obtain an accessible browser runner or local browser route, then verify EN/VI at 320–430 px, 1280 px and large desktop; keyboard/focus, reduced motion, overflow and native form behavior. Until then P1 Integration Gate remains UNPROVEN and PR #50 stays unmerged.
+3. Keep P0 production configuration closed until the owner approves entity, purposes, policy, category retention and signing. Begin P2 after P1 is merged under its full gate.
