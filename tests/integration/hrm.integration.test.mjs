@@ -22,7 +22,7 @@ test("HRM P1 uses EmDash sessions, isolated HRM grants, scoped records, D1 histo
  for(const [user,role] of [[S.hrm,"hrm_admin"],[S.hr,"hrm_officer"],[S.manager,"people_manager"],[S.employeeA,"employee"],[S.employeeB,"employee"],[S.finance,"finance"]])assert.equal((await grant(user,role)).status,303);
  assert.equal((await S.finance.get("/hrm")).status,403,"CRM Finance is not HRM access");
  assert.equal((await S.hr.get("/workspace/users")).status,403,"HRM Officer cannot manage accounts");
- assert.equal((await S.employeeA.get("/hrm")).status,503,"the database policy readiness gate remains closed until HRM Admin configures and reviews it");
+ const closed=await S.employeeA.get("/hrm");assert.equal(closed.status,503,"Closed HRM gate response: " + closed.html);
  assert.equal((await S.hrm.get("/hrm/settings")).status,200,"HRM Admin can configure while the employee module remains unavailable");
  assert.equal((await S.hrm.post("/hrm/settings",{request_key:`policy_${run}`,version:1,legal_entity:"TEST Local entity",purpose:"Synthetic test only",retention_policy:"Synthetic records deleted with test state",policy_reference:"TEST-only synthetic policy",reviewed:"1",enabled:"1"})).status,303);
  assert.equal((await S.employeeA.get("/hrm")).status,200);
