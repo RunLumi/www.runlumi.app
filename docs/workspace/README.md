@@ -6,6 +6,10 @@ Lumi Workspace is the private side of runlumi.app. Today it has two modules:
 
 Both share one identity (EmDash), one role model and one navigation shell. Every route has a Vietnamese peer under `/vi`.
 
+**Planned module:** [HRM — employee records and self-service](../specs/hrm/README.md) specifies profiles, dependents, private identity files, contracts, NDA/COI acknowledgements and signatures, working time, leave and payslips. It is a proposal, not an implemented module; its permissions must be granted separately from Hiring and CRM.
+
+**Phân hệ dự kiến:** [HRM — quản trị nhân sự và cổng nhân viên](../specs/hrm/README.md) đặc tả hồ sơ, người phụ thuộc, giấy tờ định danh riêng tư, hợp đồng, ký/xác nhận NDA và COI, công, phép và phiếu lương. Chưa triển khai; quyền HRM được cấp riêng với Hiring và CRM.
+
 ## 1. Research findings (2026-10-08)
 
 | Area | Before | Now |
