@@ -9,7 +9,8 @@ const S = {};
 const ids = {};
 
 const nav = (html) => [...html.matchAll(/<nav class="ws-modules"[^>]*>([\s\S]*?)<\/nav>/g)].map((match) => match[1]).join("");
-const pages = (html) => [...html.matchAll(/<nav class="crm-shell ws-pages"[^>]*>([\s\S]*?)<\/nav>/g)].map((match) => match[1]).join("");
+// Module pages: the horizontal bar (hiring, admin) or the grouped CRM sidebar.
+const pages = (html) => [...html.matchAll(/<nav class="(?:crm-shell ws-pages|ws-side)"[^>]*>([\s\S]*?)<\/nav>/g)].map((match) => match[1]).join("");
 
 test("setup: roles are granted on the users page, by email, with an audit trail", async () => {
   S.admin = await adminSession();
