@@ -71,6 +71,17 @@ Bạn chỉ thấy các cơ hội được giao cho mình. Nếu một doanh ngh
   - Nhân viên bán hàng và Cộng tác viên chỉ thấy số liệu của chính mình.
   - Quản lý bán hàng và Admin thấy toàn công ty, có thể lọc theo nhân viên và sản phẩm (quy trình bán), và có thêm bảng *Theo nhân viên*.
 
+## Thông báo trên Lark
+
+- CRM gửi thông báo vào nhóm Lark của đội bán hàng: cơ hội mới, yêu cầu từ website hoặc khách giới thiệu chờ phân công, giao cơ hội, chuyển giai đoạn (nổi bật **Thắng** và **Thua**), khách chấp thuận báo giá, tài chính xác nhận thanh toán, và yêu cầu không liên hệ.
+- Thông báo có tên công ty, sản phẩm, giai đoạn, người phụ trách và số tiền. Thông báo **không** có số điện thoại, email hay nội dung ghi chú. Bấm *Mở trong CRM* để xem chi tiết; trang này vẫn cần đăng nhập.
+- **Tóm tắt buổi sáng** lúc 8:37, từ thứ Hai đến thứ Bảy:
+  - pipeline đang mở và dự báo;
+  - số liệu 24 giờ qua;
+  - việc quá hạn và việc hôm nay;
+  - những gì cần chú ý.
+- Cách thiết lập: xem [RUNBOOK §13](RUNBOOK.md).
+
 ## Công ty và người liên hệ
 
 - **Một công ty có nhiều người liên hệ.** Mỗi cơ hội gắn với **một công ty và một người liên hệ** của công ty đó.

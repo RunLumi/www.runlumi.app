@@ -278,3 +278,62 @@ To check a release without changing anything, run `npm run build && RELEASE_DRY_
 - **Failed build:** if lint, a test, the build or preflight fails, nothing deploys and the previous version stays live. Fix the problem, then push again.
 - **Bad release:** in the dashboard, go to **Deployments** and roll back to the previous version, or run `wrangler rollback`. To undo a migration's data effects, run `wrangler d1 time-travel restore lumi-jobs --bookmark=<restore point from the build log>`.
 - **Manual fallback:** `npm run deploy` performs the same release from a signed-in machine.
+
+## 13. Lark team notifications
+
+The CRM posts to one internal Lark group (larksuite.com) through a **custom bot**. The owner decided on 2026-10-13 that the group is the whole sales team and that amounts are shown.
+
+### What is posted
+
+- **Right after a change**, sent with `waitUntil` once the page has responded:
+  - a new opportunity, or a follow-on (upgrade, renewal, expansion);
+  - a website enquiry or a referral waiting for assignment;
+  - an assignment;
+  - a stage change, with won and lost highlighted and the loss reason;
+  - an accepted quote, labelled as not yet paid;
+  - a payment confirmed by finance;
+  - a do-not-contact request.
+- **Never:** phone numbers, emails, note text, candidate data.
+- **Customer text** is sent as plain text, so it cannot mention people or carry markdown.
+- **Morning digest at 08:37 Vietnam time, Monday to Saturday** (none on Sunday). It covers:
+  - the open pipeline: value and weighted forecast, each with how many deals it covers;
+  - the last 24 hours: new, won and lost;
+  - overdue tasks and tasks due today, with the top five overdue;
+  - deals without a next step, unassigned deals, payments awaiting confirmation and blocked deliveries.
+- **Retries.** Every ten minutes a cron pass retries failed posts, up to 4 attempts. Errors that cannot fix themselves stop at once: a bad signature, a bad webhook or an oversized message.
+
+### How it works
+
+- **Events as the source.** Every CRM change already writes `crm_events` in the same batch as the change, and announcements are derived from those rows.
+- **Posted once.** Each event, and each day's digest (`digest:YYYY-MM-DD`), is claimed in `crm_notifications` before it is sent.
+- **No history replay.** Events from before migration `0011` are never announced; a marker row records the switch-on time.
+- **Code:** `src/lib/crm/lark/` (client, cards, notify, kick) and `src/worker.ts`, the Worker entry with the scheduled handler. The crons are in `wrangler.jsonc`.
+- **Lark outages** never affect a CRM write.
+
+### Setup (once)
+
+1. **Create the bot in Lark.** In the group, open **⋯** → **Settings** → **Group bots** → **Add bot** → **Custom bot**. Name it, for example, "Lumi CRM". Turn on **Signature verification**. Copy the webhook URL and the signing secret.
+2. **Store both as Worker secrets.** Paste each one at the prompt; never put them on a command line, in chat or in a file:
+
+   ```bash
+   ./node_modules/.bin/wrangler secret put LARK_CRM_WEBHOOK_URL
+   ./node_modules/.bin/wrangler secret put LARK_CRM_WEBHOOK_SECRET
+   ```
+
+3. **Release** (migration `0011` adds the notification table) and check the result:
+   - the next CRM change appears in the group;
+   - the digest arrives at 08:37 on the next working day.
+
+Without `LARK_CRM_WEBHOOK_URL` nothing is sent and nothing fails.
+
+### Checking or turning off
+
+- **Delivery status:**
+
+  ```bash
+  ./node_modules/.bin/wrangler d1 execute lumi-jobs --remote --command "SELECT status, COUNT(*) AS n FROM crm_notifications GROUP BY status"
+  ```
+
+  `last_error` shows the Lark code, for example `lark_19021` for a bad signature or `lark_11232` for rate limiting.
+- **Pause:** `wrangler secret delete LARK_CRM_WEBHOOK_URL`.
+- **Rotate the secret:** reset it in Lark, then `wrangler secret put LARK_CRM_WEBHOOK_SECRET`.

@@ -7,6 +7,7 @@ import { sameOrigin } from "../http";
 import { type CrmActor, crmActor } from "./access";
 import { ConflictError, type FieldErrors, ForbiddenError, NotFoundError, ValidationError, formValues } from "./core";
 import { type Lang, base } from "./i18n";
+import { kickLark } from "./lark/kick";
 
 export interface Ctx { actor: CrmActor; db: D1Database; contentDb: D1Database; lang: Lang; vi: boolean; base: string; url: URL }
 
@@ -54,6 +55,7 @@ export async function handlePost(astro: AstroGlobal, ctx: Ctx, handlers: Record<
   if (!handler) return new Response("Unknown action.", { status: 400 });
   try {
     const target = await handler(form);
+    kickLark();
     const next = new URL(target ?? astro.url.pathname + astro.url.search, astro.url);
     next.searchParams.set("saved", intent);
     return new Response(null, { status: 303, headers: { Location: next.pathname + next.search + next.hash, "Cache-Control": "private, no-store" } });
