@@ -3,6 +3,7 @@ import { activeUser, emdashLoginUrl } from "./lib/admin-auth";
 import { envFromLocals } from "./lib/ats";
 import type { Permission } from "./lib/workspace/roles";
 import { workspaceUser } from "./lib/workspace/roles";
+import { sameOrigin } from "./lib/http";
 
 /** Private areas and the permission each needs. The first match wins. */
 const areas: { test: (path: string) => boolean; permission: Permission; api?: boolean }[] = [
@@ -33,6 +34,17 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const vi = path.startsWith("/vi/");
   const area = path === "/admin/jobs/login" ? undefined : areas.find((item) => item.test(path));
   const isPrivate = !!area || path.startsWith("/api/intake/") || path.startsWith("/api/crm/");
+
+  // HRM page handlers need their native URL-encoded form even if an adapter or
+  // authentication layer consumes the original Request before the page runs.
+  // Keep this to small same-origin page forms; uploads use dedicated API routes.
+  if(area?.permission==="hrm.access"&&!area.api&&context.request.method==="POST"&&sameOrigin(context.request)) {
+    const contentType=context.request.headers.get("content-type")?.split(";")[0].trim().toLowerCase();
+    const length=context.request.headers.get("content-length");
+    if(contentType!=="application/x-www-form-urlencoded")return new Response("Expected a URL-encoded form.",{status:415,headers:{"Cache-Control":"private, no-store"}});
+    if(length!==null&&Number(length)>65536)return new Response("Form is too large.",{status:413,headers:{"Cache-Control":"private, no-store"}});
+    try{context.locals.hrmFormRequest=context.request.clone() as unknown as Request}catch{return new Response("Form body is unavailable.",{status:400,headers:{"Cache-Control":"private, no-store"}})}
+  }
 
   if (area) {
     if (!activeUser(context.locals)) {
