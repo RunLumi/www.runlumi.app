@@ -20,5 +20,7 @@ declare namespace App {
   interface Locals {
     /** Set by middleware on private routes: the signed-in user with Workspace roles. */
     workspace?: import("./lib/workspace/roles").WorkspaceUser;
+    /** Bounded form-body clone retained before request adapters consume the original stream. */
+    hrmFormRequest?: Request;
   }
 }
