@@ -13,4 +13,7 @@ const env = new Proxy(
   }
 );
 
-export { env };
+// waitUntil outside workerd: let the promise run; tests that care await it themselves.
+const waitUntil = (promise) => { Promise.resolve(promise).catch(() => {}); };
+
+export { env, waitUntil };

@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 import { envFromLocals } from "../../../lib/ats";
 import { storeIntake, verifyIntake } from "../../../lib/crm/intake";
+import { kickLark } from "../../../lib/crm/lark/kick";
 
 export const prerender = false;
 
@@ -16,6 +17,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   try {
     const result = await storeIntake(env.DB, verified);
     if ("error" in result) return json(result.status, { ok: false, error: result.error });
+    if (!result.duplicate) kickLark();
     return json(result.status, { ok: true, id: result.id, duplicate: result.duplicate });
   } catch (error) {
     console.error("crm_intake_failed", error instanceof Error ? error.message : "unknown"); // !# policy: console

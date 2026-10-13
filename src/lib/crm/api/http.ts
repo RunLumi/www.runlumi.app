@@ -3,6 +3,7 @@
 // cross-site), JSON bodies, idempotency keys and error mapping.
 import { envFromLocals } from "../../ats";
 import { validRequestKey } from "../core";
+import { kickLark } from "../lark/kick";
 import { sha256 } from "./secret";
 import { type ApiIdentity, authenticate } from "./tokens";
 import { type Tool, type ToolContext, toolFailure } from "./tools";
@@ -86,7 +87,9 @@ export async function runTool(api: ApiRequest, tool: Tool, args: Record<string, 
   if (tool.write && api.identity.token.scope !== "write") return { ok: false, status: 403, code: "read_only_token", message: "This token is read-only. Create a token with write scope to make changes." };
   const ctx: ToolContext = { db: api.db, contentDb: api.contentDb, identity: api.identity, requestKey };
   try {
-    return { ok: true, data: await tool.run(ctx, args) };
+    const data = await tool.run(ctx, args);
+    if (tool.write) kickLark();
+    return { ok: true, data };
   } catch (error) {
     const failure = toolFailure(error);
     if (failure) return { ok: false, ...failure };
