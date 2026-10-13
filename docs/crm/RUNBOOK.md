@@ -237,3 +237,44 @@ No existing row changes. Back up first with `wrangler d1 export … --output bac
 | Worker version | `81715f24-5cdf-4f3a-9f21-6d2607dacfff` at 100% |
 | Verified | `/`, `/jobs` 200. `/crm`, `/vi/crm` (with filters), `/vi/crm/new`, `/crm/accounts`, `/crm/contacts` 303 to sign-in. With the owner's token: the API lists the 5 companies; MCP `update_opportunity` exposes `win_probability`. |
 | Pending (owner, signed in) | Open `/vi/crm` to see the dashboard; add expected value and probability on deals as they are created |
+
+## 12. Automatic production deploys (Cloudflare Workers Builds)
+
+Every push to `main`, including every merged pull request, builds and deploys on Cloudflare's own build servers. This does not depend on the GitHub Actions budget.
+
+### One-time setup (Cloudflare dashboard, account owner)
+
+1. **Connect the repository.** In the Cloudflare dashboard, go to **Workers & Pages** → **runlumi** → **Settings** → **Builds** → **Connect**. Choose GitHub and the repository `RunLumi/www.runlumi.app`, installing or authorising the Cloudflare GitHub app if asked.
+2. **Fill in the build settings:**
+
+   | Setting | Value |
+   |---|---|
+   | Production branch | `main` |
+   | Build command | `npm run ci:verify` |
+   | Deploy command | `npm run release` |
+   | Root directory | *(empty)* |
+   | Builds for non-production branches | **Off**. Previews would run against production D1; pull requests are checked by GitHub CI instead. |
+   | Build variables | none. Runtime secrets already live on the Worker, and Node 22 comes from `.node-version`. |
+
+3. **Set the API token.** Choose **Create new token**. Then, under **My Profile** → **API Tokens**, edit that token and add **Account · D1 · Edit**. The default build token cannot apply D1 migrations.
+4. **Check the first build.** Push or merge a commit to `main`, then open **Deployments** → **Build log**. A healthy log shows:
+   - `preflight: ok`
+   - `release: no D1 migrations pending`, or a restore point followed by the applied migrations
+   - `release: deployed (main <sha>)`
+
+### What a release does (`scripts/release.mjs`)
+
+1. **Main only.** Any other branch is refused.
+2. **Secrets.** Preflight checks that the Worker's required secrets exist.
+3. **Migrations.** If any are pending, the script first prints a D1 Time Travel restore point, then applies them.
+4. **Deploy.** `wrangler deploy` runs with the commit as version tag and message.
+
+To check a release without changing anything, run `npm run build && RELEASE_DRY_RUN=1 npm run release`.
+
+### Rules that follow
+
+- **Merging is releasing.** A merged pull request is live in a few minutes. Merge only reviewed, tested work.
+- **Migrations stay additive** (new tables, columns or indexes). A destructive change needs a manual, backed-up release first, so it cannot run unattended.
+- **Failed build:** if lint, a test, the build or preflight fails, nothing deploys and the previous version stays live. Fix the problem, then push again.
+- **Bad release:** in the dashboard, go to **Deployments** and roll back to the previous version, or run `wrangler rollback`. To undo a migration's data effects, run `wrangler d1 time-travel restore lumi-jobs --bookmark=<restore point from the build log>`.
+- **Manual fallback:** `npm run deploy` performs the same release from a signed-in machine.
