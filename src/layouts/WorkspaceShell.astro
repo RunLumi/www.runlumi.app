@@ -1,9 +1,12 @@
 ---
 // One shell for every private module. Primary navigation switches modules
 // (only those the person may open); secondary navigation lists pages in the
-// current module. Server-rendered links and forms only: no client script.
+// current module. A module with groups (the CRM) gets a grouped sidebar on
+// wide screens and a Menu disclosure on narrow ones. Server-rendered links
+// and forms only: no client script.
 import "../styles/crm.css";
-import { type ModuleKey, localized, modules, switchLocale, visibleLinks, visibleModules } from "../lib/workspace/nav";
+import NavIcon from "../components/workspace/NavIcon.astro";
+import { type ModuleKey, localized, modules, switchLocale, visibleGroups, visibleLinks, visibleModules } from "../lib/workspace/nav";
 import { type WorkspaceUser, roleLabel } from "../lib/workspace/roles";
 
 interface Props { title: string; lang: "en" | "vi"; user: WorkspaceUser; module: ModuleKey; current?: string }
@@ -12,6 +15,10 @@ const vi = lang === "vi";
 const available = visibleModules(user);
 const active = modules.find((item) => item.key === module)!;
 const links = user.can(active.permission) ? visibleLinks(user, active) : [];
+const groups = user.can(active.permission) ? visibleGroups(user, active) : [];
+const grouped = groups.length > 0;
+const currentLink = links.find((link) => link.key === current);
+const pagesLabel = vi ? `Trang trong ${active.vi}` : `${active.en} pages`;
 const badges = user.admin ? [roleLabel("admin", vi)] : [...user.roles].map((role) => roleLabel(role, vi));
 ---
 <!doctype html>
@@ -30,7 +37,7 @@ const badges = user.admin ? [roleLabel("admin", vi)] : [...user.roles].map((role
       <div class="crm-shell ws-bar">
         <a class="crm-brand" href={localized("/workspace", vi)}><img src="/brand/lumi-fulltext.svg" alt="Lumi" width="86" height="44" /><span>Workspace</span></a>
         <nav class="ws-modules" aria-label={vi ? "Phân hệ" : "Modules"}>
-          {available.map((item) => <a href={localized(item.path, vi)} aria-current={item.key === module ? "page" : undefined}>{vi ? item.vi : item.en}</a>)}
+          {available.map((item) => <a href={localized(item.path, vi)} aria-current={item.key === module ? "page" : undefined}><NavIcon name={item.icon} size={18} />{vi ? item.vi : item.en}</a>)}
         </nav>
         <div class="ws-account">
           <a class="ws-lang" href={switchLocale(Astro.url)} lang={vi ? "en" : "vi"} hreflang={vi ? "en" : "vi"}>{vi ? "English" : "Tiếng Việt"}</a>
@@ -38,11 +45,26 @@ const badges = user.admin ? [roleLabel("admin", vi)] : [...user.roles].map((role
           <form method="post" action="/_emdash/api/auth/logout?redirect=%2F"><button type="submit">{vi ? "Đăng xuất" : "Sign out"}</button></form>
         </div>
       </div>
-      {links.length > 0 && <div class="ws-subbar"><nav class="crm-shell ws-pages" aria-label={vi ? `Trang trong ${active.vi}` : `${active.en} pages`}>
-        {links.map((link) => <a href={localized(link.path, vi)} aria-current={link.key === current ? "page" : undefined}>{vi ? link.vi : link.en}</a>)}
+      {!grouped && links.length > 0 && <div class="ws-subbar"><nav class="crm-shell ws-pages" aria-label={pagesLabel}>
+        {links.map((link) => <a href={localized(link.path, vi)} aria-current={link.key === current ? "page" : undefined}><NavIcon name={link.icon} size={18} />{vi ? link.vi : link.en}</a>)}
       </nav></div>}
+      {grouped && <div class="ws-subbar ws-narrow"><div class="crm-shell">
+        <details class="ws-menu">
+          <summary><NavIcon name="menu" size={18} /><span>{vi ? "Menu" : "Menu"}</span>{currentLink && <span class="ws-menu-current"><NavIcon name={currentLink.icon} size={16} />{vi ? currentLink.vi : currentLink.en}</span>}</summary>
+          <nav aria-label={pagesLabel}>
+            {groups.map(({ group, links: items }) => <section class="ws-group"><p class="ws-group-title">{vi ? group.vi : group.en}</p><ul>{items.map((link) => <li><a href={localized(link.path, vi)} aria-current={link.key === current ? "page" : undefined}><NavIcon name={link.icon} />{vi ? link.vi : link.en}</a></li>)}</ul></section>)}
+          </nav>
+        </details>
+      </div></div>}
     </header>
-    <main id="main" class="crm-main"><div class="crm-shell"><slot /></div></main>
+    {grouped
+      ? <div class="ws-frame">
+          <nav class="ws-side" aria-label={pagesLabel}>
+            {groups.map(({ group, links: items }) => <section class="ws-group"><p class="ws-group-title">{vi ? group.vi : group.en}</p><ul>{items.map((link) => <li><a href={localized(link.path, vi)} aria-current={link.key === current ? "page" : undefined}><NavIcon name={link.icon} />{vi ? link.vi : link.en}</a></li>)}</ul></section>)}
+          </nav>
+          <main id="main" class="crm-main ws-content"><slot /></main>
+        </div>
+      : <main id="main" class="crm-main"><div class="crm-shell"><slot /></div></main>}
     <footer class="crm-footer"><div class="crm-shell"><span>Lumi Workspace · {vi ? "Nội bộ, chỉ người được cấp quyền" : "Internal, permitted users only"}</span><span>© 2026 Cloudjet Solutions Pte. Ltd.</span></div></footer>
   </body>
 </html>

@@ -4,7 +4,11 @@
 
 **Quy trình bán hàng** đọc ở *CRM → Quy trình bán hàng* (`/vi/crm/process`). Trang hiển thị trực tiếp file `docs/Lumi_Quy_Trinh_Ban_Hang.md`: muốn sửa quy trình thì sửa file Markdown này rồi deploy.
 
-Thanh điều hướng có hai tầng. Tầng trên chuyển giữa các phân hệ: Tổng quan, Tuyển dụng, CRM, Quản trị. Tầng dưới là các trang trong phân hệ đang mở. Bạn chỉ thấy những mục vai trò của mình được phép.
+**Thanh điều hướng.**
+- Hàng trên cùng chuyển giữa các phân hệ: Tổng quan, Tuyển dụng, CRM, Quản trị.
+- Trong CRM, menu bên trái chia nhóm: *Bán hàng* (Hôm nay, Cơ hội, Tạo cơ hội, Giới thiệu khách), *Khách hàng* (Công ty, Liên hệ), *Kết quả* (Báo cáo, Hoa hồng), *Vận hành* (Bàn giao, Phân công và cohort), *Cấu hình* (Playbook, Gói và giá), *Hướng dẫn và công cụ* (Quy trình bán hàng, Kết nối AI agent).
+- Trên điện thoại, bấm *Menu* để mở danh sách này.
+- Bạn chỉ thấy những mục vai trò của mình được phép mở.
 
 CRM chỉ để ghi chép và điều phối công việc. CRM không tự gửi tin cho khách, không mua tên miền, không xuất bản website, không thu tiền và không tính hoa hồng.
 
@@ -83,12 +87,13 @@ Bạn chỉ thấy các cơ hội được giao cho mình. Nếu một doanh ngh
 
 ## API và agent AI
 
-- **Tạo token.** Vào *CRM → API và agent*, tạo token *chỉ đọc* hoặc *đọc và ghi*, thời hạn 30, 90 hoặc 365 ngày.
+- **Hướng dẫn từng bước:** *CRM → Hướng dẫn và công cụ → Kết nối AI agent* (`/vi/crm/api`).
+- **Tạo token.** Trên trang đó, tạo token *chỉ đọc* hoặc *đọc và ghi*, thời hạn 30, 90 hoặc 365 ngày.
 - **Lưu ngay.** Token chỉ hiện **một lần**. Lưu vào trình quản lý mật khẩu hoặc biến môi trường. Không dán vào chat, tài liệu hay mã nguồn.
 - **Quyền.** Agent hành động với đúng quyền của bạn: chỉ thấy và sửa những gì bạn thấy và sửa được. Lịch sử ghi rõ thay đổi nào đến từ API và từ token nào.
 - **Agent làm được:** tìm và đọc dữ liệu, tạo công ty, người liên hệ và cơ hội, cập nhật thông tin, ghi trường khám phá nhu cầu, chuyển giai đoạn khi đủ điều kiện, thêm ghi chú, ghi nhận yêu cầu không liên hệ.
 - **Agent không làm được:** thanh toán, báo giá, bàn giao, hoa hồng, giao người phụ trách, cấu hình, tuyển dụng.
-- **Kết nối Claude Code:** dùng lệnh trên trang *API và agent*. Chi tiết kỹ thuật xem [API.md](API.md).
+- **Kết nối Claude Code hoặc Codex:** dùng lệnh trên trang *Kết nối AI agent*. Chi tiết kỹ thuật xem [API.md](API.md).
 - **Mất token hoặc nghi bị lộ:** bấm *Thu hồi* ngay rồi tạo token mới.
 
 ## Cộng tác viên (vai trò "Cộng tác viên")

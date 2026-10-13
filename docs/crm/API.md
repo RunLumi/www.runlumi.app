@@ -8,7 +8,7 @@ Both accept personal API tokens and expose the same operations. Each operation c
 
 ## 1. Tokens
 
-- **Where.** CRM → **API and agents** (`/crm/api`, `/vi/crm/api`). Every CRM role can create its own tokens.
+- **Where.** CRM → Guides and tools → **Connect an AI agent** (`/crm/api`, `/vi/crm/api`). The page walks through creating a token, storing it, connecting Claude Code, Codex or another MCP client, first prompts, limits and error codes. Every CRM role can create its own tokens.
 - **Scope.** A token is *read only* or *read and write*.
 - **Lifetime.** 30, 90 or 365 days. Each person can hold at most 10 active tokens.
 - **Shown once.** The secret appears only in the response to the create form. It is never put in a URL. Only its SHA-256 hash is stored, in `crm_api_tokens` (migration `0009`).

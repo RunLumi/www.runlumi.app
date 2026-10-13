@@ -72,15 +72,17 @@ The old tables are kept for recovery and are no longer read.
 ```text
 Overview            /workspace                 counts per module the person can open
 Hiring              /admin/jobs                Roles · Candidates
-CRM                 /crm                       Today · Pipeline · Companies · Contacts · New · Reports · Commission · API and agents
-                                               · Referrals (refer)
-                                               · Fulfillment (fulfillment or team)
-                                               · Operations (team: inbound and referral queues, cohorts)
-                                               · Playbooks · Offers (configure)
+CRM                 /crm                       grouped sidebar (Menu disclosure below 1024px):
+  Selling                                      Today · Pipeline · New opportunity · Referrals (refer)
+  Customers                                    Companies · Contacts
+  Results                                      Reports · Commission
+  Operations                                   Fulfillment (fulfillment or team) · Assignment and cohorts (team)
+  Setup                                        Playbooks · Offers and prices (configure)
+  Guides and tools                             Sales process · Connect an AI agent
 Admin               /workspace/users           Users and roles
 ```
 
-The whole map lives in `src/lib/workspace/nav.ts`; each entry declares the permission it needs. The middleware (`src/middleware.ts`) uses the same permission names:
+The whole map lives in `src/lib/workspace/nav.ts`; each entry declares the permission it needs, its group and its icon. Icons are one owned set in `src/components/workspace/NavIcon.astro` (1.75px line glyphs, DESIGN.md §10); a new page gets its own distinct glyph. Groups with nothing the person may open are hidden. The middleware (`src/middleware.ts`) uses the same permission names:
 - a person who reaches a URL they cannot use gets a bilingual 403 page with a link back to the Workspace;
 - an API call gets a plain 403;
 - anyone not signed in goes to the EmDash sign-in page.
