@@ -23,7 +23,7 @@ try{
  const migration=spawnSync(resolve(root,"node_modules/.bin/wrangler"),["d1","migrations","apply","lumi-jobs","--local","--persist-to",persist],{cwd:root,env,encoding:"utf8",stdio:"inherit"});
  if(migration.status!==0)throw new Error("Local isolated D1 migration failed; integration tests did not start.");
  await writeFile(devVarsPath,"HRM_LIVE_ENABLED=true\n",{flag:"wx",mode:0o600});localVars=true;
- worker=spawn(process.execPath,["./node_modules/astro/astro.js","dev","--host","127.0.0.1","--port",String(port)],{cwd:root,env,stdio:["ignore","pipe","pipe"]});
+ worker=spawn(process.execPath,["./node_modules/astro/bin/astro.mjs","dev","--host","127.0.0.1","--port",String(port)],{cwd:root,env,stdio:["ignore","pipe","pipe"]});
  worker.stdout.setEncoding("utf8");worker.stderr.setEncoding("utf8");
  worker.stdout.on("data",chunk=>{log+=chunk;if(log.length>16000)log=log.slice(-12000)});
  worker.stderr.on("data",chunk=>{log+=chunk;if(log.length>16000)log=log.slice(-12000)});
