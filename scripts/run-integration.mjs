@@ -31,6 +31,7 @@ const env = {
   LUMI_PERSIST_TO: persist,
   CRM_BASE_URL: base,
   HRM_LIVE_ENABLED: "true",
+  ASTRO_DEV_BACKGROUND: "0",
   CRM_INTAKE_SECRET: "local-test-secret-not-for-production-0123456789",
   WRANGLER_SEND_METRICS: "false",
 };
@@ -103,6 +104,7 @@ try {
     process.exitCode = result.status ?? 1;
     const safeLogs = log.slice(-12000)
       .replace(/[^\s@]+@[^\s@]+\.[A-Z]{2,}/gi, "[redacted-email]")
+      .replace(/([?&]token=)[A-Z0-9_-]+/gi, "$1[redacted-token]")
       .replace(/\b\d{9,15}\b/g, "[redacted-number]");
     console.error("Synthetic Worker logs (emails/numbers redacted):\n" + safeLogs);
   }

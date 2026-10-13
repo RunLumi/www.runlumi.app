@@ -82,6 +82,11 @@ export async function userSession(admin, { email, name, role = 30 }) {
   const url = new URL(link);
   const verify = await session.get(url.pathname + url.search);
   if (![200, 302, 303].includes(verify.status)) throw new Error(`magic link verify failed: ${verify.status}`);
+  const cleared = await localFetch(`${BASE}/_emdash/api/dev/emails`, { method: "DELETE", headers: { cookie: admin.header(), origin: BASE, "x-emdash-request": "1" } });
+  if (!cleared.ok) {
+    const detail=(await cleared.text()).replace(/[^\s@]+@[^\s@]+\.[A-Z]{2,}/gi,"[redacted-email]").replace(/([?&]token=)[A-Z0-9_-]+/gi,"$1[redacted-token]").slice(0,180);
+    throw new Error(`synthetic dev-email cleanup failed: ${cleared.status} ${detail}`);
+  }
   session.id = id;
   session.email = email;
   return session;
