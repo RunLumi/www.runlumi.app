@@ -73,8 +73,19 @@ Bạn chỉ thấy các cơ hội được giao cho mình. Nếu một doanh ngh
 
 ## Thông báo trên Lark
 
-- CRM gửi thông báo vào nhóm Lark của đội bán hàng: cơ hội mới, yêu cầu từ website hoặc khách giới thiệu chờ phân công, giao cơ hội, chuyển giai đoạn (nổi bật **Thắng** và **Thua**), khách chấp thuận báo giá, tài chính xác nhận thanh toán, và yêu cầu không liên hệ.
-- Thông báo có tên công ty, sản phẩm, giai đoạn, người phụ trách và số tiền. Thông báo **không** có số điện thoại, email hay nội dung ghi chú. Bấm *Mở trong CRM* để xem chi tiết; trang này vẫn cần đăng nhập.
+- **CRM gửi vào nhóm Lark của đội bán hàng gần như mọi hoạt động:**
+  - **Cơ hội:** cơ hội mới, giao cơ hội, chuyển giai đoạn (nổi bật **Thắng** và **Thua**), sửa giá trị, tỉ lệ thành công, bước tiếp theo hoặc tên cơ hội (ghi trước → sau).
+  - **Ghi chú và thông tin khám phá:** ghi chú mới; trường thông tin khám phá vừa cập nhật.
+  - **Báo giá và tiền:** báo giá mới, rút hoặc được chấp thuận; báo đã nhận tiền, tài chính xác nhận, hoàn tiền.
+  - **Lịch hẹn và việc:** lịch hẹn, việc xong và kết quả, khách xác nhận hẹn, việc cần hỗ trợ.
+  - **Bàn giao:** bắt đầu bàn giao, website đã live, khách nghiệm thu, bàn giao bị chặn.
+  - **Công ty:** công ty mới, thêm người liên hệ, giao công ty.
+  - **Không liên hệ:** khách yêu cầu không liên hệ.
+- **Nội dung tự động che:**
+  - Ghi chú chỉ gửi đoạn trích ngắn; số điện thoại và email trong đó tự được che.
+  - Thông tin khám phá chỉ báo tên trường đã sửa, không gửi nội dung.
+  - Không bao giờ gửi số điện thoại hay email của người liên hệ.
+- Bấm *Mở trong CRM* để xem chi tiết; trang này vẫn cần đăng nhập.
 - **Tóm tắt buổi sáng** lúc 8:37, từ thứ Hai đến thứ Bảy:
   - pipeline đang mở và dự báo;
   - số liệu 24 giờ qua;

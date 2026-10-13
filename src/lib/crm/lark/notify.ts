@@ -64,7 +64,10 @@ export async function eventFacts(db: D1Database, contentDb: D1Database, row: Eve
   const body = parse(row.body);
   let opportunity: OppFacts | null = null;
   let fromStage: string | undefined;
-  const people = [body.from, body.to].filter((id): id is string => typeof id === "string" && !!id);
+  // "from"/"to" are user IDs on assignment events, stage IDs on stage events.
+  const people = row.kind === "stage" || row.kind === "fulfillment_status" ? [] : [body.from, body.to, body.owner_id].filter((id): id is string => typeof id === "string" && !!id);
+  const offerName = row.kind.startsWith("quote_") && typeof body.offer === "string"
+    ? (await db.prepare("SELECT name_vi FROM crm_offers WHERE id = ?").bind(body.offer).first<{ name_vi: string }>())?.name_vi ?? null : null;
   if (row.opportunity_id) {
     const opp = await db.prepare(`SELECT o.id, o.title, o.playbook_id, o.stage_id, o.outcome, o.owner_id, o.estimated_value_vnd, o.win_probability, o.source_channel, a.name AS account_name
       FROM crm_opportunities o JOIN crm_accounts a ON a.id = o.account_id WHERE o.id = ?`).bind(row.opportunity_id)
@@ -74,16 +77,20 @@ export async function eventFacts(db: D1Database, contentDb: D1Database, row: Eve
       const stageName = (id: string) => playbook?.def.stages.find((stage) => stage.id === id)?.vi ?? id;
       if (row.kind === "stage" && typeof body.from === "string") fromStage = stageName(body.from);
       const names = await displayNames(contentDb, [...people, ...(opp.owner_id ? [opp.owner_id] : [])]);
+      const fieldLabels = row.kind === "fields" && playbook ? Object.fromEntries(playbook.def.fields.map((field) => [field.key, field.vi])) : undefined;
       opportunity = {
         id: opp.id, title: opp.title, accountName: opp.account_name, product: playbook?.name_vi ?? opp.playbook_id, stage: stageName(opp.stage_id), outcome: opp.outcome,
         ownerName: opp.owner_id ? names[opp.owner_id]?.name ?? null : null, value: opp.estimated_value_vnd, probability: opp.win_probability, channel: opp.source_channel,
       };
-      return { kind: row.kind, body, actorName: row.actor_name, createdAt: row.created_at, opportunity, accountId: row.account_id, accountName: opp.account_name, fromStage,
+      return { kind: row.kind, body, actorName: row.actor_name, createdAt: row.created_at, opportunity, accountId: row.account_id, accountName: opp.account_name, fromStage, offerName, fieldLabels,
         ownerFrom: typeof body.from === "string" ? names[body.from]?.name ?? null : null, ownerTo: typeof body.to === "string" ? names[body.to]?.name ?? null : null };
     }
   }
   const account = row.account_id ? await db.prepare("SELECT name FROM crm_accounts WHERE id = ?").bind(row.account_id).first<{ name: string }>() : null;
-  return { kind: row.kind, body, actorName: row.actor_name, createdAt: row.created_at, opportunity, accountId: row.account_id, accountName: account?.name ?? null };
+  const names = await displayNames(contentDb, people);
+  const ownerTo = typeof body.to === "string" ? body.to : typeof body.owner_id === "string" ? body.owner_id : null;
+  return { kind: row.kind, body, actorName: row.actor_name, createdAt: row.created_at, opportunity, accountId: row.account_id, accountName: account?.name ?? null, offerName,
+    ownerFrom: typeof body.from === "string" ? names[body.from]?.name ?? null : null, ownerTo: ownerTo ? names[ownerTo]?.name ?? null : null };
 }
 
 /** Announces new CRM events and retries failed ones. Returns how many were posted. */
