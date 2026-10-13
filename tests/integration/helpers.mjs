@@ -9,13 +9,16 @@ export const PERSIST = process.env.LUMI_PERSIST_TO;
 if (!PERSIST) throw new Error("Set LUMI_PERSIST_TO to the isolated D1 directory used by the dev server.");
 if (!/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(BASE)) throw new Error("Integration tests only run against a local dev server.");
 
-// Local workerd can close an idle HTTP/1 socket while a Wrangler fixture
-// command runs. Use one connection per request so mutation requests are never
-// retried after an ambiguous ECONNRESET and assertions still see real failures.
-export function localFetch(url, options = {}) {
-  const headers = new Headers(options.headers);
-  headers.set("Connection", "close");
-  return globalThis.fetch(url, { ...options, headers });
+function failedRequest(method,url,error){
+  const path=new URL(url,BASE).pathname.replace(/\/(?:person|employment|rec|chg|file)_[a-zA-Z0-9_-]+/g,"/[record]");
+  const cause=error&&typeof error==="object"&&"cause" in error?error.cause:error;
+  const code=cause&&typeof cause==="object"&&"code" in cause?String(cause.code):cause instanceof Error?cause.name:"unknown";
+  console.error("local_integration_request_failed",method,path,code);
+}
+export async function localFetch(url,options={}){
+  const headers=new Headers(options.headers);
+  headers.set("Connection","close");
+  try{return await globalThis.fetch(url,{...options,headers})}catch(error){failedRequest(options.method??"GET",url,error);throw error}
 }
 
 export class Session {
