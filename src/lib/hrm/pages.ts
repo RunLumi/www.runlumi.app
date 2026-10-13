@@ -11,7 +11,7 @@ export interface Failure extends PageBase { error:string; status:number }
 const base=(lang:Lang,user:WorkspaceUser):PageBase=>({lang,vi:lang==="vi",user,title:"",live:user.hrmEnabled===true});
 const err=(lang:Lang,user:WorkspaceUser,error:unknown):Failure=>({ ...base(lang,user), title:"HRM", error:error instanceof HrmError?error.message:"internal_error", status:error instanceof HrmError?error.status:500 });
 const redirect=(astro:AstroGlobal,params:Record<string,string>):Response=>{const url=new URL(astro.url);for(const [key,value] of Object.entries(params))url.searchParams.set(key,value);return new Response(null,{status:303,headers:{Location:url.pathname+url.search,"Cache-Control":"private, no-store"}})};
-const formOf=async(astro:AstroGlobal)=>{if(!sameOrigin(astro.request))throw new HrmError("invalid_origin",400);const body=await astro.request.formData().catch(()=>null);if(!body)throw new HrmError("invalid_form",400);return body};
+const formOf=async(astro:AstroGlobal)=>{if(!sameOrigin(astro.request))throw new HrmError("invalid_origin",400);const request=astro.locals.hrmFormRequest??astro.request;const body=await request.formData().catch(()=>null);if(!body)throw new HrmError("invalid_form",400);return body};
 const requireLive=(user:WorkspaceUser)=>{if(user.hrmEnabled!==true)throw new HrmError("hrm_closed",503)};
 const common=(astro:AstroGlobal,lang:Lang)=>({user:astro.locals.workspace!,env:envFromLocals(astro.locals),lang});
 
