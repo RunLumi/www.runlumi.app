@@ -9,7 +9,7 @@ import type { WorkspaceUser } from "./roles";
 
 export type Lang = "en" | "vi";
 
-export interface HomeCard { module: "hiring" | "crm" | "admin"; figures: { label: [string, string]; value: number; href: string }[] }
+export interface HomeCard { module: "hiring" | "crm" | "hrm" | "admin"; figures: { label: [string, string]; value: number; href: string }[] }
 
 export async function homePage(astro: AstroGlobal, lang: Lang) {
   const user = astro.locals.workspace!;
@@ -42,6 +42,15 @@ export async function homePage(astro: AstroGlobal, lang: Lang) {
       { label: [team ? "Open opportunities (team)" : "Your open opportunities", team ? "Cơ hội đang mở (cả đội)" : "Cơ hội đang mở của bạn"], value: row?.open ?? 0, href: "/crm/pipeline?playbook=all&outcome=open" },
       ...(team ? [{ label: ["Enquiries to assign", "Yêu cầu chờ phân công"] as [string, string], value: row?.inbound ?? 0, href: "/crm/admin#inbound" }] : []),
     ] });
+  }
+  if(user.can("hrm.access")&&user.hrmEnabled===true){
+    const row=user.can("hrm.records.manage")
+      ? await DB.prepare("SELECT COUNT(*) AS count FROM hrm_people p JOIN hrm_employments e ON e.person_id=p.id AND e.status!='ended'").first<{count:number}>()
+      : user.can("hrm.team.read")
+        ? await DB.prepare("SELECT COUNT(*) AS count FROM hrm_employments WHERE manager_user_id=? AND status!='ended' AND (started_on IS NULL OR started_on<=date('now','+7 hours')) AND (ended_on IS NULL OR ended_on>date('now','+7 hours'))").bind(user.id).first<{count:number}>()
+        : await DB.prepare("SELECT COUNT(*) AS count FROM hrm_people p JOIN hrm_employments e ON e.person_id=p.id AND e.status!='ended' WHERE p.user_id=?").bind(user.id).first<{count:number}>();
+    const team=user.can("hrm.records.manage")||user.can("hrm.team.read");
+    cards.push({module:"hrm",figures:[{label:team?["People in scope","Nhân sự trong phạm vi"]:["Your linked profile","Hồ sơ đã liên kết"],value:row?.count??0,href:team?"/hrm/people":"/hrm/me"}]});
   }
   if (user.can("users.manage")) {
     const row = await DB.prepare("SELECT (SELECT COUNT(*) FROM workspace_members WHERE enabled = 1) AS members").first<{ members: number }>();

@@ -1,0 +1,5 @@
+---
+import HrmNewPerson from "../../../../components/hrm/HrmNewPerson.astro";import {createPersonPage} from "../../../../lib/hrm/pages";
+export const prerender=false;const data=await createPersonPage(Astro,"vi");if(data instanceof Response)return data;
+---
+<HrmNewPerson {...data} saved={"saved" in data ? data.saved===true : false}/>

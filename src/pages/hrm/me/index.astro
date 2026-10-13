@@ -1,0 +1,5 @@
+---
+import HrmProfile from "../../../components/hrm/HrmProfile.astro";import HrmFailure from "../../../components/hrm/HrmFailure.astro";import {profilePage} from "../../../lib/hrm/pages";import {listFiles} from "../../../lib/hrm/files";import {envFromLocals} from "../../../lib/ats";
+export const prerender=false;let data;try{data=await profilePage(Astro,"en");if(!(data instanceof Response)){const env=envFromLocals(Astro.locals);const section=Astro.url.searchParams.get("section")??"contact";const fileKind=section==="contact"?"personal":section;data.files=await listFiles(env.DB,Astro.locals.workspace!,data.person,fileKind);data.fileKind=fileKind;}}catch(error){const user=Astro.locals.workspace!;data={lang:"en",vi:false,user,title:"Employee profile",error:error instanceof Error?error.message:"internal_error",status: typeof error === "object" && error !== null && "status" in error ? Number(error.status) : 500};Astro.response.status=data.status}
+---
+{ "person" in data ? <HrmProfile {...data}/> : <HrmFailure data={data}/> }

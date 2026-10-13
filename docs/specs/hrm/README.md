@@ -383,3 +383,7 @@ Tiếp tục mở giai đoạn khi mọi test quyền/privacy tương ứng đ�
 - [CRM: ranh giới API và token](../../crm/API.md)
 - [CRM: chính sách hoa hồng](../../crm/COMMISSION.md)
 - [Runbook release hiện có](../../crm/RUNBOOK.md)
+
+**Bổ sung yêu cầu của owner, 2026-10-13 — nạp chính sách và xác nhận:** người được cấp quyền quản lý văn bản chính sách được tải DOCX làm bản nguồn; người phụ trách cấu hình phiên bản, pháp nhân, đối tượng áp dụng và điều kiện xác nhận. DOCX là tệp nguồn, không được render bằng cách nội suy HTML và không tự trở thành phiên bản phát hành. Mỗi lần phát hành giữ nguyên file/checksum và nội dung phiên bản. Nhân viên và HR tải PDF làm chứng từ trong đúng phạm vi hồ sơ; mặc định PDF được cách ly đến khi được rà soát, không coi phần mở rộng là bằng chứng an toàn.
+
+Mỗi lượt nhân viên chủ động đánh dấu “Tôi đã đọc và xác nhận” lưu danh tính EmDash, thời gian server UTC, phiên bản/checksum chính xác và kênh thực hiện. UI hiển thị thời gian theo múi giờ tài khoản/Asia/Ho_Chi_Minh, và hiện phiên bản nào đã được xác nhận. Bản mới tạo yêu cầu mới khi chính sách được cấu hình là cần tái xác nhận; không ghi đè hoặc đổi thời gian bản cũ. Tác vụ xác nhận chỉ là acknowledgement; không gọi là chữ ký hợp đồng/chữ ký điện tử và không thay hành động xác nhận riêng ở nhà cung cấp chữ ký đã được duyệt.

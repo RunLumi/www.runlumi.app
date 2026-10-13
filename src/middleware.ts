@@ -6,6 +6,8 @@ import { workspaceUser } from "./lib/workspace/roles";
 
 /** Private areas and the permission each needs. The first match wins. */
 const areas: { test: (path: string) => boolean; permission: Permission; api?: boolean }[] = [
+  { test: (path) => path.startsWith("/api/hrm/"), permission: "hrm.access", api: true },
+  { test: (path) => under(path, "/hrm"), permission: "hrm.access" },
   { test: (path) => path.startsWith("/api/admin/"), permission: "hiring.access", api: true },
   { test: (path) => under(path, "/workspace/users"), permission: "users.manage" },
   { test: (path) => under(path, "/workspace"), permission: "workspace.access" },
@@ -37,12 +39,21 @@ export const onRequest = defineMiddleware(async (context, next) => {
       if (area.api) return new Response("Unauthorized", { status: 401 });
       return new Response(null, { status: 303, headers: { Location: emdashLoginUrl(path + context.url.search), "Cache-Control": "private, no-store" } });
     }
-    const { DB } = envFromLocals(context.locals);
+    const environment = envFromLocals(context.locals);
+    const { DB } = environment;
     const user = await workspaceUser(context.locals, DB);
     if (!user?.can(area.permission)) {
       if (area.api) return new Response("Forbidden", { status: 403 });
       return forbidden(vi);
     }
+    let hrmReady = false;
+    if(environment.HRM_LIVE_ENABLED === "true") {
+      try {
+        const policy = await DB.prepare("SELECT enabled,legal_entity,purpose,retention_policy,policy_reference,reviewed_by FROM hrm_settings WHERE id=1").first<{enabled:number;legal_entity:string;purpose:string;retention_policy:string;policy_reference:string;reviewed_by:string|null}>();
+        hrmReady = policy?.enabled===1 && !!policy.legal_entity && !!policy.purpose && !!policy.retention_policy && !!policy.policy_reference && !!policy.reviewed_by;
+      } catch { hrmReady=false; }
+    }
+    user.hrmEnabled = hrmReady;
     context.locals.workspace = user;
   }
 

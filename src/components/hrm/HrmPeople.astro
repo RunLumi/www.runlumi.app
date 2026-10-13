@@ -1,0 +1,15 @@
+---
+import HrmPage from "./HrmPage.astro";
+import type { PageBase } from "../../lib/hrm/pages";
+import type { Person } from "../../lib/hrm/service";
+interface Props extends PageBase { people:Person[]; query:string; page:number; hasMore:boolean }
+const d=Astro.props;const date=(value:string|null)=>value?new Date(`${value}T00:00:00+07:00`).toLocaleDateString(d.vi?"vi-VN":"en-GB",{timeZone:"Asia/Ho_Chi_Minh"}):"—";
+---
+<HrmPage data={d} current="people">
+  <section class="crm-sheet">
+    <div class="crm-actions crm-actions-between"><p>{d.vi?"Danh sách chỉ hiển thị trường công việc trong phạm vi được cấp.":"This list shows work information within your current permission scope."}</p>{d.user.can("hrm.records.manage")&&<a class="crm-button" href={d.vi?"/vi/hrm/people/new":"/hrm/people/new"}>{d.vi?"Tạo hồ sơ":"Create employee"}</a>}</div>
+    <form method="get" class="crm-form crm-form-inline"><div class="crm-field"><label for="q">{d.vi?"Tìm theo tên hoặc mã nhân viên":"Search name or employee code"}</label><input id="q" class="crm-input" type="search" name="q" value={d.query} maxlength="100" /></div><button class="crm-button secondary" type="submit">{d.vi?"Tìm":"Search"}</button></form>
+    {d.people.length?<div class="crm-table-wrap"><table class="crm-table"><thead><tr><th>{d.vi?"Nhân viên":"Employee"}</th><th>{d.vi?"Bộ phận / vị trí":"Department / role"}</th><th>{d.vi?"Trạng thái":"Status"}</th><th>{d.vi?"Bắt đầu":"Start"}</th></tr></thead><tbody>{d.people.map(person=><tr><td><a href={`${d.vi?"/vi":""}/hrm/people/${encodeURIComponent(person.id)}`}><strong>{person.preferred_name||person.legal_name}</strong></a><br/><span class="crm-meta">{person.employee_code}</span></td><td>{person.department||"—"}<br/><span class="crm-meta">{person.job_title||"—"}</span></td><td>{person.status}</td><td>{date(person.started_on)}</td></tr>)}</tbody></table></div>:<p class="crm-empty">{d.vi?"Không tìm thấy hồ sơ trong phạm vi được phép.":"No people found within your permitted scope."}</p>}
+    {(d.page>1||d.hasMore)&&<nav class="crm-actions" aria-label={d.vi?"Phân trang":"Pagination"}>{d.page>1&&<a class="crm-button secondary" href={`?q=${encodeURIComponent(d.query)}&page=${d.page-1}`}>{d.vi?"Trước":"Previous"}</a>}{d.hasMore&&<a class="crm-button secondary" href={`?q=${encodeURIComponent(d.query)}&page=${d.page+1}`}>{d.vi?"Tiếp":"Next"}</a>}</nav>}
+  </section>
+</HrmPage>

@@ -14,7 +14,7 @@ export function safeNext(value: string | null): string {
   try {
     const url = new URL(value, "https://runlumi.app");
     const path = decodeURIComponent(url.pathname);
-    const roots = ["/workspace", "/vi/workspace", "/admin/jobs", "/vi/admin/jobs", "/admin/crm", "/crm", "/vi/crm"];
+    const roots = ["/hrm", "/vi/hrm", "/workspace", "/vi/workspace", "/admin/jobs", "/vi/admin/jobs", "/admin/crm", "/crm", "/vi/crm"];
     if (url.origin !== "https://runlumi.app" || /[\\\x00-\x20]/.test(path)) return "/admin/jobs";
     if (!roots.some((root) => path === root || path.startsWith(`${root}/`))) return "/admin/jobs";
     return path === "/admin/jobs/login" ? "/admin/jobs" : url.pathname + url.search;

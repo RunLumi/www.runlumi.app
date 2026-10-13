@@ -1,0 +1,6 @@
+---
+import HrmPage from "./HrmPage.astro";
+import type { Failure } from "../../lib/hrm/pages";
+const d=Astro.props as Failure;
+---
+<HrmPage data={d}/>

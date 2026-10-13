@@ -2,6 +2,8 @@
 /// <reference types="@cloudflare/workers-types" />
 
 interface Env {
+  /** HRM deployment kill switch; absent/off keeps production closed. */
+  HRM_LIVE_ENABLED?: string;
   DB: D1Database;
   CONTENT_DB: D1Database;
   FILES: R2Bucket;

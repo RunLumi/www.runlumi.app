@@ -1,0 +1,33 @@
+---
+import HrmPage from "./HrmPage.astro";
+import type { PageBase } from "../../lib/hrm/pages";
+import type { Settings } from "../../lib/hrm/service";
+import type { MemberRow } from "../../lib/workspace/members";
+interface Props extends PageBase { error?:string;saved:boolean;settings:Settings; managers:MemberRow[] }
+const d=Astro.props;const path=d.vi?"/vi/hrm/people":"/hrm/people";
+---
+<HrmPage data={d} current="people">
+ {d.saved&&<div class="crm-notice good" role="status">{d.vi?"Đã tạo hồ sơ nhân viên.":"Employee record created."}</div>}
+ <form method="post" class="crm-sheet crm-form">
+  <h2 class="crm-h2">{d.vi?"Thông tin công việc":"Employment record"}</h2>
+  <input type="hidden" name="request_key" value={crypto.randomUUID()} />
+  <div class="crm-form-grid">
+   <div class="crm-field"><label for="employee_code">{d.vi?"Mã nhân viên":"Employee code"}</label><input class="crm-input" id="employee_code" name="employee_code" required maxlength="50" /></div>
+   <div class="crm-field"><label for="legal_name">{d.vi?"Họ tên pháp lý":"Legal name"}</label><input class="crm-input" id="legal_name" name="legal_name" required maxlength="200" /></div>
+   <div class="crm-field"><label for="preferred_name">{d.vi?"Tên thường dùng":"Preferred name"}</label><input class="crm-input" id="preferred_name" name="preferred_name" maxlength="200" /></div>
+   <div class="crm-field"><label for="account_email">{d.vi?"Email tài khoản EmDash (để HR kiểm tra và liên kết)":"EmDash account email (HR verifies and links explicitly)"}</label><input class="crm-input" id="account_email" name="account_email" type="email" maxlength="254" autocomplete="off" /></div>
+   <div class="crm-field"><label for="work_email">{d.vi?"Email công việc":"Work email"}</label><input class="crm-input" id="work_email" name="work_email" type="email" maxlength="254" /></div>
+   <div class="crm-field"><label for="work_phone">{d.vi?"Điện thoại công việc":"Work phone"}</label><input class="crm-input" id="work_phone" name="work_phone" type="tel" maxlength="40" /></div>
+   <div class="crm-field"><label for="department">{d.vi?"Bộ phận":"Department"}</label><input class="crm-input" id="department" name="department" maxlength="200" /></div>
+   <div class="crm-field"><label for="job_title">{d.vi?"Chức danh":"Job title"}</label><input class="crm-input" id="job_title" name="job_title" maxlength="200" /></div>
+   <div class="crm-field"><label for="legal_entity">{d.vi?"Pháp nhân sử dụng lao động":"Employing legal entity"}</label><input class="crm-input" id="legal_entity" name="legal_entity" value={d.settings.legal_entity} required maxlength="200" /></div>
+   <div class="crm-field"><label for="location">{d.vi?"Địa điểm làm việc":"Work location"}</label><input class="crm-input" id="location" name="location" maxlength="200" /></div>
+   <div class="crm-field"><label for="manager_user_id">{d.vi?"Quản lý trực tiếp":"Direct manager"}</label><select class="crm-select" id="manager_user_id" name="manager_user_id"><option value="">{d.vi?"Chưa phân công":"Unassigned"}</option>{d.managers.map(member=><option value={member.user_id}>{member.name||member.email}</option>)}</select></div>
+   <div class="crm-field"><label for="status">{d.vi?"Trạng thái đợt làm việc":"Employment status"}</label><select class="crm-select" id="status" name="status"><option value="preboarding">Preboarding</option><option value="probation">Probation</option><option value="active">Active</option><option value="notice">Notice</option><option value="ended">Ended</option></select></div>
+   <div class="crm-field"><label for="started_on">{d.vi?"Ngày bắt đầu":"Start date"}</label><input class="crm-input" id="started_on" name="started_on" type="date" /></div>
+   <div class="crm-field"><label for="ended_on">{d.vi?"Ngày kết thúc (nếu có)":"End date (if applicable)"}</label><input class="crm-input" id="ended_on" name="ended_on" type="date" /></div>
+  </div>
+  <p class="crm-help">{d.vi?"Tài khoản chỉ được liên kết khi HR cung cấp email chính xác của tài khoản EmDash đang hoạt động. Không tự cấp vai trò Workspace tại đây.":"An account is linked only after HR provides the exact email of an active EmDash account. This form never grants Workspace roles."}</p>
+  <div class="crm-actions"><button class="crm-button" type="submit">{d.vi?"Tạo hồ sơ":"Create record"}</button><a class="crm-button secondary" href={path}>{d.vi?"Hủy":"Cancel"}</a></div>
+ </form>
+</HrmPage>
