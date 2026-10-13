@@ -132,6 +132,35 @@ export async function savePerson(db:D1Database,content:D1Database,user:Workspace
   clearGuards(db)
  ]);
 }
+export interface RehireInput {
+ work_email:string;work_phone:string;department:string;job_title:string;legal_entity:string;location:string;manager_user_id:string|null;status:"preboarding"|"probation"|"active";started_on:string;
+}
+/** Start a new immutable employment period without changing the person's identity or prior history. */
+export async function startEmploymentPeriod(db:D1Database,content:D1Database,user:WorkspaceUser,key:string,personId:string,previousEmploymentId:string,previousVersion:number,input:RehireInput):Promise<string>{
+ requirePermission(user,"hrm.records.manage");
+ const payload={personId,previousEmploymentId,previousVersion,input};
+ const previousCommand=await db.prepare("SELECT operation,payload_hash,result_id FROM hrm_commands WHERE actor_id=? AND request_key=?").bind(user.id,key).first<{operation:string;payload_hash:string;result_id:string}>();
+ if(previousCommand){if(previousCommand.operation!=="employment_rehire"||previousCommand.payload_hash!==await digest(JSON.stringify(payload)))throw new HrmError("request_key_conflict",409);return previousCommand.result_id}
+ if(!["preboarding","probation","active"].includes(input.status))throw new HrmError("invalid_status");
+ const person=await db.prepare("SELECT user_id FROM hrm_people WHERE id=?").bind(personId).first<{user_id:string|null}>();if(!person)throw new HrmError("not_found",404);
+ const ended=await db.prepare("SELECT ended_on FROM hrm_employments WHERE id=? AND person_id=? AND version=? AND status='ended'").bind(previousEmploymentId,personId,previousVersion).first<{ended_on:string|null}>();
+ if(!ended?.ended_on||input.started_on<=ended.ended_on)throw new HrmError("rehire_conflict",409);
+ const config=await settings(db);if(input.legal_entity!==config.legal_entity)throw new HrmError("legal_entity_unconfigured");
+ if(person.user_id||input.manager_user_id){const accounts=await emdashUsers(content,[person.user_id??"",input.manager_user_id??""]);for(const accountId of [person.user_id,input.manager_user_id].filter(Boolean)){const account=accounts.get(accountId!);if(!account||account.disabled)throw new HrmError("invalid_account")}}
+ if(person.user_id&&person.user_id===input.manager_user_id)throw new HrmError("invalid_manager");
+ if(input.manager_user_id){const managers=await membersWithRoles(db,content,["people_manager","hrm_admin"]);if(!managers.some(manager=>manager.user_id===input.manager_user_id))throw new HrmError("invalid_manager")}
+ const employment=id("employment"),time=now();
+ const columns=["work_email","work_phone","department","job_title","legal_entity","location","manager_user_id","status","started_on"] as const;
+ return command(db,user,key,"employment_rehire",payload,employment,[
+  guard(db,"EXISTS(SELECT 1 FROM hrm_people WHERE id=?)",[personId]),
+  guard(db,"EXISTS(SELECT 1 FROM hrm_employments WHERE id=? AND person_id=? AND version=? AND status='ended' AND ended_on IS NOT NULL AND ?>ended_on)",[previousEmploymentId,personId,previousVersion,input.started_on]),
+  guard(db,"NOT EXISTS(SELECT 1 FROM hrm_employments WHERE person_id=? AND status!='ended')",[personId]),
+ ],[
+  db.prepare(`INSERT INTO hrm_employments(id,person_id,${columns.join(",")},ended_on,actor_id,created_at,updated_at) VALUES(${Array(15).fill("?").join(",")})`).bind(employment,personId,...columns.map(column=>input[column]),null,user.id,time,time),
+  db.prepare("INSERT INTO hrm_audit(actor_id,action,person_id,target_id,detail,created_at) VALUES(?,'employment_rehired',?,?,?,?)").bind(user.id,personId,employment,JSON.stringify({previous_employment_id:previousEmploymentId}),time),
+  clearGuards(db),
+ ]);
+}
 export async function submitRecord(db: D1Database,user: WorkspaceUser,key:string,person:Person,kind:RecordKind,recordId:string|null,expectedVersion:number,data:Record<string,string>,from:string|null,to:string|null):Promise<string> {
   assertRecordRead(person,user,kind);
   if(!own(person,user) && !user.can("hrm.records.manage")) throw new HrmError("forbidden",403);
