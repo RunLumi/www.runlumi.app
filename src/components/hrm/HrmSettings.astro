@@ -2,7 +2,7 @@
 import HrmPage from "./HrmPage.astro";
 import type { PageBase } from "../../lib/hrm/pages";
 import type { Settings } from "../../lib/hrm/service";
-interface Props extends PageBase { settings:Settings; saved:boolean }
+interface Props extends PageBase { settings:Settings; saved:boolean; deploymentEnabled:boolean }
 const d=Astro.props;
 ---
 <HrmPage data={d} current="settings">
@@ -24,7 +24,7 @@ const d=Astro.props;
       <div class="crm-field"><label for="reference">{d.vi?"Nguồn/tài liệu chính sách có thẩm quyền":"Authoritative policy source/reference"}</label><input class="crm-input" id="reference" name="policy_reference" required maxlength="500" value={d.settings.policy_reference} /></div>
     </div>
     <label class="crm-check"><input type="checkbox" name="reviewed" value="1" /><span>{d.vi?"Tôi xác nhận các quyết định trên đã được người có thẩm quyền rà soát.":"I confirm the decisions above have been reviewed by the responsible owner."}</span></label>
-    <label class="crm-check"><input type="checkbox" name="enabled" value="1" disabled={!d.live} checked={d.settings.enabled===1} /><span>{d.vi?"Đề xuất bật HRM (chỉ có hiệu lực khi owner đã bật deployment gate).":"Enable HRM (effective only after the owner turns on the deployment gate)."}</span></label>
+    <label class="crm-check"><input type="checkbox" name="enabled" value="1" disabled={!d.deploymentEnabled} checked={d.settings.enabled===1} /><span>{d.vi?"Đề xuất bật HRM (chỉ có hiệu lực khi owner đã bật deployment gate).":"Enable HRM (effective only after the owner turns on the deployment gate)."}</span></label>
     <div class="crm-actions"><button class="crm-button" type="submit">{d.vi?"Lưu cấu hình":"Save settings"}</button></div>
   </form>
 </HrmPage>

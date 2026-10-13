@@ -24,7 +24,7 @@ test("HRM P1 uses EmDash sessions, isolated HRM grants, scoped records, D1 histo
  assert.equal((await S.hr.get("/workspace/users")).status,403,"HRM Officer cannot manage accounts");
  const closed=await S.employeeA.get("/hrm");assert.equal(closed.status,503,"Closed HRM gate response: " + closed.html);
  assert.equal((await S.hrm.get("/hrm/settings")).status,200,"HRM Admin can configure while the employee module remains unavailable");
- const configured=await S.hrm.post("/hrm/settings",{request_key:`policy_${run}`,version:1,legal_entity:"TEST Local entity",purpose:"Synthetic test only",retention_policy:"Synthetic records deleted with test state",policy_reference:"TEST-only synthetic policy",reviewed:"1",enabled:"1"});assert.equal(configured.status,303,configured.html);
+ const configured=await S.hrm.post("/hrm/settings",{request_key:"hrm_policy_"+run,version:1,legal_entity:"TEST Local entity",purpose:"Synthetic test only",retention_policy:"Synthetic records deleted with test state",policy_reference:"TEST-only synthetic policy",reviewed:"1",enabled:"1"});assert.equal(configured.status,303,configured.html);
  assert.equal((await S.employeeA.get("/hrm")).status,200);
  P.a=await createPerson({user:S.employeeA,code:`TEST-A-${run}`,name:"TEST Employee A"});
  P.b=await createPerson({user:S.employeeB,code:`TEST-B-${run}`,name:"TEST Employee B",manager:S.manager.id});
