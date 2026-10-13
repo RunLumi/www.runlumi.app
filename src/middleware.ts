@@ -55,6 +55,14 @@ export const onRequest = defineMiddleware(async (context, next) => {
     }
     user.hrmEnabled = hrmReady;
     context.locals.workspace = user;
+    const hrmRoute=path==="/hrm"||path.startsWith("/hrm/")||path==="/vi/hrm"||path.startsWith("/vi/hrm/");
+    if(hrmRoute&&!hrmReady&&!user.can("hrm.configure")){
+      if(area.api)return new Response("HRM is not activated.",{status:503,headers:{"Cache-Control":"private, no-store"}});
+      const body=vi
+        ? "<!doctype html><html lang='vi'><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='robots' content='noindex,nofollow'><title>HRM chưa sẵn sàng</title><body style='font-family:system-ui;max-width:640px;margin:10vh auto;padding:0 20px;line-height:1.6'><main><h1>HRM chưa được kích hoạt.</h1><p>Owner và HRM Admin cần hoàn tất cấu hình chính sách và cổng triển khai trước khi mở hồ sơ nhân viên.</p><p><a href='/vi/workspace'>Về Workspace</a></p></main></body></html>"
+        : "<!doctype html><html lang='en'><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><meta name='robots' content='noindex,nofollow'><title>HRM is not ready</title><body style='font-family:system-ui;max-width:640px;margin:10vh auto;padding:0 20px;line-height:1.6'><main><h1>HRM is not activated.</h1><p>The owner and HRM Admin must complete policy settings and the deployment gate before employee records open.</p><p><a href='/workspace'>Back to Workspace</a></p></main></body></html>";
+      return new Response(body,{status:503,headers:{"Content-Type":"text/html; charset=utf-8","Cache-Control":"private, no-store","X-Content-Type-Options":"nosniff"}});
+    }
   }
 
   const response = await next();
