@@ -92,10 +92,15 @@ including CMS-only changes through EmDash API/MCP.
 
 Run `npm run build`.
 
-Production deployment for this repository is manual. After the requested changes
-are merged to `main`, deploy the Cloudflare Worker with `npm run deploy` (the script
-runs preflight, builds the Astro app, and invokes Wrangler). GitHub Actions validates
-the repository but does not publish production.
+Production deploys automatically when `main` changes. Cloudflare Workers Builds
+(connected to this repository, production branch `main`) runs `npm run ci:verify`
+(lint, unit tests, build) and then `npm run release` (preflight secrets, a D1 Time
+Travel restore point and pending migrations, then `wrangler deploy` tagged with the
+commit). Other branches never deploy. Merging to `main` is therefore a production
+release: only merge what is ready, keep migrations additive, and check the build in
+the Cloudflare dashboard after merging. `npm run deploy` remains the manual fallback.
+GitHub Actions validates pull requests but does not publish production. See
+docs/crm/RUNBOOK.md §12.
 
 The Journal is backed by EmDash for editorial content management. Public routes
 may keep reviewed, prerendered fallback content, but EmDash schema, migrations,
