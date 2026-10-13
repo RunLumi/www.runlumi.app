@@ -1,5 +1,5 @@
 ---
 import HrmWorkDetails from "../../../components/hrm/HrmWorkDetails.astro";import HrmFailure from "../../../components/hrm/HrmFailure.astro";import {workProfilePage} from "../../../lib/hrm/pages";
-export const prerender=false;let data;try{data=await workProfilePage(Astro,"en",Astro.params.id??"")}catch(error){const user=Astro.locals.workspace!;data={lang:"en",vi:false,user,title:"Work details",error:error instanceof Error?error.message:"internal_error",status: typeof error === "object" && error !== null && "status" in error ? Number(error.status) : 500};Astro.response.status=data.status}
+export const prerender=false;let data;try{data=await workProfilePage(Astro,"en",Astro.params.id??"")}catch(error){if(typeof error==="object"&&error!==null&&"status" in error&&Number(error.status)===404)return new Response('Not found.',{status:404,headers:{"Cache-Control":"private, no-store"}});const user=Astro.locals.workspace!;data={lang:"en",vi:false,user,title:"Work details",error:error instanceof Error?error.message:"internal_error",status: typeof error === "object" && error !== null && "status" in error ? Number(error.status) : 500};Astro.response.status=data.status}
 ---
 { "person" in data ? <HrmWorkDetails {...data}/> : <HrmFailure data={data}/> }

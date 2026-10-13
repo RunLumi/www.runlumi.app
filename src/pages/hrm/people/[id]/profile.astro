@@ -14,6 +14,7 @@ try {
     data.files=await listFiles(env.DB,Astro.locals.workspace!,data.person,section==="contact"?"personal":section);
   }
 } catch(error) {
+  if(typeof error==="object"&&error!==null&&"status" in error&&Number(error.status)===404)return new Response('Not found.',{status:404,headers:{"Cache-Control":"private, no-store"}});
   const user=Astro.locals.workspace!;
   data={lang:"en",vi:false,user,title:"Employee profile",error:error instanceof Error?error.message:"internal_error",status:typeof error==="object"&&error!==null&&"status" in error?Number(error.status):500};
   Astro.response.status=data.status;
