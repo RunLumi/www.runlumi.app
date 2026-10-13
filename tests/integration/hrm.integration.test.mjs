@@ -1,7 +1,7 @@
 // HRM against an isolated Astro Worker, EmDash, D1 and local R2. Synthetic identities/files only.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { BASE, adminSession, content, jobs, q, userSession } from "./helpers.mjs";
+import { BASE, adminSession, content, jobs, localFetch, q, userSession } from "./helpers.mjs";
 
 const run=Date.now().toString(36);const S={};const P={};
 const grant=(user,role)=>S.system.post("/workspace/users",{intent:"grant",email:user.email,roles:[role]});
@@ -9,7 +9,7 @@ const createPerson=async({user,code,name,manager="",status="active"})=>{
  const result=await S.hrm.post("/hrm/people/new",{request_key:`person_${code}_${run}`,employee_code:code,account_email:user?.email??"",legal_name:name,preferred_name:name,work_email:`${code.toLowerCase()}@work.example.test`,work_phone:"0900000000",department:"TEST Operations",job_title:"TEST Analyst",legal_entity:"TEST Local entity",location:"Ho Chi Minh City",manager_user_id:manager,status,started_on:"2026-10-13"});
  assert.equal(result.status,303,result.html);const row=jobs(`SELECT id FROM hrm_people WHERE employee_code=${q(code)}`)[0];assert.ok(row);return row.id;
 };
-async function multipart(session,path,fields,file){const form=new FormData();for(const [key,value] of Object.entries(fields))form.set(key,String(value));form.set("file",file);const response=await fetch(BASE+path,{method:"POST",body:form,headers:{cookie:session.header(),origin:BASE},redirect:"manual"});session.absorb(response);return {status:response.status,location:response.headers.get("location"),body:await response.text(),headers:response.headers};}
+async function multipart(session,path,fields,file){const form=new FormData();for(const [key,value] of Object.entries(fields))form.set(key,String(value));form.set("file",file);const response=await localFetch(BASE+path,{method:"POST",body:form,headers:{cookie:session.header(),origin:BASE},redirect:"manual"});session.absorb(response);return {status:response.status,location:response.headers.get("location"),body:await response.text(),headers:response.headers};}
 
 test("HRM P1 uses EmDash sessions, isolated HRM grants, scoped records, D1 history and private R2 files",async()=>{
  S.system=await adminSession();
@@ -58,7 +58,7 @@ test("HRM P1 uses EmDash sessions, isolated HRM grants, scoped records, D1 histo
  const badMime=await multipart(S.employeeA,"/api/hrm/files/upload",{person_id:P.a,kind:"identity",record_id:identityRecord,request_key:`file_bad_${run}`,return_to:"/hrm/me"},new File(["TEST not a PDF"],"TEST-bad.pdf",{type:"application/pdf"}));assert.equal(badMime.status,422,"declared MIME without matching file signature is rejected");assert.equal(jobs(`SELECT COUNT(*) AS n FROM hrm_files WHERE person_id=${q(P.a)}`)[0].n,0,"rejected bytes are not committed to R2 metadata");
  const uploaded=await multipart(S.employeeA,"/api/hrm/files/upload",{person_id:P.a,kind:"identity",record_id:identityRecord,request_key:`file_upload_${run}`,return_to:"/hrm/me"},fakePdf);assert.equal(uploaded.status,303,uploaded.body);
  const meta=jobs(`SELECT id,object_key,state,checksum FROM hrm_files WHERE person_id=${q(P.a)} AND kind='identity'`)[0];assert.ok(meta.object_key.startsWith("hrm/"));assert.equal(meta.state,"quarantined");
- assert.equal((await fetch(BASE+`/api/hrm/files/${meta.id}`)).status,401,"HRM file API is not public");
+ assert.equal((await localFetch(BASE+`/api/hrm/files/${meta.id}`)).status,401,"HRM file API is not public");
  assert.equal((await S.employeeB.get(`/api/hrm/files/${meta.id}`)).status,404,"different employee cannot fetch the R2 object");
  const review=await S.hrm.post(`/api/hrm/files/${meta.id}`,{intent:"reviewed",person_id:P.a,version:1,request_key:`file_review_${run}`,reason:"TEST reviewed synthetic bytes",return_to:"/hrm/people/"+P.a,section:"identity"});assert.equal(review.status,303);
  const reviewedFile=jobs(`SELECT state,reviewed_by,reviewed_at FROM hrm_files WHERE id=${q(meta.id)}`)[0];assert.equal(reviewedFile.state,"reviewed");assert.equal(reviewedFile.reviewed_by,S.hrm.id);assert.ok(Number.isFinite(Date.parse(reviewedFile.reviewed_at)),"file review records its server timestamp");
