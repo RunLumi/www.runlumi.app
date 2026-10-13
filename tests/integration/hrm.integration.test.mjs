@@ -33,7 +33,7 @@ test("HRM P1 uses EmDash sessions, isolated HRM grants, scoped records, D1 histo
  assert.equal((await S.hrm.get(`/hrm/people/${P.b}/profile?section=bank`)).status,200);
  assert.equal((await S.hr.get(`/hrm/people/${P.b}/profile?section=identity`)).status,200);
  assert.equal((await S.hr.get(`/hrm/people/${P.b}/profile?section=bank`)).status,404,"HRM Officer has no bank access");
- const team=await S.manager.get("/hrm/people");assert.equal(team.status,200,"Manager people response status="+team.status+" location="+String(team.location)+" body="+team.html.slice(0,700));assert.ok(team.html.includes("TEST Employee B"));assert.ok(!team.html.includes("account_number"));
+ const team=await S.manager.get("/hrm/people");assert.equal(team.status,200,"Manager people response status="+team.status+" location="+String(team.location)+" body="+team.html.slice(0,5000));assert.ok(team.html.includes("TEST Employee B"));assert.ok(!team.html.includes("account_number"));
  assert.equal((await S.manager.get(`/hrm/people/${P.b}/profile?section=identity`)).status,404,"manager gets work scope only");
  const csrf=await S.employeeA.post("/hrm/me?section=identity",{intent:"submit",section:"identity",request_key:`csrf_${run}`,record_id:"",expected_version:"0",document_type:"CCCD",document_number:"TEST-IDENTITY-001",issued_on:"2020-01-01"},{origin:"https://attacker.example"});assert.equal(csrf.status,400);
  const submitted=await S.employeeA.post("/hrm/me?section=identity",{intent:"submit",section:"identity",request_key:`identity_${run}`,record_id:"",expected_version:"0",document_type:"CCCD",document_number:"TEST-IDENTITY-001",issued_on:"2020-01-01",issued_by:"TEST issuer"});assert.equal(submitted.status,303);

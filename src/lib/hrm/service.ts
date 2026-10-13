@@ -65,7 +65,8 @@ export async function listPeople(db:D1Database,user:WorkspaceUser,query:string,p
  if(!user.can("hrm.records.manage")&&!user.can("hrm.team.read"))throw new HrmError("forbidden",403);
  const team=!user.can("hrm.records.manage"),search=query,today=localDate();const visibleName=team?"COALESCE(NULLIF(p.preferred_name,''),'Employee')":"p.legal_name";
  const sql=`SELECT p.id,e.id AS employment_id,p.employee_code,p.user_id,${visibleName} AS legal_name,p.preferred_name,p.version AS profile_version,e.work_email,e.work_phone,e.department,e.job_title,e.legal_entity,e.location,e.manager_user_id,e.status,e.started_on,e.ended_on,e.version,e.actor_id AS actor_id,e.created_at,e.updated_at FROM hrm_people p JOIN hrm_employments e ON e.person_id=p.id AND e.id=(SELECT e2.id FROM hrm_employments e2 WHERE e2.person_id=p.id ORDER BY CASE WHEN e2.status!='ended' THEN 0 ELSE 1 END,e2.started_on DESC,e2.created_at DESC LIMIT 1) WHERE (instr(lower(${visibleName}),lower(?))>0 OR instr(upper(p.employee_code),upper(?))>0) ORDER BY p.legal_name,p.id LIMIT 26 OFFSET ?`;
- return (await db.prepare(sql).bind(search,search,...(team?[user.id,today,today]:[]),(page-1)*25).all<Person>()).results;
+ try{return (await db.prepare(sql).bind(search,search,...(team?[user.id,today,today]:[]),(page-1)*25).all<Person>()).results}
+ catch(error){if(import.meta.env.DEV&&error instanceof Error)console.error("[hrm] people query failed:",error.message.slice(0,240));throw error}
 }
 export async function audit(db: D1Database,user: WorkspaceUser,action: string,personId: string | null,target: string,detail: Record<string,unknown> = {}): Promise<void> {
   await db.prepare("INSERT INTO hrm_audit(actor_id,action,person_id,target_id,detail,created_at) VALUES(?,?,?,?,?,?)").bind(user.id,action,personId,target,JSON.stringify(detail),now()).run();
