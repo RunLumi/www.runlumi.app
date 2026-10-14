@@ -1,0 +1,6 @@
+---
+import HrmTime from "../../../../components/hrm/HrmTime.astro";
+import { myTimePage } from "../../../../lib/hrm/time-pages";
+export const prerender=false;let data;try{data=await myTimePage(Astro,"en");if(data instanceof Response)return data}catch(error){const user=Astro.locals.workspace!;data={lang:"en",vi:false,user,title:"My attendance",error:error instanceof Error?error.message:"internal_error"};Astro.response.status=typeof error==="object"&&error!==null&&"status" in error?Number(error.status):500}
+---
+<HrmTime {...data}/>
