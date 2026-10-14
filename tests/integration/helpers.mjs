@@ -23,11 +23,18 @@ export async function localFetch(url,options={}){
   try{return await globalThis.fetch(url,requestOptions)}catch(error){
     const method=(options.method??"GET").toUpperCase(),path=safePath(url);
     const isHrm=path==="/hrm"||path.startsWith("/hrm/")||path==="/vi/hrm"||path.startsWith("/vi/hrm/")||path.startsWith("/api/hrm/");
+    const isCrm=path==="/crm"||path.startsWith("/crm/")||path.startsWith("/api/crm/");
+    const isWorkspace=path==="/workspace"||path.startsWith("/workspace/")||path==="/vi/workspace"||path.startsWith("/vi/workspace/");
     const body=options.body;const hasIdempotencyKey=body instanceof URLSearchParams?body.has("request_key"):body instanceof FormData?body.has("request_key"):false;
     const cause=error&&typeof error==="object"&&"cause" in error?error.cause:error,code=cause&&typeof cause==="object"&&"code" in cause?String(cause.code):"";
-    if(isHrm&&(method==="GET"||method==="POST"&&hasIdempotencyKey)&&(code==="ECONNRESET"||code==="UND_ERR_SOCKET")){
-      await new Promise(resolve=>setTimeout(resolve,80));
-      try{const response=await globalThis.fetch(url,requestOptions);console.error("local_integration_safe_retry",method,path,"recovered");return response}catch(retryError){failedRequest(method,url,retryError);throw retryError}
+    const retryable=(isHrm||isCrm||isWorkspace&&method==="GET")&&(method==="GET"||method==="POST"&&hasIdempotencyKey);
+    if(retryable&&(code==="ECONNRESET"||code==="UND_ERR_SOCKET")){
+      let lastError=error;
+      for(const delay of [80,160,320]){
+        await new Promise(resolve=>setTimeout(resolve,delay));
+        try{const response=await globalThis.fetch(url,requestOptions);console.error("local_integration_safe_retry",method,path,"recovered");return response}catch(retryError){lastError=retryError;const retryCause=retryError&&typeof retryError==="object"&&"cause" in retryError?retryError.cause:retryError;const retryCode=retryCause&&typeof retryCause==="object"&&"code" in retryCause?String(retryCause.code):"";if(retryCode!=="ECONNRESET"&&retryCode!=="UND_ERR_SOCKET")break;}
+      }
+      failedRequest(method,url,lastError);throw lastError;
     }
     failedRequest(method,url,error);throw error;
   }
