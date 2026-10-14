@@ -1,0 +1,18 @@
+---
+import type { LeaveRequest } from "../../lib/hrm/time-leave";
+import type { WorkspaceUser } from "../../lib/workspace/roles";
+const {request,user,vi,returnTo,manager}=Astro.props as {request:LeaveRequest;user:WorkspaceUser;vi:boolean;returnTo:string;manager:boolean};
+const allowed=manager?user.can("hrm.leave.manage"):user.can("hrm.leave.self");
+---
+{allowed&&request.state==="pending_approval"&&<details class="crm-sheet">
+ <summary>{vi?"Sửa đơn đang chờ duyệt":"Amend pending request"}</summary>
+ {request.evidence_required===1&&(request.evidence_file_id||request.evidence_superseded===1)&&<p class="crm-notice warn">{vi?"Mọi sửa đổi tạo revision mới và PDF cũ không còn áp dụng; cần nộp lại chứng từ để duyệt.":"An amendment creates a new revision and invalidates the prior PDF; submit evidence again before approval."}</p>}
+ <form class="crm-form" method="post" action="/api/hrm/leave">
+  <input type="hidden" name="intent" value="amend_request"/><input type="hidden" name="return_to" value={`${returnTo}#leave-${request.id}`}/><input type="hidden" name="request_id" value={request.id}/><input type="hidden" name="version" value={request.version}/><input type="hidden" name="leave_type_key" value={request.leave_type_key}/><input type="hidden" name="request_key" value={crypto.randomUUID()}/>
+  <div class="crm-grid"><label class="crm-field"><span>{vi?"Bắt đầu mới":"New start date"}</span><input class="crm-input" type="date" name="starts_on" value={request.starts_on} required/></label><label class="crm-field"><span>{vi?"Kết thúc mới":"New end date"}</span><input class="crm-input" type="date" name="ends_on" value={request.ends_on} required/></label><label class="crm-field"><span>{vi?"Phần ngày":"Day portion"}</span><select class="crm-input" name="portion"><option value="full" selected={request.portion==="full"}>{vi?"Cả ngày":"Full day"}</option><option value="half_first" selected={request.portion==="half_first"}>{vi?"Nửa đầu":"First half"}</option><option value="half_second" selected={request.portion==="half_second"}>{vi?"Nửa sau":"Second half"}</option></select></label></div>
+  <label class="crm-field"><span>{vi?"Lý do riêng tư (nếu cần)":"Private reason (if needed)"}</span><textarea class="crm-input" name="private_reason" maxlength="1000" rows="2">{request.private_reason}</textarea></label>
+  <label class="crm-field"><span>{vi?"Bàn giao":"Handoff note"}</span><textarea class="crm-input" name="handoff_note" maxlength="500" rows="2">{request.handoff_note}</textarea></label>
+  <label class="crm-field"><span>{vi?"Lý do sửa và dấu vết audit":"Amendment reason for the audit trail"}</span><input class="crm-input" name="reason" maxlength="500" required/></label>
+  <button class="crm-button secondary small" type="submit">{vi?"Lưu revision và tính lại":"Save revision and recalculate"}</button>
+ </form>
+</details>}

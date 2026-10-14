@@ -1,6 +1,6 @@
 # HRM — Quản trị nhân sự và cổng nhân viên
 
-**Trạng thái:** hợp đồng phạm vi và tiêu chí nghiệm thu; tình trạng triển khai được theo dõi tại [STATUS.md](STATUS.md). **Ngày cập nhật:** 2026-10-14.
+**Trạng thái:** hợp đồng phạm vi và tiêu chí nghiệm thu; tình trạng triển khai được theo dõi tại [STATUS.md](STATUS.md). **Ngày cập nhật:** 2026-10-15.
 
 HRM là phân hệ nhân sự trong Lumi Workspace, phục vụ cả nhân viên, người quản lý, HR và người phụ trách tiền lương. Hiring quản lý ứng viên trước khi tuyển; HRM quản lý quan hệ làm việc từ tiếp nhận đến nghỉ việc. Cả hai dùng chung danh tính EmDash nhưng có quyền riêng. CRM tiếp tục độc lập về nghiệp vụ và quyền dữ liệu.
 
@@ -233,6 +233,8 @@ Loại nghỉ cấu hình: phép năm, nghỉ không lương, nghỉ ốm, thai 
 
 Nhân viên chọn loại, khoảng ngày/giờ hoặc nửa ngày, lý do chỉ khi cần, người bàn giao và tệp nếu bắt buộc. Preview hiện số giờ/ngày bị trừ, ngày nghỉ/lễ bị loại, số dư dự kiến, phiên bản chính sách và tuyến duyệt. Không tự lấy số ngày lịch làm số ngày phép.
 
+Nếu loại nghỉ yêu cầu chứng từ, nhân viên gửi đơn trước rồi tải PDF vào đúng đơn; HR cũng có thể tải thay trong phạm vi quyền. Tệp được kiểm tra chữ ký PDF, lưu riêng trong R2 và cách ly đến khi người khác rà soát. Đơn vẫn ở trạng thái chờ; không thể duyệt trước khi chứng từ đạt rà soát. Người quản lý được giao xem trạng thái và mở PDF để rà soát, nhưng không xem lý do nghỉ riêng tư. `leave_evidence` có danh mục retention/legal hold riêng; không có thời hạn mặc định, và production vẫn đóng tới khi owner phê duyệt căn cứ/thời hạn.
+
 Luồng: `draft → submitted → pending_approval → approved/rejected`; rút trước duyệt thành `withdrawn`; hủy đơn đã duyệt là yêu cầu riêng `cancellation_requested → cancelled/cancellation_rejected`. Sửa đơn đang duyệt tạo revision và vô hiệu phê duyệt cũ; thay đổi sau duyệt phải xin lại. Lý do từ chối/bổ sung được ghi và nhân viên nhìn thấy.
 
 Số dư là sổ biến động: đầu kỳ, tích lũy, cấp bổ sung, giữ chỗ đơn đang chờ, sử dụng, hoàn khi hủy, chuyển kỳ, hết hạn và điều chỉnh. Phân biệt số dư đã hưởng với số khả dụng sau giữ chỗ. Chính sách tích lũy, prorate theo ngày vào/nghỉ, carry-over, hết hạn và cho phép âm đều có phiên bản và ngày hiệu lực. Điều chỉnh cần actor, lý do, tham chiếu; không sửa trực tiếp số dư không dấu vết.
@@ -349,6 +351,8 @@ Các kiểm tra dưới đây là yêu cầu cho triển khai, **chưa phải k�
 | HRM-24 | Buddy/quản lý mở todo có CCCD, COI, lương hoặc cấp quyền | Chỉ thấy trạng thái được phép; nguồn/tệp vẫn có quyền riêng; không cấp quyền qua todo |
 | HRM-25 | Người phụ trách mất quyền, hủy gia nhập hoặc kết thúc onboarding | Có hàng chờ phân công lại; dừng nhắc việc đã hủy; không tự duyệt thử việc hay bỏ bước thu hồi |
 | HRM-26 | CSV vượt giới hạn/sai header, có dòng lỗi/trùng, assignment đổi, retry xác nhận hoặc khóa kỳ còn preview | Không ghi trước xác nhận; lỗi chỉ giữ số dòng/mã lỗi; xác nhận atomic/idempotent tạo công chờ duyệt; từ chối/hoàn tất xóa staging PII, giữ checksum/audit/liên kết; kỳ không khóa khi preview còn mở |
+| HRM-27 | Loại phép bắt buộc chứng từ nhưng thiếu PDF, file sai chữ ký, upload/review lặp, reviewer không đúng scope, giữ hồ sơ hoặc người khác mở file | Thiếu/chưa review phải chặn duyệt; PDF cách ly/private, checksum và actor/time được audit, uploader không tự review; legal hold/retention bao phủ file mới; employee chỉ xem đơn và chứng từ của mình |
+| HRM-28 | Nhân viên/HR sửa đơn đang chờ duyệt, retry sửa, revision cũ có PDF, reviewer dùng revision stale | Lưu snapshot bất biến trước/sau cùng actor/thời gian/lý do; update dùng expected-version và idempotency; tính lại số giờ/số dư; phê duyệt chỉ gắn revision mới; PDF của revision trước không thỏa chứng từ và phải được nộp/rà soát lại |
 
 Trước mỗi giai đoạn: cập nhật permission map, migration, navigation, middleware, tài liệu và hai locale cùng thay đổi; chạy `npm run build` cùng các kiểm tra phù hợp. Build xanh không chứng minh tính đúng của payroll, chữ ký hay quyền truy cập production.
 
@@ -359,7 +363,7 @@ Trước mỗi giai đoạn: cập nhật permission map, migration, navigation,
 | P0 — Chốt chính sách | Pháp nhân, đối tượng, permission map, mục đích dữ liệu, retention, người duyệt, cách ký từng giấy tờ | Owner/HR/người phụ trách chuyên môn duyệt các quyết định §16 |
 | P1 — Hồ sơ và cổng nhân viên | Danh tính, hồ sơ, phụ thuộc, file, đề nghị sửa, danh bạ hạn chế, EN/VI | HRM-01–05, 16, 18, 20; hồi quy ATS/CRM |
 | P2 — Hồ sơ pháp lý và vòng đời | Hợp đồng, NDA, COI, chính sách, onboarding/offboarding, ký giấy/xác nhận đọc | HRM-08, 10–12, 17–19, 22–25; ký điện tử chỉ bật sau kiểm chứng riêng |
-| P3 — Công và phép | Lịch/ca, giải trình, tuyến duyệt, sổ phép, chốt công | HRM-06–09; đối chiếu với bảng công/phép đã được HR kiểm tra |
+| P3 — Công và phép | Lịch/ca, giải trình, import/đối soát công, tuyến duyệt, sổ phép, chứng từ và chốt công | HRM-06–09, 26–28; đối chiếu với bộ công/phép đã được HR kiểm tra |
 | P4 — Lương và payslip | Snapshot, tính/duyệt, phiếu, khiếu nại, điều chỉnh, xác nhận trả tiền | HRM-09, 13–15; ít nhất một kỳ chạy song song được đối soát không có chênh lệch chưa giải thích |
 | P5 — Mở rộng | Phúc lợi, tài sản, đào tạo/đánh giá, reports, tích hợp có nhu cầu thật | Gate quyền/dữ liệu cho từng chức năng; HRM-19–21 và hồi quy |
 

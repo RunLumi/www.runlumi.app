@@ -9,6 +9,7 @@ import { isDocxPackage, readLegalForm } from "../src/lib/hrm/legal-files.ts";
 import { validateOnboardingConfig } from "../src/lib/hrm/onboarding.ts";
 import { localDateTimeToUtc, parseCalendarSchedule, parseLeaveRules } from "../src/lib/hrm/time-leave.ts";
 import { parseAttendanceCsv } from "../src/lib/hrm/time-import.ts";
+import { RETENTION_CATEGORIES, retentionCategoryForHrm } from "../src/lib/hrm/retention.ts";
 const person=(user_id:string|null):Person=>({id:"person_test",employment_id:"employment_test",profile_version:1,employee_code:"E-001",user_id,legal_name:"Test Employee",preferred_name:"Test",work_email:"work@example.test",work_phone:"",department:"Ops",job_title:"Operator",legal_entity:"Test entity",location:"HCMC",manager_user_id:"manager",status:"active",started_on:"2026-01-01",ended_on:null,version:1,actor_id:"hr",created_at:"2026-01-01T00:00:00.000Z",updated_at:"2026-01-01T00:00:00.000Z"});
 const user=(id:string,granted:Parameters<typeof makeUser>[2])=>makeUser({id,name:id,email:id+"@example.test"},false,granted);
 test("HRM grants are separate from ATS, CRM and user administration",()=>{
@@ -91,4 +92,8 @@ test("attendance CSV parsing is strict UTF-8, exact-header, RFC-quoted, and capp
  assert.throws(()=>parseAttendanceCsv(encode(`${headers}\n${Array.from({length:101},()=>row).join("\n")}`)),error=>error instanceof HrmError&&error.message==="time_import_rows");
  assert.throws(()=>parseAttendanceCsv(new Uint8Array([0xc3]).buffer),error=>error instanceof HrmError&&error.message==="time_import_encoding");
  assert.throws(()=>parseAttendanceCsv(new Uint8Array(512*1024+1).buffer),error=>error instanceof HrmError&&error.status===413);
+});
+test("required leave PDFs have their own configurable retention category",()=>{
+ assert.equal(retentionCategoryForHrm("leave_evidence"),"leave_evidence");
+ assert.ok((RETENTION_CATEGORIES as readonly string[]).includes("leave_evidence"));
 });
