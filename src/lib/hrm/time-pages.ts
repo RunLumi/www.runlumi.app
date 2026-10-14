@@ -29,18 +29,19 @@ import {
   type CalendarSchedule,
   type LeaveRule,
 } from "./time-leave";
+import { getTimeImportRows, listTimeImportBatches, type TimeImportBatch, type TimeImportRow } from "./time-import-service";
 
 const base=(lang:Lang,user:NonNullable<AstroGlobal["locals"]["workspace"]>,title:string):PageBase=>({lang,vi:lang==="vi",user,title,live:user.hrmEnabled===true});
 const status=(astro:AstroGlobal)=>astro.url.searchParams.get("error")??undefined;
 
 export interface TimeManagePage extends PageBase {
   calendars:WorkCalendar[];assignments:WorkAssignment[];periods:TimePeriod[];entries:TimeEntry[];adjustments:TimeAdjustment[];
-  people:Array<{id:string;employee_code:string;legal_name:string;preferred_name:string;employment_id:string;status:string}>;members:MemberRow[];saved:string;error?:string;
+  people:Array<{id:string;employee_code:string;legal_name:string;preferred_name:string;employment_id:string;status:string}>;members:MemberRow[];imports:TimeImportBatch[];selectedImport?:TimeImportBatch;importRows:TimeImportRow[];saved:string;error?:string;
 }
 export async function timeManagePage(astro:AstroGlobal,lang:Lang):Promise<Response|TimeManagePage>{
   const user=astro.locals.workspace!;if(!user.can("hrm.time.manage")&&!user.can("hrm.time.review")&&!user.can("hrm.time.configure"))return new Response("Forbidden",{status:403});
   const env=envFromLocals(astro.locals),live=user.hrmEnabled===true;
-  const [calendars,assignments,periods,entries,adjustments,people,members]=await Promise.all([
+  const [calendars,assignments,periods,entries,adjustments,people,members,imports]=await Promise.all([
     listCalendarVersions(env.DB,user),
     live&&(user.can("hrm.time.manage")||user.can("hrm.time.review"))?listWorkAssignments(env.DB,user):Promise.resolve([]),
     live&&(user.can("hrm.time.manage")||user.can("hrm.time.review"))?listTimePeriods(env.DB,user):Promise.resolve([]),
@@ -48,8 +49,11 @@ export async function timeManagePage(astro:AstroGlobal,lang:Lang):Promise<Respon
     live&&user.can("hrm.time.review")?listTimeAdjustments(env.DB,user):Promise.resolve([]),
     live&&user.can("hrm.time.manage")?listPeople(env.DB,user,"",1):Promise.resolve([]),
     workspaceMembers(env.DB,env.CONTENT_DB),
+    live&&user.can("hrm.time.manage")?listTimeImportBatches(env.DB,user):Promise.resolve([]),
   ]);
-  return {...base(lang,user,lang==="vi"?"Lịch và chấm công":"Schedules and attendance"),calendars,assignments,periods,entries,adjustments,people,members,saved:astro.url.searchParams.get("saved")??"",error:status(astro)};
+  const selectedImport=imports.find(batch=>batch.id===astro.url.searchParams.get("batch"));
+  const importRows=selectedImport?await getTimeImportRows(env.DB,user,selectedImport.id):[];
+  return {...base(lang,user,lang==="vi"?"Lịch và chấm công":"Schedules and attendance"),calendars,assignments,periods,entries,adjustments,people,members,imports,selectedImport,importRows,saved:astro.url.searchParams.get("saved")??"",error:status(astro)};
 }
 
 export interface MyTimePage extends PageBase {entries:TimeEntry[];adjustments:TimeAdjustment[];context?:{personId:string;workDate:string;timezone:string;weekdays:CalendarSchedule["weekdays"];holidays:string[];periods:TimePeriod[]};saved:string;error?:string}

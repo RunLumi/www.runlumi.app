@@ -90,6 +90,7 @@ export async function command(db: D1Database,user: WorkspaceUser,key: string,ope
   } catch(error) {
     const retry = await previous(); if(retry) return check(retry);
     const message = error instanceof Error ? error.message : "";
+    if(message.includes("time_period_import_pending")) throw new HrmError("time_period_import_pending",409);
     if (/CHECK constraint failed|UNIQUE constraint failed|immutable_history/.test(message)) throw new HrmError("conflict",409);
     throw error;
   }

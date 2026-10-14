@@ -301,3 +301,89 @@ WHEN EXISTS (
     AND NEW.effective_to IS NOT OLD.effective_to
 )
 BEGIN SELECT RAISE(ABORT,'time_period_locked'); END;
+
+CREATE TABLE hrm_time_import_batches (
+  id TEXT PRIMARY KEY,
+  period_id TEXT NOT NULL REFERENCES hrm_time_periods(id),
+  period_version INTEGER NOT NULL,
+  source_checksum TEXT NOT NULL,
+  original_name TEXT NOT NULL,
+  row_count INTEGER NOT NULL CHECK (row_count BETWEEN 1 AND 100),
+  error_count INTEGER NOT NULL CHECK (error_count >= 0 AND error_count <= row_count),
+  state TEXT NOT NULL CHECK (state IN ('previewed','confirmed','rejected')),
+  rejection_reason TEXT,
+  created_by TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  confirmed_by TEXT,
+  confirmed_at TEXT,
+  version INTEGER NOT NULL DEFAULT 1 CHECK (version > 0),
+  actor_id TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
+CREATE INDEX hrm_time_import_period_state ON hrm_time_import_batches(period_id,state,created_at);
+
+CREATE TABLE hrm_time_import_rows (
+  id TEXT PRIMARY KEY,
+  batch_id TEXT NOT NULL REFERENCES hrm_time_import_batches(id),
+  row_number INTEGER NOT NULL CHECK (row_number > 0),
+  employee_code TEXT,
+  person_id TEXT REFERENCES hrm_people(id),
+  employment_id TEXT REFERENCES hrm_employments(id),
+  employment_version INTEGER,
+  assignment_id TEXT REFERENCES hrm_work_assignments(id),
+  assignment_version INTEGER,
+  calendar_version_id TEXT REFERENCES hrm_work_calendar_versions(id),
+  entry_id TEXT UNIQUE,
+  work_date TEXT,
+  shift_key TEXT,
+  planned_minutes INTEGER,
+  check_in_utc TEXT,
+  check_out_utc TEXT,
+  break_minutes INTEGER,
+  worked_minutes INTEGER,
+  overtime_minutes INTEGER,
+  overtime_state TEXT CHECK (overtime_state IN ('none','pending_approval','approved')),
+  error_code TEXT,
+  state TEXT NOT NULL CHECK (state IN ('valid','invalid','imported','discarded')),
+  actor_id TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  UNIQUE(batch_id,row_number),
+  CHECK ((state='valid' AND error_code IS NULL AND employee_code IS NOT NULL AND entry_id IS NOT NULL AND work_date IS NOT NULL AND shift_key IS NOT NULL AND person_id IS NOT NULL AND employment_id IS NOT NULL AND employment_version IS NOT NULL AND assignment_id IS NOT NULL AND assignment_version IS NOT NULL AND calendar_version_id IS NOT NULL AND planned_minutes IS NOT NULL AND check_in_utc IS NOT NULL AND check_out_utc IS NOT NULL AND break_minutes IS NOT NULL AND worked_minutes IS NOT NULL AND overtime_minutes IS NOT NULL AND overtime_state IS NOT NULL) OR state!='valid')
+);
+CREATE INDEX hrm_time_import_rows_batch ON hrm_time_import_rows(batch_id,row_number);
+CREATE TRIGGER hrm_time_import_batch_identity_immutable
+BEFORE UPDATE OF period_id,period_version,source_checksum,original_name,row_count,error_count,created_by,created_at ON hrm_time_import_batches
+BEGIN SELECT RAISE(ABORT,'immutable_history'); END;
+CREATE TRIGGER hrm_time_import_batch_state_transition
+BEFORE UPDATE OF state ON hrm_time_import_batches
+WHEN NOT (OLD.state='previewed' AND NEW.state IN ('confirmed','rejected'))
+  OR (NEW.state='confirmed' AND (NEW.confirmed_by IS NULL OR NEW.confirmed_at IS NULL OR NEW.rejection_reason IS NOT NULL))
+  OR (NEW.state='rejected' AND (NEW.rejection_reason IS NULL OR length(trim(NEW.rejection_reason))=0 OR NEW.confirmed_by IS NOT NULL OR NEW.confirmed_at IS NOT NULL))
+BEGIN SELECT RAISE(ABORT,'immutable_history'); END;
+CREATE TRIGGER hrm_time_import_batch_final_immutable
+BEFORE UPDATE ON hrm_time_import_batches
+WHEN OLD.state IN ('confirmed','rejected')
+BEGIN SELECT RAISE(ABORT,'immutable_history'); END;
+CREATE TRIGGER hrm_time_import_batch_no_delete BEFORE DELETE ON hrm_time_import_batches BEGIN SELECT RAISE(ABORT,'immutable_history'); END;
+CREATE TRIGGER hrm_time_import_row_identity_immutable
+BEFORE UPDATE OF batch_id,row_number,employee_code,person_id,employment_id,employment_version,assignment_id,assignment_version,calendar_version_id,entry_id,work_date,shift_key,planned_minutes,check_in_utc,check_out_utc,break_minutes,worked_minutes,overtime_minutes,overtime_state,error_code,actor_id ON hrm_time_import_rows
+WHEN NOT (
+  OLD.batch_id=NEW.batch_id AND OLD.row_number=NEW.row_number AND OLD.actor_id=NEW.actor_id AND OLD.created_at=NEW.created_at
+  AND (
+    (OLD.state='valid' AND NEW.state='imported' AND OLD.entry_id=NEW.entry_id AND NEW.employee_code IS NULL AND NEW.person_id IS NULL AND NEW.employment_id IS NULL AND NEW.employment_version IS NULL AND NEW.assignment_id IS NULL AND NEW.assignment_version IS NULL AND NEW.calendar_version_id IS NULL AND NEW.work_date IS NULL AND NEW.shift_key IS NULL AND NEW.planned_minutes IS NULL AND NEW.check_in_utc IS NULL AND NEW.check_out_utc IS NULL AND NEW.break_minutes IS NULL AND NEW.worked_minutes IS NULL AND NEW.overtime_minutes IS NULL AND NEW.overtime_state IS NULL AND NEW.error_code IS NULL)
+    OR (OLD.state IN ('valid','invalid') AND NEW.state='discarded' AND NEW.employee_code IS NULL AND NEW.person_id IS NULL AND NEW.employment_id IS NULL AND NEW.employment_version IS NULL AND NEW.assignment_id IS NULL AND NEW.assignment_version IS NULL AND NEW.calendar_version_id IS NULL AND NEW.entry_id IS NULL AND NEW.work_date IS NULL AND NEW.shift_key IS NULL AND NEW.planned_minutes IS NULL AND NEW.check_in_utc IS NULL AND NEW.check_out_utc IS NULL AND NEW.break_minutes IS NULL AND NEW.worked_minutes IS NULL AND NEW.overtime_minutes IS NULL AND NEW.overtime_state IS NULL AND ((OLD.state='invalid' AND NEW.error_code=OLD.error_code) OR (OLD.state='valid' AND NEW.error_code='batch_rejected')))
+  )
+)
+BEGIN SELECT RAISE(ABORT,'immutable_history'); END;
+CREATE TRIGGER hrm_time_import_row_no_delete BEFORE DELETE ON hrm_time_import_rows BEGIN SELECT RAISE(ABORT,'immutable_history'); END;
+CREATE TRIGGER hrm_time_import_row_state_transition
+BEFORE UPDATE OF state ON hrm_time_import_rows
+WHEN NOT (
+  (OLD.state='valid' AND NEW.state='imported' AND NEW.employee_code IS NULL AND NEW.person_id IS NULL AND NEW.employment_id IS NULL AND NEW.employment_version IS NULL AND NEW.assignment_id IS NULL AND NEW.assignment_version IS NULL AND NEW.calendar_version_id IS NULL AND NEW.work_date IS NULL AND NEW.shift_key IS NULL AND NEW.planned_minutes IS NULL AND NEW.check_in_utc IS NULL AND NEW.check_out_utc IS NULL AND NEW.break_minutes IS NULL AND NEW.worked_minutes IS NULL AND NEW.overtime_minutes IS NULL AND NEW.overtime_state IS NULL AND NEW.error_code IS NULL)
+  OR (OLD.state IN ('valid','invalid') AND NEW.state='discarded' AND NEW.employee_code IS NULL AND NEW.person_id IS NULL AND NEW.employment_id IS NULL AND NEW.employment_version IS NULL AND NEW.assignment_id IS NULL AND NEW.assignment_version IS NULL AND NEW.calendar_version_id IS NULL AND NEW.entry_id IS NULL AND NEW.work_date IS NULL AND NEW.shift_key IS NULL AND NEW.planned_minutes IS NULL AND NEW.check_in_utc IS NULL AND NEW.check_out_utc IS NULL AND NEW.break_minutes IS NULL AND NEW.worked_minutes IS NULL AND NEW.overtime_minutes IS NULL AND NEW.overtime_state IS NULL AND ((OLD.state='invalid' AND NEW.error_code=OLD.error_code) OR (OLD.state='valid' AND NEW.error_code='batch_rejected')))
+)
+BEGIN SELECT RAISE(ABORT,'immutable_history'); END;
+CREATE TRIGGER hrm_time_period_pending_import_guard
+BEFORE UPDATE OF state ON hrm_time_periods
+WHEN NEW.state='locked' AND EXISTS(SELECT 1 FROM hrm_time_import_batches b WHERE b.period_id=NEW.id AND b.state='previewed')
+BEGIN SELECT RAISE(ABORT,'time_period_import_pending'); END;
