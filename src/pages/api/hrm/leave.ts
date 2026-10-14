@@ -4,7 +4,7 @@ import { HrmError, date, revision, text } from "../../../lib/hrm/fields";
 import {
   activateLeavePolicy, adjustLeaveBalance, assignLeavePolicy, endLeavePolicyAssignment, createLeavePolicy, previewLeaveRequest, requestLeaveCancellation,
   reviewLeaveCancellation, reviewLeavePolicy, reviewLeaveRequest, runAnnualLeaveRollover,
-  runMonthlyLeaveAccrual, submitLeaveRequest, withdrawLeaveRequest,
+  runMonthlyLeaveAccrual, amendLeaveRequest, submitLeaveRequest, withdrawLeaveRequest,
 } from "../../../lib/hrm/time-leave";
 import { sameOrigin } from "../../../lib/http";
 
@@ -24,6 +24,7 @@ export const POST:APIRoute=async context=>{const user=context.locals.workspace;i
  else if(intent==="adjust_balance")await adjustLeaveBalance(env.DB,user,key,{personId:text(form,"person_id",100,true),typeKey:text(form,"leave_type_key",40,true),minutes:Number(text(form,"minutes",12,true)),periodKey:text(form,"period_key",4,true),reason:text(form,"reason",500,true)});
  else if(intent==="preview_request"){const portion=text(form,"portion",20,true);if(!["full","half_first","half_second"].includes(portion))throw new HrmError("invalid_request");await previewLeaveRequest(env.DB,user,{startsOn:date(text(form,"starts_on",10,true))!,endsOn:date(text(form,"ends_on",10,true))!,portion:portion as "full"|"half_first"|"half_second",leaveTypeKey:text(form,"leave_type_key",40,true)});target.searchParams.set("preview","1");for(const field of ["starts_on","ends_on","portion","leave_type_key"])target.searchParams.set(field,text(form,field,80,true));return redirect(target,{});}
  else if(intent==="submit_request"){const portion=text(form,"portion",20,true);if(!["full","half_first","half_second"].includes(portion))throw new HrmError("invalid_request");await submitLeaveRequest(env.DB,user,key,{startsOn:date(text(form,"starts_on",10,true))!,endsOn:date(text(form,"ends_on",10,true))!,portion:portion as "full"|"half_first"|"half_second",leaveTypeKey:text(form,"leave_type_key",40,true),privateReason:text(form,"private_reason",1000),handoffNote:text(form,"handoff_note",500)});}
+ else if(intent==="amend_request"){const portion=text(form,"portion",20,true);if(!["full","half_first","half_second"].includes(portion))throw new HrmError("invalid_request");await amendLeaveRequest(env.DB,user,key,text(form,"request_id",100,true),revision(form),{startsOn:date(text(form,"starts_on",10,true))!,endsOn:date(text(form,"ends_on",10,true))!,portion:portion as "full"|"half_first"|"half_second",leaveTypeKey:text(form,"leave_type_key",40,true),privateReason:text(form,"private_reason",1000),handoffNote:text(form,"handoff_note",500),reason:text(form,"reason",500,true)});}
  else if(intent==="review_request"){const decision=text(form,"decision",10,true);if(decision!=="approve"&&decision!=="reject")throw new HrmError("invalid_decision");await reviewLeaveRequest(env.DB,user,key,text(form,"request_id",100,true),revision(form),decision==="approve",text(form,"reason",500,true));}
  else if(intent==="withdraw_request")await withdrawLeaveRequest(env.DB,user,key,text(form,"request_id",100,true),revision(form));
  else if(intent==="request_cancellation")await requestLeaveCancellation(env.DB,user,key,text(form,"request_id",100,true),revision(form),text(form,"reason",500,true));

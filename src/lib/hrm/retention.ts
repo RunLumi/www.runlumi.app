@@ -2,7 +2,7 @@ import type { WorkspaceUser } from "../workspace/roles";
 import { command, digest, guard, id, localDate, now, requirePermission } from "./service";
 import { HrmError } from "./fields";
 
-export const RETENTION_CATEGORIES=["profile_photo","identity","dependent","banking","tax","personal","legal_source","legal_evidence","coi_evidence","onboarding_evidence"] as const;
+export const RETENTION_CATEGORIES=["profile_photo","identity","dependent","banking","tax","personal","legal_source","legal_evidence","coi_evidence","onboarding_evidence","leave_evidence"] as const;
 export type RetentionCategory=typeof RETENTION_CATEGORIES[number];
 export type RetentionSource="hrm_files"|"hrm_legal_files";
 export interface RetentionRule {category:RetentionCategory;retention_days:number|null;basis:string}
@@ -11,9 +11,9 @@ export interface LegalHold {id:string;scope_kind:"person"|"file";person_id:strin
 export interface RetentionFile {source_table:RetentionSource;file_id:string;person_id:string|null;employee_code:string|null;category:RetentionCategory;kind:string;state:string;original_name:string;object_key:string;size_bytes:number;checksum:string;legal_hold:number;created_at:string;expires_on:string|null;object_deleted_at:string|null;file_version:number;retention_due_on:string|null;policy_configured:boolean;held:boolean;deletion_request_id:string|null;deletion_state:string|null;deletion_requested_at:string|null}
 export interface FileDeletionRequest {id:string;source_table:RetentionSource;source_file_id:string;person_id:string|null;category:string;object_key_snapshot:string;checksum_snapshot:string;file_version:number;policy_version_id:string;policy_version:number;retention_due_on:string;state:string;request_reason:string;requested_by:string;requested_at:string;reviewed_by:string|null;reviewed_at:string|null;review_reason:string|null;completed_by:string|null;completed_at:string|null;completion_detail:string|null;block_reason:string|null;version:number;actor_id:string;created_at:string;updated_at:string;employee_code?:string|null;original_name?:string}
 
-export const retentionCategoryForHrm=(kind:string):RetentionCategory=>({avatar:"profile_photo",identity:"identity",dependent:"dependent",bank:"banking",tax:"tax",personal:"personal"}[kind] as RetentionCategory);
+export const retentionCategoryForHrm=(kind:string):RetentionCategory=>({avatar:"profile_photo",identity:"identity",dependent:"dependent",bank:"banking",tax:"tax",personal:"personal",leave_evidence:"leave_evidence"}[kind] as RetentionCategory);
 export const retentionCategoryForLegal=(row:{kind:string;coi_declaration_id:string|null;onboarding_task_id:string|null}):RetentionCategory=>row.kind==="docx_source"?"legal_source":row.coi_declaration_id?"coi_evidence":row.onboarding_task_id?"onboarding_evidence":"legal_evidence";
-function categorySqlForHrm(alias:string):string{return `CASE ${alias}.kind WHEN 'avatar' THEN 'profile_photo' WHEN 'identity' THEN 'identity' WHEN 'dependent' THEN 'dependent' WHEN 'bank' THEN 'banking' WHEN 'tax' THEN 'tax' ELSE 'personal' END`}
+function categorySqlForHrm(alias:string):string{return `CASE ${alias}.kind WHEN 'avatar' THEN 'profile_photo' WHEN 'identity' THEN 'identity' WHEN 'dependent' THEN 'dependent' WHEN 'bank' THEN 'banking' WHEN 'tax' THEN 'tax' WHEN 'leave_evidence' THEN 'leave_evidence' ELSE 'personal' END`}
 function categorySqlForLegal(alias:string):string{return `CASE WHEN ${alias}.kind='docx_source' THEN 'legal_source' WHEN ${alias}.coi_declaration_id IS NOT NULL THEN 'coi_evidence' WHEN ${alias}.onboarding_task_id IS NOT NULL THEN 'onboarding_evidence' ELSE 'legal_evidence' END`}
 function fileScopeSql(source:RetentionSource,scopeKind:"person"|"file"):string{
  if(scopeKind==="file")return "id=?";
@@ -27,14 +27,16 @@ function requireRetention(user:WorkspaceUser,permission:"hrm.retention.manage"|"
 function requireRetentionLive(user:WorkspaceUser):void{if(user.hrmEnabled!==true)throw new HrmError("hrm_closed",503)}
 function parseRules(value:string):RetentionRule[]{
  let parsed:unknown;try{parsed=JSON.parse(value)}catch{throw new HrmError("retention_policy_invalid")}
- if(!Array.isArray(parsed)||parsed.length!==RETENTION_CATEGORIES.length)throw new HrmError("retention_policy_invalid");
+ const legacyCategories=RETENTION_CATEGORIES.filter(category=>category!=="leave_evidence");
+ if(!Array.isArray(parsed)||(parsed.length!==legacyCategories.length&&parsed.length!==RETENTION_CATEGORIES.length))throw new HrmError("retention_policy_invalid");
  const rules=parsed.map((entry):RetentionRule=>{
   if(!entry||typeof entry!=="object")throw new HrmError("retention_policy_invalid");
   const row=entry as Record<string,unknown>;
   if(!RETENTION_CATEGORIES.includes(row.category as RetentionCategory)||!(row.retention_days===null||Number.isInteger(row.retention_days)&&Number(row.retention_days)>=1&&Number(row.retention_days)<=36500)||typeof row.basis!=="string"||!row.basis.trim()||row.basis.trim().length>1000)throw new HrmError("retention_policy_invalid");
   return {category:row.category as RetentionCategory,retention_days:row.retention_days as number|null,basis:row.basis.trim()};
  });
- if(new Set(rules.map(rule=>rule.category)).size!==RETENTION_CATEGORIES.length||RETENTION_CATEGORIES.some(category=>!rules.some(rule=>rule.category===category)))throw new HrmError("retention_policy_invalid");
+ const categories=parsed.length===legacyCategories.length?legacyCategories:RETENTION_CATEGORIES;
+ if(new Set(rules.map(rule=>rule.category)).size!==categories.length||categories.some(category=>!rules.some(rule=>rule.category===category)))throw new HrmError("retention_policy_invalid");
  return rules;
 }
 function retentionDue(createdAt:string,days:number):string{
@@ -55,7 +57,7 @@ export async function listRetentionPolicies(db:D1Database,user:WorkspaceUser):Pr
  if(!user.can("hrm.retention.manage")&&!user.can("hrm.retention.review"))throw new HrmError("forbidden",403);return (await db.prepare("SELECT * FROM hrm_retention_policy_versions ORDER BY version_number DESC LIMIT 100").all<RetentionPolicyVersion>()).results;
 }
 export async function createRetentionPolicy(db:D1Database,user:WorkspaceUser,key:string,rulesJson:string):Promise<string>{
- requireRetention(user,"hrm.retention.manage");const rules=parseRules(rulesJson),payload={rules};const existing=await previous(db,user,key,"retention_policy_create",payload);if(existing)return existing;
+ requireRetention(user,"hrm.retention.manage");const rules=parseRules(rulesJson);if(rules.length!==RETENTION_CATEGORIES.length)throw new HrmError("retention_policy_invalid");const payload={rules};const existing=await previous(db,user,key,"retention_policy_create",payload);if(existing)return existing;
  const latest=await db.prepare("SELECT COALESCE(MAX(version_number),0) AS version_number FROM hrm_retention_policy_versions").first<{version_number:number}>();
  const versionNumber=(latest?.version_number??0)+1,policyId=id("retention_policy"),time=now();
  await command(db,user,key,"retention_policy_create",payload,policyId,[guard(db,"NOT EXISTS(SELECT 1 FROM hrm_retention_policy_versions WHERE version_number=?)",[versionNumber])],[
@@ -72,8 +74,8 @@ export async function reviewRetentionPolicy(db:D1Database,user:WorkspaceUser,key
   db.prepare("UPDATE hrm_retention_policy_versions SET state=?,reviewed_by=?,reviewed_at=?,review_reason=?,version=version+1,actor_id=?,updated_at=? WHERE id=? AND version=? AND state='draft'").bind(state,user.id,time,reason.trim(),user.id,time,policyId,version),db.prepare("DELETE FROM hrm_write_guards")]);
 }
 export async function activateRetentionPolicy(db:D1Database,user:WorkspaceUser,key:string,policyId:string,version:number):Promise<void>{
- requireRetention(user,"hrm.retention.activate");const row=await db.prepare("SELECT id,state,version,created_by,reviewed_by FROM hrm_retention_policy_versions WHERE id=?").bind(policyId).first<{id:string;state:string;version:number;created_by:string;reviewed_by:string|null}>();
- if(!row)throw new HrmError("not_found",404);if(row.state!=="reviewed"||!row.reviewed_by||row.created_by===user.id)throw new HrmError("retention_policy_review_required",403);
+ requireRetention(user,"hrm.retention.activate");const row=await db.prepare("SELECT id,state,version,created_by,reviewed_by,rules_json FROM hrm_retention_policy_versions WHERE id=?").bind(policyId).first<{id:string;state:string;version:number;created_by:string;reviewed_by:string|null;rules_json:string}>();
+ if(!row)throw new HrmError("not_found",404);if(parseRules(row.rules_json).length!==RETENTION_CATEGORIES.length)throw new HrmError("retention_policy_invalid",409);if(row.state!=="reviewed"||!row.reviewed_by||row.created_by===user.id)throw new HrmError("retention_policy_review_required",403);
  const payload={policyId,version},prior=await previous(db,user,key,"retention_policy_activate",payload);if(prior)return;
  const time=now(),active=await currentPolicy(db);const statements:D1PreparedStatement[]=[];
  if(active){

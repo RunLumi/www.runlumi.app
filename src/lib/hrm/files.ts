@@ -2,15 +2,16 @@ import type { WorkspaceUser } from "../workspace/roles";
 import { HrmError, readableFileType, type RecordKind } from "./fields";
 import { retentionCategoryForHrm } from "./retention";
 import { assertRecordRead, audit, command, digest, guard, id, now, own, requirePermission, type Person, type PrivateFile } from "./service";
-const kinds=["avatar","identity","dependent","bank","tax","personal"] as const;
+const kinds=["avatar","identity","dependent","bank","tax","personal","leave_evidence"] as const;
 export type FileKind=typeof kinds[number];
 export function fileKind(value:string):FileKind {if(!(kinds as readonly string[]).includes(value))throw new HrmError("invalid_kind");return value as FileKind}
-function authorize(person:Person,user:WorkspaceUser,kind:string):void {assertRecordRead(person,user,(kind==="avatar"?"personal":kind) as RecordKind)}
+function authorize(person:Person,user:WorkspaceUser,kind:string):void {if(kind==="leave_evidence")throw new HrmError("not_found",404);assertRecordRead(person,user,(kind==="avatar"?"personal":kind) as RecordKind)}
 export async function listFiles(db:D1Database,user:WorkspaceUser,person:Person,kind:string):Promise<PrivateFile[]> {
  authorize(person,user,kind);await audit(db,user,"files_listed",person.id,person.id,{kind});
  return (await db.prepare("SELECT id,person_id,record_id,kind,original_name,mime_type,size_bytes,checksum,state,uploaded_by,reviewed_by,version,expires_on,legal_hold,object_deleted_at,created_at FROM hrm_files WHERE person_id=? AND kind=? ORDER BY created_at DESC LIMIT 100").bind(person.id,kind).all<PrivateFile>()).results;
 }
 export async function uploadFile(db:D1Database,bucket:R2Bucket,user:WorkspaceUser,key:string,person:Person,kind:string,file:File,recordId:string|null,expiresOn:string|null):Promise<string> {
+ if(kind==="leave_evidence")throw new HrmError("invalid_kind",400);
  authorize(person,user,kind);if(!own(person,user))requirePermission(user,"hrm.records.manage");
  if(file.size<=0||file.size>5*1024*1024)throw new HrmError("file_size");
  if(expiresOn&&!/^\d{4}-\d{2}-\d{2}$/.test(expiresOn))throw new HrmError("invalid_date");
