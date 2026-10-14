@@ -219,6 +219,8 @@ Phân biệt ngày theo lịch, ngày làm việc theo lịch được giao, gi�
 
 Nhân viên xem lịch của mình, check-in/out nếu được bật, xem công đã nhập và gửi sửa công. HR có thể nhập công với nguồn rõ ràng, upload bảng có preview và đối soát. Bản ghi gốc được giữ; sửa qua điều chỉnh và audit. Không mặc định nhận diện khuôn mặt, GPS hoặc kết nối thiết bị.
 
+Nhập bảng công dùng CSV UTF-8 tối đa 512 KB/100 dòng với các cột `employee_code,work_date,shift_key,check_in_local,check_out_local,break_minutes`. Preview đối chiếu nhân viên, đợt làm việc, lịch/ca/múi giờ, ngày nghỉ, OT, đơn nghỉ và dòng trùng; mỗi lỗi chỉ hiện số dòng và mã lỗi, không lưu dữ liệu cá nhân của dòng không hợp lệ. CSV gốc không được giữ. Không tạo công trước khi người có quyền xem đối soát và xác nhận; bản nhập đã xác nhận tạo công ở trạng thái chờ rà soát, không tự duyệt. Kỳ công không được khóa khi còn preview đang chờ. Xác nhận giữ checksum, người/thời điểm và liên kết dòng → bản ghi công; từ chối/hoàn tất xóa dữ liệu trùng ở staging, giữ dấu vết tối thiểu. Không upsert hay sửa bản ghi công đã có; cần chỉnh qua quy trình giải trình.
+
 Giải trình: `draft → submitted → approved/rejected → applied`; gồm ngày/ca, giá trị gốc, đề nghị mới, lý do, bằng chứng và người duyệt. Không tự duyệt. Có nhãn thiếu check-out, trùng lần ghi, nghỉ phép trùng giờ, ngày lễ, đi công tác, ca qua nửa đêm, thay ca và dữ liệu chưa xác minh.
 
 Lưu instant theo UTC và múi giờ lịch cho hiển thị/tính ngày; ca qua đêm tính theo quy tắc lịch có phiên bản, không cắt sai theo ngày UTC. OT có đăng ký/phê duyệt, giờ thực tế và giờ được tính riêng. Hệ số OT và điều kiện áp dụng là cấu hình được rà soát, không tự suy từ số giờ có mặt.
@@ -346,6 +348,7 @@ Các kiểm tra dưới đây là yêu cầu cho triển khai, **chưa phải k�
 | HRM-23 | Nộp hồ sơ/ký chưa đủ bên, task bị chặn hoặc miễn không hợp lệ | Không báo hoàn tất sai; phụ thuộc được kiểm tra, chu trình bị từ chối, miễn cần quyền và lý do |
 | HRM-24 | Buddy/quản lý mở todo có CCCD, COI, lương hoặc cấp quyền | Chỉ thấy trạng thái được phép; nguồn/tệp vẫn có quyền riêng; không cấp quyền qua todo |
 | HRM-25 | Người phụ trách mất quyền, hủy gia nhập hoặc kết thúc onboarding | Có hàng chờ phân công lại; dừng nhắc việc đã hủy; không tự duyệt thử việc hay bỏ bước thu hồi |
+| HRM-26 | CSV vượt giới hạn/sai header, có dòng lỗi/trùng, assignment đổi, retry xác nhận hoặc khóa kỳ còn preview | Không ghi trước xác nhận; lỗi chỉ giữ số dòng/mã lỗi; xác nhận atomic/idempotent tạo công chờ duyệt; từ chối/hoàn tất xóa staging PII, giữ checksum/audit/liên kết; kỳ không khóa khi preview còn mở |
 
 Trước mỗi giai đoạn: cập nhật permission map, migration, navigation, middleware, tài liệu và hai locale cùng thay đổi; chạy `npm run build` cùng các kiểm tra phù hợp. Build xanh không chứng minh tính đúng của payroll, chữ ký hay quyền truy cập production.
 

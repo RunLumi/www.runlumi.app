@@ -1,0 +1,36 @@
+---
+import type { TimeManagePage } from "../../lib/hrm/time-pages";
+const d=Astro.props as TimeManagePage,vi=d.vi,prefix=vi?"/vi":"",returnTo=`${prefix}/hrm/time`;
+const time=(value:string|null,timezone?:string|null)=>value?new Date(value).toLocaleString(vi?"vi-VN":"en-GB",{dateStyle:"short",timeStyle:"short",timeZone:timezone||"Asia/Ho_Chi_Minh"}):"—";
+const errorLabel=(code:string|null)=>({invalid_fields:vi?"Trường dữ liệu không hợp lệ":"Invalid fields",employee_not_found:vi?"Không tìm thấy nhân viên đang làm việc":"Active employee not found",calendar_assignment_missing:vi?"Chưa gán lịch cho ngày này":"No calendar assignment for this date",calendar_shift_missing:vi?"Ca không có trong lịch hoặc ngày nghỉ":"Shift is not scheduled or date is a holiday",duplicate_entry:vi?"Trùng nhân viên/ngày/ca":"Duplicate employee/date/shift",approved_leave_conflict:vi?"Ngày đã có phép được duyệt":"Approved leave overlaps this date",time_entry_shift_date_mismatch:vi?"Giờ làm không khớp ngày/ca":"Times do not match the work date/shift",overtime_not_allowed:vi?"Lịch chưa cho phép OT":"Overtime is not allowed by this calendar",invalid_time:vi?"Giờ hoặc múi giờ không hợp lệ":"Invalid local time or timezone",batch_rejected:vi?"Dòng bị loại khi từ chối toàn bộ bản nhập":"Row discarded with the rejected batch"}[code||""]||code||"");
+const periodOptions=d.periods.filter(period=>period.state==="open"||period.state==="reopened");
+---
+{d.user.can("hrm.time.manage")&&<section class="crm-sheet">
+ <h2 class="crm-h2">{vi?"Nhập bảng công CSV":"Attendance CSV import"}</h2>
+ <p class="crm-help">{vi?"Tải lên tệp UTF-8 CSV tối đa 512 KB, tối đa 100 dòng. Hệ thống chỉ lưu checksum và bản xem trước; cần xác nhận mới tạo bản ghi công. Không tải CCCD hoặc dữ liệu ngoài bảng công.":"Upload a UTF-8 CSV up to 512 KB and 100 rows. Only its checksum and preview are retained; attendance entries are created only after confirmation. Do not include identity or unrelated personal data."}</p>
+ <p class="crm-meta"><code>employee_code,work_date,shift_key,check_in_local,check_out_local,break_minutes</code></p>
+ {periodOptions.length>0?<form class="crm-form" method="post" action="/api/hrm/time/import" enctype="multipart/form-data">
+  <input type="hidden" name="intent" value="preview"/><input type="hidden" name="return_to" value={returnTo}/><input type="hidden" name="request_key" value={crypto.randomUUID()}/>
+  <label class="crm-field"><span>{vi?"Kỳ công":"Time period"}</span><select class="crm-input" name="period_id" required>{periodOptions.map(period=><option value={period.id}>{period.period_key} · {period.starts_on} — {period.ends_on}</option>)}</select></label>
+  <label class="crm-field"><span>{vi?"Tệp CSV":"CSV file"}</span><input class="crm-input" type="file" name="file" accept=".csv,text/csv" required/></label>
+  <button class="crm-button secondary" type="submit">{vi?"Tạo bản xem trước":"Preview import"}</button>
+ </form>:<p class="crm-empty">{vi?"Mở kỳ công trước khi nhập.":"Open a time period before importing."}</p>}
+ {d.imports.length>0&&<><h3>{vi?"Các lần nhập gần đây":"Recent imports"}</h3><div class="crm-list">{d.imports.map(batch=><article class="crm-row">
+  <div class="crm-onboarding-copy"><strong>{batch.original_name} · {vi?({previewed:"Đang xem trước",confirmed:"Đã xác nhận",rejected:"Đã từ chối"}[batch.state]||batch.state):batch.state}</strong><span class="crm-meta">{batch.row_count} {vi?"dòng":"rows"} · {batch.error_count} {vi?"lỗi":"errors"} · {new Date(batch.created_at).toLocaleString(vi?"vi-VN":"en-GB",{dateStyle:"short",timeStyle:"short",timeZone:"Asia/Ho_Chi_Minh"})} · <code>{batch.source_checksum.slice(0,16)}</code></span></div>
+  <a class="crm-button secondary small" href={`${returnTo}?batch=${encodeURIComponent(batch.id)}#time-import-preview-title`}>{vi?"Xem chi tiết":"View preview"}</a>
+ </article>)}</div></>}
+ {d.selectedImport&&<section class="crm-sheet" aria-labelledby="time-import-preview-title">
+  <h3 id="time-import-preview-title">{vi?"Đối soát bản xem trước":"Review import preview"} · {d.selectedImport.original_name}</h3>
+  <p class="crm-meta">{d.selectedImport.row_count} {vi?"dòng":"rows"} · {d.selectedImport.error_count} {vi?"lỗi":"errors"} · {vi?"Checksum":"Checksum"}: <code>{d.selectedImport.source_checksum}</code></p>
+  <div class="crm-list">{d.importRows.map(row=><article class="crm-row"><div class="crm-onboarding-copy">
+   <strong>{vi?"Dòng":"Row"} {row.row_number} · {row.state==="valid"?(vi?"Hợp lệ":"Valid"):row.state==="imported"?(vi?"Đã nhập":"Imported"):(vi?"Lỗi":"Error")}</strong>
+   {(row.state==="valid"||row.state==="imported")?<><span class="crm-meta">{row.employee_code} · {row.work_date} · {row.shift_key} · {row.worked_minutes}/{row.planned_minutes} {vi?"phút":"minutes"}</span><span class="crm-meta">{time(row.check_in_utc,row.timezone)} → {time(row.check_out_utc,row.timezone)} · {row.break_minutes} {vi?"phút nghỉ":"break minutes"}</span></>:<span class="crm-meta">{errorLabel(row.error_code)}</span>}
+  </div></article>)}</div>
+  {d.selectedImport.state==="previewed"&&<div class="crm-actions">
+   {d.selectedImport.error_count===0&&<form method="post" action="/api/hrm/time/import"><input type="hidden" name="intent" value="confirm"/><input type="hidden" name="return_to" value={returnTo}/><input type="hidden" name="batch_id" value={d.selectedImport.id}/><input type="hidden" name="version" value={d.selectedImport.version}/><input type="hidden" name="request_key" value={crypto.randomUUID()}/><button class="crm-button" type="submit">{vi?"Xác nhận nhập công":"Confirm import"}</button></form>}
+   <form class="crm-form" method="post" action="/api/hrm/time/import"><input type="hidden" name="intent" value="reject"/><input type="hidden" name="return_to" value={returnTo}/><input type="hidden" name="batch_id" value={d.selectedImport.id}/><input type="hidden" name="version" value={d.selectedImport.version}/><input type="hidden" name="request_key" value={crypto.randomUUID()}/><label class="crm-field"><span>{vi?"Lý do từ chối":"Rejection reason"}</span><input class="crm-input" name="reason" maxlength="500" required/></label><button class="crm-button danger small" type="submit">{vi?"Từ chối bản nhập":"Reject import"}</button></form>
+  </div>}
+  {d.selectedImport.state==="confirmed"&&<p class="crm-notice">{vi?"Đã xác nhận lúc":"Confirmed at"} {new Date(d.selectedImport.confirmed_at||"").toLocaleString(vi?"vi-VN":"en-GB",{dateStyle:"medium",timeStyle:"short",timeZone:"Asia/Ho_Chi_Minh"})}</p>}
+  {d.selectedImport.state==="rejected"&&<p class="crm-notice warn">{d.selectedImport.rejection_reason}</p>}
+ </section>}
+</section>}

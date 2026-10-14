@@ -8,6 +8,7 @@ import { HrmError, readRecord, readableFileType } from "../src/lib/hrm/fields.ts
 import { isDocxPackage, readLegalForm } from "../src/lib/hrm/legal-files.ts";
 import { validateOnboardingConfig } from "../src/lib/hrm/onboarding.ts";
 import { localDateTimeToUtc, parseCalendarSchedule, parseLeaveRules } from "../src/lib/hrm/time-leave.ts";
+import { parseAttendanceCsv } from "../src/lib/hrm/time-import.ts";
 const person=(user_id:string|null):Person=>({id:"person_test",employment_id:"employment_test",profile_version:1,employee_code:"E-001",user_id,legal_name:"Test Employee",preferred_name:"Test",work_email:"work@example.test",work_phone:"",department:"Ops",job_title:"Operator",legal_entity:"Test entity",location:"HCMC",manager_user_id:"manager",status:"active",started_on:"2026-01-01",ended_on:null,version:1,actor_id:"hr",created_at:"2026-01-01T00:00:00.000Z",updated_at:"2026-01-01T00:00:00.000Z"});
 const user=(id:string,granted:Parameters<typeof makeUser>[2])=>makeUser({id,name:id,email:id+"@example.test"},false,granted);
 test("HRM grants are separate from ATS, CRM and user administration",()=>{
@@ -77,4 +78,17 @@ test("local attendance timestamps resolve to one UTC instant and reject DST gaps
  assert.equal(localDateTimeToUtc("2026-10-15T09:00","Asia/Ho_Chi_Minh"),"2026-10-15T02:00:00.000Z");
  assert.throws(()=>localDateTimeToUtc("2024-03-10T02:30","America/New_York"),error=>error instanceof HrmError&&error.message==="invalid_time");
  assert.throws(()=>localDateTimeToUtc("2024-11-03T01:30","America/New_York"),error=>error instanceof HrmError&&error.message==="invalid_time");
+});
+test("attendance CSV parsing is strict UTF-8, exact-header, RFC-quoted, and capped at 100 rows",()=>{
+ const encode=(value:string)=>new TextEncoder().encode(value).buffer as ArrayBuffer;
+ const headers="employee_code,work_date,shift_key,check_in_local,check_out_local,break_minutes";
+ const parsed=parseAttendanceCsv(encode(`\uFEFF${headers}\r\n\"E-001\",2026-10-15,day,2026-10-15T09:00,2026-10-15T18:00,60\r\n`));
+ assert.equal(parsed.length,1);assert.equal(parsed[0].employee_code,"E-001");assert.equal(parsed[0].break_minutes,"60");
+ assert.throws(()=>parseAttendanceCsv(encode("employee_code,work_date,shift_key,check_in_local,check_out_local,break_minutes\nE-001,2026-10-15,day,2026-10-15T09:00,2026-10-15T18:00,60,extra")),error=>error instanceof HrmError&&error.message==="time_import_columns");
+ assert.throws(()=>parseAttendanceCsv(encode(`${headers}\n\"E-001,2026-10-15,day,2026-10-15T09:00,2026-10-15T18:00,60`)),error=>error instanceof HrmError&&error.message==="time_import_csv");
+ const row="E-001,2026-10-15,day,2026-10-15T09:00,2026-10-15T18:00,60";
+ assert.equal(parseAttendanceCsv(encode(`${headers}\n${Array.from({length:100},()=>row).join("\n")}`)).length,100);
+ assert.throws(()=>parseAttendanceCsv(encode(`${headers}\n${Array.from({length:101},()=>row).join("\n")}`)),error=>error instanceof HrmError&&error.message==="time_import_rows");
+ assert.throws(()=>parseAttendanceCsv(new Uint8Array([0xc3]).buffer),error=>error instanceof HrmError&&error.message==="time_import_encoding");
+ assert.throws(()=>parseAttendanceCsv(new Uint8Array(512*1024+1).buffer),error=>error instanceof HrmError&&error.status===413);
 });
