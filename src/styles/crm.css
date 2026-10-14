@@ -122,6 +122,8 @@ body.crm {
 .crm-check { display: flex; gap: 10px; align-items: flex-start; font-size: 16px; }
 .crm-check input { width: 20px; height: 20px; margin: 2px 0 0; flex: none; accent-color: var(--crm-blue); }
 .crm-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.crm-period-actions { min-width: 0; width: 100%; }
+.crm-period-actions > form { flex: 1 1 100%; min-width: 0; max-width: 100%; }
 fieldset.crm-fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
 fieldset.crm-fieldset legend { padding: 0; margin-bottom: 8px; color: var(--crm-navy); font-weight: 650; font-size: 16px; }
 details.crm-disclosure { border-top: 1px solid var(--crm-line-soft); padding-top: 12px; margin-top: 12px; }

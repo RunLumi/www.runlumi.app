@@ -91,6 +91,7 @@ try {
   const regressions=["crm","workspace","directory","api","dashboard","files"].map(name=>`tests/integration/${name}.integration.test.mjs`);
   const isolatedSuites={
     hrm:["tests/integration/hrm.integration.test.mjs"],
+    "hrm-p3":["tests/integration/hrm.integration.test.mjs"],
     crm:["tests/integration/crm.integration.test.mjs"],
     workspace:["tests/integration/workspace.integration.test.mjs"],
     directory:["tests/integration/directory.integration.test.mjs"],
@@ -99,7 +100,7 @@ try {
     files:["tests/integration/files.integration.test.mjs"],
   };
   const requestedScope=process.env.RUNLUMI_INTEGRATION_SCOPE;
-  if(requestedScope&&!Object.hasOwn(isolatedSuites,requestedScope))throw new Error("Unknown RUNLUMI_INTEGRATION_SCOPE; use hrm, crm, workspace, directory, api, dashboard or files.");
+  if(requestedScope&&!Object.hasOwn(isolatedSuites,requestedScope))throw new Error("Unknown RUNLUMI_INTEGRATION_SCOPE; use hrm, hrm-p3, crm, workspace, directory, api, dashboard or files.");
   let result;
   if(requestedScope){
     console.log(`Running isolated ${requestedScope} integration suite.`);

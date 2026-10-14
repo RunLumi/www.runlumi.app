@@ -13,6 +13,7 @@
     "test": "node --experimental-strip-types --test --import ./scripts/test-setup.mjs \"tests/**/*.test.ts\"",
     "test:integration": "node scripts/run-integration.mjs",
     "test:integration:hrm": "RUNLUMI_INTEGRATION_SCOPE=hrm node scripts/run-integration.mjs",
+    "test:integration:hrm:p3": "RUNLUMI_INTEGRATION_SCOPE=hrm-p3 node scripts/run-integration.mjs",
     "deploy": "node scripts/preflight.mjs && npm run build && node scripts/release.mjs",
     "release": "node scripts/release.mjs",
     "ci:verify": "npm run lint && npm test && npm run build",
