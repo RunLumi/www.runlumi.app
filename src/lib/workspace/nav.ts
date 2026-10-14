@@ -55,7 +55,13 @@ export const modules: NavModule[] = [
     key: "hrm", en: "HRM", vi: "HRM", path: "/hrm", icon: "hrm", permission: "hrm.access", links: [
       { key: "home", en: "My overview", vi: "Tổng quan của tôi", path: "/hrm", icon: "overview" },
       { key: "profile", en: "My profile", vi: "Hồ sơ của tôi", path: "/hrm/me", icon: "profile", anyOf: ["hrm.profile.self"] },
+      { key: "my-documents", en: "My legal documents", vi: "Tài liệu pháp lý của tôi", path: "/hrm/me/documents", icon: "profile", anyOf: ["hrm.legal.self"] },
+      { key: "my-coi", en: "My COI declarations", vi: "Khai báo COI của tôi", path: "/hrm/me/coi", icon: "profile", anyOf: ["hrm.coi.self"] },
+      { key: "my-onboarding", en: "Onboarding tasks", vi: "Việc cần làm khi gia nhập", path: "/hrm/me/onboarding", icon: "today", anyOf: ["hrm.onboarding.self", "hrm.onboarding.tasks"] },
       { key: "people", en: "People", vi: "Nhân sự", path: "/hrm/people", icon: "hrm_people", anyOf: ["hrm.records.manage", "hrm.team.read"] },
+      { key: "legal-documents", en: "Policies and documents", vi: "Chính sách và tài liệu", path: "/hrm/documents", icon: "profile", anyOf: ["hrm.legal.manage"] },
+      { key: "coi-review", en: "COI review", vi: "Rà soát COI", path: "/hrm/coi", icon: "profile", anyOf: ["hrm.coi.review"] },
+      { key: "onboarding-manage", en: "Onboarding plans", vi: "Kế hoạch onboarding", path: "/hrm/onboarding", icon: "hrm_people", anyOf: ["hrm.onboarding.manage"] },
       { key: "settings", en: "Settings", vi: "Thiết lập", path: "/hrm/settings", icon: "hrm_settings", anyOf: ["hrm.configure"] },
     ],
   },
@@ -75,7 +81,10 @@ export function visibleModules(user: WorkspaceUser): NavModule[] {
 }
 
 export function visibleLinks(user: WorkspaceUser, module: NavModule): NavLink[] {
-  return module.links.filter((link) => (module.key !== "hrm" || user.hrmEnabled !== false || link.key === "settings") && (!link.anyOf || link.anyOf.some((permission) => user.can(permission))));
+  return module.links.filter((link) => {
+    const allowedWhileClosed=link.key==="settings"||(link.key==="legal-documents"&&user.can("hrm.legal.manage"))||(link.key==="onboarding-manage"&&user.can("hrm.onboarding.manage"));
+    return (module.key!=="hrm"||user.hrmEnabled!==false||allowedWhileClosed)&&(!link.anyOf||link.anyOf.some(permission=>user.can(permission)));
+  });
 }
 
 /** Visible links by group, in group order; groups with nothing to open are left out. */

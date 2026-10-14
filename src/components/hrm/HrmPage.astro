@@ -19,6 +19,41 @@ const messages:Record<string,[string,string]>={
  file_size:["Files must be no larger than 5 MB.","Tệp không được lớn hơn 5 MB."],
  invalid_account:["Choose an existing, active EmDash account.","Hãy chọn tài khoản EmDash đang hoạt động."],
  rehire_conflict:["This employment period is no longer current. Reload before starting another period.","Đợt làm việc này không còn là đợt hiện tại. Hãy tải lại trước khi tạo đợt mới."],
+ invalid_document_config:["Check the document version, audience, signature method and dates.","Hãy kiểm tra phiên bản tài liệu, đối tượng, phương thức ký và ngày hiệu lực."],
+ legal_file_type:["Upload a valid DOCX Open XML source file or a PDF evidence file.","Hãy tải lên DOCX Open XML hợp lệ làm bản nguồn hoặc PDF làm bằng chứng."],
+ source_review_required:["A different authorized reviewer must review the source before it can be issued.","Một người rà soát được cấp quyền và khác người tải lên phải kiểm tra bản nguồn trước khi phát hành."],
+ required_parties_missing:["Add the required employee and company signing parties before issuing a paper agreement.","Hãy khai báo đủ bên nhân viên và đại diện công ty trước khi phát hành văn bản ký giấy."],
+ document_not_active:["This version is not active for issue.","Phiên bản này chưa được kích hoạt để phát hành."],
+ document_not_effective:["This version is not yet effective.","Phiên bản này chưa đến ngày hiệu lực."],
+ document_version_conflict:["The issued version changed or the acknowledgement does not match its checksum. Reload the document.","Phiên bản phát hành đã thay đổi hoặc xác nhận không khớp checksum. Hãy tải lại tài liệu."],
+ document_not_actionable:["This document is no longer awaiting an employee action.","Tài liệu này không còn chờ nhân viên thao tác."],
+ acknowledgement_required:["Confirm that you have read the exact issued version before submitting.","Hãy xác nhận đã đọc đúng phiên bản phát hành trước khi gửi."],
+ invalid_supersedes:["An amendment must refer to one of your prior submitted declarations.","Bản bổ sung phải liên kết với một khai báo đã gửi trước đây của bạn."],
+ invalid_transition:["This record has changed state. Reload it before taking another action.","Hồ sơ đã đổi trạng thái. Hãy tải lại trước khi thao tác tiếp."],
+ invalid_reviewer:["Choose an active HRM Officer or HRM Admin as reviewer.","Hãy chọn HRM Officer hoặc HRM Admin đang hoạt động làm người rà soát."],
+ mitigation_required:["A mitigation decision needs a plan and a follow-up date.","Quyết định cần giảm thiểu phải có biện pháp và ngày theo dõi."],
+ reason_required:["Enter a reason so the decision has an audit trail.","Hãy ghi lý do để quyết định có dấu vết kiểm tra."],
+ request_too_large:["The upload request exceeds the safe size limit.","Yêu cầu tải tệp vượt quá giới hạn kích thước cho phép."],
+ invalid_file_target:["Choose exactly one COI declaration or issued document for the PDF evidence.","Hãy chọn đúng một khai báo COI hoặc tài liệu đã phát hành để đính kèm PDF."],
+ evidence_pending:["Review or reject every pending COI evidence file before closing the declaration.","Hãy rà soát hoặc từ chối mọi tệp bằng chứng COI đang chờ trước khi đóng khai báo."],
+ invalid_onboarding_config:["Check the task JSON, owners, evidence type, applicability filters and dependencies.","Hãy kiểm tra JSON todo, người phụ trách, loại bằng chứng, đối tượng áp dụng và phụ thuộc."],
+ onboarding_dependency_cycle:["The task dependency graph contains a cycle.","Chuỗi phụ thuộc của todo có vòng lặp."],
+ onboarding_pdf_needs_reviewer:["A PDF evidence task must have an assigned reviewer.","Todo yêu cầu PDF phải có người rà soát được phân công."],
+ onboarding_restricted_needs_reviewer:["Identity, legal and COI tasks must have an assigned reviewer.","Todo định danh, pháp lý và COI phải có người rà soát được phân công."],
+ onboarding_not_applicable:["This template does not apply to the employee's legal entity, job, location or status.","Mẫu này không áp dụng cho pháp nhân, vị trí, địa điểm hoặc trạng thái đợt làm việc của nhân viên."],
+ onboarding_template_inactive:["Choose an active, reviewed onboarding template version.","Hãy chọn phiên bản mẫu onboarding đã rà soát và kích hoạt."],
+ onboarding_employee_unavailable:["The employment period must be active/preboarding and linked to an EmDash account.","Đợt làm việc phải đang chuẩn bị/hoạt động và liên kết với tài khoản EmDash."],
+ onboarding_owner_required:["Assign every owner required by the selected template before creating the plan.","Hãy phân công đủ người phụ trách mà mẫu yêu cầu trước khi tạo kế hoạch."],
+ onboarding_self_verifier:["The task assignee and verifier must be different people.","Người làm và người kiểm tra todo phải là hai người khác nhau."],
+ onboarding_owner_unavailable:["An assigned owner no longer has the required active Workspace permission.","Người được phân công không còn quyền Workspace phù hợp hoặc tài khoản đã ngừng hoạt động."],
+ onboarding_plan_inactive:["This plan is not active for task updates.","Kế hoạch này không còn hoạt động để cập nhật todo."],
+ onboarding_dependency_blocked:["Complete or verify all prerequisite tasks before starting or submitting this task.","Hãy hoàn tất hoặc xác minh các todo phụ thuộc trước khi bắt đầu hoặc nộp công việc này."],
+ onboarding_pdf_upload_required:["Upload the required PDF evidence from this task before submitting it.","Hãy tải PDF bằng chứng bắt buộc tại todo này trước khi nộp."],
+ onboarding_evidence_required:["Submit the required evidence before requesting verification.","Hãy nộp bằng chứng bắt buộc trước khi yêu cầu xác minh."],
+ waiver_not_allowed:["This task cannot be waived by your role or the template policy.","Vai trò của bạn hoặc chính sách mẫu không cho phép miễn todo này."],
+ onboarding_not_assigned:["This task is not assigned to you.","Todo này không được phân công cho bạn."],
+ confirmation_required:["Review the preview and confirm before applying the date change.","Hãy kiểm tra bản xem trước và xác nhận trước khi đổi ngày."],
+ onboarding_version_must_be_reviewed:["A different authorized reviewer must review this version before activation.","Một người rà soát được cấp quyền và khác người tạo phải kiểm tra phiên bản trước khi kích hoạt."],
 };
 let title=data.title||"HRM";let error="error" in data?data.error:undefined;
 ---
@@ -28,6 +63,7 @@ let title=data.title||"HRM";let error="error" in data?data.error:undefined;
     <h1 class="crm-h1">{title}</h1>
   </div></div>
   {error && <div class="crm-notice bad" role="alert"><strong>{vi?"Chưa hoàn tất":"Could not complete"}</strong><p>{messages[error]?.[vi?1:0]??(vi?"Yêu cầu không hợp lệ hoặc hồ sơ không còn khả dụng.":"The request is invalid or the record is no longer available.")}</p></div>}
+  {import.meta.env.DEV&&error?.startsWith("internal_error:")&&<pre class="crm-meta">{error.slice(15)}</pre>}
   {error==="hrm_closed" && data.user.can("hrm.configure") && <div class="crm-sheet"><p>{vi?"Cấu hình chính sách, mục đích sử dụng và retention trước khi mở cổng. Cài đặt ở HRM → Thiết lập.":"Configure the legal entity, purpose and retention policy before opening the module. Use HRM → Settings."}</p><a class="crm-button secondary" href={vi?"/vi/hrm/settings":"/hrm/settings"}>{vi?"Mở thiết lập":"Open settings"}</a></div>}
   <slot />
 </WorkspaceShell>

@@ -1,10 +1,10 @@
 # HRM — Quản trị nhân sự và cổng nhân viên
 
-**Trạng thái:** đặc tả đề xuất, chưa triển khai. **Ngày cập nhật:** 2026-10-13.
+**Trạng thái:** hợp đồng phạm vi và tiêu chí nghiệm thu; tình trạng triển khai được theo dõi tại [STATUS.md](STATUS.md). **Ngày cập nhật:** 2026-10-14.
 
 HRM là phân hệ nhân sự trong Lumi Workspace, phục vụ cả nhân viên, người quản lý, HR và người phụ trách tiền lương. Hiring quản lý ứng viên trước khi tuyển; HRM quản lý quan hệ làm việc từ tiếp nhận đến nghỉ việc. Cả hai dùng chung danh tính EmDash nhưng có quyền riêng. CRM tiếp tục độc lập về nghiệp vụ và quyền dữ liệu.
 
-Tài liệu này xác định yêu cầu sản phẩm và tiêu chí nghiệm thu, không mô tả các chức năng đã có. Các tên quyền, bảng và đường dẫn bên dưới là đề xuất cần bổ sung khi triển khai. Quy tắc pháp lý, thuế, bảo hiểm, lưu trữ và giá trị chữ ký phải được người có chuyên môn rà soát theo nơi làm việc và thời điểm áp dụng; tài liệu không mặc định một mức luật định hay tuyên bố tuân thủ.
+Tài liệu này xác định yêu cầu sản phẩm và tiêu chí nghiệm thu. P1 vẫn chờ gate đầy đủ; P2 đã có triển khai cục bộ cho tài liệu DOCX/PDF, xác nhận, COI và onboarding todo, còn offboarding/chuyển dữ liệu ATS và các gate cuối vẫn mở. Đừng suy ra tính sẵn sàng production từ nội dung đặc tả. Quy tắc pháp lý, thuế, bảo hiểm, lưu trữ và giá trị chữ ký phải được người có chuyên môn rà soát theo nơi làm việc và thời điểm áp dụng; tài liệu không mặc định một mức luật định hay tuyên bố tuân thủ.
 
 ## 1. Mục tiêu và ranh giới
 
@@ -384,6 +384,6 @@ Tiếp tục mở giai đoạn khi mọi test quyền/privacy tương ứng đ�
 - [CRM: chính sách hoa hồng](../../crm/COMMISSION.md)
 - [Runbook release hiện có](../../crm/RUNBOOK.md)
 
-**Bổ sung yêu cầu của owner, 2026-10-13 — nạp chính sách và xác nhận:** người được cấp quyền quản lý văn bản chính sách được tải DOCX làm bản nguồn; người phụ trách cấu hình phiên bản, pháp nhân, đối tượng áp dụng và điều kiện xác nhận. DOCX là tệp nguồn, không được render bằng cách nội suy HTML và không tự trở thành phiên bản phát hành. Mỗi lần phát hành giữ nguyên file/checksum và nội dung phiên bản. Nhân viên và HR tải PDF làm chứng từ trong đúng phạm vi hồ sơ; mặc định PDF được cách ly đến khi được rà soát, không coi phần mở rộng là bằng chứng an toàn.
+**Yêu cầu owner được xác nhận lại, 2026-10-14 — nạp chính sách và xác nhận:** người có quyền `hrm.legal.manage` được tải DOCX làm bản nguồn; người phụ trách cấu hình phiên bản, pháp nhân, đối tượng áp dụng và điều kiện xác nhận. DOCX là tệp nguồn, không được render bằng cách nội suy HTML và không tự trở thành phiên bản phát hành. Mỗi lần phát hành giữ nguyên file/checksum và nội dung phiên bản. Nhân viên và HR được tải PDF làm chứng từ trong đúng phạm vi hồ sơ hoặc tác vụ được giao; mặc định PDF được cách ly đến khi được rà soát, không coi phần mở rộng là bằng chứng an toàn.
 
 Mỗi lượt nhân viên chủ động đánh dấu “Tôi đã đọc và xác nhận” lưu danh tính EmDash, thời gian server UTC, phiên bản/checksum chính xác và kênh thực hiện. UI hiển thị thời gian theo múi giờ tài khoản/Asia/Ho_Chi_Minh, và hiện phiên bản nào đã được xác nhận. Bản mới tạo yêu cầu mới khi chính sách được cấu hình là cần tái xác nhận; không ghi đè hoặc đổi thời gian bản cũ. Tác vụ xác nhận chỉ là acknowledgement; không gọi là chữ ký hợp đồng/chữ ký điện tử và không thay hành động xác nhận riêng ở nhà cung cấp chữ ký đã được duyệt.

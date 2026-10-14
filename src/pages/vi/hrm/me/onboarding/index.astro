@@ -1,0 +1,9 @@
+---
+import HrmOnboardingTasks from "../../../../../components/hrm/HrmOnboardingTasks.astro";
+import HrmFailure from "../../../../../components/hrm/HrmFailure.astro";
+import { onboardingTasksPage } from "../../../../../lib/hrm/onboarding-pages";
+export const prerender=false;
+let data;
+try{data=await onboardingTasksPage(Astro,"vi");if(data instanceof Response)return data}catch(error){const user=Astro.locals.workspace!;data={lang:"vi",vi:true,user,title:"Việc cần làm khi gia nhập",error:error instanceof Error?error.message:"internal_error",status:typeof error==="object"&&error!==null&&"status" in error?Number(error.status):500};Astro.response.status=data.status}
+---
+{"tasks" in data?<HrmOnboardingTasks {...data}/>:<HrmFailure data={data}/>}

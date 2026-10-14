@@ -10,6 +10,7 @@ export type Role = typeof roles[number];
 
 export const permissions = [
   "hrm.access", "hrm.profile.self", "hrm.team.read", "hrm.records.manage", "hrm.identity.read", "hrm.bank.read", "hrm.tax.read", "hrm.files.review", "hrm.audit.read", "hrm.configure",
+  "hrm.legal.self", "hrm.legal.manage", "hrm.legal.review", "hrm.legal.activate", "hrm.coi.self", "hrm.coi.review", "hrm.onboarding.self", "hrm.onboarding.tasks", "hrm.onboarding.manage",
   "workspace.access",
   "users.manage",
   "hiring.access", "hiring.jobs.manage", "hiring.applications.manage", "hiring.applications.delete", "hiring.export",
@@ -19,10 +20,10 @@ export type Permission = typeof permissions[number];
 
 /** What each grantable role may do. Admin (EmDash role 50) has every permission. */
 export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
-  employee: ["workspace.access", "hrm.access", "hrm.profile.self"],
-  people_manager: ["workspace.access", "hrm.access", "hrm.profile.self", "hrm.team.read"],
-  hrm_officer: ["workspace.access", "hrm.access", "hrm.profile.self", "hrm.records.manage", "hrm.identity.read", "hrm.files.review", "hrm.audit.read"],
-  hrm_admin: ["workspace.access", "hrm.access", "hrm.profile.self", "hrm.team.read", "hrm.records.manage", "hrm.identity.read", "hrm.bank.read", "hrm.tax.read", "hrm.files.review", "hrm.audit.read", "hrm.configure"],
+  employee: ["workspace.access", "hrm.access", "hrm.profile.self", "hrm.legal.self", "hrm.coi.self", "hrm.onboarding.self", "hrm.onboarding.tasks"],
+  people_manager: ["workspace.access", "hrm.access", "hrm.profile.self", "hrm.team.read", "hrm.legal.self", "hrm.coi.self", "hrm.onboarding.self", "hrm.onboarding.tasks"],
+  hrm_officer: ["workspace.access", "hrm.access", "hrm.profile.self", "hrm.records.manage", "hrm.identity.read", "hrm.files.review", "hrm.audit.read", "hrm.legal.self", "hrm.legal.manage", "hrm.legal.review", "hrm.coi.self", "hrm.coi.review", "hrm.onboarding.self", "hrm.onboarding.tasks", "hrm.onboarding.manage"],
+  hrm_admin: ["workspace.access", "hrm.access", "hrm.profile.self", "hrm.team.read", "hrm.records.manage", "hrm.identity.read", "hrm.bank.read", "hrm.tax.read", "hrm.files.review", "hrm.audit.read", "hrm.configure", "hrm.legal.self", "hrm.legal.manage", "hrm.legal.review", "hrm.legal.activate", "hrm.coi.self", "hrm.coi.review", "hrm.onboarding.self", "hrm.onboarding.tasks", "hrm.onboarding.manage"],
   hr: ["workspace.access", "hiring.access", "hiring.jobs.manage", "hiring.applications.manage", "hiring.applications.delete", "hiring.export"],
   sales_manager: ["workspace.access", "crm.access", "crm.files.team", "crm.team", "crm.refer", "crm.payments.report"],
   sales_executive: ["workspace.access", "crm.files.team", "crm.access", "crm.refer", "crm.payments.report"],
@@ -48,7 +49,7 @@ export const roleLabels: Record<Role | "admin", [string, string]> = {
 };
 
 export const roleDescriptions: Record<Role | "admin", [string, string]> = {
-  employee: ["Own employee profile, documents and requests. No Hiring or CRM access.", "Hồ sơ, giấy tờ và yêu cầu của mình. Không vào tuyển dụng hoặc CRM."],
+  employee: ["Own profile, legal/COI documents and onboarding tasks. No Hiring or CRM access.", "Hồ sơ, tài liệu pháp lý/COI và việc onboarding của mình. Không vào tuyển dụng hoặc CRM."],
   people_manager: ["Work information for current direct reports. No identity documents or pay.", "Thông tin công việc của nhân viên đang quản lý trực tiếp. Không xem giấy tờ định danh hoặc lương."],
   hrm_officer: ["Employee records and identity verification. No banking, tax, user administration or other modules.", "Hồ sơ nhân viên và xác minh định danh. Không xem ngân hàng, thuế, quản trị tài khoản hoặc phân hệ khác."],
   hrm_admin: ["HRM configuration and records; approves within HRM without self-approval. No user/role administration.", "Cấu hình, hồ sơ và phê duyệt HRM; không tự duyệt. Không quản trị tài khoản/vai trò."],

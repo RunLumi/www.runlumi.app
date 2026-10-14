@@ -1,0 +1,26 @@
+---
+import HrmPage from "./HrmPage.astro";
+import type { MyCoiPage } from "../../lib/hrm/coi-pages";
+const d=Astro.props as MyCoiPage;const vi=d.vi;
+const state=(value:string)=>({draft:vi?"Bản nháp":"Draft",submitted:vi?"Đã gửi":"Submitted",under_review:vi?"Đang rà soát":"Under review",clarification_needed:vi?"Cần bổ sung":"Clarification needed",cleared:vi?"Đã rà soát":"Cleared",mitigation_required:vi?"Cần biện pháp giảm thiểu":"Mitigation required",escalated:vi?"Đã chuyển cấp":"Escalated",closed:vi?"Đã đóng":"Closed",superseded:vi?"Được thay thế":"Superseded"}[value]||value);
+const when=(value:string)=>new Date(value).toLocaleString(vi?"vi-VN":"en-GB",{dateStyle:"medium",timeStyle:"short",timeZone:"Asia/Ho_Chi_Minh"});
+---
+<HrmPage data={d} current="my-coi">
+ <p class="crm-meta">{vi?"Khai báo được lưu theo từng đợt làm việc. Việc gửi khai báo không đồng nghĩa rằng đã được chấp thuận hoặc rằng không có xung đột.":"Declarations are kept per employment period. Submitting a declaration does not mean it is approved or that no conflict exists."}</p>
+ {d.saved&&<div class="crm-notice good" role="status">{({draft_saved:vi?"Đã lưu bản nháp khai báo.":"Declaration draft saved.",submitted:vi?"Đã gửi khai báo.":"Declaration submitted."} as Record<string,string>)[d.saved]||d.saved}</div>}
+ <section class="crm-sheet"><h2 class="crm-h2">{vi?"Khai báo của tôi":"My declarations"}</h2>
+  {d.declarations.length===0?<p class="crm-meta">{vi?"Bạn chưa tạo khai báo nào.":"You have not created a declaration yet."}</p>:<div class="crm-list">{d.declarations.map(item=><article class="crm-row"><div><strong>{vi?`Khai báo #${item.declaration_no}`:`Declaration #${item.declaration_no}`}</strong><span class="crm-meta">{state(item.state)} · {when(item.created_at)}{item.submitted_at?` · ${vi?"Đã gửi":"Submitted"} ${when(item.submitted_at)}`:""}</span></div><a class="crm-button secondary small" href={`${vi?"/vi":""}/hrm/me/coi/${encodeURIComponent(item.id)}`}>{vi?"Mở":"Open"}</a></article>)}</div>}
+ </section>
+ <section class="crm-sheet"><h2 class="crm-h2">{vi?"Tạo khai báo":"Create a declaration"}</h2><p class="crm-help">{vi?"Chọn “Có xung đột” nếu có lợi ích cần được rà soát. Nếu chọn “Không”, để các trường mô tả bên dưới trống.":"Choose “Conflict exists” if an interest needs review. If you choose “No conflict”, leave the detail fields below empty."}</p>
+  <form method="post" class="crm-form"><input type="hidden" name="intent" value="create"/><input type="hidden" name="request_key" value={d.requestKey}/>
+   <div class="crm-field"><label for="has_conflict">{vi?"Có xung đột lợi ích?":"Is there a potential conflict of interest?"}</label><select class="crm-select" id="has_conflict" name="has_conflict"><option value="no">{vi?"Không":"No conflict"}</option><option value="yes">{vi?"Có":"Conflict exists"}</option></select></div>
+   <div class="crm-form-grid">
+    <div class="crm-field"><label for="related_organization">{vi?"Tổ chức/hoạt động liên quan":"Related organization or activity"}</label><input class="crm-input" id="related_organization" name="related_organization" maxlength="300"/></div>
+    <div class="crm-field"><label for="relationship">{vi?"Mối quan hệ/lợi ích":"Relationship or interest"}</label><input class="crm-input" id="relationship" name="relationship" maxlength="300"/></div>
+    <div class="crm-field"><label for="description">{vi?"Mô tả tình huống":"Describe the situation"}</label><textarea class="crm-input" id="description" name="description" rows="4" maxlength="2000"></textarea></div>
+    <div class="crm-field"><label for="impact">{vi?"Phạm vi ảnh hưởng":"Potential impact"}</label><textarea class="crm-input" id="impact" name="impact" rows="4" maxlength="2000"></textarea></div>
+    <div class="crm-field"><label for="proposed_mitigation">{vi?"Biện pháp đề xuất (nếu có)":"Proposed mitigation (optional)"}</label><textarea class="crm-input" id="proposed_mitigation" name="proposed_mitigation" rows="4" maxlength="2000"></textarea></div>
+   </div><button class="crm-button" type="submit">{vi?"Lưu bản nháp":"Save draft"}</button>
+  </form>
+ </section>
+</HrmPage>
