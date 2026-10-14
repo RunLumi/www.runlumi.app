@@ -10,7 +10,7 @@ export type Role = typeof roles[number];
 
 export const permissions = [
   "hrm.access", "hrm.profile.self", "hrm.team.read", "hrm.records.manage", "hrm.identity.read", "hrm.bank.read", "hrm.tax.read", "hrm.files.review", "hrm.audit.read", "hrm.configure",
-  "hrm.legal.self", "hrm.legal.manage", "hrm.legal.review", "hrm.legal.activate", "hrm.coi.self", "hrm.coi.review", "hrm.onboarding.self", "hrm.onboarding.tasks", "hrm.onboarding.manage", "hrm.offboarding.tasks", "hrm.offboarding.manage",
+  "hrm.legal.self", "hrm.legal.manage", "hrm.legal.review", "hrm.legal.activate", "hrm.coi.self", "hrm.coi.review", "hrm.onboarding.self", "hrm.onboarding.tasks", "hrm.onboarding.manage", "hrm.offboarding.tasks", "hrm.offboarding.manage", "hrm.retention.manage", "hrm.retention.review", "hrm.retention.activate", "hrm.legalhold.manage",
   "workspace.access",
   "users.manage",
   "hiring.access", "hiring.jobs.manage", "hiring.applications.manage", "hiring.applications.delete", "hiring.export",
@@ -22,8 +22,8 @@ export type Permission = typeof permissions[number];
 export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
   employee: ["workspace.access", "hrm.access", "hrm.profile.self", "hrm.legal.self", "hrm.coi.self", "hrm.onboarding.self", "hrm.onboarding.tasks"],
   people_manager: ["workspace.access", "hrm.access", "hrm.profile.self", "hrm.team.read", "hrm.legal.self", "hrm.coi.self", "hrm.onboarding.self", "hrm.onboarding.tasks", "hrm.offboarding.tasks"],
-  hrm_officer: ["workspace.access", "hrm.access", "hrm.profile.self", "hrm.records.manage", "hrm.identity.read", "hrm.files.review", "hrm.audit.read", "hrm.legal.self", "hrm.legal.manage", "hrm.legal.review", "hrm.coi.self", "hrm.coi.review", "hrm.onboarding.self", "hrm.onboarding.tasks", "hrm.onboarding.manage", "hrm.offboarding.tasks", "hrm.offboarding.manage"],
-  hrm_admin: ["workspace.access", "hrm.access", "hrm.profile.self", "hrm.team.read", "hrm.records.manage", "hrm.identity.read", "hrm.bank.read", "hrm.tax.read", "hrm.files.review", "hrm.audit.read", "hrm.configure", "hrm.legal.self", "hrm.legal.manage", "hrm.legal.review", "hrm.legal.activate", "hrm.coi.self", "hrm.coi.review", "hrm.onboarding.self", "hrm.onboarding.tasks", "hrm.onboarding.manage", "hrm.offboarding.tasks", "hrm.offboarding.manage"],
+  hrm_officer: ["workspace.access", "hrm.access", "hrm.profile.self", "hrm.records.manage", "hrm.identity.read", "hrm.files.review", "hrm.audit.read", "hrm.legal.self", "hrm.legal.manage", "hrm.legal.review", "hrm.coi.self", "hrm.coi.review", "hrm.onboarding.self", "hrm.onboarding.tasks", "hrm.onboarding.manage", "hrm.offboarding.tasks", "hrm.offboarding.manage", "hrm.retention.review"],
+  hrm_admin: ["workspace.access", "hrm.access", "hrm.profile.self", "hrm.team.read", "hrm.records.manage", "hrm.identity.read", "hrm.bank.read", "hrm.tax.read", "hrm.files.review", "hrm.audit.read", "hrm.configure", "hrm.legal.self", "hrm.legal.manage", "hrm.legal.review", "hrm.legal.activate", "hrm.coi.self", "hrm.coi.review", "hrm.onboarding.self", "hrm.onboarding.tasks", "hrm.onboarding.manage", "hrm.offboarding.tasks", "hrm.offboarding.manage", "hrm.retention.manage", "hrm.retention.review", "hrm.retention.activate", "hrm.legalhold.manage"],
   hr: ["workspace.access", "hiring.access", "hiring.jobs.manage", "hiring.applications.manage", "hiring.applications.delete", "hiring.export"],
   sales_manager: ["workspace.access", "crm.access", "crm.files.team", "crm.team", "crm.refer", "crm.payments.report"],
   sales_executive: ["workspace.access", "crm.files.team", "crm.access", "crm.refer", "crm.payments.report"],

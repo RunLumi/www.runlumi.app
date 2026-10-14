@@ -63,6 +63,7 @@ export const modules: NavModule[] = [
       { key: "coi-review", en: "COI review", vi: "Rà soát COI", path: "/hrm/coi", icon: "profile", anyOf: ["hrm.coi.review"] },
       { key: "onboarding-manage", en: "Onboarding plans", vi: "Kế hoạch onboarding", path: "/hrm/onboarding", icon: "hrm_people", anyOf: ["hrm.onboarding.manage"] },
       { key: "offboarding", en: "Offboarding", vi: "Offboarding", path: "/hrm/offboarding", icon: "hrm_people", anyOf: ["hrm.offboarding.manage", "hrm.offboarding.tasks"] },
+      { key: "retention", en: "Retention and legal holds", vi: "Lưu trữ và legal hold", path: "/hrm/retention", icon: "hrm_settings", anyOf: ["hrm.retention.manage", "hrm.retention.review", "hrm.legalhold.manage"] },
       { key: "settings", en: "Settings", vi: "Thiết lập", path: "/hrm/settings", icon: "hrm_settings", anyOf: ["hrm.configure"] },
     ],
   },
@@ -83,7 +84,7 @@ export function visibleModules(user: WorkspaceUser): NavModule[] {
 
 export function visibleLinks(user: WorkspaceUser, module: NavModule): NavLink[] {
   return module.links.filter((link) => {
-    const allowedWhileClosed=link.key==="settings"||(link.key==="legal-documents"&&user.can("hrm.legal.manage"))||(link.key==="onboarding-manage"&&user.can("hrm.onboarding.manage"));
+    const allowedWhileClosed=link.key==="settings"||(link.key==="retention"&&(user.can("hrm.retention.manage")||user.can("hrm.retention.review")||user.can("hrm.legalhold.manage")))||(link.key==="legal-documents"&&user.can("hrm.legal.manage"))||(link.key==="onboarding-manage"&&user.can("hrm.onboarding.manage"));
     return (module.key!=="hrm"||!user.hrmEmploymentEnded&&(user.hrmEnabled!==false||allowedWhileClosed))&&(!link.anyOf||link.anyOf.some(permission=>user.can(permission)));
   });
 }

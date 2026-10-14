@@ -4,12 +4,13 @@ import { command, digest, guard, id, localDate, now, own, personFor, requirePerm
 import { DOCX_MIME, readLegalUpload } from "./legal-files";
 import { getCoiDeclaration } from "./coi";
 import { onboardingPdfUploadTarget, onboardingTaskForEvidenceViewer, reviewOnboardingEvidence } from "./onboarding";
+import { retentionCategoryForLegal } from "./retention";
 
 export type LegalDocumentType="policy"|"nda"|"employment_contract"|"contract_addendum"|"code_of_conduct"|"privacy"|"equipment"|"handover"|"other";
 export type LegalSigningMode="acknowledgement"|"paper_scan";
 export interface LegalTemplate {id:string;document_key:string;document_type:LegalDocumentType;title_en:string;title_vi:string;state:string;current_version_id:string|null;version:number;created_by:string;created_at:string;updated_at:string}
 export interface LegalVersion {id:string;template_id:string;version_number:number;source_file_id:string;source_checksum:string;language:"en"|"vi"|"bilingual";legal_entity:string;purpose:string;audience_json:string;requires_ack:number;signing_mode:LegalSigningMode;required_parties_json:string;effective_on:string|null;due_days:number;state:string;created_by:string;created_at:string;reviewed_by:string|null;reviewed_at:string|null;review_reason:string|null;activated_by:string|null;activated_at:string|null;version:number}
-export interface LegalFile {id:string;object_key:string;kind:"docx_source"|"pdf_evidence";template_id:string|null;template_version_id:string|null;issue_id:string|null;coi_declaration_id:string|null;onboarding_task_id:string|null;person_id:string|null;original_name:string;mime_type:string;size_bytes:number;checksum:string;state:string;uploaded_by:string;reviewed_by:string|null;reviewed_at:string|null;review_reason:string|null;legal_hold:number;version:number;created_at:string}
+export interface LegalFile {id:string;object_key:string;kind:"docx_source"|"pdf_evidence";template_id:string|null;template_version_id:string|null;issue_id:string|null;coi_declaration_id:string|null;onboarding_task_id:string|null;person_id:string|null;original_name:string;mime_type:string;size_bytes:number;checksum:string;state:string;uploaded_by:string;reviewed_by:string|null;reviewed_at:string|null;review_reason:string|null;legal_hold:number;object_deleted_at:string|null;version:number;created_at:string}
 export interface LegalIssue {id:string;template_id:string;template_version_id:string;person_id:string;employment_id:string;issue_no:number;snapshot_json:string;source_checksum:string;state:string;issued_by:string;issued_at:string;due_at:string|null;supersedes_id:string|null;version:number;created_at:string;updated_at:string}
 export interface LegalParty {id:string;issue_id:string;party_key:string;party_kind:string;user_id:string|null;display_name:string;required:number;state:string;evidence_file_id:string|null;signed_at:string|null;verified_by:string|null;verified_at:string|null;review_reason:string|null;version:number;created_at:string;updated_at:string}
 interface RequiredParty {party_key:string;party_kind:"employee"|"company"|"other";display_name:string;required:boolean;user_id?:string|null}
@@ -174,10 +175,13 @@ export async function uploadLegalFile(db:D1Database,bucket:R2Bucket,user:Workspa
  const loaded=await readLegalUpload(file,input.kind),originalName=safeName(file.name),checksum=await digest(loaded.bytes),fileId=id("legal_file");
  const payload={kind:input.kind,templateId,issueId,coiDeclarationId,onboardingTaskId,personId,checksum,originalName,size:file.size};const prior=await previousCommand(db,user,key,"legal_file_upload",payload);if(prior)return prior;
  const onboardingTask=onboardingTaskId?await onboardingPdfUploadTarget(db,user,onboardingTaskId):null;
+ const category=retentionCategoryForLegal({kind:input.kind,coi_declaration_id:coiDeclarationId,onboarding_task_id:onboardingTaskId});
  const objectKey=input.kind==="docx_source"?`hrm/legal/source/${fileId}`:onboardingTaskId?`hrm/onboarding/evidence/${personId}/${fileId}`:`hrm/legal/evidence/${personId}/${fileId}`,time=now();
  await bucket.put(objectKey,loaded.bytes,{httpMetadata:{contentType:loaded.mimeType},customMetadata:{sha256:checksum,kind:input.kind}});
  try{
-  const guards:D1PreparedStatement[]=[],writes:D1PreparedStatement[]=[db.prepare("INSERT INTO hrm_legal_files(id,object_key,kind,template_id,template_version_id,issue_id,coi_declaration_id,onboarding_task_id,person_id,original_name,mime_type,size_bytes,checksum,state,uploaded_by,legal_hold,version,actor_id,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,'quarantined',?,0,1,?,?,?)").bind(fileId,objectKey,input.kind,templateId,null,issueId,coiDeclarationId,onboardingTaskId,personId,originalName,loaded.mimeType,file.size,checksum,user.id,user.id,time,time)];
+  const guards:D1PreparedStatement[]=[],writes:D1PreparedStatement[]=[db.prepare(`INSERT INTO hrm_legal_files(id,object_key,kind,template_id,template_version_id,issue_id,coi_declaration_id,onboarding_task_id,person_id,original_name,mime_type,size_bytes,checksum,state,uploaded_by,legal_hold,version,actor_id,created_at,updated_at)
+    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,'quarantined',?,CASE WHEN EXISTS(SELECT 1 FROM hrm_legal_holds WHERE scope_kind='person' AND state='active' AND person_id=? AND category IN (?, '*')) THEN 1 ELSE 0 END,1,?,?,?)`)
+    .bind(fileId,objectKey,input.kind,templateId,null,issueId,coiDeclarationId,onboardingTaskId,personId,originalName,loaded.mimeType,file.size,checksum,user.id,personId,category,user.id,time,time)];
   if(templateId)guards.push(guard(db,"EXISTS(SELECT 1 FROM hrm_legal_templates WHERE id=? AND state!='retired')",[templateId]));
   if(issueId&&personId){
    guards.push(guard(db,"EXISTS(SELECT 1 FROM hrm_legal_issues WHERE id=? AND person_id=? AND state IN ('issued','viewed','awaiting_action'))",[issueId,personId]));
@@ -248,6 +252,7 @@ export async function acknowledgePolicy(db:D1Database,user:WorkspaceUser,key:str
 
 export async function downloadLegalFile(db:D1Database,bucket:R2Bucket,user:WorkspaceUser,fileId:string):Promise<Response>{
  const file=await db.prepare("SELECT * FROM hrm_legal_files WHERE id=?").bind(fileId).first<LegalFile>();if(!file)throw new HrmError("not_found",404);
+ if(file.object_deleted_at)throw new HrmError("file_unavailable",404);
  let allowed=false,canReviewQuarantine=false;
  if(file.onboarding_task_id){
   const task=await onboardingTaskForEvidenceViewer(db,user,file.onboarding_task_id).catch(()=>null);

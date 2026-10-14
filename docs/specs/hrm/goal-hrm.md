@@ -46,6 +46,8 @@ P2 — HỢP ĐỒNG, LEGAL PAPERS VÀ ONBOARDING TODO
 
 Hoàn thiện hợp đồng/phụ lục/gia hạn, NDA, COI, chính sách và bằng chứng theo §6. Mẫu có review/phiên bản, phát hành giữ snapshot, đủ bên ký, hạn và lịch sử. Phân biệt đã xem, đã xác nhận đọc, bản giấy đã kiểm tra và chữ ký điện tử được xác minh. Không có provider thì hoàn thiện quy trình ký giấy/scan và acknowledgement đã được duyệt; không giả chữ ký điện tử. COI có khai báo, làm rõ, rà soát, biện pháp, hạn theo dõi và quyền riêng.
 
+Chính sách cho phép người có quyền quản lý legal paper tải DOCX làm nguồn; HR cấu hình metadata, rà soát và phát hành phiên bản bất biến gắn checksum. Nhân viên và HR được tải PDF bằng chứng trong đúng phạm vi vấn đề pháp lý/COI/onboarding họ được phép truy cập; tệp cách ly tới khi rà soát. Nút “đã đọc và xác nhận” phải do nhân viên chủ động bấm và lưu EmDash actor, thời điểm UTC phía server, phiên bản/checksum chính xác cùng lịch sử; giao diện hiển thị thời điểm địa phương. Retry không tạo xác nhận thứ hai. Acknowledgement chỉ là xác nhận đã đọc, không giả thành chữ ký điện tử.
+
 Onboarding phải là hệ công việc thật theo §7.1–7.3:
 - Mẫu theo vị trí/pháp nhân, kế hoạch riêng mỗi đợt làm việc và snapshot phiên bản.
 - Todo nhân viên, HR, quản lý và người hỗ trợ; owner, reviewer, hạn theo lịch, phụ thuộc không chu trình, hướng dẫn, loại bằng chứng, lần nộp, bình luận có scope và audit.
@@ -55,8 +57,8 @@ Onboarding phải là hệ công việc thật theo §7.1–7.3:
 
 Hoàn thiện chuyển ATS → HRM có quyền hai phía, preview dữ liệu tối thiểu và chống trùng; vòng đời onboard/điều chuyển/offboard/quay lại có lịch sử. ATS retention không xóa giấy tờ HRM đã được chuyển hợp lệ. Offboarding có bàn giao, thu hồi quyền, tài sản, quyết toán và bàn giao tài liệu theo §7.
 
-Contract Gate: mẫu pháp lý/phương thức ký, evidence model, COI scope, onboarding states/dependencies và nghĩa vụ retention được duyệt hoặc đứng chờ tường minh ở tính năng chưa mở.
-Integration Gate: HRM-08, 10–12, 17–19, 22–25; nhân viên → nộp/ký/xác nhận → reviewer → bằng chứng → tiến độ thật. Nếu làm provider, kiểm tra callback giả/trùng/trễ/hủy trên provider sandbox thật, không chỉ mock.
+Contract Gate: mẫu pháp lý/phương thức ký, evidence model, COI scope, onboarding states/dependencies và nghĩa vụ retention được duyệt hoặc đứng chờ tường minh ở tính năng chưa mở. DOCX, PDF evidence, acknowledgement và chữ ký giấy/điện tử phải có trạng thái/actor/thời điểm rõ ràng.
+Integration Gate: HRM-08, 10–12, 17–19, 22–25; xác minh quyền upload DOCX/PDF, kiểm tra nội dung tệp, cách ly, phiên bản/checksum, timestamp/idempotency acknowledgement và nhân viên → nộp/ký/xác nhận → reviewer → bằng chứng → tiến độ thật. Nếu làm provider, kiểm tra callback giả/trùng/trễ/hủy trên provider sandbox thật, không chỉ mock.
 
 P3 — LỊCH LÀM VIỆC, CÔNG VÀ NGHỈ PHÉP
 

@@ -1,0 +1,11 @@
+---
+import HrmRetention from "../../../components/hrm/HrmRetention.astro";
+import HrmFailure from "../../../components/hrm/HrmFailure.astro";
+import { HrmError } from "../../../lib/hrm/fields";
+import { retentionPage } from "../../../lib/hrm/retention-pages";
+export const prerender=false;
+let data;
+try{data=await retentionPage(Astro,"en")}
+catch(error){const user=Astro.locals.workspace!;const status=error instanceof HrmError?error.status:500;Astro.response.status=status;data={lang:"en",vi:false,user,title:"Retention and legal holds",error:error instanceof HrmError?error.message:"internal_error",status}}
+---
+{"policies" in data?<HrmRetention {...data}/>:<HrmFailure data={data}/>}

@@ -13,8 +13,8 @@ test("HRM grants are separate from ATS, CRM and user administration",()=>{
  assert.deepEqual(ROLE_PERMISSIONS.employee,["workspace.access","hrm.access","hrm.profile.self","hrm.legal.self","hrm.coi.self","hrm.onboarding.self","hrm.onboarding.tasks"]);
  const employee=user("employee",["employee"]);assert.equal(employee.can("hrm.legal.manage"),false);assert.equal(employee.can("hrm.onboarding.manage"),false);
  for(const role of ["hr","finance","sales_manager","partner"] as const)assert.equal(user(role,[role]).can("hrm.access"),false);
- const hrm=user("hrm",["hrm_admin"]);assert.equal(hrm.can("users.manage"),false);assert.equal(hrm.can("hiring.access"),false);assert.equal(hrm.can("crm.access"),false);assert.equal(hrm.can("hrm.legal.activate"),true);assert.equal(hrm.can("hrm.coi.review"),true);assert.equal(hrm.can("hrm.onboarding.manage"),true);
- const officer=user("officer",["hrm_officer"]);assert.equal(officer.can("hrm.legal.manage"),true);assert.equal(officer.can("hrm.legal.activate"),false);assert.equal(officer.can("hrm.coi.review"),true);
+ const hrm=user("hrm",["hrm_admin"]);assert.equal(hrm.can("users.manage"),false);assert.equal(hrm.can("hiring.access"),false);assert.equal(hrm.can("crm.access"),false);assert.equal(hrm.can("hrm.legal.activate"),true);assert.equal(hrm.can("hrm.coi.review"),true);assert.equal(hrm.can("hrm.onboarding.manage"),true);assert.equal(hrm.can("hrm.retention.manage"),true);assert.equal(hrm.can("hrm.legalhold.manage"),true);
+ const officer=user("officer",["hrm_officer"]);assert.equal(officer.can("hrm.legal.manage"),true);assert.equal(officer.can("hrm.legal.activate"),false);assert.equal(officer.can("hrm.coi.review"),true);assert.equal(officer.can("hrm.retention.review"),true);assert.equal(officer.can("hrm.retention.manage"),false);assert.equal(officer.can("users.manage"),false);
  assert.equal(makeUser({id:"system",name:"System",email:"system@example.test"},true,[]).can("hrm.configure"),true);
  const migration=readFileSync(new URL("../migrations/0014_hrm_records.sql",import.meta.url),"utf8");
  for(const role of ["employee","people_manager","hrm_officer","hrm_admin","hr","sales_manager","sales_executive","partner","finance","fulfillment"])assert.ok(migration.includes("'" + role + "'"));
@@ -27,7 +27,7 @@ test("managers cannot read identity, dependent, contact, banking or tax data for
 });
 test("the production kill switch hides employee navigation but leaves available HRM configuration screens for admins",()=>{
  const ordinary=makeUser({id:"employee",name:"Employee",email:"e@example.test"},false,["employee"]);ordinary.hrmEnabled=false;assert.equal(visibleModules(ordinary).some(m=>m.key==="hrm"),false);
- const admin=makeUser({id:"hrm",name:"HRM",email:"h@example.test"},false,["hrm_admin"]);admin.hrmEnabled=false;const module=modules.find(m=>m.key==="hrm")!;assert.deepEqual(visibleLinks(admin,module).map(l=>l.key),["legal-documents","onboarding-manage","settings"]);
+ const admin=makeUser({id:"hrm",name:"HRM",email:"h@example.test"},false,["hrm_admin"]);admin.hrmEnabled=false;const module=modules.find(m=>m.key==="hrm")!;assert.deepEqual(visibleLinks(admin,module).map(l=>l.key),["legal-documents","onboarding-manage","retention","settings"]);
 });
 test("profile validators reject malformed values and external states without evidence",()=>{
  assert.throws(()=>readRecord(new FormData(),"contact"),HrmError);
