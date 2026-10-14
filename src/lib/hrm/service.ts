@@ -111,6 +111,7 @@ export async function saveSettings(db: D1Database,user: WorkspaceUser,key: strin
 }
 export async function savePerson(db:D1Database,content:D1Database,user:WorkspaceUser,key:string,personId:string|null,employmentId:string|null,version:number,profileVersion:number,input:Omit<Person,"id"|"employment_id"|"version"|"profile_version"|"actor_id"|"created_at"|"updated_at">):Promise<string>{
  requirePermission(user,"hrm.records.manage");
+ if(input.status==="ended"&&!input.ended_on)throw new HrmError("offboarding_end_date_required");
  if(input.user_id||input.manager_user_id){const accounts=await emdashUsers(content,[input.user_id??"",input.manager_user_id??""]);for(const accountId of [input.user_id,input.manager_user_id].filter(Boolean)){const account=accounts.get(accountId!);if(!account||account.disabled)throw new HrmError("invalid_account")}}
  if(input.manager_user_id){const managers=await membersWithRoles(db,content,["people_manager","hrm_admin"]);if(!managers.some(m=>m.user_id===input.manager_user_id))throw new HrmError("invalid_manager")}
  if(input.user_id&&input.user_id===input.manager_user_id)throw new HrmError("invalid_manager");

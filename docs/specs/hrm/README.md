@@ -4,7 +4,7 @@
 
 HRM là phân hệ nhân sự trong Lumi Workspace, phục vụ cả nhân viên, người quản lý, HR và người phụ trách tiền lương. Hiring quản lý ứng viên trước khi tuyển; HRM quản lý quan hệ làm việc từ tiếp nhận đến nghỉ việc. Cả hai dùng chung danh tính EmDash nhưng có quyền riêng. CRM tiếp tục độc lập về nghiệp vụ và quyền dữ liệu.
 
-Tài liệu này xác định yêu cầu sản phẩm và tiêu chí nghiệm thu. P1 vẫn chờ gate đầy đủ; P2 đã có triển khai cục bộ cho tài liệu DOCX/PDF, xác nhận, COI và onboarding todo, còn offboarding/chuyển dữ liệu ATS và các gate cuối vẫn mở. Đừng suy ra tính sẵn sàng production từ nội dung đặc tả. Quy tắc pháp lý, thuế, bảo hiểm, lưu trữ và giá trị chữ ký phải được người có chuyên môn rà soát theo nơi làm việc và thời điểm áp dụng; tài liệu không mặc định một mức luật định hay tuyên bố tuân thủ.
+Tài liệu này xác định yêu cầu sản phẩm và tiêu chí nghiệm thu. P1 vẫn chờ gate đầy đủ; P2 đã có luồng DOCX/PDF, xác nhận, COI, onboarding, chuyển ATS→HRM và checklist offboarding/thu hồi quyền. Retention/legal hold vẫn chưa được người phụ trách chốt; P3–P5 và các gate browser/hosted còn mở. Đừng suy ra tính sẵn sàng production từ nội dung đặc tả. Quy tắc pháp lý, thuế, bảo hiểm, lưu trữ và giá trị chữ ký phải được người có chuyên môn rà soát theo nơi làm việc và thời điểm áp dụng; tài liệu không mặc định một mức luật định hay tuyên bố tuân thủ.
 
 ## 1. Mục tiêu và ranh giới
 
@@ -64,6 +64,8 @@ Module dự kiến: `/hrm` và `/vi/hrm`; tất cả trang riêng tư trong `Wor
 | Requests / Yêu cầu của tôi | `/hrm/me/requests` | Hồ sơ, phúc lợi, tài sản, chứng nhận, hỗ trợ |
 | My team / Đội của tôi | `/hrm/team` | Lịch đội, yêu cầu chờ duyệt, công; không hiện lương/CCCD |
 | People / Nhân sự | `/hrm/people` | Danh sách, hồ sơ, cơ cấu, onboarding/offboarding |
+| ATS → HRM transfer / Chuyển ứng viên thành nhân viên | `/hrm/transfers/{applicationId}` | Preview ứng viên đã tuyển; cần đồng thời quyền Hiring và HRM; chuyển tối thiểu, không sao chép CV/ghi chú/scorecard |
+| Offboarding / Checklist nghỉ việc | `/hrm/offboarding` | Handover, tài sản, rà soát hồ sơ và chuyển việc tắt quyền Workspace cho System Super Admin |
 | Legal documents / Hồ sơ pháp lý | `/hrm/documents` | Mẫu có phiên bản, chiến dịch ký, trạng thái và bằng chứng |
 | Attendance and leave / Công và phép | `/hrm/time` | Chính sách, đối soát, ngoại lệ, chốt kỳ |
 | Payroll / Bảng lương | `/hrm/payroll` | Chuẩn bị, kiểm tra, phê duyệt, phát hành, đối soát thanh toán |

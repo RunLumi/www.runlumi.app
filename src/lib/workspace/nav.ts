@@ -62,6 +62,7 @@ export const modules: NavModule[] = [
       { key: "legal-documents", en: "Policies and documents", vi: "Chính sách và tài liệu", path: "/hrm/documents", icon: "profile", anyOf: ["hrm.legal.manage"] },
       { key: "coi-review", en: "COI review", vi: "Rà soát COI", path: "/hrm/coi", icon: "profile", anyOf: ["hrm.coi.review"] },
       { key: "onboarding-manage", en: "Onboarding plans", vi: "Kế hoạch onboarding", path: "/hrm/onboarding", icon: "hrm_people", anyOf: ["hrm.onboarding.manage"] },
+      { key: "offboarding", en: "Offboarding", vi: "Offboarding", path: "/hrm/offboarding", icon: "hrm_people", anyOf: ["hrm.offboarding.manage", "hrm.offboarding.tasks"] },
       { key: "settings", en: "Settings", vi: "Thiết lập", path: "/hrm/settings", icon: "hrm_settings", anyOf: ["hrm.configure"] },
     ],
   },
@@ -77,13 +78,13 @@ export function localized(path: string, vi: boolean): string {
 }
 
 export function visibleModules(user: WorkspaceUser): NavModule[] {
-  return modules.filter((module) => user.can(module.permission) && (module.key !== "hrm" || user.hrmEnabled !== false || user.can("hrm.configure")));
+  return modules.filter((module) => user.can(module.permission) && (module.key !== "hrm" || !user.hrmEmploymentEnded && (user.hrmEnabled !== false || user.can("hrm.configure"))));
 }
 
 export function visibleLinks(user: WorkspaceUser, module: NavModule): NavLink[] {
   return module.links.filter((link) => {
     const allowedWhileClosed=link.key==="settings"||(link.key==="legal-documents"&&user.can("hrm.legal.manage"))||(link.key==="onboarding-manage"&&user.can("hrm.onboarding.manage"));
-    return (module.key!=="hrm"||user.hrmEnabled!==false||allowedWhileClosed)&&(!link.anyOf||link.anyOf.some(permission=>user.can(permission)));
+    return (module.key!=="hrm"||!user.hrmEmploymentEnded&&(user.hrmEnabled!==false||allowedWhileClosed))&&(!link.anyOf||link.anyOf.some(permission=>user.can(permission)));
   });
 }
 
