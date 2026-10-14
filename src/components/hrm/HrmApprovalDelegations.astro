@@ -1,0 +1,24 @@
+---
+import type { ApprovalDelegation } from "../../lib/hrm/time-leave";
+import type { MemberRow } from "../../lib/workspace/members";
+import type { WorkspaceUser } from "../../lib/workspace/roles";
+const {kind,returnTo,user,members,delegations,vi}=Astro.props as {kind:"time"|"leave";returnTo:string;user:WorkspaceUser;members:MemberRow[];delegations:ApprovalDelegation[];vi:boolean};
+const today=new Date(Date.now()+7*60*60*1000).toISOString().slice(0,10),canDelegate=user.can("hrm.approval.delegate")&&!user.admin;
+const eligible=members.filter(member=>member.user_id!==user.id&&member.enabled&&member.active&&member.roles.includes("people_manager"));
+const saved=Astro.url.searchParams.get("saved");
+const label=(state:string)=>state==="revoked"?(vi?"Đã thu hồi":"Revoked"):state==="expired"?(vi?"Đã hết hạn":"Expired"):(vi?"Đang hiệu lực":"Active");
+const date=(value:string)=>new Date(`${value}T00:00:00+07:00`).toLocaleDateString(vi?"vi-VN":"en-GB",{dateStyle:"medium",timeZone:"Asia/Ho_Chi_Minh"});
+---
+{(canDelegate||delegations.length>0)&&<section class="crm-sheet">
+ <h2 class="crm-h2">{vi?"Ủy quyền duyệt có thời hạn":"Time-limited approval delegation"}</h2>
+ <p class="crm-help">{vi?"Người được ủy quyền chỉ thấy và duyệt chấm công hoặc đơn nghỉ của các nhân viên hiện do bạn quản lý, đúng loại được chọn và trong khoảng ngày đã cấu hình. Đổi quản lý hoặc hết hạn sẽ thu hồi phạm vi này; tự duyệt vẫn bị chặn.":"A delegate can only see and review time or leave records for employees currently reporting to you, for the selected approval type and date range. A manager change or expiry removes that scope; self-approval remains blocked."}</p>
+ {saved==="create_delegation"&&<p class="crm-notice good" role="status">{vi?"Đã ghi ủy quyền và dấu vết kiểm toán.":"Delegation and audit record saved."}</p>}
+ {saved==="revoke_delegation"&&<p class="crm-notice good" role="status">{vi?"Đã thu hồi ủy quyền.":"Delegation revoked."}</p>}
+ {canDelegate&&<form class="crm-form" method="post" action={kind==="time"?"/api/hrm/time":"/api/hrm/leave"}>
+  <input type="hidden" name="intent" value="create_delegation"/><input type="hidden" name="return_to" value={returnTo}/><input type="hidden" name="request_key" value={crypto.randomUUID()}/>
+  <div class="crm-grid"><label class="crm-field"><span>{vi?"Quản lý thay thế":"Acting manager"}</span><select class="crm-input" name="delegate_user_id" required>{eligible.map(member=><option value={member.user_id}>{member.name||member.email} · {member.email}</option>)}</select></label><label class="crm-field"><span>{vi?"Từ ngày":"From date"}</span><input class="crm-input" type="date" name="effective_from" min={today} required/></label><label class="crm-field"><span>{vi?"Đến hết ngày":"Through date"}</span><input class="crm-input" type="date" name="effective_to" min={today} required/></label></div>
+  <label class="crm-field"><span>{vi?"Lý do ủy quyền":"Delegation reason"}</span><input class="crm-input" name="reason" maxlength="500" required/></label>
+  <button class="crm-button secondary" type="submit" disabled={eligible.length===0}>{vi?"Tạo ủy quyền":"Create delegation"}</button>
+ </form>}
+ {delegations.length>0&&<div class="crm-list">{delegations.map(item=>{const delegate=members.find(member=>member.user_id===item.delegate_user_id);return <article class="crm-row"><div class="crm-onboarding-copy"><strong>{delegate?.name||delegate?.email||item.delegate_user_id} · {item.approval_kind==="leave"?(vi?"Duyệt nghỉ":"Leave review"):(vi?"Duyệt công":"Time review")}</strong><span class="crm-meta">{label(item.display_state||item.state)} · {date(item.effective_from)} — {date(item.effective_to)} · v{item.version}</span><span class="crm-meta">{item.reason}</span></div>{canDelegate&&item.state==="active"&&item.effective_to>=today&&<form method="post" action={kind==="time"?"/api/hrm/time":"/api/hrm/leave"}><input type="hidden" name="intent" value="revoke_delegation"/><input type="hidden" name="return_to" value={returnTo}/><input type="hidden" name="delegation_id" value={item.id}/><input type="hidden" name="version" value={item.version}/><input type="hidden" name="request_key" value={crypto.randomUUID()}/><button class="crm-button danger small">{vi?"Thu hồi":"Revoke"}</button></form>}</article>})}</div>}
+</section>}

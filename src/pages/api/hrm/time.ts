@@ -3,6 +3,7 @@ import { envFromLocals } from "../../../lib/ats";
 import { HrmError, date, revision, text } from "../../../lib/hrm/fields";
 import {
   activateCalendarVersion, assignWorkCalendar, assignmentTimezone, createCalendarVersion, createTimePeriod,
+  createApprovalDelegation, revokeApprovalDelegation,
   endWorkAssignment, localDateTimeToUtc, lockTimePeriod, requestTimeAdjustment, reviewOvertime,
   requestTimePeriodReopen, reviewCalendarVersion, reviewTimeAdjustment, reviewTimeEntry, reviewTimePeriod,
   reviewTimePeriodReopen, submitTimeEntry,
@@ -16,6 +17,8 @@ function returnTarget(request:Request,value:string):URL{const target=new URL(val
 function redirect(target:URL,values:Record<string,string>):Response{for(const [key,value] of Object.entries(values))target.searchParams.set(key,value);return new Response(null,{status:303,headers:{Location:target.pathname+target.search,"Cache-Control":"private, no-store"}})}
 export const POST:APIRoute=async context=>{const user=context.locals.workspace;if(!user)return new Response("Forbidden",{status:403,headers:{"Cache-Control":"private, no-store"}});if(!sameOrigin(context.request))return new Response("Invalid origin",{status:400,headers:{"Cache-Control":"private, no-store"}});let target:URL;try{const form=await formBody(context.request);target=returnTarget(context.request,text(form,"return_to",300,true));const env=envFromLocals(context.locals),intent=text(form,"intent",40,true),key=text(form,"request_key",100,true);
  if(intent==="create_calendar")await createCalendarVersion(env.DB,user,key,{calendar_key:text(form,"calendar_key",80,true).toLowerCase(),title_en:text(form,"title_en",200,true),title_vi:text(form,"title_vi",200,true),legal_entity:text(form,"legal_entity",200,true),timezone:text(form,"timezone",80,true),schedule_json:text(form,"schedule_json",40000,true)});
+ else if(intent==="create_delegation")await createApprovalDelegation(env.DB,env.CONTENT_DB,user,key,{delegateUserId:text(form,"delegate_user_id",100,true),kind:"time",effectiveFrom:date(text(form,"effective_from",10,true))!,effectiveTo:date(text(form,"effective_to",10,true))!,reason:text(form,"reason",500,true)});
+ else if(intent==="revoke_delegation")await revokeApprovalDelegation(env.DB,user,key,text(form,"delegation_id",100,true),revision(form));
  else if(intent==="review_calendar"){const decision=text(form,"decision",10,true);if(decision!=="approve"&&decision!=="reject")throw new HrmError("invalid_decision");await reviewCalendarVersion(env.DB,user,key,text(form,"calendar_id",100,true),revision(form),decision==="approve",text(form,"reason",500,true));}
  else if(intent==="activate_calendar")await activateCalendarVersion(env.DB,user,key,text(form,"calendar_id",100,true),revision(form));
  else if(intent==="assign_calendar")await assignWorkCalendar(env.DB,user,key,text(form,"person_id",100,true),text(form,"calendar_version_id",100,true),date(text(form,"effective_from",10,true))!);

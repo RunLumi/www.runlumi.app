@@ -3,7 +3,7 @@ import { envFromLocals } from "../../../lib/ats";
 import { HrmError, date, revision, text } from "../../../lib/hrm/fields";
 import {
   activateLeavePolicy, adjustLeaveBalance, assignLeavePolicy, endLeavePolicyAssignment, createLeavePolicy, previewLeaveRequest, requestLeaveCancellation,
-  reviewLeaveCancellation, reviewLeavePolicy, reviewLeaveRequest, runAnnualLeaveRollover,
+  createApprovalDelegation, revokeApprovalDelegation, reviewLeaveCancellation, reviewLeavePolicy, reviewLeaveRequest, runAnnualLeaveRollover,
   runMonthlyLeaveAccrual, amendLeaveRequest, submitLeaveRequest, withdrawLeaveRequest,
 } from "../../../lib/hrm/time-leave";
 import { sameOrigin } from "../../../lib/http";
@@ -15,6 +15,8 @@ function returnTarget(request:Request,value:string):URL{const target=new URL(val
 function redirect(target:URL,values:Record<string,string>):Response{for(const [key,value] of Object.entries(values))target.searchParams.set(key,value);return new Response(null,{status:303,headers:{Location:target.pathname+target.search,"Cache-Control":"private, no-store"}})}
 export const POST:APIRoute=async context=>{const user=context.locals.workspace;if(!user)return new Response("Forbidden",{status:403,headers:{"Cache-Control":"private, no-store"}});if(!sameOrigin(context.request))return new Response("Invalid origin",{status:400,headers:{"Cache-Control":"private, no-store"}});let target:URL;try{const form=await formBody(context.request);target=returnTarget(context.request,text(form,"return_to",300,true));const env=envFromLocals(context.locals),intent=text(form,"intent",40,true),key=text(form,"request_key",100,true);
  if(intent==="create_policy")await createLeavePolicy(env.DB,user,key,{policy_key:text(form,"policy_key",80,true).toLowerCase(),title_en:text(form,"title_en",200,true),title_vi:text(form,"title_vi",200,true),rules_json:text(form,"rules_json",40000,true)});
+ else if(intent==="create_delegation")await createApprovalDelegation(env.DB,env.CONTENT_DB,user,key,{delegateUserId:text(form,"delegate_user_id",100,true),kind:"leave",effectiveFrom:date(text(form,"effective_from",10,true))!,effectiveTo:date(text(form,"effective_to",10,true))!,reason:text(form,"reason",500,true)});
+ else if(intent==="revoke_delegation")await revokeApprovalDelegation(env.DB,user,key,text(form,"delegation_id",100,true),revision(form));
  else if(intent==="review_policy"){const decision=text(form,"decision",10,true);if(decision!=="approve"&&decision!=="reject")throw new HrmError("invalid_decision");await reviewLeavePolicy(env.DB,user,key,text(form,"policy_id",100,true),revision(form),decision==="approve",text(form,"reason",500,true));}
  else if(intent==="activate_policy")await activateLeavePolicy(env.DB,user,key,text(form,"policy_id",100,true),revision(form));
  else if(intent==="assign_policy")await assignLeavePolicy(env.DB,user,key,text(form,"person_id",100,true),text(form,"policy_id",100,true),date(text(form,"effective_from",10,true))!);

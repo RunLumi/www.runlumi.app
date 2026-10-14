@@ -14,6 +14,7 @@ import {
   listTimeEntries,
   listTimePeriods,
   listWorkAssignments,
+  listApprovalDelegations,
   listLeaveBalances,
   myLeaveOptions,
   previewLeaveRequest,
@@ -28,6 +29,7 @@ import {
   type WorkCalendar,
   type CalendarSchedule,
   type LeaveRule,
+  type ApprovalDelegation,
 } from "./time-leave";
 import { getTimeImportRows, listTimeImportBatches, type TimeImportBatch, type TimeImportRow } from "./time-import-service";
 
@@ -35,13 +37,13 @@ const base=(lang:Lang,user:NonNullable<AstroGlobal["locals"]["workspace"]>,title
 const status=(astro:AstroGlobal)=>astro.url.searchParams.get("error")??undefined;
 
 export interface TimeManagePage extends PageBase {
-  calendars:WorkCalendar[];assignments:WorkAssignment[];periods:TimePeriod[];entries:TimeEntry[];adjustments:TimeAdjustment[];
+  calendars:WorkCalendar[];assignments:WorkAssignment[];periods:TimePeriod[];entries:TimeEntry[];adjustments:TimeAdjustment[];delegations:ApprovalDelegation[];
   people:Array<{id:string;employee_code:string;legal_name:string;preferred_name:string;employment_id:string;status:string}>;members:MemberRow[];imports:TimeImportBatch[];selectedImport?:TimeImportBatch;importRows:TimeImportRow[];saved:string;error?:string;
 }
 export async function timeManagePage(astro:AstroGlobal,lang:Lang):Promise<Response|TimeManagePage>{
   const user=astro.locals.workspace!;if(!user.can("hrm.time.manage")&&!user.can("hrm.time.review")&&!user.can("hrm.time.configure"))return new Response("Forbidden",{status:403});
   const env=envFromLocals(astro.locals),live=user.hrmEnabled===true;
-  const [calendars,assignments,periods,entries,adjustments,people,members,imports]=await Promise.all([
+  const [calendars,assignments,periods,entries,adjustments,people,members,imports,delegations]=await Promise.all([
     listCalendarVersions(env.DB,user),
     live&&(user.can("hrm.time.manage")||user.can("hrm.time.review"))?listWorkAssignments(env.DB,user):Promise.resolve([]),
     live&&(user.can("hrm.time.manage")||user.can("hrm.time.review"))?listTimePeriods(env.DB,user):Promise.resolve([]),
@@ -50,10 +52,11 @@ export async function timeManagePage(astro:AstroGlobal,lang:Lang):Promise<Respon
     live&&user.can("hrm.time.manage")?listPeople(env.DB,user,"",1):Promise.resolve([]),
     workspaceMembers(env.DB,env.CONTENT_DB),
     live&&user.can("hrm.time.manage")?listTimeImportBatches(env.DB,user):Promise.resolve([]),
+    live?listApprovalDelegations(env.DB,user,"time"):Promise.resolve([]),
   ]);
   const selectedImport=imports.find(batch=>batch.id===astro.url.searchParams.get("batch"));
   const importRows=selectedImport?await getTimeImportRows(env.DB,user,selectedImport.id):[];
-  return {...base(lang,user,lang==="vi"?"Lịch và chấm công":"Schedules and attendance"),calendars,assignments,periods,entries,adjustments,people,members,imports,selectedImport,importRows,saved:astro.url.searchParams.get("saved")??"",error:status(astro)};
+  return {...base(lang,user,lang==="vi"?"Lịch và chấm công":"Schedules and attendance"),calendars,assignments,periods,entries,adjustments,people,members,imports,selectedImport,importRows,delegations,saved:astro.url.searchParams.get("saved")??"",error:status(astro)};
 }
 
 export interface MyTimePage extends PageBase {entries:TimeEntry[];adjustments:TimeAdjustment[];context?:{personId:string;workDate:string;timezone:string;weekdays:CalendarSchedule["weekdays"];holidays:string[];periods:TimePeriod[]};saved:string;error?:string}
@@ -64,18 +67,19 @@ export async function myTimePage(astro:AstroGlobal,lang:Lang):Promise<Response|M
   return {...base(lang,user,lang==="vi"?"Công của tôi":"My attendance"),entries,adjustments,context,saved:astro.url.searchParams.get("saved")??"",error};
 }
 
-export interface LeaveManagePage extends PageBase {policies:LeavePolicy[];assignments:LeaveAssignment[];requests:LeaveRequest[];members:MemberRow[];people:Array<{id:string;employee_code:string;legal_name:string;preferred_name:string;employment_id:string;status:string}>;saved:string;error?:string}
+export interface LeaveManagePage extends PageBase {policies:LeavePolicy[];assignments:LeaveAssignment[];requests:LeaveRequest[];members:MemberRow[];delegations:ApprovalDelegation[];people:Array<{id:string;employee_code:string;legal_name:string;preferred_name:string;employment_id:string;status:string}>;saved:string;error?:string}
 export async function leaveManagePage(astro:AstroGlobal,lang:Lang):Promise<Response|LeaveManagePage>{
   const user=astro.locals.workspace!;if(!user.can("hrm.leave.manage")&&!user.can("hrm.leave.review")&&!user.can("hrm.leave.configure"))return new Response("Forbidden",{status:403});
   const env=envFromLocals(astro.locals),live=user.hrmEnabled===true;
-  const [policies,assignments,requests,members,people]=await Promise.all([
+  const [policies,assignments,requests,members,people,delegations]=await Promise.all([
     listLeavePolicies(env.DB,user),
     live&&(user.can("hrm.leave.manage")||user.can("hrm.leave.review"))?listLeaveAssignments(env.DB,user):Promise.resolve([]),
     live&&(user.can("hrm.leave.manage")||user.can("hrm.leave.review"))?listLeaveRequests(env.DB,user):Promise.resolve([]),
     workspaceMembers(env.DB,env.CONTENT_DB),
     live&&user.can("hrm.leave.manage")?listPeople(env.DB,user,"",1):Promise.resolve([]),
+    live?listApprovalDelegations(env.DB,user,"leave"):Promise.resolve([]),
   ]);
-  return {...base(lang,user,lang==="vi"?"Chính sách phép và đơn nghỉ":"Leave policies and requests"),policies,assignments,requests,members,people,saved:astro.url.searchParams.get("saved")??"",error:status(astro)};
+  return {...base(lang,user,lang==="vi"?"Chính sách phép và đơn nghỉ":"Leave policies and requests"),policies,assignments,requests,members,people,delegations,saved:astro.url.searchParams.get("saved")??"",error:status(astro)};
 }
 
 export interface MyLeavePage extends PageBase {requests:LeaveRequest[];balances:Array<{leave_type_key:string;balance_minutes:number;pending_minutes:number;available_minutes:number}>;options?:{personId:string;policyVersionId:string;timezone:string;rules:LeaveRule[]};preview?:Awaited<ReturnType<typeof previewLeaveRequest>>;previewValues?:{startsOn:string;endsOn:string;portion:"full"|"half_first"|"half_second";leaveTypeKey:string};saved:string;error?:string}

@@ -44,7 +44,7 @@ Các vai trò **đề xuất mới**: Employee, People Manager, HRM Officer và 
 
 Ma trận là yêu cầu cho permission map, không phải logic kiểm tra tên vai trò. Server kiểm tra capability **và** phạm vi bản ghi **và** loại trường/tệp. Có nhiều vai trò thì kết hợp quyền, nhưng không bỏ kiểm soát tự duyệt, khóa kỳ hoặc giới hạn dữ liệu. Quản lý nhân sự khác quản trị tài khoản.
 
-Phạm vi đội được tính từ phân công quản lý có ngày hiệu lực; không cho quản lý đọc ngược hồ sơ riêng tư của người từng thuộc đội. Người duyệt thay thế có ngày bắt đầu/kết thúc, không tự ủy quyền và không duyệt yêu cầu của chính mình. Chưa có người duyệt hợp lệ thì vào hàng chờ HR/Admin, không tự chấp thuận.
+Phạm vi đội được tính từ phân công quản lý có ngày hiệu lực; không cho quản lý đọc ngược hồ sơ riêng tư của người từng thuộc đội. Quản lý trực tiếp có thể tạo ủy quyền duyệt chấm công hoặc nghỉ phép riêng theo từng loại, chọn một tài khoản People Manager đang hoạt động và ngày bắt đầu/kết thúc cùng lý do. Grant được audit và giữ lịch sử tạo/thu hồi bất biến; hết hạn, thu hồi vai trò hoặc đổi người quản lý làm quyền ủy quyền mất hiệu lực ngay trong request tiếp theo. Người được ủy quyền chỉ nhận phạm vi phê duyệt hiện tại, không nhận quyền hồ sơ/file riêng tư hay quyền ủy quyền tiếp. Không tự duyệt yêu cầu của chính mình. Chưa có người duyệt hợp lệ thì yêu cầu tiếp tục chờ HR/Admin, không tự chấp thuận.
 
 Thu hồi thành viên/vai trò hoặc vô hiệu hóa tài khoản có hiệu lực ở request tiếp theo, kể cả tải file, export và thao tác nền. Hồ sơ nghỉ việc vẫn tồn tại theo chính sách; không giữ quyền cổng nhân viên vô thời hạn. Việc nhận giấy tờ sau nghỉ việc dùng quy trình xác minh và bàn giao riêng, không link công khai.
 
@@ -291,7 +291,7 @@ Không gửi dữ liệu HRM qua webhook Lark CRM hiện có. Outbox có khóa c
 | `hrm_coi_declarations`, `hrm_coi_reviews` | Khai báo, revision, người rà soát và kết quả có quyền riêng |
 | `hrm_calendars`, `hrm_shifts`, `hrm_time_entries`, `hrm_time_adjustments` | Lịch/ca có phiên bản; công gốc và sửa công độc lập |
 | `hrm_leave_policies`, `hrm_leave_requests`, `hrm_leave_ledger` | Chính sách theo hiệu lực, đơn và sổ phép chống trùng |
-| `hrm_approval_steps`, `hrm_delegations` | Tuyến duyệt snapshot, quyết định từng bước và ủy quyền có hạn |
+| `hrm_approval_steps`, `hrm_approval_delegations`, `hrm_approval_delegation_history` | Tuyến duyệt snapshot, quyết định từng bước và ủy quyền công/nghỉ có hiệu lực, thu hồi và lịch sử bất biến |
 | `hrm_payroll_runs`, `hrm_payroll_inputs`, `hrm_payslips`, `hrm_payroll_adjustments`, `hrm_payment_confirmations` | Snapshot, khoản tính, bản phát hành bất biến, điều chỉnh và bằng chứng trả tiền |
 | `hrm_onboarding_templates`, `hrm_onboarding_plans`, `hrm_onboarding_tasks`, `hrm_onboarding_dependencies`, `hrm_onboarding_submissions` | Mẫu phiên bản, kế hoạch theo đợt làm việc, todo có owner/hạn, phụ thuộc không chu trình, bằng chứng và lần kiểm tra |
 | `hrm_checklists`, `hrm_assets`, `hrm_benefits`, `hrm_service_requests` | Vòng đời, tài sản, phúc lợi, dịch vụ HR |
