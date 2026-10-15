@@ -1,3 +1,4 @@
+import { localFetch as fetch } from "./helpers.mjs";
 // Personal API tokens, the REST API and the MCP server against a real local
 // Worker + D1 + EmDash. Synthetic TEST data only.
 import { test } from "node:test";

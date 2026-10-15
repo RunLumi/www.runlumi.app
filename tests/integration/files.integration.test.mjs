@@ -1,3 +1,4 @@
+import { localFetch as fetch } from "./helpers.mjs";
 // Real local Worker, D1, R2 and EmDash sessions. Synthetic data only.
 import assert from 'node:assert/strict';
 import { test } from 'node:test';

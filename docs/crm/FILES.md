@@ -99,3 +99,8 @@ checks separately. Run `npm run ci:verify` as the finish gate.
 - The release follows the normal main-branch pipeline. If automatic deployment
   does not complete, use the documented manual fallback from the merged main
   commit; it records a D1 Time Travel restore point before migrating.
+
+- The first complete Node 26 integration run had five local transport failures
+  (`ECONNRESET`/closed sockets), with no failing business assertions. A focused
+  Files rerun passed 4/4. Integration HTTP requests now close each connection to
+  avoid reusing idle workerd sockets; mutations are never automatically retried.
