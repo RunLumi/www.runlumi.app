@@ -66,7 +66,9 @@ Reopen HRM only after the independent verifier confirms the D1 point, D1/R2 chec
 
 ## Synthetic recovery drill
 
-This drill is **not yet implemented or passed**. It must run entirely with disposable local D1/R2 and synthetic EmDash users, never production data:
+The automated synthetic drill is implemented in [`tests/integration/hrm-recovery-drill.mjs`](../../../tests/integration/hrm-recovery-drill.mjs) and runs through `npm run test:integration:hrm:p5`. It exports the synthetic `lumi-jobs` D1 state, backs up HRM R2 objects to a private temporary directory, restores D1/R2 into a separate local Worker while preserving current EmDash account state, then verifies checksum and metadata parity, legal hold, private access, post-backup revocation, missing-object repair and orphan detection. It must run with disposable local D1/R2 and synthetic EmDash users only. Check [`STATUS.md`](STATUS.md) for the latest exact-head result; the existence of this test or an older pass does not establish the current gate.
+
+For a manual synthetic rehearsal, use the following sequence. Never use production data:
 
 1. Create two synthetic employees, HRM Officer/Admin and one manager. Create a private file for A, legal-hold it, and create a separate synthetic file for B; record their D1 metadata and SHA-256 hashes in a temporary private test artifact.
 2. Back up the local D1 state and copy the exact R2 objects into an isolated recovery target. Record a manifest hash and backup time. Delete or corrupt one disposable copy to exercise detection, not the source fixture.

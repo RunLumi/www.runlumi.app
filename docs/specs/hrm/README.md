@@ -337,7 +337,7 @@ Tích hợp agent/API là giai đoạn riêng: chưa có thì không quảng cá
 
 ## 13. Lưu trữ, quyền riêng tư và vận hành
 
-Quy trình xử lý sự cố file, khôi phục D1/R2 và đối soát dữ liệu sau phục hồi nằm trong [RUNBOOK.md](RUNBOOK.md) (English) và [RUNBOOK.vi.md](RUNBOOK.vi.md) (Tiếng Việt). Đây là hướng dẫn đang hoàn thiện, không phải bằng chứng đã sao lưu hay đã thử phục hồi.
+Quy trình xử lý sự cố file, khôi phục D1/R2 và đối soát dữ liệu sau phục hồi nằm trong [RUNBOOK.md](RUNBOOK.md) (English) và [RUNBOOK.vi.md](RUNBOOK.vi.md) (Tiếng Việt). Diễn tập tổng hợp tự động được định nghĩa trong integration test; xem [STATUS.md](STATUS.md) để biết kết quả trên head mới nhất. Tài liệu và test cục bộ không chứng minh đã có backup hoặc đã thử phục hồi production.
 
 Trước mở production phải chốt mục đích/căn cứ xử lý, trường bắt buộc, người xem, hạn giữ từng loại, quy trình yêu cầu truy cập/sửa/xóa và người chịu trách nhiệm. Không dùng một hạn giữ chung cho ứng viên, CCCD, COI, hợp đồng và payroll. Xóa phải xét nghĩa vụ lưu giữ, tranh chấp/legal hold và tham chiếu; legal hold có người đặt/gỡ và lý do.
 
@@ -345,7 +345,7 @@ Không đưa dữ liệu thật vào fixture, prompt, ảnh chụp demo, log l�
 
 **Retention/legal hold đã triển khai ở P2/P5, chưa phải chính sách production:** phiên bản quy tắc bao phủ ảnh hồ sơ, CCCD/định danh, phụ thuộc, ngân hàng, thuế/bảo hiểm, dữ liệu cá nhân, DOCX nguồn, PDF pháp lý, COI, onboarding, chứng từ phép, PDF đính kèm yêu cầu HR và chứng cứ đào tạo/chứng chỉ. Không có thời hạn mặc định; mỗi danh mục cần một căn cứ được người phụ trách rà soát. `retention_days: null` nghĩa là không lên lịch tự động đủ hạn. Ngày đến hạn hiện tính từ thời điểm tải file; thay đổi policy chặn yêu cầu pending/approved theo version cũ. Kích hoạt policy không tự mở `HRM_LIVE_ENABLED`.
 
-Hold có thể áp dụng cho toàn bộ hồ sơ/danh mục hoặc một tệp, có người đặt, thời gian và lý do; tệp mới cùng danh mục nhận hold. Gỡ hold cần người khác với người đặt. Yêu cầu xóa qua chuỗi người tạo → người duyệt độc lập → System Super Admin thực hiện R2. Hold, version policy thay đổi hoặc sai checksum chặn thao tác. Xóa R2 có retry; D1 giữ checksum, metadata, tham chiếu và tombstone/audit, không cascade xóa hồ sơ nhân viên. Chưa có xóa retention cho dữ liệu cấu trúc, diễn tập restore phối hợp D1/R2, hay thời hạn/category basis được owner phê duyệt; không bật production cho tới khi các điều kiện đó được chốt.
+Hold có thể áp dụng cho toàn bộ hồ sơ/danh mục hoặc một tệp, có người đặt, thời gian và lý do; tệp mới cùng danh mục nhận hold. Gỡ hold cần người khác với người đặt. Yêu cầu xóa qua chuỗi người tạo → người duyệt độc lập → System Super Admin thực hiện R2. Hold, version policy thay đổi hoặc sai checksum chặn thao tác. Xóa R2 có retry; D1 giữ checksum, metadata, tham chiếu và tombstone/audit, không cascade xóa hồ sơ nhân viên. Xóa retention cho dữ liệu cấu trúc, cơ chế backup R2 production và thời hạn/category basis được owner phê duyệt vẫn còn thiếu; không bật production cho tới khi các điều kiện đó được chốt.
 
 Giám sát hàng chờ duyệt, tài liệu hết hạn, lỗi file/thông báo, sai lệch công/lương và job thất bại; không đưa số lương hay số CCCD vào metric. Có runbook sự cố lộ tệp, ghép nhầm danh tính, phát hành nhầm payslip và khóa kỳ sai. Ngừng phát hành/tải phạm vi bị ảnh hưởng, giữ bằng chứng, sửa quyền và đối soát; không xóa audit để “dọn lỗi”.
 

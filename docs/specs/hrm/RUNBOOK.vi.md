@@ -66,7 +66,9 @@ Chỉ mở HRM sau khi người xác minh độc lập xác nhận mốc D1, k�
 
 ## Diễn tập phục hồi bằng dữ liệu tổng hợp
 
-Diễn tập này **chưa được triển khai hoặc thông qua**. Toàn bộ phải chạy bằng D1/R2 dùng một lần và tài khoản EmDash giả lập, tuyệt đối không dùng dữ liệu production:
+Diễn tập tự động được triển khai tại [`tests/integration/hrm-recovery-drill.mjs`](../../../tests/integration/hrm-recovery-drill.mjs) và chạy qua `npm run test:integration:hrm:p5`. Test export trạng thái D1 `lumi-jobs` tổng hợp, sao lưu object HRM từ R2 vào thư mục tạm riêng tư, rồi phục hồi D1/R2 vào một Worker cục bộ biệt lập trong khi giữ trạng thái tài khoản EmDash hiện hành. Sau đó test đối soát checksum/metadata, legal hold, quyền tải riêng tư, thu hồi tài khoản sau mốc backup, phát hiện object thiếu và object mồ côi. Chỉ chạy với D1/R2 cục bộ dùng một lần và tài khoản EmDash giả lập. Xem [`STATUS.md`](STATUS.md) để biết kết quả trên head mới nhất; có test hoặc từng chạy xanh không đồng nghĩa cổng hiện tại đã đạt.
+
+Khi diễn tập thủ công bằng dữ liệu giả, dùng trình tự sau. Tuyệt đối không dùng dữ liệu production:
 
 1. Tạo hai nhân viên tổng hợp, HRM Officer/Admin và một manager. Tạo tệp riêng cho A, gắn legal hold, rồi tạo tệp riêng cho B; ghi metadata D1 và hash SHA-256 vào artifact kiểm thử tạm thời, riêng tư.
 2. Sao lưu D1 cục bộ và chép đúng object R2 sang một đích phục hồi biệt lập. Ghi hash manifest và thời điểm sao lưu. Xóa hoặc làm hỏng một bản sao dùng một lần để kiểm tra khả năng phát hiện lỗi; không đụng vào fixture nguồn.
