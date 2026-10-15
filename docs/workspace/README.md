@@ -74,7 +74,7 @@ Remaining gaps, not built:
 - **Only Admins lift do-not-contact.**
 - **Partners (Cộng tác viên) are outside staff.** They work their own opportunities and refer businesses on *CRM → Referrals*. A referral starts unassigned, with the partner recorded as referrer; a Sales Manager assigns it on *Operations*. After that the partner sees only the stage and outcome, never notes, contacts or money. Partners cannot report payments: customers pay Lumi directly and staff record it. Their commission needs seller terms (full-cycle or referral) declared on *Commission*; the users page flags partners without them.
 
-Migrations `0007_workspace_partner_role.sql` and `0012_hrm_records.sql` rebuild `workspace_roles` to add the Partner and HRM roles while preserving existing grants. `0012` adds versioned people/employment periods, private record metadata, approvals, checksummed file metadata, idempotency, and immutable history/audit. HRM files use the `hrm/` prefix in the private `FILES` bucket; the production feature gate is off unless `HRM_LIVE_ENABLED=true` and policy configuration is ready.
+Migrations `0007_workspace_partner_role.sql` and `0013_hrm_records.sql` rebuild `workspace_roles` to add the Partner and HRM roles while preserving existing grants. `0013` adds versioned people/employment periods, private record metadata, approvals, checksummed file metadata, idempotency, and immutable history/audit. HRM files use the `hrm/` prefix in the private `FILES` bucket; the production feature gate is off unless `HRM_LIVE_ENABLED=true` and policy configuration is ready.
 
 Migration `0005_workspace_roles.sql` carries existing access over unchanged:
 - every `crm_members` row becomes a Workspace member with the **Sales Executive** role, keeping its enabled flag;

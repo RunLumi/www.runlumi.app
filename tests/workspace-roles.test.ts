@@ -22,7 +22,7 @@ test("admins hold every permission; roles hold only their own", () => {
 });
 
 test("every role is allowed by the database constraint", () => {
-  const sql = readFileSync(new URL("../migrations/0012_hrm_records.sql", import.meta.url), "utf8");
+  const sql = readFileSync(new URL("../migrations/0013_hrm_records.sql", import.meta.url), "utf8");
   for (const role of roles) assert.ok(sql.includes(`'${role}'`), role);
   for (const role of roles) assert.ok(ROLE_PERMISSIONS[role].includes("workspace.access"), `${role} can reach the Workspace home`);
 });

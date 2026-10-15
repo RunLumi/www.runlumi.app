@@ -12,7 +12,7 @@ test("HRM grants are separate from ATS, CRM and user administration",()=>{
  for(const role of ["hr","finance","sales_manager","partner"] as const)assert.equal(user(role,[role]).can("hrm.access"),false);
  const hrm=user("hrm",["hrm_admin"]);assert.equal(hrm.can("users.manage"),false);assert.equal(hrm.can("hiring.access"),false);assert.equal(hrm.can("crm.access"),false);
  assert.equal(makeUser({id:"system",name:"System",email:"system@example.test"},true,[]).can("hrm.configure"),true);
- const migration=readFileSync(new URL("../migrations/0012_hrm_records.sql",import.meta.url),"utf8");
+ const migration=readFileSync(new URL("../migrations/0013_hrm_records.sql",import.meta.url),"utf8");
  for(const role of ["employee","people_manager","hrm_officer","hrm_admin","hr","sales_manager","sales_executive","partner","finance","fulfillment"])assert.ok(migration.includes("'" + role + "'"));
 });
 test("managers cannot read identity, dependent, contact, banking or tax data for their reports",()=>{

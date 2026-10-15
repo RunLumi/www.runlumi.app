@@ -29,7 +29,7 @@ Updated: 2026-10-14. The overall HRM goal is active. P1 is implemented in PR #50
 
 ## P1 implemented scope
 
-- Migration `0012_hrm_records.sql` adds HRM role grants and structured people, employment periods, profile/history, change-request, private-file, idempotency and audit tables without removing old role grants.
+- Migration `0013_hrm_records.sql` adds HRM role grants and structured people, employment periods, profile/history, change-request, private-file, idempotency and audit tables without removing old role grants.
 - Workspace roles remain separate for Employee, People Manager, HRM Officer and HRM Admin; System Super Admin remains EmDash role 50. HR/Finance/Sales/Partner do not gain HRM access through their old roles. Users and grants are still managed through the shared EmDash/Workspace contract.
 - HR creates a record by selecting one active EmDash account; it does not auto-link by matching email. A person can have separate employment periods.
 - HRM Admin can close an employment period and start a later rehire period on the same person record. A rehire preserves the prior period, checks the previous revision and new start date, requires the linked EmDash account to remain active, validates the manager, and is idempotent. It does not automatically restore revoked Workspace grants.
