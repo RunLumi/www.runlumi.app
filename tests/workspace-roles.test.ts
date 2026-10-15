@@ -63,6 +63,9 @@ test("CRM navigation is grouped, every page has an icon, and empty groups are hi
   assert.deepEqual(agentLink, ["process", "files", "api"], "everyone selling sees files, the sales process and the agent guide");
   const hrm = modules.find((module) => module.key === "hrm")!;
   assert.ok(visibleLinks(user(["employee"]), hrm).some((link) => link.key === "my-assets"));
+  assert.ok(visibleLinks(user(["employee"]), hrm).some((link) => link.key === "my-benefits"));
   assert.ok(!visibleLinks(user(["people_manager"]), hrm).some((link) => link.key === "my-assets" || link.key === "assets"));
+  assert.ok(!visibleLinks(user(["people_manager"]), hrm).some((link) => link.key === "my-benefits" || link.key === "benefits"));
   assert.ok(visibleLinks(user(["hrm_officer"]), hrm).some((link) => link.key === "assets"));
+  assert.ok(visibleLinks(user(["hrm_officer"]), hrm).some((link) => link.key === "benefits"));
 });

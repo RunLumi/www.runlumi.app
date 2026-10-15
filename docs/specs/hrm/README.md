@@ -4,7 +4,7 @@
 
 HRM là phân hệ nhân sự trong Lumi Workspace, phục vụ cả nhân viên, người quản lý, HR và người phụ trách tiền lương. Hiring quản lý ứng viên trước khi tuyển; HRM quản lý quan hệ làm việc từ tiếp nhận đến nghỉ việc. Cả hai dùng chung danh tính EmDash nhưng có quyền riêng. CRM tiếp tục độc lập về nghiệp vụ và quyền dữ liệu.
 
-Tài liệu này xác định yêu cầu sản phẩm và tiêu chí nghiệm thu. P1–P3 đã merge; P4 đang ở draft PR #58 và P5 đang ở draft PR #59. P5 hiện có luồng yêu cầu HR, PDF evidence và một lát cắt quản lý tài sản trên nhánh local; các phần phúc lợi, đào tạo, báo cáo và khôi phục vẫn mở. Các thời hạn cụ thể chưa được người phụ trách chuyên môn chốt; production vẫn đóng. Đừng suy ra tính sẵn sàng production từ nội dung đặc tả. Quy tắc pháp lý, thuế, bảo hiểm, lưu trữ và giá trị chữ ký phải được người có chuyên môn rà soát theo nơi làm việc và thời điểm áp dụng; tài liệu không mặc định một mức luật định hay tuyên bố tuân thủ.
+Tài liệu này xác định yêu cầu sản phẩm và tiêu chí nghiệm thu. P1–P3 đã merge; P4 đang ở draft PR #58 và P5 đang ở draft PR #59. P5 hiện có luồng yêu cầu HR/PDF, asset custody và đăng ký phúc lợi theo cấu hình trên nhánh local; đào tạo/chứng chỉ, báo cáo, khôi phục và các quyết định owner vẫn mở. Các thời hạn cụ thể chưa được người phụ trách chuyên môn chốt; production vẫn đóng. Đừng suy ra tính sẵn sàng production từ nội dung đặc tả. Quy tắc pháp lý, thuế, bảo hiểm, lưu trữ và giá trị chữ ký phải được người có chuyên môn rà soát theo nơi làm việc và thời điểm áp dụng; tài liệu không mặc định một mức luật định hay tuyên bố tuân thủ.
 
 ## 1. Mục tiêu và ranh giới
 
@@ -298,6 +298,8 @@ Nhân viên gửi thắc mắc theo kỳ/khoản; Payroll xử lý `submitted �
 
 **Lát cắt tài sản đã có trên nhánh local P5:** HRM Officer/Admin tạo mã tài sản duy nhất theo pháp nhân; nhân viên xem thiết bị được giao, không thấy serial number, và xác nhận đã nhận. Nhân viên có thể đề nghị trả và ghi nhận đã bàn giao; HR độc lập xác nhận tình trạng vật lý. Tài sản tốt quay về kho, tài sản hỏng vào hàng đợi kiểm tra, tài sản thiếu được đánh dấu thất lạc. Mỗi bước có revision, actor, thời gian và lịch sử bất biến; retry cùng idempotency key không tạo bản ghi trùng. Luồng này không tự trừ lương hoặc provision hệ thống bên ngoài. Biên bản/tệp bàn giao, nhắc hạn tự động và đối soát với checklist offboarding chưa được nối; các mục này vẫn là yêu cầu, chưa phải khả năng đã triển khai.
 
+**Lát cắt đăng ký phúc lợi đã có trên nhánh local P5:** HRM Officer tạo phiên bản chính sách ở trạng thái nháp; HRM Admin hoặc System Super Admin khác người tạo có thể kích hoạt. Nhân viên trong đúng pháp nhân gửi hoặc hủy đăng ký; HRM Admin/System Super Admin duyệt/từ chối kèm lý do. Điều kiện là văn bản do HR cấu hình, không phải biểu thức được thực thi. Không có gói mặc định, số tiền suy diễn, khoản thanh toán, nhà cung cấp hay tác động payroll. Đăng ký pending ở phiên bản cũ chặn kích hoạt bản mới; snapshot và event giữ nguyên lịch sử. Chưa có tài liệu đính kèm, đồng bộ nhà cung cấp, eligibility engine, lịch sử quyết định theo người phụ thuộc hoặc nhắc hạn tự động. Production vẫn đóng tới khi owner duyệt chính sách và căn cứ áp dụng.
+
 Không gửi dữ liệu HRM qua webhook Lark CRM hiện có. Outbox có khóa chống gửi trùng và retry có giới hạn; lỗi thông báo không làm thất bại thao tác HRM. Nhân viên xem được trạng thái thực tế ngay cả khi kênh nhắc việc bị lỗi.
 
 ## 12. Mô hình dữ liệu và kiến trúc đề xuất
@@ -316,7 +318,8 @@ Không gửi dữ liệu HRM qua webhook Lark CRM hiện có. Outbox có khóa c
 | `hrm_payroll_runs`, `hrm_payroll_inputs`, `hrm_payslips`, `hrm_payroll_adjustments`, `hrm_payment_confirmations` | Snapshot, khoản tính, bản phát hành bất biến, điều chỉnh và bằng chứng trả tiền |
 | `hrm_onboarding_templates`, `hrm_onboarding_plans`, `hrm_onboarding_tasks`, `hrm_onboarding_dependencies`, `hrm_onboarding_submissions` | Mẫu phiên bản, kế hoạch theo đợt làm việc, todo có owner/hạn, phụ thuộc không chu trình, bằng chứng và lần kiểm tra |
 | `hrm_checklists`, `hrm_assets`, `hrm_asset_assignments`, `hrm_asset_events` | Vòng đời; inventory, lần giao nhận và event tài sản append-only |
-| `hrm_benefits`, `hrm_service_requests`, `hrm_service_request_attachments` | Phúc lợi, dịch vụ HR và liên kết PDF đính kèm với HRM file custody |
+| `hrm_benefit_plans`, `hrm_benefit_enrollments`, `hrm_benefit_events` | Phiên bản chính sách phúc lợi, đăng ký theo đợt làm việc và lịch sử bất biến |
+| `hrm_service_requests`, `hrm_service_request_attachments` | Dịch vụ HR và liên kết PDF đính kèm với HRM file custody |
 | `hrm_events`, `hrm_audit`, `hrm_outbox` | Nghiệp vụ, audit hạn chế dữ liệu và thông báo idempotent |
 
 Đề xuất lưu bảng HRM có prefix riêng trong D1 nghiệp vụ hiện có, tách khỏi schema/dữ liệu EmDash; tệp ở namespace hoặc bucket HRM riêng tư được cấu hình riêng. Quyết định vật lý về database/bucket phải được chốt trước migration đầu tiên dựa trên dung lượng, quyền vận hành và khả năng phục hồi. Không tái dùng candidate file route, CRM token hoặc quyền API CRM cho HRM.
@@ -376,6 +379,7 @@ Các kiểm tra dưới đây là yêu cầu cho triển khai, **chưa phải k�
 | HRM-27 | Loại phép hoặc yêu cầu HR cần PDF chứng từ nhưng thiếu file, file sai chữ ký, upload/review lặp, reviewer sai scope, legal hold hoặc người khác mở file | Thiếu/chưa review phải chặn bước phụ thuộc; PDF cách ly/private theo đúng đơn, checksum và actor/time được audit, uploader không tự review; legal hold/retention bao phủ file mới; employee chỉ xem đơn/tệp của mình và HR xem theo quyền |
 | HRM-28 | Nhân viên/HR sửa đơn đang chờ duyệt, retry sửa, revision cũ có PDF, reviewer dùng revision stale | Lưu snapshot bất biến trước/sau cùng actor/thời gian/lý do; update dùng expected-version và idempotency; tính lại số giờ/số dư; phê duyệt chỉ gắn revision mới; PDF của revision trước không thỏa chứng từ và phải được nộp/rà soát lại |
 | HRM-29 | Nhận/giao tài sản, nhân viên báo trả, ghi nhận bàn giao, HR xác minh tình trạng; thử sai scope, tự giao, stale revision và retry | Actor/employee scope được kiểm tra ở server; chỉ HRM có thể xác minh tài sản đã nhận; lịch sử không sửa; serial không lộ cho nhân viên; trạng thái tốt/hỏng/thất lạc chính xác; không tự khấu trừ lương |
+| HRM-30 | Tạo/duyệt phiên bản phúc lợi, enroll/cancel/review, enrollment trùng, đổi phiên bản, HR tự duyệt và manager dò ID | Policy là cấu hình text đã version, không chạy eligibility expression; chỉ HRM Admin/System Super Admin độc lập duyệt; trạng thái/lý do có audit; không suy ra tiền hoặc ghi payroll |
 
 Trước mỗi giai đoạn: cập nhật permission map, migration, navigation, middleware, tài liệu và hai locale cùng thay đổi; chạy `npm run build` cùng các kiểm tra phù hợp. Build xanh không chứng minh tính đúng của payroll, chữ ký hay quyền truy cập production.
 
@@ -388,7 +392,7 @@ Trước mỗi giai đoạn: cập nhật permission map, migration, navigation,
 | P2 — Hồ sơ pháp lý và vòng đời | Hợp đồng, NDA, COI, chính sách, onboarding/offboarding, ký giấy/xác nhận đọc | HRM-08, 10–12, 17–19, 22–25; ký điện tử chỉ bật sau kiểm chứng riêng |
 | P3 — Công và phép | Lịch/ca, giải trình, import/đối soát công, tuyến duyệt, sổ phép, chứng từ và chốt công | HRM-06–09, 26–28; đối chiếu với bộ công/phép đã được HR kiểm tra |
 | P4 — Lương và payslip | Snapshot, tính/duyệt, phiếu, khiếu nại, điều chỉnh, xác nhận trả tiền | HRM-09, 13–15; ít nhất một kỳ chạy song song được đối soát không có chênh lệch chưa giải thích |
-| P5 — Mở rộng | Phúc lợi, tài sản, đào tạo/đánh giá, reports, tích hợp có nhu cầu thật | Gate quyền/dữ liệu cho từng chức năng; HRM-19–21, HRM-29 và hồi quy |
+| P5 — Mở rộng | Phúc lợi, tài sản, đào tạo/đánh giá, reports, tích hợp có nhu cầu thật | Gate quyền/dữ liệu cho từng chức năng; HRM-19–21, HRM-29–30 và hồi quy |
 
 Thử nghiệm rẻ nhất: HR và một nhóm nhân viên được chọn dùng dữ liệu giả đi hết chuỗi tạo hồ sơ → NDA/COI → xin nghỉ → chốt công → đọc payslip. Ghi từng bước không hoàn tất, dữ liệu còn thiếu và phạm vi quyền sai trước khi thêm tích hợp.
 
