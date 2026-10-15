@@ -1,405 +1,219 @@
-# Quy trình bán hàng Lumi — Lumi Local & Lumi Agents / BI
+# Quy trình bán hàng Lumi — Basic miễn phí → gặp chủ → website + Pro
 
-| | |
-|---|---|
-| **Đơn vị** | Công ty TNHH Cloudjet Solutions · MST 0312033924 |
-| **Áp dụng cho** | Founder, CTO, Founding Growth & GTM Specialist, Cộng tác viên (Lumi Partner), Kế toán |
-| **Kênh chính thức** | gtm@runlumi.vn |
-| **Phiên bản** | v1.0 · 12/10/2026 · xem lại sau 30 ngày có dữ liệu thật |
+**Phiên bản 2.0 · 15/10/2026.** Áp dụng cho Founder, Sales Manager, Sales Executive, Lumi Partner, Finance và Fulfillment theo quyền trong Workspace.
 
-> **Một câu tóm tắt:** Lumi Local bán bằng **bản xem thử miễn phí → thu 100% trước khi đưa lên mạng**. Lumi Agents / BI bán bằng **trải nghiệm miễn phí có giới hạn → cọc 50% → nghiệm thu → thu 50%**. Không bao giờ bàn giao sản phẩm cuối trước khi tiền về tài khoản công ty.
+> **Lumi Local:** tặng Trust Kit Basic đã in, xin phép gặp chủ, giao quà và quét thử, tìm hiểu nhu cầu, cho xem website, chốt Starter kèm Trust Kit Pro, xác nhận tiền, bàn giao và theo dõi gia hạn. **Basic không cần mua hàng; website là sản phẩm chính; Pro là phần bàn giao kèm gói.**
 
----
+Đây là hướng dẫn vận hành hiển thị trong CRM, không phải thao tác tự đổi dữ liệu. Playbook, offer và báo giá đã lưu vẫn theo phiên bản của từng cơ hội. Trước khi chào gói in/Pro, Admin phải tạo phiên bản offer có phạm vi đã duyệt; không dùng báo giá cũ ghi “chỉ gồm file, không in”. Quy trình không tự gửi tin, đặt in, thu tiền, xuất bản website hay trả hoa hồng.
 
-## 0. Bảy nguyên tắc không đổi
+## 1. Nắm đúng offer trước khi ra gặp khách
 
-1. **Tiền trước, bàn giao sau.** Bản xem thử và trải nghiệm thì miễn phí; tên miền chính thức, file QR, dashboard bàn giao và quyền truy cập cuối cùng chỉ giao khi đã nhận đủ tiền theo mốc.
-2. **Mọi khoản tiền vào tài khoản công ty.** Không thu tiền mặt, không nhận chuyển khoản vào tài khoản cá nhân, kể cả của nhân viên hay CTV.
-3. **Nói đúng sự thật.** Giao diện và số liệu trên website là minh họa. Không hứa thứ hạng Google, lượng khách, doanh thu hay tỷ lệ tiết kiệm chưa đo.
-4. **Mỗi cơ hội có một chủ.** Ghi vào CRM trước khi liên hệ; CTV đăng ký theo hợp đồng CTV trước khi khách liên hệ Cloudjet.
-5. **Giá theo bảng giá.** Giảm giá hay điều khoản khác bảng giá cần CTO hoặc CEO duyệt bằng email trước khi nói với khách.
-6. **Mỗi bước có điều kiện ra.** Chưa đạt điều kiện ra thì chưa chuyển bước, dù khách nói "để anh suy nghĩ".
-7. **Ghi lý do thắng, thua.** Một dòng mỗi cơ hội. Đây là dữ liệu quý nhất để sửa sản phẩm và kịch bản bán.
-
----
-
-## 1. Hai luồng bán khác nhau
-
-| | **Lumi Local** | **Lumi Agents / BI** |
+| Hạng mục | Khách nhận gì | Giá và giới hạn |
 |---|---|---|
-| Khách hàng | Chủ cơ sở kinh doanh địa phương: spa/salon, gara, điện lạnh, quán cà phê | Nhà bán hàng TMĐT, chuỗi bán lẻ, nhà phân phối có dữ liệu bảng tính hoặc phần mềm bán hàng |
-| Người quyết định | Thường chỉ một người (chủ) | Chủ hoặc giám đốc, cộng thêm người vận hành dữ liệu |
-| Giá (chưa VAT, theo website 01/10/2026) | Trust Kit 399.000 · Starter 1.990.000 năm đầu · duy trì 599.000–999.000/năm | Triển khai BI hoặc Agents 9,9 tr · combo 19,8 tr · bảo trì 6,9 tr/năm · đào tạo 3–6 tr/tháng |
-| Chu kỳ bán | 1–7 ngày | 2–6 tuần |
-| "Mồi" để bắt đầu | Bản xem thử website trong 48 giờ | Trải nghiệm trên một phần dữ liệu thật, phạm vi khóa trước |
-| Thanh toán | **Không cọc**, thu 100% trước khi xuất bản | **Cọc 50%** khi ký, 50% khi nghiệm thu |
-| Kênh chính | Gặp trực tiếp, gọi, Zalo, Google Maps, giới thiệu | Giới thiệu, cộng đồng nhà bán hàng, form website, Zalo/LinkedIn |
-| Rủi ro lớn nhất | Làm nhiều bản xem thử mà không ai trả tiền | Trải nghiệm miễn phí biến thành tư vấn miễn phí kéo dài |
+| **Trust Kit Basic** | Một bảng giấy cứng gấp tự đứng theo mẫu chuẩn, tên cơ sở, QR đánh giá Google trực tiếp; file để in lại | **Miễn phí.** Không cần mua website, nghe demo, đăng bài, giới thiệu hay đánh giá Lumi. Không nhận tiền và không tạo khoản phải thu cho quà tặng. |
+| **Lumi Local Starter + Trust Kit Pro** | Website di động, nội dung được chủ duyệt, Gọi/Zalo, Maps, form liên hệ, hosting/SSL và bảo trì kỹ thuật năm đầu, một vòng sửa cơ bản; một bộ Pro theo quy cách đã thống nhất | **1.990.000đ năm đầu** là giá tham chiếu; báo giá phải ghi rõ thuế đã/chưa gồm và phần thêm được duyệt. Pro là phần bao gồm, không cộng phí ngầm hay tự gắn “trị giá” khuyến mại. |
+| **Trust Kit Pro** | Một bảng để bàn và giá đỡ tiêu chuẩn đã duyệt; thiết kế đồng bộ website; QR đánh giá trực tiếp và QR website có nhãn riêng; bản in và file | Ghi vật liệu, kích thước, số lượng, nơi giao và ngày giao vào scope. Không mặc định có NFC, nhiều chi nhánh, in lại không giới hạn hoặc dịch vụ Google. |
+| **Gia hạn Local** | Hosting, SSL và bảo trì kỹ thuật trong phạm vi; địa chỉ RunLumi hoặc một tên miền riêng tiêu chuẩn được xác nhận | **599.000đ/năm** hoặc **999.000đ/năm**, từ năm hai; quyết định và báo giá riêng. Không tự động tính là doanh thu năm đầu. Không mặc định tặng lại Pro mỗi năm. |
+| **Trust Kit trả phí trước đây** | Quyền lợi theo báo giá/hợp đồng mà khách đã mua | Giữ quyền khấu trừ **399.000đ** khi đủ điều kiện 30 ngày theo offer đang áp dụng; phần Starter còn lại **1.591.000đ**. Basic được tặng không tạo ra khoản khấu trừ này. |
 
-**Trạng thái sản phẩm cần nói đúng với khách:**
+Khách có thể mua Starter trực tiếp, không phải nhận Basic trước. Khách không mua hoặc không muốn xem website vẫn giữ Basic đã tặng; không khóa QR, đòi lại quà hoặc gây áp lực vì đã nhận quà.
 
-- **Lumi BI** đã có một triển khai thực tế kết nối phần mềm bán hàng Nhanh.vn. Đây là điểm vào mạnh nhất cho khách đang dùng Nhanh. Chỉ nêu tên khách hàng khi đã có đồng ý bằng văn bản.
-- **Lumi Agents (Catalog)** đang phát triển. Chỉ nhận **trao đổi nhu cầu và trải nghiệm**. **Không nhận cọc** cho đến khi CTO xác nhận bằng email rằng đã thực hiện được cho đúng bài toán đó.
+QR đánh giá dẫn trực tiếp tới Google, không qua trang lọc người hài lòng. QR website là đích riêng để xem dịch vụ và liên hệ; không thay QR Google bằng một link phụ thuộc gia hạn Lumi. Link Google có thể thay đổi: không hứa hoạt động vĩnh viễn hoặc luôn hiển thị đánh giá.
 
----
+## 2. Điều kiện mở đợt đi thị trường
 
-## 2. Các giai đoạn pipeline (dùng chung trong CRM)
+Sales Manager chọn **một ngành, một cụm địa lý, tối đa 10 lịch gặp đầu tiên**; đây là giới hạn thử nghiệm, không phải kế hoạch tuyển thêm sales. Không in cá nhân hóa hàng loạt trước khi xác nhận cơ sở và lịch.
 
-| Mã | Giai đoạn | Điều kiện để sang bước sau |
+Trước khi đặt in, phải có đủ:
+
+- Mẫu Basic và Pro đã duyệt, quy cách và chi phí thực tế; ngân sách in, đi lại, công người, sửa sai và giao lại.
+- Một người phụ trách bán, một người làm website/Pro, một người xác nhận tiền; công suất và ngày hẹn phù hợp thực tế.
+- Admin tạo **phiên bản mới** của offer Starter trong CRM, giữ giá đã duyệt và ghi rõ phần in/Pro; mọi thay đổi giá do người có thẩm quyền duyệt trước. Không sửa snapshot cũ.
+- Giá trị thuế, tên miền năm đầu, điều kiện sở hữu/chuyển, nơi giao, thời hạn, sửa đổi và hủy/hoàn đã rõ trong phiếu xác nhận. Kế toán xác nhận cách lập hóa đơn; hướng dẫn này không tự đặt chính sách thuế/hoàn tiền.
+- Một bản xem thử theo ngành, riêng tư và ghi “bản nháp”; chưa bật form thật. Không cần làm website hoàn chỉnh trước khi có nhu cầu.
+
+**Chưa rõ chi phí hoặc chưa có scope Pro trong offer thì chưa chào gói như đã sẵn sàng.** Tài liệu website Local và deck cũ có thể vẫn ghi “không in/giá đỡ”; dùng phiếu mới đã duyệt, không để sales đưa hai cam kết trái nhau. Việc cập nhật hướng dẫn CRM không tự cập nhật các kênh đó.
+
+## 3. Chọn khách và xin phép cuộc gặp
+
+Ưu tiên cơ sở đang hoạt động, có khách ghé thực tế, chưa có bảng QR phù hợp, chủ có thể gặp và có vấn đề cụ thể về thông tin dịch vụ/giá/liên hệ trên điện thoại. Chọn bằng chứng về nhu cầu; không suy ra chất lượng dịch vụ hoặc nhu cầu mua website chỉ từ số sao Google.
+
+Tạo hoặc dùng lại công ty, người liên hệ và **một cơ hội Local** trong CRM. Không nhân bản cơ sở để ghi thêm quà tặng. Kiểm tra trùng lặp, người quản lý cơ hội, quyền liên hệ và do-not-contact trước khi lên lịch.
+
+**Mẫu xin phép:**
+
+> Em [Tên] bên Lumi Local, bên em làm website cho cơ sở kinh doanh. Bên em đang tặng một bảng QR đánh giá Google có tên riêng của tiệm, mang qua đặt và quét thử giúp mình. Anh/chị không cần mua gì. Nếu tiện, em xin thêm ba phút cho mình xem một mẫu website phù hợp; không muốn xem vẫn nhận quà bình thường. Em ghé lúc nào có anh/chị ở tiệm thì tiện ạ?
+
+Ghi rõ người quyết định, giờ họ có mặt, địa chỉ/lối vào, cụm tuyến và sự đồng ý. “Đồng ý nhận quà” không đồng nghĩa với đồng ý nghe demo, đặt hàng hoặc nhận liên hệ vô hạn. Không tự đến rồi ép chủ đang bận tiếp; không tiếp tục trên kênh khác khi khách yêu cầu ngừng liên hệ.
+
+## 4. Chuẩn bị Basic và kiểm tra QR trước khi in
+
+Chủ xác nhận đúng tên cơ sở, địa chỉ/chi nhánh và đích đánh giá. Khi cần, hướng dẫn chủ lấy link đánh giá từ Google Business Profile của họ; không xin mật khẩu, OTP hoặc quyền quản trị. Một link mở Maps chưa chắc mở đúng phần viết đánh giá.
+
+Dùng mẫu chuẩn, logo/ảnh được phép dùng; không bịa giá, đánh giá hoặc kết quả. Basic phải đẹp và đọc được, không cố làm kém để ép lên Pro. Thông tin Lumi nhỏ, không lấn thương hiệu cơ sở; không gắn sao hoặc dấu chứng nhận ngụ ý Google bảo trợ.
+
+**Lời mời trên bảng:**
+
+> Bạn thấy trải nghiệm hôm nay thế nào? Quét mã để chia sẻ đánh giá trên Google. Mọi phản hồi đều được trân trọng.
+
+Kiểm tra bản in thử: đúng chi nhánh, QR tương phản rõ, đủ khoảng trống, không bị đường gấp che; quét được ở kích thước in thật trên các thiết bị sẵn có. Ghi ai kiểm tra, ngày, file/phiên bản và đích đã xác nhận. Không giao mã chưa xác minh.
+
+Chỉ mời khách thật chia sẻ tự nguyện. Không xin năm sao, thưởng/giảm giá đổi đánh giá, chọn riêng khách hài lòng, ép viết ngay tại quầy hoặc nhờ nhân viên Lumi viết review thử. Chủ nhận Basic không phải đánh giá Lumi để nhận quà. Google quyết định việc đăng và hiển thị; quét QR không chứng minh đã có review.
+
+## 5. Cuộc gặp: giao quà → hỏi một việc → xem thử → quyết định
+
+### 5.1 Giao và quét thử trước
+
+Xin phép đặt bảng, cùng chủ quét đúng đích và hướng dẫn mời phản hồi trung thực. Quà không phụ thuộc vào đơn hàng. Nếu người nhận là nhân viên chứ không phải chủ, ghi đúng người nhận; không đánh dấu “đã trao đổi với chủ”. Chủ vắng thì ghi kết quả visit và chỉ hẹn lại khi được đồng ý.
+
+### 5.2 Hỏi về một vướng mắc đã xảy ra
+
+> Khi khách hỏi bên mình có dịch vụ nào, giá hoặc cách báo giá ra sao, anh/chị thường gửi từng ảnh hay đã có một đường link chung? Lần gần nhất khách phải hỏi lại hoặc tìm nhầm thông tin là khi nào?
+
+Nếu các kênh sẵn có đã đáp ứng tốt, có thể chưa cần website. Khách chỉ muốn QR đẹp không tự động là khách mua Local. Không kết luận họ đang mất khách khi chưa có bằng chứng.
+
+### 5.3 Xin phép mở bản xem thử
+
+> Bảng QR này dành cho khách đã ghé. Còn trang này để người đang tìm hiểu xem dịch vụ, giờ, đường đi rồi bấm gọi hoặc nhắn Zalo. Em có một bản nháp để mình xem thử.
+
+Dùng một bản xem thử trên điện thoại và một trang giá/phạm vi, không đọc cả deck tại quầy. Chỉ trình bày dịch vụ đã xác nhận hoặc ghi rõ placeholder. Không kích hoạt thu thông tin, mua tên miền hay xuất bản dưới tên cơ sở khi chưa được duyệt.
+
+### 5.4 Chốt bước tiếp theo, không chốt bằng món quà
+
+Nếu khách phù hợp: trình bày Starter, Pro gồm những gì, giá năm đầu và gia hạn, điều kiện bàn giao. Hỏi khách muốn xác nhận phạm vi hay còn điều gì cần làm rõ. Không dùng ưu đãi hết hạn giả hoặc giả định nhận quà là đồng ý mua.
+
+Nếu khách chưa quyết: ghi lý do và bước tiếp theo **được đồng ý**. Nếu không phù hợp hoặc từ chối: ghi kết quả đúng, ngừng theo yêu cầu. Không cho đội tăng giá trị quà để bù việc website không giải quyết nhu cầu.
+
+## 6. Ghi trong CRM hiện tại — không tự tạo một pipeline khác
+
+Luồng hành động Basic/Pro được chạy bằng **playbook `local-preview` hiện có**, tasks, notes, costs, quotes và fulfillment. Bản hướng dẫn này không thêm stage hoặc trường dữ liệu mới vào cơ sở dữ liệu.
+
+| Việc thực tế | Ghi ở đâu | Điều kiện và điều không được suy diễn |
 |---|---|---|
-| S0 | Lead mới | Có tên cơ sở hoặc công ty và một kênh liên hệ |
-| S1 | Đã liên hệ | Khách đã phản hồi (đồng ý nghe, hẹn gặp, hoặc từ chối) |
-| S2 | Đủ điều kiện | Đúng ICP; đã nói chuyện với người quyết định; vấn đề được khách xác nhận |
-| S3 | Xem thử / Trải nghiệm | Khách đã xem bản xem thử (Local) hoặc đã có buổi trình bày kết quả trải nghiệm (Agents/BI) |
-| S4 | Báo giá | Đã gửi báo giá hoặc phiếu xác nhận chính thức |
-| S5 | Chốt | Khách đồng ý bằng văn bản **và** tiền về: 100% (Local) hoặc cọc 50% (Agents/BI) |
-| S6 | Thực hiện | Đủ thông tin, quyền truy cập; đã kick-off |
-| S7 | Bàn giao / Nghiệm thu | Khách xác nhận bàn giao hoặc ký biên bản nghiệm thu |
-| S8 | Thu đủ & hóa đơn | Đã thu đủ tiền; hóa đơn điện tử đã gửi khách |
-| S9 | Khách hàng hoạt động | Theo dõi sử dụng, gia hạn, upsell, xin giới thiệu |
-| X | Thua | Ghi một trong các lý do: giá · chưa cần · đã có giải pháp · không liên lạc được · không đúng ICP · khác |
-
-**Cột tối thiểu trong CRM** (Google Sheet là đủ lúc đầu): mã cơ hội · ngày tạo · chủ cơ hội · nguồn (tự tìm / CTV / inbound / giới thiệu) · tên cơ sở · ngành · khu vực · người quyết định · SĐT/Zalo · sản phẩm · giai đoạn · bước tiếp theo · ngày hẹn bước tiếp theo · giá trị · ngày tiền về · lý do thắng/thua.
-
-> **Quy tắc vận hành:** cơ hội nào **không có "ngày hẹn bước tiếp theo"** là cơ hội chết. Mỗi tối thứ Sáu, chủ cơ hội điền ngày hẹn, hoặc chuyển sang X kèm lý do.
-
----
-
-## 3. Luồng Lumi Local
-
-### Bước 1 — Tìm lead
-
-**ICP ưu tiên:** spa/salon, gara/sửa xe, điện lạnh, quán cà phê và ăn uống nhỏ, là các ngành đã có mẫu giao diện. Ngành khác chỉ làm khi đã có trên 10 khách ở 4 ngành chính.
-
-**Chấm điểm nhanh (khoảng 2 phút mỗi lead trên Google Maps):**
-
-| Tín hiệu | Điểm |
-|---|---|
-| Chưa có website, hoặc website hỏng hay cũ | +2 |
-| Có dưới 30 đánh giá Google, hoặc đánh giá cũ hơn 6 tháng | +2 |
-| Thiếu giờ mở cửa, bảng giá hoặc ảnh thật | +1 |
-| Có Facebook hoặc Zalo đang hoạt động (chủ có quan tâm khách online) | +1 |
-| Đánh giá trung bình dưới 3,5 sao | −2 (vấn đề ở dịch vụ, không phải ở website) |
-
-**A** = từ 4 điểm: liên hệ trong tuần. **B** = 2–3 điểm: đưa vào danh sách nuôi. **C**: bỏ.
-
-**Nguồn lead:** Google Maps theo phường × ngành (thu thập thủ công từ thông tin công khai; không dùng công cụ cào dữ liệu vi phạm điều khoản của Google) · đi bộ một tuyến phố · giới thiệu từ khách cũ · nhóm Zalo/Facebook của chủ cơ sở · CTV.
-
-**Nhịp làm việc gợi ý cho một người:** mỗi tuần 50 lead loại A, theo cụm 1–2 phường để có thể ghé trực tiếp.
-
-### Bước 2 — Liên hệ
-
-- **Thứ tự kênh hiệu quả nhất:** ghé trực tiếp vào giờ vắng khách (thường 14:00–16:00) → gọi điện → Zalo.
-- **Giới hạn chạm:** tối đa 3 lần trong 14 ngày. Dừng ngay khi khách từ chối. Tuân thủ quy định về chống tin nhắn rác và cuộc gọi rác (Nghị định 91/2020/NĐ-CP): chỉ liên hệ trong giờ hành chính.
-- **Mồi duy nhất:** *làm thử miễn phí trang của chính cơ sở, gửi xem trên điện thoại trong 48 giờ, ưng mới làm.*
-- **Xin ngay trong lần gặp:** tên cơ sở chính xác, 3–5 ảnh thật, bảng giá hoặc danh sách dịch vụ, giờ mở cửa, số Zalo, vị trí trên Maps.
-
-**Điều kiện sang S2:** chủ đồng ý nhận bản xem thử **và đã gửi thông tin, ảnh**. Chủ chưa gửi ảnh nghĩa là chưa thật sự quan tâm, nên chưa làm bản xem thử.
-
-### Bước 3 — Bản xem thử (demo)
-
-- Dựng trên địa chỉ tạm dạng `ten-co-so.runlumi.app`, có dòng **"Bản xem thử"** trên trang, trong **48 giờ** kể từ khi đủ thông tin.
-- Chỉ dùng nội dung và ảnh chủ cơ sở cung cấp hoặc xác nhận; ảnh minh họa phải ghi chú.
-- Gửi qua Zalo kèm **video quay màn hình 30 giây** lướt trang trên điện thoại. Chủ cơ sở bận, video dễ xem hơn link.
-- **Nhắc lại:** ngày +1 (hỏi cảm nhận), ngày +3 (hỏi điểm muốn sửa), ngày +7 (lần cuối). Sau đó chuyển sang nuôi và tắt bản xem thử sau 30 ngày.
-
-**Giới hạn công suất:** mỗi người bán tối đa **10 bản xem thử mỗi tuần**, chỉ cho lead loại A đã gửi đủ thông tin. Bản xem thử là chi phí thật của công ty, không phải tài liệu marketing miễn phí.
-
-**Điều kiện sang S4:** chủ nói "ưng" hoặc "làm đi".
-
-### Bước 4 — Chốt (không cọc, thu 100% trước khi xuất bản)
-
-**Vì sao không cọc:** giá nhỏ, và bản xem thử đã làm thay việc của tiền cọc là lọc khách nghiêm túc. Nếu đòi cọc, khách phải chuyển tiền hai lần cho một đơn 2 triệu, làm tăng ma sát mà không giảm rủi ro. Rủi ro được kiểm soát bằng nguyên tắc **chưa thanh toán thì chưa xuất bản, chưa gửi file QR**.
-
-**Gửi Phiếu xác nhận dịch vụ qua Zalo** (mẫu ở mục 8.3). Khách trả lời "Đồng ý" và chuyển khoản là xong; tin nhắn điện tử có giá trị như văn bản theo pháp luật về giao dịch điện tử.
-
-- **Chuyển khoản:** vào tài khoản công ty, mã VietQR in sẵn, nội dung `LUMI L-YYMM-### [tên cơ sở]`.
-- **Trust Kit 399.000:** thu trước, gửi file QR trong 24 giờ. Nâng cấp lên Starter trong 30 ngày được trừ đủ 399.000, khách chỉ trả thêm 1.591.000.
-- **Không giảm giá.** Ưu đãi hợp lệ duy nhất là khoản trừ Trust Kit.
-
-### Bước 5 — Thực hiện và bàn giao
-
-- **Thời hạn:** 03 ngày làm việc kể từ khi tiền về và đủ thông tin. Bao gồm 01 vòng chỉnh sửa nội dung cơ bản.
-- **Checklist bàn giao** (gửi qua Zalo, khách trả lời "Đã nhận"):
-  - [ ] Link website chính thức mở được trên điện thoại, có SSL
-  - [ ] Nút Gọi gọi đúng số, nút Zalo mở đúng tài khoản
-  - [ ] Nút Chỉ đường mở đúng vị trí chủ đã xác nhận
-  - [ ] Dịch vụ, giá, giờ mở cửa đúng như chủ duyệt
-  - [ ] File QR đánh giá Google (PDF sẵn để in) và hướng dẫn đặt ở quầy
-  - [ ] Ngày hết hạn năm đầu và phí duy trì năm 2 (không tự động trừ tiền)
-- Lưu vào CRM: link web, ngày bàn giao, ngày hết hạn.
-
-### Bước 6 — Hóa đơn
-
-- Dịch vụ thu tiền trước thì **lập hóa đơn điện tử tại thời điểm thu tiền**, trong ngày tiền về, rồi gửi PDF qua email hoặc Zalo.
-- Khách là hộ kinh doanh hay cá nhân không có mã số thuế vẫn được xuất hóa đơn.
-- Thông tin cần xin ngay ở Phiếu xác nhận: tên người mua, mã số thuế (nếu có), địa chỉ, email nhận hóa đơn.
-
-### Bước 7 — Sau bán, giới thiệu, upsell
-
-| Thời điểm | Việc | Mục tiêu |
-|---|---|---|
-| Ngày +7 | Hỏi đã in và đặt QR ở quầy chưa; gửi lại file nếu cần | Giá trị thật đến từ đánh giá, mà đánh giá chỉ có khi QR được đặt |
-| Ngày +30 | Hỏi số đánh giá mới, cuộc gọi qua web; **xin giới thiệu 2 cơ sở quen** | Giới thiệu là nguồn lead rẻ nhất |
-| Trong 30 ngày | Khách Trust Kit: đề xuất nâng lên Starter, trừ 399.000 | Upsell tự nhiên nhất |
-| 30 ngày trước hết hạn | Nhắc gia hạn 599.000, hoặc 999.000 kèm tên miền riêng | Giữ khách; không tự động trừ tiền nên phải nhắc |
-| Khi khách có nhiều chi nhánh hoặc nhiều mặt hàng | Giới thiệu Lumi BI | Hiếm, chỉ khi đúng nhu cầu |
-
----
-
-## 4. Luồng Lumi Agents / BI
-
-### Bước 1 — Tìm lead
-
-**ICP ưu tiên, theo mức độ sẵn sàng của sản phẩm:**
-
-1. **Lumi BI — khách đang dùng Nhanh.vn**, có người ra quyết định xem số hằng tuần, đang gặp chênh lệch giữa báo cáo quảng cáo và đơn thực, tồn kho, lãi lỗ theo kênh. Đây là nơi đã có tích hợp chạy thật.
-2. **Lumi BI — dữ liệu ở Excel hoặc Google Sheets** từ nhiều nguồn. Làm được nhưng mất công hơn; cần CTO ước lượng trước khi báo giá.
-3. **Lumi Agents (Catalog)** — nhà bán đa sàn nhiều mã hàng, nhận bảng hàng từ nhà cung cấp. **Chỉ trao đổi và trải nghiệm** cho đến khi CTO xác nhận.
-
-**Nguồn lead:**
-- Form trên agents.runlumi.app (đổ về kênh Discord nội bộ). Ghi vào CRM và phản hồi **trong 01 ngày làm việc**.
-- Giới thiệu từ khách BI.
-- Cộng đồng và sự kiện nhà bán hàng.
-- Đối tác: agency TMĐT, dịch vụ kế toán, đơn vị triển khai phần mềm bán hàng.
-- Liên hệ trực tiếp chủ hoặc trưởng vận hành qua Zalo/LinkedIn.
-
-### Bước 2 — Liên hệ và cuộc gọi tìm hiểu (30 phút)
-
-**Bốn câu hỏi bắt buộc để đủ điều kiện (S2):**
-
-1. Công việc dữ liệu nào **lặp lại hằng tuần**, mất bao nhiêu giờ, ai đang làm?
-2. Dữ liệu nằm ở đâu (Nhanh, sàn, Excel), và công ty **có cho phép** Lumi truy cập một phần không?
-3. **Ai quyết định** mua, và ai sẽ duyệt kết quả?
-4. Nếu kết quả trải nghiệm đạt tiêu chí, khoản **9,9 triệu trong 30 ngày tới** có khả thi không?
-
-Thiếu một trong bốn câu trả lời thì chưa làm trải nghiệm. Gửi email tóm tắt trong ngày (mẫu ở mục 8.5).
-
-### Bước 3 — Trải nghiệm thử miễn phí (demo trên dữ liệu thật)
-
-**Phiếu thống nhất trải nghiệm** (mẫu ở mục 8.6), ký hoặc xác nhận qua email **trước khi nhận dữ liệu**:
-- **Một** bài toán, **một** nguồn dữ liệu, mẫu dữ liệu đã loại bỏ thông tin mật.
-- **Tối đa 2 tuần** lịch và **2 ngày công** của đội Cloudjet.
-- **Tiêu chí thành công đo được** (ví dụ: dashboard đối chiếu đơn quảng cáo với đơn xác nhận cho 4 tuần gần nhất, sai lệch được liệt kê theo từng đơn).
-- **Ngày trình bày kết quả** có **người quyết định tham dự**, và ngày ra quyết định không quá 05 ngày làm việc sau đó.
-- Điều khoản bảo mật và xử lý dữ liệu: dữ liệu dùng vào việc gì, ai được truy cập, xóa khi nào.
-
-> **Quy tắc quan trọng nhất của luồng này:** người quyết định không cam kết tham dự buổi trình bày kết quả thì **không bắt đầu trải nghiệm**. Đây là cách duy nhất để trải nghiệm miễn phí không biến thành tư vấn miễn phí.
-
-### Bước 4 — Đề xuất và chốt (có cọc)
-
-- **Báo giá theo bảng giá:** BI 9,9 tr, Agents 9,9 tr, combo 19,8 tr. Bảo trì và đào tạo là dòng riêng. Chi phí bên thứ ba (API mô hình AI, hạ tầng, bản quyền) ghi rõ ai trả và cách tính. Gửi trong 02 ngày làm việc sau buổi kết quả.
-- **Hợp đồng dịch vụ**, có phụ lục phạm vi và **tiêu chí nghiệm thu** lấy từ Phiếu thống nhất trải nghiệm.
-- **Thanh toán:**
-
-| Mốc | Tỷ lệ | Điều kiện |
-|---|---|---|
-| Ký hợp đồng | **Đặt cọc 50%** | Bắt đầu làm khi tiền cọc về |
-| Nghiệm thu | **50% còn lại** | Trong 07 ngày kể từ biên bản nghiệm thu |
-| Bảo trì năm | 100% trả trước | Trước ngày bắt đầu kỳ bảo trì |
-| Đào tạo tháng | Trả trước từng tháng | Trước ngày 05 hằng tháng |
-
-**Vì sao có cọc:** mỗi dự án tốn công tùy biến thật. Cọc lọc khách nghiêm túc và giữ dòng tiền.
-
-**Ngoại lệ không cọc:** chỉ khi CEO duyệt bằng email cho khách chiến lược, ví dụ đồng ý làm case study có tên. Khi đó thu 100% trong 07 ngày sau nghiệm thu, và **tối đa 01 dự án không cọc đang chạy** cùng lúc.
-
-### Bước 5 — Thực hiện và bàn giao
-
-1. **Kick-off** trong 03 ngày làm việc sau khi nhận cọc. Chốt nguồn dữ liệu, quyền truy cập, người duyệt và lịch.
-2. **Cập nhật hằng tuần** bằng một tin nhắn: đã làm gì · tuần tới làm gì · cần khách làm gì.
-3. **Thay đổi phạm vi:** mọi yêu cầu ngoài phụ lục đều báo giá bổ sung bằng email trước khi làm.
-4. **Nghiệm thu:** demo trên dữ liệu thật theo đúng tiêu chí đã ký. Khách có 05 ngày làm việc để góp ý; quá hạn không phản hồi thì coi là đã nghiệm thu (điều này phải ghi trong hợp đồng).
-5. **Bàn giao:**
-   - [ ] Dashboard hoặc quy trình chạy trên dữ liệu thật
-   - [ ] Tài liệu hướng dẫn sử dụng
-   - [ ] Buổi đào tạo 60 phút cho người dùng chính
-   - [ ] Danh sách quyền truy cập và người phụ trách phía khách
-   - [ ] Kênh hỗ trợ và phạm vi hỗ trợ
-   - [ ] Biên bản nghiệm thu đã ký
-
-### Bước 6 — Thanh toán và hóa đơn
-
-- **Khoản cọc:** ghi đúng tên **"đặt cọc bảo đảm thực hiện hợp đồng"** trong hợp đồng. Theo quy định hóa đơn hiện hành, khoản đặt cọc bảo đảm thường không phải lập hóa đơn khi thu, còn khoản **trả trước** cho dịch vụ thì phải lập hóa đơn tại thời điểm thu. Kế toán cần xác nhận cách xử lý trước hợp đồng đầu tiên.
-- **Khi nghiệm thu:** lập hóa đơn điện tử cho giá trị dịch vụ đã hoàn thành, rồi thu 50% còn lại.
-- **Bảo trì và đào tạo trả trước:** lập hóa đơn tại thời điểm thu tiền.
-
-### Bước 7 — Upsell và giữ khách
-
-| Thời điểm | Việc |
-|---|---|
-| Buổi nghiệm thu | Đề xuất bảo trì 6,9 tr/năm, hoặc đào tạo 3 tr/tháng nếu đội khách còn yếu |
-| Ngày +30 | **Đo mức sử dụng thật**: ai mở dashboard, bao nhiêu lần mỗi tuần, quyết định nào đã dùng số liệu. Chỉ upsell khi khách đang dùng đều |
-| Khi đang dùng đều | Đề xuất hạng mục thứ hai: BI thêm Agents hoặc ngược lại, thành combo |
-| Mỗi quý | Buổi rà soát 30 phút; xin case study hoặc giới thiệu khi đã có kết quả đo được, kèm đồng ý bằng văn bản |
-| 30 ngày trước hết hạn bảo trì | Nhắc gia hạn |
-
-> Khách không dùng thì không gia hạn. Ở luồng này, upsell tốt nhất là làm cho khách **dùng thật** trong 30 ngày đầu.
-
----
-
-## 5. Thanh toán, hóa đơn, công nợ (chung cho hai luồng)
-
-- **Chỉ nhận tiền vào tài khoản công ty:** [SỐ TÀI KHOẢN] — [NGÂN HÀNG] — CÔNG TY TNHH CLOUDJET SOLUTIONS.
-- **Mã đơn:** `L-YYMM-###` cho Local, `A-YYMM-###` cho Agents/BI. Bắt buộc ghi trong nội dung chuyển khoản.
-- **Xác nhận tiền về:** kế toán đánh dấu trên CRM **trong 01 ngày làm việc**. Đây là tín hiệu để bắt đầu làm, để xuất hóa đơn và để tính hoa hồng.
-- **Nhắc công nợ:**
-
-| Mốc sau hạn | Việc | Người làm |
-|---|---|---|
-| +1 ngày | Nhắc nhẹ qua Zalo hoặc email, kèm mã QR | Chủ cơ hội |
-| +7 ngày | Gọi điện | Chủ cơ hội |
-| +15 ngày | Thông báo tạm ngưng hỗ trợ hoặc bảo trì theo hợp đồng | CTO |
-| +30 ngày | CEO xử lý trực tiếp | CEO |
-
-- **Hoàn tiền Local:** hoàn 100% nếu Lumi không bàn giao được trong 14 ngày vì lỗi của Lumi. Không hoàn khi đã bàn giao đúng nội dung khách duyệt.
-- **Hoa hồng CTV:** tính trên tiền đã về, theo Hợp đồng CTV (chốt cuối tháng, bảng kê ngày 05, chi trả ngày 10, khấu trừ 10% thuế TNCN).
-
----
-
-## 6. Vai trò và cam kết thời gian
-
-| Vai trò | Phụ trách chính |
-|---|---|
-| **CEO** | Duyệt giảm giá và ngoại lệ không cọc; xử lý công nợ trên 30 ngày; khách chiến lược |
-| **CTO** | Xác nhận khả năng thực hiện Agents/BI; ước lượng; nghiệm thu kỹ thuật; duyệt giá ngoài khung |
-| **GTM Specialist** | Tìm lead, liên hệ, gọi tìm hiểu, bản xem thử, chốt; giữ CRM sạch; họp pipeline hằng tuần |
-| **CTV (Lumi Partner)** | Tìm và giới thiệu hoặc tự chốt theo Hợp đồng CTV; đăng ký cơ hội trước |
-| **Kế toán** | Xác nhận tiền về, xuất hóa đơn, khấu trừ thuế, chi hoa hồng |
-
-| Việc | Thời hạn |
-|---|---|
-| Phản hồi lead inbound | Local: 2 giờ làm việc · Agents/BI: 01 ngày làm việc |
-| Bản xem thử Local | 48 giờ từ khi đủ thông tin |
-| Báo giá Agents/BI | 02 ngày làm việc sau buổi kết quả |
-| Bàn giao Local | 03 ngày làm việc từ khi tiền về |
-| Kick-off Agents/BI | 03 ngày làm việc từ khi nhận cọc |
-| Xác nhận tiền về | 01 ngày làm việc |
-| Xuất hóa đơn | Trong ngày phát sinh nghĩa vụ lập hóa đơn |
-
----
-
-## 7. Chỉ số và họp pipeline hằng tuần
-
-**Họp 30 phút mỗi tuần** (GTM Specialist cùng CTO):
-1. Số cơ hội ở mỗi giai đoạn, so với tuần trước.
-2. Các cơ hội **kẹt quá 14 ngày** ở một giai đoạn: chốt bước tiếp theo, hoặc chuyển sang X.
-3. Lý do thua của tuần.
-4. **Một** thử nghiệm cho tuần tới (kịch bản, ngành, khu vực, kênh).
-
-**Mục tiêu khởi điểm** — đây là **giả thuyết**, cần hiệu chỉnh sau 4 tuần có dữ liệu thật:
-
-| Lumi Local (mỗi tuần, một người) | | Lumi Agents / BI (mỗi tháng) | |
-|---|---|---|---|
-| Lead loại A | 50 | Cuộc gọi tìm hiểu | 10 |
-| Phản hồi | 15 | Đủ điều kiện | 5 |
-| Bản xem thử | 8 | Trải nghiệm | 3 |
-| Chốt | 3 | Chốt | 1 |
-| **Chỉ số chính** | Tỷ lệ xem thử → trả tiền (mục tiêu ≥ 35%) | **Chỉ số chính** | Tỷ lệ trải nghiệm → trả tiền (mục tiêu ≥ 33%) |
-
-**Tín hiệu cần dừng lại để xem xét:**
-- Local: chốt dưới 20% bản xem thử sau 4 tuần → xem lại ICP, kịch bản hoặc giá, đừng tăng số bản xem thử.
-- Agents/BI: hai trải nghiệm liên tiếp không ra quyết định đúng hạn → siết điều kiện người quyết định phải tham dự.
-
----
-
-## 8. Mẫu dùng ngay
-
-### 8.1 Tin nhắn hoặc lời mở đầu — Local
-
-> Chào anh/chị [Tên], em là [Tên] bên Lumi. Em thấy [tên cơ sở] trên Google Maps được khách khen [điểm tốt cụ thể], nhưng khách mới tìm thì chưa thấy rõ bảng giá và nút gọi nhanh. Em làm thử miễn phí một trang riêng cho tiệm, gửi anh/chị xem trên điện thoại trong 2 ngày; ưng thì làm, không ưng cũng không sao. Anh/chị gửi em 3–5 ảnh thật và bảng giá được không ạ?
-
-### 8.2 Gửi bản xem thử — Local
-
-> Anh/chị [Tên] ơi, đây là bản xem thử trang của [tên cơ sở]: [link]. Em gửi kèm video 30 giây để anh/chị lướt nhanh. Anh/chị xem giúp em giá và giờ mở cửa đã đúng chưa, muốn sửa chỗ nào em sửa luôn ạ.
-
-### 8.3 Phiếu xác nhận dịch vụ — Local (gửi qua Zalo)
-
-```
-PHIẾU XÁC NHẬN DỊCH VỤ LUMI LOCAL — Mã đơn: L-YYMM-###
-Cơ sở: …………………    Người đại diện: …………………
-Gói: ☐ Trust Kit 399.000đ   ☐ Starter 1.990.000đ (năm đầu)   [giá chưa/đã gồm VAT: …]
-Gồm: website riêng, nút Gọi/Zalo, chỉ đường, file QR đánh giá Google, hosting, SSL,
-     bảo trì năm đầu, 01 vòng chỉnh sửa nội dung cơ bản. Chưa gồm in ấn, chân đế.
-Địa chỉ web: ……….runlumi.app   ☐ Tên miền riêng: ………
-Duy trì từ năm 2: 599.000đ/năm (địa chỉ RunLumi) hoặc 999.000đ/năm (tên miền riêng).
-  Không tự động trừ tiền; Lumi nhắc trước 30 ngày.
-Không cam kết thứ hạng Google, lượng khách hay doanh thu.
-Thanh toán: chuyển khoản 100% vào TK công ty [STK – Ngân hàng – CÔNG TY TNHH CLOUDJET SOLUTIONS],
-  nội dung: LUMI L-YYMM-### [tên cơ sở]. Lumi xuất bản và gửi file QR sau khi nhận tiền.
-Bàn giao: trong 03 ngày làm việc kể từ khi nhận tiền và đủ thông tin.
-Hóa đơn điện tử gửi về: tên người mua ……… · MST (nếu có) ……… · email ………
-→ Anh/chị trả lời "ĐỒNG Ý" để xác nhận.
+| Tìm cơ sở, kiểm tra thông tin | Cơ hội `new`; thông tin ngành, khu vực, Maps, website | Không có website chưa đủ để coi là nhu cầu mua. |
+| Đủ điều kiện tiếp cận | `qualified`, điền field/checklist của phiên bản playbook | Chủ chưa phản hồi vẫn chưa được coi là đã gặp. |
+| Chủ đồng ý lịch | Task `visit`, ngày/giờ, contact, xác nhận lịch; note nêu đồng ý nhận quà/demo riêng | Hẹn gặp không phải giai đoạn “đã trao đổi”. |
+| Chuẩn bị/in Basic | Task `internal`; note `[BASIC_READY]` kèm file, đích QR, người kiểm tra; cost tương ứng | Không quote, payment hoặc commission cho Basic. |
+| Gặp chủ và bàn giao Basic | Hoàn thành `visit` với kết quả thật; note `[BASIC_DELIVERED]` hoặc `[BASIC_DECLINED]` | Chỉ chuyển `owner_talked` khi đã nói với người quyết định và đủ yêu cầu playbook. |
+| Chủ vắng hoặc hẹn lại | `owner_absent`, `rescheduled`, `no_show` hoặc `declined` theo thực tế | Giao cho nhân viên không phải gặp chủ; không đếm lại cùng doanh nghiệp như lead mới. |
+| Xem website | `preview_shown`; ghi phiên bản, nguồn, quyền hình ảnh, phản hồi | Bước có thể bỏ qua với lý do theo playbook; không ép xem để giữ quà. |
+| Đang chọn và báo giá | `deciding`; next step, thời hạn và quote đúng phiên bản | Giá trị chưa biết để trống, không ghi 0. |
+| Chủ chấp thuận | Quote accepted có bằng chứng, rồi `accepted` khi đủ điều kiện | **Accepted không đồng nghĩa paid.** Không cộng Basic thành 399.000đ tín dụng. |
+| Tiền thực nhận | Seller báo khoản tiền theo quyền; **Finance xác nhận** vào ledger | Ảnh chuyển khoản hoặc lời khách nói chưa thay xác nhận tài chính. Partner không xử lý tiền. |
+| Website và Pro | Handoff + Fulfillment; ghi scope Pro, phiên bản in, kiểm tra QR và bằng chứng nhận vào hồ sơ bàn giao | Note `[PRO_DELIVERED]` chỉ là ghi chú; không tự chuyển trạng thái bàn giao hoặc tạo hoa hồng. |
+| Gia hạn | Cơ hội mới theo `local-renewal`, liên kết `parent_id` cùng công ty | Không tạo lại khách hàng hoặc tính trước doanh thu gia hạn. |
+
+Các nhãn `[BASIC_READY]`, `[BASIC_DELIVERED]`, `[BASIC_DECLINED]`, `[PRO_DELIVERED]` là **quy ước ghi chú thủ công**, không phải tính năng tự động. Không tuyên bố CRM đã tự đếm Basic/Pro. Dùng audit/history để đối chiếu; dữ liệu liên hệ và hình ảnh khách ở CRM/tài liệu riêng tư, không đưa lên Git.
+
+## 7. Báo giá, tiền và quyền lợi khách cũ
+
+Basic được tặng trước và độc lập với thanh toán. Với **phần trả phí Local**, giữ nguyên quy tắc thu 100% theo phiếu trước khi xuất bản chính thức và bàn giao Pro. Nếu có ngoại lệ, người có thẩm quyền duyệt và ghi vào phạm vi; không tự hứa.
+
+**Phiếu xác nhận tối thiểu:**
+
+```text
+LUMI LOCAL STARTER + TRUST KIT PRO — Cơ hội: [mã CRM]
+Cơ sở / người đại diện: [...]
+Offer ID và phiên bản: [...]
+Giá năm đầu: 1.990.000đ; thuế và khoản riêng đã xác nhận: [...]
+Khấu trừ Trust Kit đã TRẢ TIỀN trước đây, nếu đủ điều kiện: [...]
+Số tiền phải thanh toán: [...]; Basic tặng không phải tín dụng.
+Website: nội dung chủ duyệt, Gọi/Zalo, Maps, form, hosting/SSL,
+  bảo trì kỹ thuật năm đầu, một vòng sửa nội dung cơ bản.
+Pro: [vật liệu, kích thước, số lượng, giá đỡ, hai đích QR, file bàn giao].
+Nơi giao / ngày giao thực tế được hẹn: [...]
+Tên miền/địa chỉ năm đầu, sở hữu, chuyển giao, phí ngoài gói: [...]
+Gia hạn từ năm hai: 599.000đ hoặc 999.000đ/năm theo lựa chọn đã xác nhận.
+Không gồm mặc định: ads, Google profile management, cửa hàng trực tuyến,
+  booking, CRM, chatbot, sửa không giới hạn, in lại hoặc nhiều chi nhánh.
+Không cam kết đánh giá, thứ hạng, khách hay doanh thu.
+Thanh toán và hủy/hoàn theo điều khoản hai bên đã xác nhận: [...]
+Bằng chứng chấp thuận / thông tin hóa đơn: [...]
 ```
 
-### 8.4 Tin nhắn bàn giao — Local
+Chỉ dùng tài khoản và thông tin thu tiền công ty do Finance xác nhận; không thu tiền mặt hoặc nhận vào tài khoản cá nhân. Không coi một bản ghi thu tiền là CRM đã thực hiện thanh toán. Hóa đơn, thuế và hủy/hoàn theo điều khoản hợp lệ và kế toán kiểm tra, không theo suy đoán của sales.
 
-> Trang của [tên cơ sở] đã chạy chính thức: [link]. Em gửi kèm file QR đánh giá để anh/chị in đặt ở quầy, cùng hóa đơn điện tử. Năm đầu dùng đến [ngày]; trước hạn 30 ngày em sẽ nhắc. Anh/chị kiểm tra giúp em nút Gọi, Zalo và Chỉ đường rồi trả lời "Đã nhận" nhé.
+Khách đã mua Trust Kit 399.000đ giữ điều khoản khấu trừ 30 ngày theo snapshot và lịch sử thanh toán; không xóa, thu hồi hoặc áp chính sách mới hồi tố. Ghi từng payment/credit/refund/void đúng chức năng, không sửa dòng tiền cũ. Quà Basic không tạo khoản 399.000đ đã thu, giảm giá giả hoặc hoa hồng.
 
-### 8.5 Email sau cuộc gọi tìm hiểu — Agents/BI
+## 8. Bàn giao website + Pro và chăm sóc sau bán
 
-```
-Tiêu đề: [Lumi] Tóm tắt trao đổi ngày dd/mm và đề xuất trải nghiệm
+Sales bàn giao một hồ sơ: quote đã chấp thuận, thông tin tiền để Finance đối chiếu, dịch vụ/giá/giờ do chủ xác nhận, quyền hình ảnh, tên miền và ownership, người nhận enquiry, phạm vi sửa, ngày giao, thông số Pro và thiếu sót còn mở.
 
-Chào anh/chị [Tên],
-Cảm ơn anh/chị đã trao đổi. Em tóm tắt để mình thống nhất:
-- Việc đang tốn công: [mô tả] — khoảng [x] giờ/tuần, do [ai] làm.
-- Dữ liệu: [nguồn], có thể chia sẻ [phần dữ liệu] đã loại thông tin mật.
-- Người quyết định: [tên]; người duyệt kết quả: [tên].
-- Kết quả mong muốn: [tiêu chí đo được].
-Đề xuất: trải nghiệm miễn phí tối đa 2 tuần, trình bày kết quả ngày [dd/mm] với [người quyết định].
-Nếu đạt, chi phí triển khai theo bảng giá là [9,9 / 19,8] triệu (chưa VAT), cọc 50% khi ký.
-Anh/chị xác nhận giúp em để em gửi Phiếu thống nhất trải nghiệm nhé.
-```
+Fulfillment phụ trách kiểm tra và ghi bằng chứng:
 
-### 8.6 Phiếu thống nhất trải nghiệm — Agents/BI (khung)
+- Chủ đã duyệt bản cuối; Gọi/Zalo mở đúng đích, Maps đúng vị trí, form tới đúng người của cơ sở, HTTPS và màn hình điện thoại hoạt động.
+- Pro đúng tên/logo/phiên bản đã duyệt; quét QR đánh giá trực tiếp tới đúng cơ sở và QR website tới trang đã được phép xuất bản; kiểm tra lại sau in.
+- Bản in, giá đỡ và file đã giao đúng số lượng; ghi người nhận, ngày và xác nhận nhận. Không dùng ảnh người/quầy cho marketing nếu chưa được phép.
+- Ghi phần chưa đạt và người xử lý; không đánh dấu nghiệm thu khi còn thiếu website hoặc Pro đã cam kết. CRM hiện chưa có trạng thái Pro riêng: ghi trong handoff/check notes/acceptance evidence và chỉ người có quyền Fulfillment cập nhật bàn giao.
 
-| Mục | Nội dung |
-|---|---|
-| Bài toán (01) | |
-| Nguồn dữ liệu (01) và phần được phép dùng | |
-| Tiêu chí thành công đo được | |
-| Thời gian | Từ … đến … (tối đa 2 tuần) |
-| Ngày trình bày kết quả · người quyết định tham dự | |
-| Ngày ra quyết định | ≤ 05 ngày làm việc sau buổi kết quả |
-| Bảo mật dữ liệu | Mục đích sử dụng · người truy cập · xóa trong 30 ngày nếu không triển khai |
-| Giá nếu triển khai | Theo bảng giá; cọc 50% khi ký |
-| Xác nhận | Khách hàng (email) · Cloudjet (email) |
+Ngày theo dõi do hai bên thống nhất. Có thể hỏi bảng đã được đặt chưa, link có đúng không và còn vướng mắc nào; không ép chụp ảnh chứng minh nhận quà hoặc viết review. Gia hạn là quyết định riêng. Chỉ đề xuất Lumi Ops/Agents khi có nhu cầu vận hành lặp lại, không đưa chúng thành điều kiện dùng Basic hay website.
 
-### 8.7 Biên bản nghiệm thu — Agents/BI (khung)
+## 9. Chi phí, đo lường và điều kiện dừng
 
-Mã hợp đồng · hạng mục · từng tiêu chí nghiệm thu với kết quả đạt hoặc chưa đạt · tồn đọng và hạn xử lý · tài liệu đã bàn giao · số tiền còn lại và hạn thanh toán (07 ngày) · chữ ký hai bên.
+**Số Basic được phát không phải doanh thu.** Đo toàn bộ nhóm: cơ sở đủ điều kiện → lịch được đồng ý → chủ thực sự gặp → Basic nhận/đặt dùng → xem website → Starter trả tiền → giao đúng scope và có đóng góp dương.
 
-### 8.8 Nhắc gia hạn
+Trong CRM, phân loại chi phí theo mục đích:
 
-> Anh/chị [Tên] ơi, trang [link] sẽ hết hạn năm đầu ngày [dd/mm]. Phí duy trì năm 2 là 599.000đ (giữ địa chỉ hiện tại) hoặc 999.000đ (kèm tên miền riêng dạng tencoso.vn). Lumi không tự động trừ tiền; anh/chị chọn gói nào để em gửi mã thanh toán ạ?
-
-### 8.9 Nhắc công nợ
-
-> Chào anh/chị [Tên], khoản [số tiền] cho đơn [mã đơn] đến hạn ngày [dd/mm]. Em gửi lại mã QR thanh toán ở đây. Nếu anh/chị đã chuyển, gửi em ảnh xác nhận để em đối chiếu nhé.
-
----
-
-## 9. Không làm
-
-- Không bàn giao tên miền chính thức, file QR, dashboard cuối hay quyền truy cập trước khi nhận đủ tiền theo mốc.
-- Không nhận tiền ngoài tài khoản công ty.
-- Không hứa thứ hạng Google, lượng khách, doanh thu, hay tỷ lệ tiết kiệm chưa đo.
-- Không nhận cọc cho Lumi Agents (Catalog) khi CTO chưa xác nhận khả năng thực hiện.
-- Không bắt đầu trải nghiệm khi người quyết định chưa cam kết dự buổi kết quả.
-- Không làm bản xem thử khi khách chưa gửi ảnh và thông tin.
-- Không giảm giá ngoài bảng giá khi chưa có email duyệt.
-- Không nêu tên hay số liệu của khách hàng hiện có khi chưa có đồng ý bằng văn bản.
-
----
-
-## 10. Cần chốt trước khi chạy quy trình
-
-| # | Việc | Người chốt |
+| Chi phí | Category hiện có | Ghi chú |
 |---|---|---|
-| 1 | **Giá Lumi Local đã gồm VAT hay chưa?** Khách địa phương thường hiểu 1.990.000 là giá trọn gói. Website chỉ ghi "chưa VAT" cho Lumi Agents | CEO + Kế toán |
-| 2 | Số tài khoản công ty và mã VietQR in sẵn | Kế toán |
-| 3 | Phần mềm hóa đơn điện tử; cách xử lý hóa đơn cho khoản đặt cọc | Kế toán |
-| 4 | Công cụ CRM (Google Sheet theo cột ở mục 2 là đủ cho 3 tháng đầu) | GTM Specialist |
-| 5 | **Ai dựng bản xem thử, và công suất mỗi tuần là bao nhiêu?** Đây là điểm nghẽn thật của luồng Local | CTO |
-| 6 | Hợp đồng dịch vụ mẫu cho khách Agents/BI, có phụ lục phạm vi, tiêu chí nghiệm thu, điều khoản im lặng là nghiệm thu, và bảo mật dữ liệu | CEO |
-| 7 | Hộp thư gtm@runlumi.vn có người trực hằng ngày | CEO |
+| Basic miễn phí: giấy, in, dựng mẫu, đóng gói | `sales` | Ghi `trust-kit-basic/print` hoặc `/prepare`, bằng chứng và số lượng để tính vào chi phí thu hút khách. |
+| Đi lại, cả lần chủ vắng | `travel` | Ghi cụm tuyến; chia chi phí có phương pháp hoặc ghi chung cohort, không đếm hai lần. |
+| Tìm khách, làm preview, gặp/chốt | `research`, `preview`, `sales` | Công founder và cơ hội không thắng cũng là chi phí. |
+| Pro thuộc đơn Starter đã bán | `printing`, `delivery` | Chi phí thực hiện; ghi quy cách/số lượng và công giao lại. |
+| Website, domain, hosting, hỗ trợ | Category tương ứng | Phân biệt `actual` với `estimate`; dự phòng hỗ trợ không phải tiền đã chi. |
+
+Lưu ý: báo cáo hiện tại xếp `printing` vào chi phí giao hàng, **không vào CAC**. Vì vậy Basic dùng `sales`; Pro dùng `printing`. Không đổi nhãn hoặc sửa chi phí quá khứ để làm tỷ lệ đẹp hơn. Nếu có minutes mà thiếu amount quy đổi thì costing chưa đầy đủ; không ghi 0 chỉ để vượt cổng. Tránh ghi trùng minutes giữa hoàn tất task và một dòng cost bổ sung.
+
+**CAC Starter = toàn bộ chi phí thu hút khách của nhóm / số doanh nghiệp Starter đã trả tiền.** Đóng góp năm đầu trừ thêm chi phí giao website/Pro, domain/hosting, hoàn tiền và dự phòng hỗ trợ. Không dùng gia hạn chưa có để che lỗ năm đầu.
+
+Ví dụ giả định, không phải chi phí Lumi: tổng tiếp cận 30 cơ sở là 2.700.000đ thì 2 Starter cho CAC 1.350.000đ; 5 Starter cho CAC 540.000đ; 9 Starter cho CAC 300.000đ. Chưa trừ giao website và Pro. Hai đơn chỉ là tín hiệu học, không chứng minh kênh có lãi.
+
+Mục tiêu nội bộ để xem xét nhóm kế tiếp: công preview trung bình không quá 5 phút; CAC hướng tới không quá 600.000đ/Starter; delivery chuẩn hóa và đóng góp dương sau dự phòng. Đây là giả thuyết kiểm chứng, không phải kết quả đã đạt. Cổng cohort/commission đang lưu trong CRM vẫn theo phiên bản policy; hướng dẫn này không tự sửa chúng.
+
+Dừng tăng in/đi thị trường khi không gặp đúng chủ, QR bị dùng sai, chi phí chưa biết, quà được nhận nhiều nhưng không có nhu cầu website, hoặc đơn giao lỗ. Không nâng giá trị quà để chữa sai tệp. Nếu 20 cuộc nói chuyện đủ điều kiện chưa có Starter trả tiền, xem lại vấn đề/tệp/cách bán trước khi tăng số lượt. Sau nhóm đầu, đối chiếu cách đến chỉ có preview với cách mang Basic; mẫu nhỏ chỉ cho tín hiệu định hướng.
+
+## 10. Kịch bản ngắn để dùng tại quầy
+
+**Giao Basic:**
+
+> Em gửi bảng tặng mình. Mình quét thử xem đúng cơ sở chưa nhé. Bảng này anh/chị giữ dùng, không cần mua website hay đánh giá Lumi.
+
+**Mời xem website:**
+
+> Bên mình đã có chỗ gửi một link để khách xem dịch vụ và liên hệ chưa? Nếu đang phải gửi nhiều ảnh, em xin phép cho mình xem bản nháp trên điện thoại.
+
+**Báo gói đã được duyệt:**
+
+> Starter là 1.990.000đ năm đầu. Theo phạm vi này, bên em bàn giao cả website và bộ Pro [quy cách]. Gia hạn từ năm hai là [599.000đ hoặc 999.000đ/năm theo lựa chọn]. Em gửi rõ tên miền, thuế và phần loại trừ trước khi mình quyết định.
+
+**Chủ không có mặt:**
+
+> Em ghi nhận anh/chị chưa tiện. Mình có muốn em hẹn một thời điểm khác không? Nếu không, em không làm phiền thêm.
+
+**Chưa cần web hoặc từ chối:**
+
+> Vậy mình cứ dùng bảng đã nhận nhé. Nếu các kênh hiện tại đã đủ rõ thì chưa cần làm thêm website.
+
+**Bàn giao:**
+
+> Em gửi website, file và bộ Pro theo phiếu [mã]. Anh/chị cùng kiểm tra hai QR, Gọi/Zalo và thông tin cơ sở nhé. Phần còn vướng em ghi lại để xử lý; kỳ duy trì và điều kiện gia hạn là [đã chốt].
+
+## 11. Luồng Agents / BI vẫn tách riêng
+
+Thay đổi Basic/Pro áp dụng cho **Lumi Local**, không đổi bảng giá hay cam kết cũ của Agents/BI. Sử dụng playbook `lumi-solution`; không bán Vaults hoặc di chuyển dữ liệu như điều kiện bắt buộc.
+
+Giữ cách bán hiện hành: tìm hiểu một công việc lặp lại, dữ liệu được phép dùng, người duyệt và người trả tiền; xác nhận khả thi trước khi nhận dữ liệu thật hoặc thu cọc. Trải nghiệm miễn phí phải có phạm vi, ngân sách công, tiêu chí kết quả và ngày quyết định; khung hiện có tối đa hai tuần lịch và hai ngày công, không là cam kết giao cho mọi khách. Dữ liệu tổng hợp không phải bằng chứng kết quả khách hàng.
+
+Mức tham chiếu theo tài liệu hiện có: BI 9,9 triệu một lần; Agents 9,9 triệu một lần; chọn cả hai 19,8 triệu; Basic maintenance 6,9 triệu/năm; đào tạo/cải tiến 3 hoặc 6 triệu/tháng, scope và chi phí bên thứ ba tách riêng. Người phụ trách xác nhận phiên bản báo giá và khả năng cung cấp trước khi nói với khách. Giá triển khai một lần không phải ARR.
+
+Giữ khung thanh toán hợp đồng 50% khi ký, 50% khi nghiệm thu theo thỏa thuận; ngoại lệ cần phê duyệt. Finance xác nhận tiền; Fulfillment xác nhận đầu ra và bằng chứng nghiệm thu. Không tự coi im lặng là nghiệm thu, không tự hứa SLA, hoàn tiền hoặc cách xử lý thuế khi chưa có điều khoản được kiểm tra. Chỉ xin case study hay giới thiệu với đồng ý phù hợp và kết quả có căn cứ.
+
+## 12. Nguồn sự thật và kiểm tra trước khi dùng
+
+- Quy trình Basic miễn phí, gặp trực tiếp và Starter kèm Pro: quyết định người dùng trong phiên cập nhật **15/10/2026**. Quy cách và ngân sách cụ thể cần duyệt trước khi áp dụng.
+- [Mô hình, phiên bản và quyền CRM](https://github.com/RunLumi/www.runlumi.app/blob/main/docs/crm/README.md); [hướng dẫn CRM](https://github.com/RunLumi/www.runlumi.app/blob/main/docs/crm/HUONG-DAN.md); [commission](https://github.com/RunLumi/www.runlumi.app/blob/main/docs/crm/COMMISSION.md).
+- [Giá Local trước thay đổi in/Pro](https://github.com/RunLumi/local.runlumi/blob/main/PRICING.md) và [quy định nội dung](https://github.com/RunLumi/local.runlumi/blob/main/COPY.md): giữ giá, quyền khách cũ và ranh giới website; phần in loại trừ ở đó chưa tự thay đổi bởi hướng dẫn này.
+- [Google: tạo link/QR mời đánh giá](https://support.google.com/business/answer/16816815?hl=en) và [chính sách nội dung Google Maps](https://support.google.com/contributionpolicy/answer/7400114?hl=en), kiểm tra 15/10/2026. Không hứa tăng số đánh giá hay thứ hạng.
+- [Giá Agents](https://github.com/RunLumi/agents.runlumi_app/blob/main/pricing.md) và scope thực tế được xác nhận cho từng khách; việc cập nhật hướng dẫn này không xác nhận mọi agent đã sẵn sàng.
+
+**Trước mỗi cuộc gặp:** đúng chủ, có đồng ý, đúng QR, Basic được tặng thật, chi phí được giới hạn, bản web là nháp, báo giá/Pro đúng phiên bản. **Sau cuộc gặp:** ghi sự thật, bước tiếp theo được đồng ý và đủ chi phí; không tăng chỉ số bằng quà hoặc lời hứa.
