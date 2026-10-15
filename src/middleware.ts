@@ -70,14 +70,23 @@ export const onRequest = defineMiddleware(async (context, next) => {
         hrmReady = policy?.enabled===1 && !!policy.legal_entity && !!policy.purpose && !!policy.retention_policy && !!policy.policy_reference && !!policy.reviewed_by;
       } catch { hrmReady=false; }
     }
-    let currentEmployment=true;
-    if(hrmReady&&selfServiceOnly){
-      try{currentEmployment=!!(await DB.prepare("SELECT 1 AS active FROM hrm_people p JOIN hrm_employments e ON e.person_id=p.id WHERE p.user_id=? AND e.status!='ended' AND (e.ended_on IS NULL OR e.ended_on>date('now','+7 hours')) LIMIT 1").bind(user.id).first<{active:number}>())}
-      catch{currentEmployment=false}
-    }
-    user.hrmEnabled = hrmReady&&(!selfServiceOnly||currentEmployment);
-    context.locals.workspace = user;
     const hrmRoute=path==="/hrm"||path.startsWith("/hrm/")||path==="/vi/hrm"||path.startsWith("/vi/hrm/");
+    let employmentState:"active"|"ended"|"none"|"unknown"="none";
+    if(user.can("hrm.access")&&!user.admin){
+      try{
+        const own=await DB.prepare(`SELECT
+          EXISTS(SELECT 1 FROM hrm_people WHERE user_id=?) AS has_person,
+          EXISTS(SELECT 1 FROM hrm_people p JOIN hrm_employments e ON e.person_id=p.id WHERE p.user_id=? AND e.status!='ended' AND (e.ended_on IS NULL OR e.ended_on>date('now','+7 hours'))) AS active_period`)
+          .bind(user.id,user.id).first<{has_person:number;active_period:number}>();
+        employmentState=own?.has_person?(own.active_period?"active":"ended"):"none";
+      }catch{employmentState="unknown"}
+    }
+    user.hrmEmploymentEnded=employmentState==="ended"||employmentState==="unknown";
+    const currentEmployment=employmentState==="active";
+    user.hrmEnabled = hrmReady&&(!selfServiceOnly||currentEmployment)&&!user.hrmEmploymentEnded;
+    context.locals.workspace = user;
+    if(hrmRoute&&employmentState==="ended")return forbidden(vi);
+    if(hrmRoute&&employmentState==="unknown"&&!user.admin)return new Response("HRM employment status could not be verified.",{status:503,headers:{"Cache-Control":"private, no-store"}});
     if(hrmRoute&&!hrmReady&&!user.can("hrm.configure")){
       if(area.api)return new Response("HRM is not activated.",{status:503,headers:{"Cache-Control":"private, no-store"}});
       const body=vi

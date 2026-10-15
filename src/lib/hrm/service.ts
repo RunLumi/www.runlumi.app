@@ -11,7 +11,7 @@ export interface Person {
 }
 export interface HrmRecord { id: string; person_id: string; kind: RecordKind; data: string; state: string; version: number; effective_from: string | null; effective_to: string | null; verified_by: string | null; verified_at: string | null; updated_at: string }
 export interface Change { id: string; person_id: string; record_id: string; kind: RecordKind; data: string; expected_version: number; state: string; submitted_by: string; reviewed_by: string | null; review_reason: string | null; version: number; effective_from: string | null; effective_to: string | null; created_at: string }
-export interface PrivateFile { id: string; person_id: string; record_id: string | null; kind: string; original_name: string; mime_type: string; size_bytes: number; checksum: string; state: string; uploaded_by: string; reviewed_by: string | null; version: number; expires_on: string | null; legal_hold: number; created_at: string }
+export interface PrivateFile { id: string; person_id: string; record_id: string | null; kind: string; original_name: string; mime_type: string; size_bytes: number; checksum: string; state: string; uploaded_by: string; reviewed_by: string | null; version: number; expires_on: string | null; legal_hold: number; object_deleted_at?:string|null; created_at: string }
 export const id = (prefix: string) => `${prefix}_${crypto.randomUUID().replaceAll("-", "")}`;
 export const now = () => new Date().toISOString();
 export async function settings(db: D1Database): Promise<Settings> {
@@ -111,6 +111,7 @@ export async function saveSettings(db: D1Database,user: WorkspaceUser,key: strin
 }
 export async function savePerson(db:D1Database,content:D1Database,user:WorkspaceUser,key:string,personId:string|null,employmentId:string|null,version:number,profileVersion:number,input:Omit<Person,"id"|"employment_id"|"version"|"profile_version"|"actor_id"|"created_at"|"updated_at">):Promise<string>{
  requirePermission(user,"hrm.records.manage");
+ if(input.status==="ended"&&!input.ended_on)throw new HrmError("offboarding_end_date_required");
  if(input.user_id||input.manager_user_id){const accounts=await emdashUsers(content,[input.user_id??"",input.manager_user_id??""]);for(const accountId of [input.user_id,input.manager_user_id].filter(Boolean)){const account=accounts.get(accountId!);if(!account||account.disabled)throw new HrmError("invalid_account")}}
  if(input.manager_user_id){const managers=await membersWithRoles(db,content,["people_manager","hrm_admin"]);if(!managers.some(m=>m.user_id===input.manager_user_id))throw new HrmError("invalid_manager")}
  if(input.user_id&&input.user_id===input.manager_user_id)throw new HrmError("invalid_manager");

@@ -86,20 +86,31 @@ try {
   const runSuites = suites => spawnSync(
     process.execPath,
     ["--test", "--test-concurrency=1", ...suites],
-    { cwd: root, env, stdio: "inherit" },
+    { cwd: root, env, stdio: "inherit", timeout: 600_000, killSignal: "SIGTERM" },
   );
-  console.log("Running HRM integration gate first.");
-  let result = runSuites(["tests/integration/hrm.integration.test.mjs"]);
-  if (result.status === 0) {
-    console.log("HRM integration gate passed; running existing module regressions.");
-    result = runSuites([
-      "tests/integration/crm.integration.test.mjs",
-      "tests/integration/workspace.integration.test.mjs",
-      "tests/integration/directory.integration.test.mjs",
-      "tests/integration/api.integration.test.mjs",
-      "tests/integration/dashboard.integration.test.mjs",
-      "tests/integration/files.integration.test.mjs",
-    ]);
+  const regressions=["crm","workspace","directory","api","dashboard","files"].map(name=>`tests/integration/${name}.integration.test.mjs`);
+  const isolatedSuites={
+    hrm:["tests/integration/hrm.integration.test.mjs"],
+    crm:["tests/integration/crm.integration.test.mjs"],
+    workspace:["tests/integration/workspace.integration.test.mjs"],
+    directory:["tests/integration/directory.integration.test.mjs"],
+    api:["tests/integration/api.integration.test.mjs"],
+    dashboard:["tests/integration/dashboard.integration.test.mjs"],
+    files:["tests/integration/files.integration.test.mjs"],
+  };
+  const requestedScope=process.env.RUNLUMI_INTEGRATION_SCOPE;
+  if(requestedScope&&!Object.hasOwn(isolatedSuites,requestedScope))throw new Error("Unknown RUNLUMI_INTEGRATION_SCOPE; use hrm, crm, workspace, directory, api, dashboard or files.");
+  let result;
+  if(requestedScope){
+    console.log(`Running isolated ${requestedScope} integration suite.`);
+    result=runSuites(isolatedSuites[requestedScope]);
+  }else{
+    console.log("Running HRM integration gate first.");
+    result=runSuites(isolatedSuites.hrm);
+    if(result.status===0){
+      console.log("HRM integration gate passed; running existing module regressions.");
+      result=runSuites(regressions);
+    }
   }
   if (result.status !== 0) {
     process.exitCode = result.status ?? 1;

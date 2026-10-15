@@ -1,0 +1,9 @@
+---
+import HrmCoiQueue from "../../../components/hrm/HrmCoiQueue.astro";
+import HrmFailure from "../../../components/hrm/HrmFailure.astro";
+import { coiQueuePage } from "../../../lib/hrm/coi-pages";
+export const prerender=false;
+let data;
+try{data=await coiQueuePage(Astro,"en");if(data instanceof Response)return data}catch(error){const user=Astro.locals.workspace!;data={lang:"en",vi:false,user,title:"COI review queue",error:error instanceof Error?error.message:"internal_error",status:typeof error==="object"&&error!==null&&"status" in error?Number(error.status):500};Astro.response.status=data.status}
+---
+{"declarations" in data?<HrmCoiQueue {...data}/>:<HrmFailure data={data}/>}

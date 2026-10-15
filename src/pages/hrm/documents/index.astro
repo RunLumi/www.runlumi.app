@@ -1,0 +1,8 @@
+---
+import HrmLegalDocuments from "../../../components/hrm/HrmLegalDocuments.astro";
+import { legalDocumentsPage } from "../../../lib/hrm/legal-pages";
+export const prerender=false;
+const data=await legalDocumentsPage(Astro,"en");
+if(data instanceof Response)return data;
+---
+<HrmLegalDocuments {...data}/>

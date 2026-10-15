@@ -10,15 +10,34 @@ if (!PERSIST) throw new Error("Set LUMI_PERSIST_TO to the isolated D1 directory 
 if (!/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(BASE)) throw new Error("Integration tests only run against a local dev server.");
 
 function failedRequest(method,url,error){
-  const path=new URL(url,BASE).pathname.replace(/\/(?:person|employment|rec|chg|file)_[a-zA-Z0-9_-]+/g,"/[record]");
+  const path=safePath(url);
   const cause=error&&typeof error==="object"&&"cause" in error?error.cause:error;
   const code=cause&&typeof cause==="object"&&"code" in cause?String(cause.code):cause instanceof Error?cause.name:"unknown";
   console.error("local_integration_request_failed",method,path,code);
 }
+function safePath(url){return new URL(url,BASE).pathname.replace(/\/(?:person|employment|rec|chg|file)_[a-zA-Z0-9_-]+/g,"/[record]")}
 export async function localFetch(url,options={}){
   const headers=new Headers(options.headers);
   headers.set("Connection","close");
-  try{return await globalThis.fetch(url,{...options,headers})}catch(error){failedRequest(options.method??"GET",url,error);throw error}
+  const requestOptions={...options,headers};
+  try{return await globalThis.fetch(url,requestOptions)}catch(error){
+    const method=(options.method??"GET").toUpperCase(),path=safePath(url);
+    const isHrm=path==="/hrm"||path.startsWith("/hrm/")||path==="/vi/hrm"||path.startsWith("/vi/hrm/")||path.startsWith("/api/hrm/");
+    const isCrm=path==="/crm"||path.startsWith("/crm/")||path.startsWith("/api/crm/");
+    const isWorkspace=path==="/workspace"||path.startsWith("/workspace/")||path==="/vi/workspace"||path.startsWith("/vi/workspace/");
+    const body=options.body;const hasIdempotencyKey=body instanceof URLSearchParams?body.has("request_key"):body instanceof FormData?body.has("request_key"):false;
+    const cause=error&&typeof error==="object"&&"cause" in error?error.cause:error,code=cause&&typeof cause==="object"&&"code" in cause?String(cause.code):"";
+    const retryable=(isHrm||isCrm||isWorkspace&&method==="GET")&&(method==="GET"||method==="POST"&&hasIdempotencyKey);
+    if(retryable&&(code==="ECONNRESET"||code==="UND_ERR_SOCKET")){
+      let lastError=error;
+      for(const delay of [80,160,320]){
+        await new Promise(resolve=>setTimeout(resolve,delay));
+        try{const response=await globalThis.fetch(url,requestOptions);console.error("local_integration_safe_retry",method,path,"recovered");return response}catch(retryError){lastError=retryError;const retryCause=retryError&&typeof retryError==="object"&&"cause" in retryError?retryError.cause:retryError;const retryCode=retryCause&&typeof retryCause==="object"&&"code" in retryCause?String(retryCause.code):"";if(retryCode!=="ECONNRESET"&&retryCode!=="UND_ERR_SOCKET")break;}
+      }
+      failedRequest(method,url,lastError);throw lastError;
+    }
+    failedRequest(method,url,error);throw error;
+  }
 }
 
 export class Session {

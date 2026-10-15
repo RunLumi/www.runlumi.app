@@ -1,0 +1,11 @@
+---
+import HrmOffboarding from "../../../../components/hrm/HrmOffboarding.astro";
+import HrmFailure from "../../../../components/hrm/HrmFailure.astro";
+import { HrmError } from "../../../../lib/hrm/fields";
+import { offboardingDetailPage } from "../../../../lib/hrm/offboarding-pages";
+export const prerender=false;
+let data;
+try{data=await offboardingDetailPage(Astro,"vi",Astro.params.caseId??"")}
+catch(error){const user=Astro.locals.workspace!;const status=error instanceof HrmError?error.status:500;Astro.response.status=status;data={lang:"vi",vi:true,user,title:"Offboarding",error:error instanceof HrmError?error.message:"internal_error",status}}
+---
+{"offboarding" in data?<HrmOffboarding {...data}/>:<HrmFailure data={data}/>}
