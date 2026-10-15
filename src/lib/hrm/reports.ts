@@ -5,6 +5,28 @@ import { audit, localDate, now, requirePermission } from "./service";
 export interface HrmReportRow {key:string;count:number}
 export interface HrmReportGroup {key:string;title_en:string;title_vi:string;rows:HrmReportRow[]}
 export interface HrmReportSnapshot {legal_entity:string;generated_at:string;groups:HrmReportGroup[]}
+export type HrmReportLanguage="en"|"vi";
+
+const statusLabels:Record<HrmReportLanguage,Record<string,string>>={
+  en:{active:"Active",probation:"Probation",notice:"Notice",ended:"Ended",not_started:"Not started",in_progress:"In progress",submitted:"Submitted",verified:"Verified",completed:"Completed",blocked:"Blocked",waived:"Waived",pending_approval:"Pending approval",approved:"Approved",rejected:"Rejected",withdrawn:"Withdrawn",cancellation_requested:"Cancellation requested",cancelled:"Cancelled",cancellation_rejected:"Cancellation rejected",triaged:"Triaged",answered:"Answered",resolved:"Resolved",reopened:"Reopened",available:"Available",offered:"Awaiting receipt",assigned:"Assigned",return_requested:"Return requested",inspection:"Inspection",retired:"Retired",lost:"Reported lost",declined:"Declined",overdue:"Overdue"},
+  vi:{active:"Đang làm",probation:"Thử việc",notice:"Báo trước",ended:"Đã kết thúc",not_started:"Chưa bắt đầu",in_progress:"Đang làm",submitted:"Chờ duyệt",verified:"Đã xác minh",completed:"Hoàn tất",blocked:"Đang chặn",waived:"Được miễn",pending_approval:"Chờ duyệt",approved:"Đã duyệt",rejected:"Từ chối",withdrawn:"Đã rút",cancellation_requested:"Chờ hủy",cancelled:"Đã hủy",cancellation_rejected:"Không cho hủy",triaged:"Đã phân loại",answered:"Đã trả lời",resolved:"Đã xử lý",reopened:"Mở lại",available:"Sẵn sàng",offered:"Chờ nhận",assigned:"Đang giao",return_requested:"Chờ trả",inspection:"Chờ kiểm tra",retired:"Đã thanh lý",lost:"Báo mất",declined:"Không duyệt",overdue:"Quá hạn"},
+};
+
+export function reportStateLabel(key:string,lang:HrmReportLanguage):string{return statusLabels[lang][key]??(lang==="vi"?"Khác":"Other")}
+export function reportCsvCell(value:string):string{
+  const safe=/^\s*[=+\-@]/u.test(value)?`'${value}`:value;
+  return `"${safe.replace(/"/g,'""')}"`;
+}
+export function reportCsvContent(report:HrmReportSnapshot,lang:HrmReportLanguage):string{
+  const vi=lang==="vi",rows:(string|number)[][]=[
+    [vi?"Pháp nhân":"Legal entity",report.legal_entity],
+    [vi?"Tạo lúc":"Generated at",report.generated_at],
+    [],
+    [vi?"Nhóm":"Category",vi?"Trạng thái":"Status",vi?"Số lượng":"Count"],
+    ...report.groups.flatMap(group=>group.rows.map(row=>[vi?group.title_vi:group.title_en,reportStateLabel(row.key,lang),row.count])),
+  ];
+  return `\uFEFF${rows.map(row=>row.map(value=>typeof value==="number"?String(value):reportCsvCell(value)).join(",")).join("\r\n")}\r\n`;
+}
 
 const live=(user:WorkspaceUser)=>{if(user.hrmEnabled!==true)throw new HrmError("hrm_closed",503)};
 async function grouped(db:D1Database,sql:string,entity:string|null):Promise<HrmReportRow[]>{
@@ -38,4 +60,11 @@ export async function hrmReportSnapshot(db:D1Database,user:WorkspaceUser):Promis
   ];
   await audit(db,user,"hrm_report_snapshot_read",null,"reports",{legal_entity:entity,group_count:groups.length});
   return {legal_entity:entity,generated_at:asOf,groups};
+}
+
+export async function exportHrmReportCsv(db:D1Database,user:WorkspaceUser,lang:HrmReportLanguage):Promise<string>{
+  requirePermission(user,"hrm.reports.export");live(user);
+  const report=await hrmReportSnapshot(db,user);
+  await audit(db,user,"hrm_report_export",null,"reports",{legal_entity:report.legal_entity,group_count:report.groups.length});
+  return reportCsvContent(report,lang);
 }

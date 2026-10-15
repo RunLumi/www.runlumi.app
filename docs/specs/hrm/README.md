@@ -4,7 +4,7 @@
 
 HRM là phân hệ nhân sự trong Lumi Workspace, phục vụ cả nhân viên, người quản lý, HR và người phụ trách tiền lương. Hiring quản lý ứng viên trước khi tuyển; HRM quản lý quan hệ làm việc từ tiếp nhận đến nghỉ việc. Cả hai dùng chung danh tính EmDash nhưng có quyền riêng. CRM tiếp tục độc lập về nghiệp vụ và quyền dữ liệu.
 
-Tài liệu này xác định yêu cầu sản phẩm và tiêu chí nghiệm thu. P1–P3 đã merge; P4 đang ở draft PR #58 và P5 đang ở draft PR #59. P5 hiện có luồng yêu cầu HR/PDF, asset custody, đăng ký phúc lợi, chứng chỉ đào tạo và báo cáo aggregate theo cấu hình trên nhánh local; export/report chuyên sâu, khôi phục và các quyết định owner vẫn mở. Các thời hạn cụ thể chưa được người phụ trách chuyên môn chốt; production vẫn đóng. Đừng suy ra tính sẵn sàng production từ nội dung đặc tả. Quy tắc pháp lý, thuế, bảo hiểm, lưu trữ và giá trị chữ ký phải được người có chuyên môn rà soát theo nơi làm việc và thời điểm áp dụng; tài liệu không mặc định một mức luật định hay tuyên bố tuân thủ.
+Tài liệu này xác định yêu cầu sản phẩm và tiêu chí nghiệm thu. P1–P3 đã merge; P4 đang ở draft PR #58 và P5 đang ở draft PR #59. P5 có luồng yêu cầu HR/PDF, asset custody, đăng ký phúc lợi, chứng chỉ đào tạo, báo cáo aggregate theo pháp nhân và CSV chỉ gồm dữ liệu aggregate cho HRM Admin/System Super Admin trong nhánh đang hoàn thiện; báo cáo theo kỳ/phòng ban, export dữ liệu nhân viên, khôi phục và các quyết định owner vẫn mở. Các thời hạn cụ thể chưa được người phụ trách chuyên môn chốt; production vẫn đóng. Đừng suy ra tính sẵn sàng production từ nội dung đặc tả. Quy tắc pháp lý, thuế, bảo hiểm, lưu trữ và giá trị chữ ký phải được người có chuyên môn rà soát theo nơi làm việc và thời điểm áp dụng; tài liệu không mặc định một mức luật định hay tuyên bố tuân thủ.
 
 ## 1. Mục tiêu và ranh giới
 
@@ -302,7 +302,7 @@ Nhân viên gửi thắc mắc theo kỳ/khoản; Payroll xử lý `submitted �
 
 **Lát cắt đào tạo/chứng chỉ đã có trên nhánh local P5:** HRM Officer tạo phiên bản khóa học, chọn rõ có bắt buộc chứng cứ PDF và chu kỳ gia hạn hay không; HRM Admin/System Super Admin khác người tạo kích hoạt. HR giao cho nhân viên đang làm việc cùng pháp nhân và có thể đặt hạn hoàn thành tường minh. Nhân viên nộp PDF riêng tư vào R2; file bị cách ly tới khi HRM Admin/System Super Admin khác uploader và người giao việc kiểm tra. Nếu chính sách yêu cầu chứng cứ, chưa có file đã kiểm tra thì không thể gửi/duyệt hoàn tất. Sau khi HR duyệt hoàn tất, ngày gia hạn chỉ được tính nếu chu kỳ đã cấu hình. Không có khóa học, hạn, gia hạn, provider hoặc quyền hệ thống mặc định. Đánh giá hiệu suất, tích hợp đào tạo ngoài, reminder và báo cáo chứng chỉ vẫn chưa triển khai; production vẫn đóng.
 
-**Lát cắt báo cáo đã có trên nhánh local P5:** trang HRM chỉ đọc các số tổng hợp theo pháp nhân đang cấu hình: nhân sự theo trạng thái việc làm, onboarding, nghỉ phép, yêu cầu HR, tài sản, đăng ký phúc lợi và đào tạo/chứng chỉ đến hạn. Không hiển thị tên, CCCD, lương, lý do nghỉ hoặc nội dung đơn. People Manager/Employee không có quyền xem. Không có CSV/export, lọc kỳ, breakdown theo phòng ban/manager, báo cáo lương, lưu snapshot hoặc analytics theo lịch; các phần này cần nguồn dữ liệu, scope và người phụ trách được chốt trước.
+**Lát cắt báo cáo đã có trên PR #59:** trang HRM chỉ đọc các số tổng hợp theo pháp nhân đang cấu hình: nhân sự theo trạng thái việc làm, onboarding, nghỉ phép, yêu cầu HR, tài sản, đăng ký phúc lợi và đào tạo/chứng chỉ đến hạn. Không hiển thị tên, CCCD, lương, lý do nghỉ hoặc nội dung đơn. HRM Officer/Admin được đọc; chỉ HRM Admin/System Super Admin được tải CSV của cùng dữ liệu aggregate, có audit và chống CSV formula injection. People Manager/Employee không có quyền xem hoặc xuất. Không có export theo nhân viên, lọc kỳ, breakdown theo phòng ban/manager, báo cáo lương, lưu snapshot hoặc analytics theo lịch; các phần này cần nguồn dữ liệu, scope và người phụ trách được chốt trước.
 
 Không gửi dữ liệu HRM qua webhook Lark CRM hiện có. Outbox có khóa chống gửi trùng và retry có giới hạn; lỗi thông báo không làm thất bại thao tác HRM. Nhân viên xem được trạng thái thực tế ngay cả khi kênh nhắc việc bị lỗi.
 
@@ -387,6 +387,7 @@ Các kiểm tra dưới đây là yêu cầu cho triển khai, **chưa phải k�
 | HRM-30 | Tạo/duyệt phiên bản phúc lợi, enroll/cancel/review, enrollment trùng, đổi phiên bản, HR tự duyệt và manager dò ID | Policy là cấu hình text đã version, không chạy eligibility expression; chỉ HRM Admin/System Super Admin độc lập duyệt; trạng thái/lý do có audit; không suy ra tiền hoặc ghi payroll |
 | HRM-31 | Giao khóa học/chứng chỉ, due/renewal date, PDF giả, upload/retry, yêu cầu chứng cứ, cách ly/duyệt độc lập, hủy và đổi version | Chỉ đúng nhân viên và HR được truy cập; thiếu/chưa review file thì chặn hoàn tất; người giao/uploader không tự duyệt; giữ checksum, retention riêng không có hạn mặc định; không cấp quyền hệ thống khi tick hoàn tất |
 | HRM-32 | Nhân viên/manager cố xem báo cáo; HR xem tổng hợp theo pháp nhân có và không có dữ liệu | Chỉ aggregate phi nhạy cảm, kiểm tra capability phía server; không lộ tên, CCCD, lương, lý do nghỉ hoặc nội dung vụ việc; số liệu unknown không hiển thị thành 0 cho báo cáo giá trị tiền |
+| HRM-33 | HRM Officer/nhân viên thử gọi export; HRM Admin tải CSV bằng session hợp lệ; cột có ký tự đầu formula hoặc dấu nháy/xuống dòng | Export riêng capability, CSRF/origin check, no-store và audit actor; chỉ gồm số aggregate; CSV quote an toàn, formula injection được neutralize, locale EN/VI đúng |
 
 Trước mỗi giai đoạn: cập nhật permission map, migration, navigation, middleware, tài liệu và hai locale cùng thay đổi; chạy `npm run build` cùng các kiểm tra phù hợp. Build xanh không chứng minh tính đúng của payroll, chữ ký hay quyền truy cập production.
 
@@ -399,7 +400,7 @@ Trước mỗi giai đoạn: cập nhật permission map, migration, navigation,
 | P2 — Hồ sơ pháp lý và vòng đời | Hợp đồng, NDA, COI, chính sách, onboarding/offboarding, ký giấy/xác nhận đọc | HRM-08, 10–12, 17–19, 22–25; ký điện tử chỉ bật sau kiểm chứng riêng |
 | P3 — Công và phép | Lịch/ca, giải trình, import/đối soát công, tuyến duyệt, sổ phép, chứng từ và chốt công | HRM-06–09, 26–28; đối chiếu với bộ công/phép đã được HR kiểm tra |
 | P4 — Lương và payslip | Snapshot, tính/duyệt, phiếu, khiếu nại, điều chỉnh, xác nhận trả tiền | HRM-09, 13–15; ít nhất một kỳ chạy song song được đối soát không có chênh lệch chưa giải thích |
-| P5 — Mở rộng | Phúc lợi, tài sản, đào tạo/đánh giá, reports, tích hợp có nhu cầu thật | Gate quyền/dữ liệu cho từng chức năng; HRM-19–21, HRM-29–32 và hồi quy |
+| P5 — Mở rộng | Phúc lợi, tài sản, đào tạo/đánh giá, reports, tích hợp có nhu cầu thật | Gate quyền/dữ liệu cho từng chức năng; HRM-19–21, HRM-29–33 và hồi quy |
 
 Thử nghiệm rẻ nhất: HR và một nhóm nhân viên được chọn dùng dữ liệu giả đi hết chuỗi tạo hồ sơ → NDA/COI → xin nghỉ → chốt công → đọc payslip. Ghi từng bước không hoàn tất, dữ liệu còn thiếu và phạm vi quyền sai trước khi thêm tích hợp.
 

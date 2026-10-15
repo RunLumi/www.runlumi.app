@@ -73,4 +73,6 @@ test("CRM navigation is grouped, every page has an icon, and empty groups are hi
   assert.ok(visibleLinks(user(["hrm_officer"]), hrm).some((link) => link.key === "training"));
   assert.ok(visibleLinks(user(["hrm_officer"]), hrm).some((link) => link.key === "reports"));
   assert.ok(!visibleLinks(user(["people_manager"]), hrm).some((link) => link.key === "reports"));
+  assert.equal(user(["hrm_officer"]).can("hrm.reports.export"), false);
+  assert.equal(user(["hrm_admin"]).can("hrm.reports.export"), true);
 });
