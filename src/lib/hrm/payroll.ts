@@ -386,7 +386,13 @@ export async function publishPayrollRun(db: D1Database, user: WorkspaceUser, key
   await command(db, user, key, "payroll_run_publish", payload, run.id, [
     guardBoolean(db, "EXISTS(SELECT 1 FROM hrm_payroll_runs r JOIN hrm_time_periods t ON t.id=r.period_id WHERE r.id=? AND r.version=? AND r.state='approved' AND r.approved_by IS NOT NULL AND r.approved_by!=r.created_by AND r.snapshot_checksum=? AND t.state='locked' AND t.snapshot_checksum=json_extract(r.snapshot_json,'$.time_snapshot_checksum'))", [run.id, expectedVersion, run.snapshot_checksum]),
     guardBoolean(db, "NOT EXISTS(SELECT 1 FROM hrm_payroll_run_people rp JOIN hrm_employments e ON e.id=rp.employment_id WHERE rp.run_id=? AND e.status='ended')", [run.id]),
-    ...(previous ? [guardBoolean(db, "EXISTS(SELECT 1 FROM hrm_payslips WHERE id=? AND state='published')", [previous])] : []),
+    ...(previous ? [
+      guardBoolean(db, "EXISTS(SELECT 1 FROM hrm_payslips WHERE id=? AND state='published')", [previous]),
+      // The payment total was read before the publish batch. Assert it is still
+      // the observed total in the same transaction that supersedes the source
+      // slip, so a concurrent payment is either carried forward or rejected.
+      guardBoolean(db, "COALESCE(CAST(json_extract((SELECT snapshot_json FROM hrm_payslips WHERE id=?),'$.paid_carryover_minor') AS INTEGER),0)+COALESCE((SELECT SUM(amount_minor) FROM hrm_payroll_payments WHERE payslip_id=?),0)=?", [previous, previous, paidCarryover]),
+    ] : []),
   ], writes);
 }
 
