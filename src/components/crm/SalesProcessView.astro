@@ -1,30 +1,36 @@
 ---
-// The sales process guide for everyone with CRM access. The content is the
-// Markdown source in docs/Lumi_Quy_Trinh_Ban_Hang.md, rendered at build time:
-// edit that file and deploy to update this page. Nothing here copies its text.
+// Both CRM locales render their reviewed Markdown source at build time.
+// This guide is instructional: it never mutates offers, playbooks or records.
 import CrmShell from "../../layouts/CrmShell.astro";
-import * as guide from "../../../docs/Lumi_Quy_Trinh_Ban_Hang.md";
+import * as guideVi from "../../../docs/Lumi_Quy_Trinh_Ban_Hang.md";
+import * as guideEn from "../../../docs/Lumi_Sales_Process.en.md";
 import type { CrmActor } from "../../lib/crm/access";
 import type { Lang } from "../../lib/crm/i18n";
 
 interface Props { lang: Lang; actor: CrmActor }
 const { lang, actor } = Astro.props;
 const vi = lang === "vi";
+const guide = vi ? guideVi : guideEn;
+const sourcePath = vi ? "docs/Lumi_Quy_Trinh_Ban_Hang.md" : "docs/Lumi_Sales_Process.en.md";
 const headings = guide.getHeadings();
 const title = headings.find((heading) => heading.depth === 1)?.text ?? (vi ? "Quy trình bán hàng" : "Sales process");
 const sections = headings.filter((heading) => heading.depth === 2);
 const { Content } = guide;
 ---
 <CrmShell title={vi ? "Quy trình bán hàng" : "Sales process"} lang={lang} actor={actor} current="process">
-  {!vi && <p class="crm-notice" lang="en">This guide is written in Vietnamese, the language the sales team works in.</p>}
+  <p class="crm-notice">{vi
+    ? "Hướng dẫn 2.0: Basic miễn phí → gặp chủ → Starter kèm Pro. Báo giá và giao dịch vẫn theo phiên bản được duyệt; hướng dẫn không tự đổi cấu hình CRM."
+    : "Guide 2.0: free Basic → owner visit → Starter with Pro. Quotes and transactions retain their approved versions; this guide does not change CRM configuration."}</p>
   <div class="guide">
     <nav class="guide-toc crm-sheet" aria-label={vi ? "Mục lục" : "Contents"}>
       <p class="crm-eyebrow">{vi ? "Mục lục" : "Contents"}</p>
       <ol>{sections.map((heading) => <li><a href={`#${heading.slug}`}>{heading.text}</a></li>)}</ol>
     </nav>
-    <article class="crm-sheet guide-body" lang="vi" aria-label={title}>
+    <article class="crm-sheet guide-body" lang={lang} aria-label={title}>
       <Content />
     </article>
   </div>
-  {actor.configure && <p class="crm-help">{vi ? "Nguồn: docs/Lumi_Quy_Trinh_Ban_Hang.md trong repository. Sửa file Markdown này rồi deploy để cập nhật trang." : "Source: docs/Lumi_Quy_Trinh_Ban_Hang.md in the repository. Edit that Markdown file and deploy to update this page."}</p>}
+  {actor.configure && <p class="crm-help">{vi
+    ? `Nguồn: ${sourcePath} trong repository. Cập nhật cả EN/VI, kiểm thử và deploy để áp dụng; lưu phiên bản offer mới riêng trong CRM trước khi chào in/Pro.`
+    : `Source: ${sourcePath} in the repository. Update both EN/VI, test and deploy; separately save an approved offer version in CRM before quoting print/Pro.`}</p>}
 </CrmShell>
