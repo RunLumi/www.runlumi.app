@@ -48,10 +48,16 @@ test("HRM P1 uses EmDash sessions, isolated HRM grants, scoped records, D1 histo
   console.log("HRM browser QA people list VI:",JSON.stringify(await browserQa.auditPage(S.hrm,"/vi/hrm/people",{expectedText:"Nhân sự",artifactName:"p1-people-vi"})));
   console.log("HRM browser QA manager people scope:",JSON.stringify(await browserQa.auditPage(S.manager,"/hrm/people",{expectedText:"People",artifactName:"p1-manager-people"})));
   console.log("HRM browser QA new employee EN:",JSON.stringify(await browserQa.auditPage(S.hrm,"/hrm/people/new",{expectedText:"Employment record",artifactName:"p1-new-person-en"})));
+  console.log("HRM browser QA new employee VI:",JSON.stringify(await browserQa.auditPage(S.hrm,"/vi/hrm/people/new",{expectedText:"Tạo hồ sơ",artifactName:"p1-new-person-vi"})));
   console.log("HRM browser QA identity review EN:",JSON.stringify(await browserQa.auditPage(S.hrm,`/hrm/people/${P.a}/profile?section=identity`,{expectedText:"Identity documents",artifactName:"p1-identity-review-en"})));
   console.log("HRM browser QA work details EN:",JSON.stringify(await browserQa.auditPage(S.hrm,`/hrm/people/${P.b}`,{expectedText:"Work details",artifactName:"p1-work-details-en"})));
+  console.log("HRM browser QA work details VI:",JSON.stringify(await browserQa.auditPage(S.hrm,`/vi/hrm/people/${P.b}`,{expectedText:"Thông tin công việc",artifactName:"p1-work-details-vi"})));
   console.log("HRM browser QA settings EN:",JSON.stringify(await browserQa.auditPage(S.hrm,"/hrm/settings",{expectedText:"HRM activation conditions",artifactName:"p1-settings-en"})));
   console.log("HRM browser QA settings VI:",JSON.stringify(await browserQa.auditPage(S.hrm,"/vi/hrm/settings",{expectedText:"Điều kiện mở HRM",artifactName:"p1-settings-vi"})));
+  for(const [section,en,vi] of [["contact","Contact and emergency","Liên hệ và khẩn cấp"],["personal","Personal information","Thông tin cá nhân"],["dependent","Dependents","Người phụ thuộc"],["bank","Salary payment account","Tài khoản nhận lương"],["tax","Tax and insurance","Thuế và bảo hiểm"]]){
+   console.log(`HRM browser QA employee ${section} EN:`,JSON.stringify(await browserQa.auditPage(S.employeeA,`/hrm/me?section=${section}`,{expectedText:en,artifactName:`p1-${section}-en`})));
+   console.log(`HRM browser QA employee ${section} VI:`,JSON.stringify(await browserQa.auditPage(S.employeeA,`/vi/hrm/me?section=${section}`,{expectedText:vi,artifactName:`p1-${section}-vi`})));
+  }
  }
  // A transfer needs authority on both sides, a hired source and an explicit active EmDash Employee selection.
  const transferJob=`job_transfer_${run}`,transferApplication=`app_transfer_${run}`,transferNow=new Date().toISOString();
