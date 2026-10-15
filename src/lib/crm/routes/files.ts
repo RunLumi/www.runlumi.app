@@ -2,13 +2,13 @@ import type { AstroGlobal } from 'astro';
 import { envFromLocals } from '../../ats';
 import { sameOrigin } from '../../http';
 import { ConflictError, NotFoundError, ValidationError, formValues } from '../core';
-import { MAX_UPLOAD, changeFile, createFile, downloadFile, fileChildren, filePeople, readFile, type FileItem } from '../files';
+import { MAX_UPLOAD, changeFile, createFile, downloadFile, fileChildren, filePeople, readFile, fileVersions, uploadFileVersion, deleteFileVersion, type FileItem, type FileVersion } from '../files';
 import type { Lang } from '../i18n';
 import { context, emptyState, notFound, page, type Ctx, type FormState } from '../page';
 
 export interface FilesProps {
   ctx: Ctx; state: FormState; folder: FileItem | null; selected: FileItem | null; rows: FileItem[];
-  more: boolean; page: number; query: string; people: { id: string; name: string }[];
+  versions: FileVersion[]; versionsMore: boolean; versionPage: number; more: boolean; page: number; query: string; people: { id: string; name: string }[];
 }
 
 export async function boundedFileForm(request: Request): Promise<FormData> {
@@ -42,11 +42,20 @@ export async function filesRoute(astro: AstroGlobal, lang: Lang): Promise<FilesP
     state = { ...emptyState, intent, values: formValues(form) };
     try {
       if (intent === 'create') await createFile(ctx.db, FILES, user, form);
+      else if (intent === 'upload_version') await uploadFileVersion(ctx.db, FILES, user, form);
+      else if (intent === 'delete_version') await deleteFileVersion(ctx.db, FILES, user, form);
       else await changeFile(ctx.db, FILES, ctx.contentDb, user, form);
       const next = new URL(astro.url);
-      next.searchParams.delete('item');
+      if (!['upload_version', 'delete_version'].includes(intent)) next.searchParams.delete('item');
+      else {
+        const id = String(form.get('id') ?? '');
+        try { await readFile(ctx.db, user, id); next.searchParams.set('item', id); }
+        catch (error) { if (error instanceof NotFoundError) next.searchParams.delete('item'); else throw error; }
+        next.searchParams.delete('versions_page');
+        next.hash = 'file-details';
+      }
       next.searchParams.set('saved', intent);
-      return new Response(null, { status: 303, headers: { Location: next.pathname + next.search } });
+      return new Response(null, { status: 303, headers: { Location: next.pathname + next.search + next.hash } });
     } catch (error) {
       if (error instanceof NotFoundError) return notFound(lang);
       if (error instanceof ValidationError) { state.errors = error.fields; astro.response.status = 422; }
@@ -60,10 +69,13 @@ export async function filesRoute(astro: AstroGlobal, lang: Lang): Promise<FilesP
     if (folder && folder.kind !== 'folder') return notFound(lang);
     const selectedId = astro.url.searchParams.get('item');
     const selected = selectedId ? await readFile(ctx.db, user, selectedId) : null;
-    if (selected && astro.url.searchParams.has('download')) return downloadFile(FILES, selected);
+    if (selected && astro.url.searchParams.has('download')) return downloadFile(FILES, selected, ctx.db, astro.url.searchParams.get('revision'));
+    const versionUrl = new URL(astro.url); versionUrl.searchParams.set('page', astro.url.searchParams.get('versions_page') ?? '1');
+    const versionPage = page(versionUrl);
+    const versions = selected ? await fileVersions(ctx.db, selected, versionPage) : { rows: [], more: false };
     const query = (astro.url.searchParams.get('q') ?? '').slice(0, 180);
     const list = await fileChildren(ctx.db, user, folder?.id ?? null, page(astro.url), query);
-    return { ctx, state, folder, selected, ...list, page: page(astro.url), query, people: selected?.owner_id === user.id ? await filePeople(ctx.db, ctx.contentDb) : [] };
+    return { ctx, state, folder, selected, versions: versions.rows, versionsMore: versions.more, versionPage, ...list, page: page(astro.url), query, people: selected?.owner_id === user.id ? await filePeople(ctx.db, ctx.contentDb) : [] };
   } catch (error) {
     if (error instanceof NotFoundError) return notFound(lang);
     throw error;

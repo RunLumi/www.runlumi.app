@@ -100,6 +100,59 @@ export async function createFile(db: D1Database, bucket: R2Bucket, user: Workspa
   return id;
 }
 
+export interface FileVersion {
+  id: string; file_id: string; number: number; object_key: string; name: string; size: number;
+  uploader_id: string; uploader_name: string; created_at: string;
+}
+
+// Call only after the route has authorized the file itself (session or public link).
+export async function fileVersions(db: D1Database, item: FileItem, page = 1): Promise<{ rows: FileVersion[]; more: boolean }> {
+  if (item.kind !== 'file') return { rows: [], more: false };
+  const rows = (await db.prepare('SELECT * FROM crm_file_versions WHERE file_id = ? AND deleted_at IS NULL ORDER BY number DESC LIMIT 21 OFFSET ?')
+    .bind(item.id, (page - 1) * 20).all<FileVersion>()).results;
+  return { rows: rows.slice(0, 20), more: rows.length > 20 };
+}
+
+export async function uploadFileVersion(db: D1Database, bucket: R2Bucket, user: WorkspaceUser, form: FormData): Promise<void> {
+  const item = await readFile(db, user, text(form, 'id', 100));
+  if (item.kind !== 'file' || item.owner_id !== user.id) throw new NotFoundError();
+  const version = Number(form.get('version'));
+  if (!Number.isSafeInteger(version) || item.version !== version) throw new ConflictError();
+  const file = form.get('upload');
+  if (!(file instanceof File) || !file.size || file.size > MAX_UPLOAD) fail('upload', 'size');
+  const name = fileName(file.name);
+  const id = crypto.randomUUID();
+  const key = `crm-files/${item.id}/${id}`;
+  const now = new Date().toISOString();
+  await bucket.put(key, file.stream(), { httpMetadata: { contentType: 'application/octet-stream' } });
+  try {
+    // Insertion and trigger update are one atomic SQL statement. Concurrent
+    // uploads/sharing/deletions fail the version guard instead of overwriting.
+    const result = await db.prepare(`INSERT INTO crm_file_versions
+      (id,file_id,number,object_key,name,size,uploader_id,uploader_name,created_at)
+      SELECT ?,?,COALESCE((SELECT MAX(number) FROM crm_file_versions WHERE file_id = ?),0)+1,?,?,?,?,?,?
+      WHERE EXISTS (SELECT 1 FROM crm_files WHERE id = ? AND owner_id = ? AND version = ? AND deleted_at IS NULL)`)
+      .bind(id,item.id,item.id,key,name,file.size,user.id,user.name,now,item.id,user.id,version).run();
+    if (!result.meta.changes) throw new ConflictError();
+  } catch (error) { await bucket.delete(key); throw error; }
+}
+
+export async function deleteFileVersion(db: D1Database, bucket: R2Bucket, user: WorkspaceUser, form: FormData): Promise<void> {
+  const item = await readFile(db, user, text(form, 'id', 100));
+  const revision = await db.prepare('SELECT * FROM crm_file_versions WHERE id = ? AND file_id = ? AND deleted_at IS NULL')
+    .bind(text(form,'revision',100),item.id).first<FileVersion>();
+  if (!revision || (revision.uploader_id !== user.id && !user.can('users.manage'))) throw new NotFoundError();
+  const version = Number(form.get('version'));
+  if (!Number.isSafeInteger(version) || item.version !== version) throw new ConflictError();
+  if (form.get('confirm_delete') !== 'yes') fail('confirm_delete','required');
+  const result = await db.prepare(`UPDATE crm_file_versions SET deleted_at = ?, deleted_by = ?
+    WHERE id = ? AND file_id = ? AND deleted_at IS NULL AND (uploader_id = ? OR ? = 1)
+    AND EXISTS (SELECT 1 FROM crm_files WHERE id = ? AND version = ? AND deleted_at IS NULL)`)
+    .bind(new Date().toISOString(),user.id,revision.id,item.id,user.id,user.can('users.manage') ? 1 : 0,item.id,version).run();
+  if (!result.meta.changes) throw new ConflictError();
+  await bucket.delete(revision.object_key);
+}
+
 export async function changeFile(db: D1Database, bucket: R2Bucket, contentDb: D1Database, user: WorkspaceUser, form: FormData): Promise<void> {
   const item = await readFile(db, user, text(form, 'id', 100));
   if (item.owner_id !== user.id) throw new NotFoundError();
@@ -109,13 +162,20 @@ export async function changeFile(db: D1Database, bucket: R2Bucket, contentDb: D1
   const now = new Date().toISOString();
   let result: D1Result;
   if (intent === 'delete') {
+    // Whole-file deletion must never bypass per-version uploader rights.
+    const revisions = item.kind === 'file' ? (await db.prepare('SELECT object_key,uploader_id FROM crm_file_versions WHERE file_id = ? AND deleted_at IS NULL')
+      .bind(item.id).all<{ object_key: string; uploader_id: string }>()).results : [];
+    if (revisions.some(row => row.uploader_id !== user.id) && !user.can('users.manage')) throw new NotFoundError();
     // Empty folders only: never recursively remove another file by accident.
     result = await db.prepare(`UPDATE crm_files SET deleted_at = ?, updated_at = ?, last_actor = ?, version = version + 1
       WHERE id = ? AND owner_id = ? AND version = ? AND deleted_at IS NULL
       AND NOT EXISTS (SELECT 1 FROM crm_files c WHERE c.parent_id = crm_files.id AND c.deleted_at IS NULL)`)
       .bind(now, now, user.id, item.id, user.id, version).run();
     if (!result.meta.changes) fail('folder', 'not_empty_or_changed');
-    if (item.object_key?.startsWith('crm-files/')) await bucket.delete(item.object_key);
+    if (revisions.length) {
+      await db.prepare('UPDATE crm_file_versions SET deleted_at = ?, deleted_by = ? WHERE file_id = ? AND deleted_at IS NULL').bind(now,user.id,item.id).run();
+      for (const revision of revisions) await bucket.delete(revision.object_key);
+    }
     return;
   }
   if (intent !== 'save') fail('intent', 'invalid');
@@ -153,7 +213,14 @@ export async function publicChildren(db: D1Database, item: FileItem, policyId: s
   return { rows: rows.slice(0, 50), more: rows.length > 50 };
 }
 
-export async function downloadFile(bucket: R2Bucket, item: FileItem): Promise<Response> {
+export async function downloadFile(bucket: R2Bucket, item: FileItem, db?: D1Database, revisionId?: string | null): Promise<Response> {
+  if (revisionId) {
+    if (!db) return new Response('Not found', { status: 404 });
+    const revision = await db.prepare('SELECT * FROM crm_file_versions WHERE id = ? AND file_id = ? AND deleted_at IS NULL')
+      .bind(revisionId,item.id).first<FileVersion>();
+    if (!revision) return new Response('Not found', { status: 404, headers: { 'Cache-Control': 'private, no-store' } });
+    item = { ...item, object_key: revision.object_key, size: revision.size, name: revision.name };
+  }
   if (item.kind !== 'file' || !item.object_key?.startsWith('crm-files/')) return new Response('Not found', { status: 404 });
   const object = await bucket.get(item.object_key);
   if (!object) return new Response('Not found', { status: 404 });
