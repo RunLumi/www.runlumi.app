@@ -12,15 +12,15 @@ export const permissions = [
   "workspace.access",
   "users.manage",
   "hiring.access", "hiring.jobs.manage", "hiring.applications.manage", "hiring.applications.delete", "hiring.export",
-  "crm.access", "crm.team", "crm.configure", "crm.finance", "crm.fulfillment", "crm.refer", "crm.payments.report",
+  "crm.access", "crm.files.team", "crm.team", "crm.configure", "crm.finance", "crm.fulfillment", "crm.refer", "crm.payments.report",
 ] as const;
 export type Permission = typeof permissions[number];
 
 /** What each grantable role may do. Admin (EmDash role 50) has every permission. */
 export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
   hr: ["workspace.access", "hiring.access", "hiring.jobs.manage", "hiring.applications.manage", "hiring.applications.delete", "hiring.export"],
-  sales_manager: ["workspace.access", "crm.access", "crm.team", "crm.refer", "crm.payments.report"],
-  sales_executive: ["workspace.access", "crm.access", "crm.refer", "crm.payments.report"],
+  sales_manager: ["workspace.access", "crm.access", "crm.files.team", "crm.team", "crm.refer", "crm.payments.report"],
+  sales_executive: ["workspace.access", "crm.files.team", "crm.access", "crm.refer", "crm.payments.report"],
   // Freelance partners sell their own deals or refer businesses to the team.
   // Customers pay Lumi directly, so partners never report payments.
   partner: ["workspace.access", "crm.access", "crm.refer"],

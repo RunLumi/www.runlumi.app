@@ -1,3 +1,4 @@
+import { localFetch as fetch } from "./helpers.mjs";
 // Workspace roles, navigation and the hiring desk against a local Worker + D1
 // with real EmDash sessions. Synthetic TEST data only.
 import { test } from "node:test";

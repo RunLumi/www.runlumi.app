@@ -9,6 +9,15 @@ export const PERSIST = process.env.LUMI_PERSIST_TO;
 if (!PERSIST) throw new Error("Set LUMI_PERSIST_TO to the isolated D1 directory used by the dev server.");
 if (!/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(BASE)) throw new Error("Integration tests only run against a local dev server.");
 
+// Local workerd can close an idle HTTP/1 socket while a Wrangler fixture
+// command runs. Use one connection per request so mutation requests are never
+// retried after an ambiguous ECONNRESET and assertions still see real failures.
+export function localFetch(url, options = {}) {
+  const headers = new Headers(options.headers);
+  headers.set("Connection", "close");
+  return globalThis.fetch(url, { ...options, headers });
+}
+
 export class Session {
   constructor(name) { this.name = name; this.cookies = new Map(); }
   header() { return [...this.cookies].map(([key, value]) => `${key}=${value}`).join("; "); }
@@ -22,7 +31,7 @@ export class Session {
     }
   }
   async get(path) {
-    const response = await fetch(BASE + path, { headers: { cookie: this.header() }, redirect: "manual" });
+    const response = await localFetch(BASE + path, { headers: { cookie: this.header() }, redirect: "manual" });
     this.absorb(response);
     return { status: response.status, location: response.headers.get("location"), html: await response.text(), headers: response.headers };
   }
@@ -30,7 +39,7 @@ export class Session {
     const body = new URLSearchParams();
     for (const [key, value] of Object.entries(fields)) for (const item of Array.isArray(value) ? value : [value]) body.append(key, String(item));
     if (!body.has("request_key")) body.set("request_key", key());
-    const response = await fetch(BASE + path, { method: "POST", body, headers: { cookie: this.header(), origin, "content-type": "application/x-www-form-urlencoded" }, redirect: "manual" });
+    const response = await localFetch(BASE + path, { method: "POST", body, headers: { cookie: this.header(), origin, "content-type": "application/x-www-form-urlencoded" }, redirect: "manual" });
     this.absorb(response);
     return { status: response.status, location: response.headers.get("location"), html: await response.text(), headers: response.headers };
   }
@@ -61,7 +70,7 @@ export async function userSession(admin, { email, name, role = 30 }) {
   // EmDash allows 3 magic links per IP per 5 minutes; reset the counter in the
   // isolated test database only so several synthetic users can sign in.
   content("DELETE FROM _emdash_rate_limits");
-  const send = await fetch(`${BASE}/_emdash/api/auth/magic-link/send`, { method: "POST", headers: { "content-type": "application/json", origin: BASE }, body: JSON.stringify({ email }) });
+  const send = await localFetch(`${BASE}/_emdash/api/auth/magic-link/send`, { method: "POST", headers: { "content-type": "application/json", origin: BASE }, body: JSON.stringify({ email }) });
   if (!send.ok) throw new Error(`magic link send failed for ${email}: ${send.status}`);
   const emails = await admin.get("/_emdash/api/dev/emails");
   const items = JSON.parse(emails.html).data.items.filter((item) => item.message.to === email);
@@ -96,5 +105,5 @@ export const isoDaysAgo = (days) => new Date(Date.now() + 7 * 3600_000 - days * 
 export function signedIntake(secret, body, { key: idem = `enq_${key()}`, source = "local.runlumi.app", timestamp = Math.floor(Date.now() / 1000) } = {}) {
   const text = typeof body === "string" ? body : JSON.stringify(body);
   const signature = `v1=${createHmac("sha256", secret).update(`${timestamp}.${idem}.${text}`).digest("hex")}`;
-  return fetch(`${BASE}/api/intake/local`, { method: "POST", headers: { "content-type": "application/json", "x-lumi-source": source, "x-lumi-timestamp": String(timestamp), "idempotency-key": idem, "x-lumi-signature": signature }, body: text });
+  return localFetch(`${BASE}/api/intake/local`, { method: "POST", headers: { "content-type": "application/json", "x-lumi-source": source, "x-lumi-timestamp": String(timestamp), "idempotency-key": idem, "x-lumi-signature": signature }, body: text });
 }

@@ -1,0 +1,8 @@
+---
+import SharedFilesView from '../../../components/crm/SharedFilesView.astro';
+import { sharedFilesRoute } from '../../../lib/crm/routes/shared-files';
+export const prerender = false;
+const result = await sharedFilesRoute(Astro, 'en');
+if (result instanceof Response) return result;
+---
+<SharedFilesView {...result} />

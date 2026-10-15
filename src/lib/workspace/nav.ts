@@ -6,7 +6,7 @@ import type { Permission, WorkspaceUser } from "./roles";
 
 export type ModuleKey = "home" | "hiring" | "crm" | "admin";
 export type IconName =
-  | "overview" | "hiring" | "crm" | "admin" | "today" | "pipeline" | "new" | "referrals" | "companies" | "contacts" | "reports"
+  | "files" | "overview" | "hiring" | "crm" | "admin" | "today" | "pipeline" | "new" | "referrals" | "companies" | "contacts" | "reports"
   | "commission" | "fulfillment" | "assignment" | "playbooks" | "offers" | "process" | "agents" | "roles" | "candidates" | "users" | "menu";
 export interface NavLink { key: string; en: string; vi: string; path: string; icon: IconName; group?: string; anyOf?: Permission[] }
 export interface NavGroup { key: string; en: string; vi: string }
@@ -46,6 +46,7 @@ export const modules: NavModule[] = [
       { key: "playbooks", en: "Playbooks", vi: "Playbook", path: "/crm/admin/playbooks", icon: "playbooks", group: "setup", anyOf: ["crm.configure"] },
       { key: "offers", en: "Offers and prices", vi: "Gói và giá", path: "/crm/admin/offers", icon: "offers", group: "setup", anyOf: ["crm.configure"] },
       { key: "process", en: "Sales process", vi: "Quy trình bán hàng", path: "/crm/process", icon: "process", group: "help" },
+      { key: "files", en: "Files", vi: "Tài liệu", path: "/crm/files", icon: "files", group: "help" },
       { key: "api", en: "Connect an AI agent", vi: "Kết nối AI agent", path: "/crm/api", icon: "agents", group: "help" },
     ],
   },
