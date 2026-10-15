@@ -4,9 +4,10 @@
 // a page that would answer 403. Paths are English; Vietnamese adds /vi.
 import type { Permission, WorkspaceUser } from "./roles";
 
-export type ModuleKey = "home" | "hiring" | "crm" | "admin";
+export type ModuleKey = "home" | "hiring" | "crm" | "hrm" | "admin";
 export type IconName =
-  | "files" | "overview" | "hiring" | "crm" | "admin" | "today" | "pipeline" | "new" | "referrals" | "companies" | "contacts" | "reports"
+  | "files" | "hrm" | "profile" | "hrm_people" | "hrm_settings"
+  | "overview" | "hiring" | "crm" | "admin" | "today" | "pipeline" | "new" | "referrals" | "companies" | "contacts" | "reports"
   | "commission" | "fulfillment" | "assignment" | "playbooks" | "offers" | "process" | "agents" | "roles" | "candidates" | "users" | "menu";
 export interface NavLink { key: string; en: string; vi: string; path: string; icon: IconName; group?: string; anyOf?: Permission[] }
 export interface NavGroup { key: string; en: string; vi: string }
@@ -51,6 +52,22 @@ export const modules: NavModule[] = [
     ],
   },
   {
+    key: "hrm", en: "HRM", vi: "HRM", path: "/hrm", icon: "hrm", permission: "hrm.access", links: [
+      { key: "home", en: "My overview", vi: "Tổng quan của tôi", path: "/hrm", icon: "overview" },
+      { key: "profile", en: "My profile", vi: "Hồ sơ của tôi", path: "/hrm/me", icon: "profile", anyOf: ["hrm.profile.self"] },
+      { key: "my-documents", en: "My legal documents", vi: "Tài liệu pháp lý của tôi", path: "/hrm/me/documents", icon: "profile", anyOf: ["hrm.legal.self"] },
+      { key: "my-coi", en: "My COI declarations", vi: "Khai báo COI của tôi", path: "/hrm/me/coi", icon: "profile", anyOf: ["hrm.coi.self"] },
+      { key: "my-onboarding", en: "Onboarding tasks", vi: "Việc cần làm khi gia nhập", path: "/hrm/me/onboarding", icon: "today", anyOf: ["hrm.onboarding.self", "hrm.onboarding.tasks"] },
+      { key: "people", en: "People", vi: "Nhân sự", path: "/hrm/people", icon: "hrm_people", anyOf: ["hrm.records.manage", "hrm.team.read"] },
+      { key: "legal-documents", en: "Policies and documents", vi: "Chính sách và tài liệu", path: "/hrm/documents", icon: "profile", anyOf: ["hrm.legal.manage"] },
+      { key: "coi-review", en: "COI review", vi: "Rà soát COI", path: "/hrm/coi", icon: "profile", anyOf: ["hrm.coi.review"] },
+      { key: "onboarding-manage", en: "Onboarding plans", vi: "Kế hoạch onboarding", path: "/hrm/onboarding", icon: "hrm_people", anyOf: ["hrm.onboarding.manage"] },
+      { key: "offboarding", en: "Offboarding", vi: "Offboarding", path: "/hrm/offboarding", icon: "hrm_people", anyOf: ["hrm.offboarding.manage", "hrm.offboarding.tasks"] },
+      { key: "retention", en: "Retention and legal holds", vi: "Lưu trữ và legal hold", path: "/hrm/retention", icon: "hrm_settings", anyOf: ["hrm.retention.manage", "hrm.retention.review", "hrm.legalhold.manage"] },
+      { key: "settings", en: "Settings", vi: "Thiết lập", path: "/hrm/settings", icon: "hrm_settings", anyOf: ["hrm.configure"] },
+    ],
+  },
+  {
     key: "admin", en: "Admin", vi: "Quản trị", path: "/workspace/users", icon: "admin", permission: "users.manage", links: [
       { key: "users", en: "Users and roles", vi: "Người dùng và vai trò", path: "/workspace/users", icon: "users" },
     ],
@@ -62,11 +79,14 @@ export function localized(path: string, vi: boolean): string {
 }
 
 export function visibleModules(user: WorkspaceUser): NavModule[] {
-  return modules.filter((module) => user.can(module.permission));
+  return modules.filter((module) => user.can(module.permission) && (module.key !== "hrm" || !user.hrmEmploymentEnded && (user.hrmEnabled !== false || user.can("hrm.configure"))));
 }
 
 export function visibleLinks(user: WorkspaceUser, module: NavModule): NavLink[] {
-  return module.links.filter((link) => !link.anyOf || link.anyOf.some((permission) => user.can(permission)));
+  return module.links.filter((link) => {
+    const allowedWhileClosed=link.key==="settings"||(link.key==="retention"&&(user.can("hrm.retention.manage")||user.can("hrm.retention.review")||user.can("hrm.legalhold.manage")))||(link.key==="legal-documents"&&user.can("hrm.legal.manage"))||(link.key==="onboarding-manage"&&user.can("hrm.onboarding.manage"));
+    return (module.key!=="hrm"||!user.hrmEmploymentEnded&&(user.hrmEnabled!==false||allowedWhileClosed))&&(!link.anyOf||link.anyOf.some(permission=>user.can(permission)));
+  });
 }
 
 /** Visible links by group, in group order; groups with nothing to open are left out. */
@@ -85,6 +105,7 @@ export function switchLocale(url: URL): string {
 export function moduleForPath(pathname: string): ModuleKey {
   const path = pathname.replace(/^\/vi(?=\/)/, "");
   if (path.startsWith("/admin/jobs")) return "hiring";
+  if (path === "/hrm" || path.startsWith("/hrm/")) return "hrm";
   if (path === "/crm" || path.startsWith("/crm/")) return "crm";
   if (path.startsWith("/workspace/users")) return "admin";
   return "home";

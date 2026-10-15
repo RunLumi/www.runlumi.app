@@ -2,6 +2,8 @@
 /// <reference types="@cloudflare/workers-types" />
 
 interface Env {
+  /** HRM deployment kill switch; absent/off keeps production closed. */
+  HRM_LIVE_ENABLED?: string;
   DB: D1Database;
   CONTENT_DB: D1Database;
   FILES: R2Bucket;
@@ -23,5 +25,7 @@ declare namespace App {
   interface Locals {
     /** Set by middleware on private routes: the signed-in user with Workspace roles. */
     workspace?: import("./lib/workspace/roles").WorkspaceUser;
+    /** Bounded form-body clone retained before request adapters consume the original stream. */
+    hrmFormRequest?: Request;
   }
 }

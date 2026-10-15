@@ -1,0 +1,10 @@
+---
+import HrmMyLegalDocuments from "../../../../components/hrm/HrmMyLegalDocuments.astro";
+import HrmFailure from "../../../../components/hrm/HrmFailure.astro";
+import { myLegalDocumentsPage } from "../../../../lib/hrm/legal-pages";
+export const prerender=false;
+let data;
+try{data=await myLegalDocumentsPage(Astro,"en")}catch(error){const user=Astro.locals.workspace!;data={lang:"en",vi:false,user,title:"My documents",error:error instanceof Error?error.message:"internal_error",status:typeof error==="object"&&error!==null&&"status" in error?Number(error.status):500}}
+if(data instanceof Response)return data;
+---
+{"issues" in data?<HrmMyLegalDocuments {...data}/>:<HrmFailure data={data}/>}

@@ -1,0 +1,5 @@
+---
+import HrmSettings from "../../../../components/hrm/HrmSettings.astro";import {settingsPage} from "../../../../lib/hrm/pages";
+export const prerender=false;const data=await settingsPage(Astro,"vi");if(data instanceof Response)return data;
+---
+<HrmSettings {...data}/>

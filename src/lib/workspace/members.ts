@@ -1,6 +1,6 @@
 // Workspace membership: who may sign into private modules and with which
 // roles. Identity details always come from EmDash (CONTENT_DB).
-import { type Role, roles, workspaceUser, permissionsFor } from "./roles";
+import { type Role, type WorkspaceUser, roles, workspaceUser, permissionsFor } from "./roles";
 
 /** D1 allows at most 100 bound parameters per statement. */
 export const BIND_CHUNK = 90;
@@ -106,6 +106,33 @@ export async function saveMember(
     auditStatement(db, actor, input.enabled ? "access_saved" : "access_revoked", user.id, { roles_before: before, roles_after: input.enabled ? input.roles : before, api_tokens_revoked: endsTokens }, now),
   ]);
   return user.id;
+}
+
+/** Build a System Admin-only, audited membership-disable write for an offboarding transaction. */
+export async function prepareMemberDisableForOffboarding(
+  db:D1Database,
+  contentDb:D1Database,
+  actor:WorkspaceUser,
+  targetUserId:string,
+  reason:string,
+):Promise<{alreadyDisabled:boolean;guards:{condition:string;params:(string|number|null)[]}[];writes:D1PreparedStatement[]}>{
+  if(!actor.can("users.manage"))throw new AccessError("user_id","forbidden");
+  if(!targetUserId||targetUserId===actor.id)throw new AccessError("user_id","self");
+  const account=await contentDb.prepare("SELECT role FROM users WHERE id=? LIMIT 1").bind(targetUserId).first<{role:number}>();
+  if(account?.role===50)throw new AccessError("user_id","already_admin");
+  const membership=await db.prepare("SELECT enabled FROM workspace_members WHERE user_id=?").bind(targetUserId).first<{enabled:number}>();
+  if(!membership||membership.enabled!==1)return {alreadyDisabled:true,guards:[],writes:[]};
+  const before=(await db.prepare("SELECT role FROM workspace_roles WHERE user_id=?").bind(targetUserId).all<{role:Role}>()).results.map(row=>row.role);
+  const timestamp=new Date().toISOString();
+  return {
+    alreadyDisabled:false,
+    guards:[{condition:"EXISTS(SELECT 1 FROM workspace_members WHERE user_id=? AND enabled=1)",params:[targetUserId]}],
+    writes:[
+      db.prepare("UPDATE workspace_members SET enabled=0,granted_by=?,updated_at=? WHERE user_id=? AND enabled=1").bind(actor.id,timestamp,targetUserId),
+      db.prepare("UPDATE crm_api_tokens SET revoked_at=?,revoked_by=? WHERE user_id=? AND revoked_at IS NULL").bind(timestamp,actor.id,targetUserId),
+      auditStatement(db,actor,"access_revoked",targetUserId,{roles_before:before,roles_after:before,api_tokens_revoked:true,reason:reason.trim().slice(0,500),source:"employment_offboarding"},timestamp),
+    ],
+  };
 }
 
 export async function recentAudit(db: D1Database): Promise<AuditRow[]> {

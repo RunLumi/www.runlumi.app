@@ -18,6 +18,21 @@ company context / evidence / permissions / workflows
 existing business software
 ```
 
+## Ambition with evidence
+
+**Raise the quality of the outcome, not the volume of work.** For non-trivial tasks, apply these lenses in the existing task/PR; small fixes stay small.
+
+- **Altitude:** identify what the visitor, candidate or operator must understand or accomplish, not just the requested page/component. State acceptance evidence, constraints and a stop condition. Offer a better bounded approach when justified; do not silently change approved scope.
+- **Depth:** inspect the actual content, code, rendered pages and authorized, redacted evidence. Use professional methods: accessibility inspection, performance measurement, source verification and behavioral tests. Challenge the assumed bottleneck. Treat a demanding target as a testable hypothesis, never an achieved claim.
+- **Range:** bring useful methods from editorial fact-checking, information architecture, usability research and security review. Perform those checks rather than role-playing experts or adding decorative complexity.
+- **Speed:** shorten the verified feedback loop using existing tooling. Complete the smallest authorized end-to-end slice, verify it and repair in-scope defects. Stop at proven acceptance or a specific blocker, not merely a plan or attractive screenshot.
+
+**Here:** improve a visitor's ability to understand the real offer and take the right next action. For public-page work, verify EN/VI parity, truthful capability claims, keyboard/mobile comprehension and the actual CTA destination; conversion uplift remains unproven without suitable data. For private Workspace/ATS/CRM work, use synthetic role/ownership cases and verify the server boundary, not just hidden navigation. Do not expose applicant or prospect data to support a demo.
+
+**Evidence and authority:** use observable tests and independent review, not the implementing model's confidence. Report actual results, tested revision and missing coverage. Preserve all product, editorial, privacy and release rules; in particular, a content draft is not publication approval and a merge to main is a production release. Propose larger opportunities separately. Evaluate instruction changes on representative tasks before claiming they improve outcomes.
+
+**Credit:** adapted from [Felix Rieseberg, “How to be more ambitious: A tutorial for humans with models”](https://felixrieseberg.com/how-to-be-more-ambitious-a-tutorial-for-humans-with-models/) (13 October 2026). Speed, Altitude, Depth and Range are his framework; the examples and authority safeguards here are Lumi's adaptation.
+
 ## Non-negotiables
 
 1. Preserve the visual contract in `DESIGN.md`.
@@ -51,7 +66,8 @@ including CMS-only changes through EmDash API/MCP.
 ## Workspace roles contract
 
 - Private modules (Hiring, CRM, and later ones) share one EmDash identity, one Workspace allowlist (`workspace_members`), combinable roles (`workspace_roles`) and one permission map in `src/lib/workspace/roles.ts`. See [docs/workspace/README.md](docs/workspace/README.md).
-- Roles: Admin (EmDash role 50; never stored), HR, Sales Manager, Sales Executive, Partner (Cộng tác viên), Finance and Fulfillment. Check permissions, never role names, in routes, APIs, queries and navigation.
+- Roles: System Super Admin (EmDash role 50; never stored), HR (ATS), Sales Manager, Sales Executive, Partner (Cộng tác viên), Finance, Fulfillment, Employee, People Manager, HRM Officer and HRM Admin. HRM grants are separate from ATS/CRM grants. Check permissions, never role names, in routes, APIs, queries and navigation.
+- HRM requirements and gates live in [docs/specs/hrm/README.md](docs/specs/hrm/README.md); track implementation evidence in `docs/specs/hrm/STATUS.md`. Production HRM stays fail-closed unless policy review, the HRM settings record and the `HRM_LIVE_ENABLED` deployment switch all agree. HRM Admin never self-approves or gains Workspace user/role administration.
 - Only Admins manage users and roles (`/workspace/users`); every access change is written to `workspace_audit`. Nobody changes their own access.
 - Navigation comes from `src/lib/workspace/nav.ts` and shows only entries the person may open; every private page renders inside `WorkspaceShell` and has a `/vi` peer.
 

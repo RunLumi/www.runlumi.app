@@ -1,0 +1,11 @@
+---
+import HrmPage from "./HrmPage.astro";
+import type { MyLegalDocuments } from "../../lib/hrm/legal-pages";
+const d=Astro.props as MyLegalDocuments;const vi=d.vi;
+const state=(value:string)=>({issued:vi?"Đã phát hành":"Issued",viewed:vi?"Đã xem":"Viewed",awaiting_action:vi?"Chờ thao tác":"Awaiting action",completed:vi?"Hoàn tất":"Completed",declined:vi?"Đã từ chối":"Declined",expired:vi?"Đã hết hạn":"Expired",cancelled:vi?"Đã hủy":"Cancelled",superseded:vi?"Được thay thế":"Superseded"}[value]||value);
+const when=(value:string)=>new Date(value).toLocaleString(vi?"vi-VN":"en-GB",{dateStyle:"medium",timeStyle:"short",timeZone:"Asia/Ho_Chi_Minh"});
+---
+<HrmPage data={d} current="my-documents">
+ <div class="crm-head"><div><p class="crm-eyebrow">HRM</p><h1 class="crm-h1">{d.title}</h1><p class="crm-meta">{vi?"Xác nhận đã đọc được lưu theo đúng phiên bản và thời điểm máy chủ; không phải chữ ký điện tử.":"Read acknowledgement is stored against the exact version and server time; it is not an electronic signature."}</p></div></div>
+ {d.issues.length===0?<section class="crm-sheet"><p>{vi?"Chưa có tài liệu nào được phát hành cho bạn.":"No documents have been issued to you."}</p></section>:<section class="crm-sheet"><div class="crm-list">{d.issues.map(issue=><article class="crm-row"><div><strong>{vi?issue.title_vi:issue.title_en}</strong><span class="crm-meta">{issue.document_type} · v{issue.version_number} · {state(issue.state)} · {when(issue.issued_at)}</span>{issue.acknowledged_at&&<span class="crm-meta">{vi?`Đã xác nhận ${when(issue.acknowledged_at)}`:`Acknowledged ${when(issue.acknowledged_at)}`}</span>}</div><a class="crm-button secondary small" href={`${vi?"/vi":""}/hrm/me/documents/${encodeURIComponent(issue.id)}`}>{vi?"Mở tài liệu":"Open document"}</a></article>)}</div></section>}
+</HrmPage>

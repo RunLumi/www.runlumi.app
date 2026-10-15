@@ -1,0 +1,11 @@
+---
+import HrmAtsTransfer from "../../../components/hrm/HrmAtsTransfer.astro";
+import HrmFailure from "../../../components/hrm/HrmFailure.astro";
+import { HrmError } from "../../../lib/hrm/fields";
+import { atsTransferPage } from "../../../lib/hrm/lifecycle-pages";
+export const prerender=false;
+let data;
+try{data=await atsTransferPage(Astro,"en",Astro.params.applicationId??"")}
+catch(error){const user=Astro.locals.workspace!;const status=error instanceof HrmError?error.status:500;Astro.response.status=status;data={lang:"en",vi:false,user,title:"ATS to HRM transfer",error:error instanceof HrmError?error.message:"internal_error",status}}
+---
+{"candidate" in data?<HrmAtsTransfer {...data}/>:<HrmFailure data={data}/>}

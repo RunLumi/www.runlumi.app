@@ -1,0 +1,13 @@
+---
+import HrmPage from "./HrmPage.astro";
+import type { CoiQueuePage } from "../../lib/hrm/coi-pages";
+const d=Astro.props as CoiQueuePage;const vi=d.vi;
+const state=(value:string)=>({submitted:vi?"Đã gửi":"Submitted",under_review:vi?"Đang rà soát":"Under review",clarification_needed:vi?"Cần bổ sung":"Clarification needed",cleared:vi?"Đã rà soát":"Cleared",mitigation_required:vi?"Cần biện pháp giảm thiểu":"Mitigation required",escalated:vi?"Đã chuyển cấp":"Escalated",closed:vi?"Đã đóng":"Closed"}[value]||value);
+const when=(value:string)=>new Date(value).toLocaleString(vi?"vi-VN":"en-GB",{dateStyle:"medium",timeStyle:"short",timeZone:"Asia/Ho_Chi_Minh"});
+---
+<HrmPage data={d} current="coi-review">
+ <p class="crm-meta">{vi?"Chỉ khai báo được giao cho bạn hoặc hàng chờ quản trị được hiển thị. Quản lý trực tiếp không có quyền xem nội dung COI.":"Only declarations assigned to you, or the administrator queue, appear here. Direct managers cannot read COI details."}</p>
+ <section class="crm-sheet"><h2 class="crm-h2">{vi?"Khai báo cần xử lý":"Declarations to review"}</h2>
+  {d.declarations.length===0?<p class="crm-meta">{vi?"Không có khai báo trong phạm vi của bạn.":"No declarations are in your review scope."}</p>:<div class="crm-list">{d.declarations.map(item=><article class="crm-row"><div><strong>{item.employee_code} · {item.legal_name}</strong><span class="crm-meta">{vi?`Khai báo #${item.declaration_no}`:`Declaration #${item.declaration_no}`} · {state(item.state)}{item.submitted_at?` · ${when(item.submitted_at)}`:""}{item.followup_due?` · ${vi?"Theo dõi":"Follow-up"} ${item.followup_due}`:""}</span></div><a class="crm-button secondary small" href={`${vi?"/vi":""}/hrm/coi/${encodeURIComponent(item.id)}`}>{vi?"Mở rà soát":"Review"}</a></article>)}</div>}
+ </section>
+</HrmPage>

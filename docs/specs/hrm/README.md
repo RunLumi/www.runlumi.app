@@ -1,10 +1,10 @@
 # HRM — Quản trị nhân sự và cổng nhân viên
 
-**Trạng thái:** đặc tả đề xuất, chưa triển khai. **Ngày cập nhật:** 2026-10-13.
+**Trạng thái:** hợp đồng phạm vi và tiêu chí nghiệm thu; tình trạng triển khai được theo dõi tại [STATUS.md](STATUS.md). **Ngày cập nhật:** 2026-10-14.
 
 HRM là phân hệ nhân sự trong Lumi Workspace, phục vụ cả nhân viên, người quản lý, HR và người phụ trách tiền lương. Hiring quản lý ứng viên trước khi tuyển; HRM quản lý quan hệ làm việc từ tiếp nhận đến nghỉ việc. Cả hai dùng chung danh tính EmDash nhưng có quyền riêng. CRM tiếp tục độc lập về nghiệp vụ và quyền dữ liệu.
 
-Tài liệu này xác định yêu cầu sản phẩm và tiêu chí nghiệm thu, không mô tả các chức năng đã có. Các tên quyền, bảng và đường dẫn bên dưới là đề xuất cần bổ sung khi triển khai. Quy tắc pháp lý, thuế, bảo hiểm, lưu trữ và giá trị chữ ký phải được người có chuyên môn rà soát theo nơi làm việc và thời điểm áp dụng; tài liệu không mặc định một mức luật định hay tuyên bố tuân thủ.
+Tài liệu này xác định yêu cầu sản phẩm và tiêu chí nghiệm thu. P1 vẫn chờ gate đầy đủ; P2 đã có luồng DOCX/PDF, xác nhận, COI, onboarding, chuyển ATS→HRM, checklist offboarding và bộ máy cấu hình retention/legal hold. Các thời hạn cụ thể chưa được người phụ trách chuyên môn chốt; production vẫn đóng. P3–P5 và các gate browser/hosted còn mở. Đừng suy ra tính sẵn sàng production từ nội dung đặc tả. Quy tắc pháp lý, thuế, bảo hiểm, lưu trữ và giá trị chữ ký phải được người có chuyên môn rà soát theo nơi làm việc và thời điểm áp dụng; tài liệu không mặc định một mức luật định hay tuyên bố tuân thủ.
 
 ## 1. Mục tiêu và ranh giới
 
@@ -64,6 +64,9 @@ Module dự kiến: `/hrm` và `/vi/hrm`; tất cả trang riêng tư trong `Wor
 | Requests / Yêu cầu của tôi | `/hrm/me/requests` | Hồ sơ, phúc lợi, tài sản, chứng nhận, hỗ trợ |
 | My team / Đội của tôi | `/hrm/team` | Lịch đội, yêu cầu chờ duyệt, công; không hiện lương/CCCD |
 | People / Nhân sự | `/hrm/people` | Danh sách, hồ sơ, cơ cấu, onboarding/offboarding |
+| ATS → HRM transfer / Chuyển ứng viên thành nhân viên | `/hrm/transfers/{applicationId}` | Preview ứng viên đã tuyển; cần đồng thời quyền Hiring và HRM; chuyển tối thiểu, không sao chép CV/ghi chú/scorecard |
+| Offboarding / Checklist nghỉ việc | `/hrm/offboarding` | Handover, tài sản, rà soát hồ sơ và chuyển việc tắt quyền Workspace cho System Super Admin |
+| Retention and legal holds / Lưu trữ và legal hold | `/hrm/retention` | Phiên bản thời hạn theo danh mục, đặt/gỡ hold, hai người duyệt xóa và System Super Admin thực hiện xóa object |
 | Legal documents / Hồ sơ pháp lý | `/hrm/documents` | Mẫu có phiên bản, chiến dịch ký, trạng thái và bằng chứng |
 | Attendance and leave / Công và phép | `/hrm/time` | Chính sách, đối soát, ngoại lệ, chốt kỳ |
 | Payroll / Bảng lương | `/hrm/payroll` | Chuẩn bị, kiểm tra, phê duyệt, phát hành, đối soát thanh toán |
@@ -304,6 +307,10 @@ Trước mở production phải chốt mục đích/căn cứ xử lý, trườn
 
 Không đưa dữ liệu thật vào fixture, prompt, ảnh chụp demo, log lỗi, analytics hoặc preview công khai. Export hạn chế cột/phạm vi, ghi người xuất và thời hạn; chống CSV formula injection. Backup dữ liệu và file có quyền riêng; phục hồi cần chứng minh khớp metadata/tệp, có dry run với dữ liệu giả. Restore database không tự khôi phục file đã xóa; quy trình phải xử lý cả D1 và R2.
 
+**Retention/legal hold đã triển khai ở P2, chưa phải chính sách production:** phiên bản quy tắc bao phủ ảnh hồ sơ, CCCD/định danh, phụ thuộc, ngân hàng, thuế/bảo hiểm, dữ liệu cá nhân, DOCX nguồn, PDF pháp lý, COI và onboarding. Không có thời hạn mặc định; mỗi danh mục cần một căn cứ được người phụ trách rà soát. `retention_days: null` nghĩa là không lên lịch tự động đủ hạn. Ngày đến hạn hiện tính từ thời điểm tải file; thay đổi policy chặn yêu cầu pending/approved theo version cũ. Kích hoạt policy không tự mở `HRM_LIVE_ENABLED`.
+
+Hold có thể áp dụng cho toàn bộ hồ sơ/danh mục hoặc một tệp, có người đặt, thời gian và lý do; tệp mới cùng danh mục nhận hold. Gỡ hold cần người khác với người đặt. Yêu cầu xóa qua chuỗi người tạo → người duyệt độc lập → System Super Admin thực hiện R2. Hold, version policy thay đổi hoặc sai checksum chặn thao tác. Xóa R2 có retry; D1 giữ checksum, metadata, tham chiếu và tombstone/audit, không cascade xóa hồ sơ nhân viên. Chưa có xóa retention cho dữ liệu cấu trúc, diễn tập restore phối hợp D1/R2, hay thời hạn/category basis được owner phê duyệt; không bật production cho tới khi các điều kiện đó được chốt.
+
 Giám sát hàng chờ duyệt, tài liệu hết hạn, lỗi file/thông báo, sai lệch công/lương và job thất bại; không đưa số lương hay số CCCD vào metric. Có runbook sự cố lộ tệp, ghép nhầm danh tính, phát hành nhầm payslip và khóa kỳ sai. Ngừng phát hành/tải phạm vi bị ảnh hưởng, giữ bằng chứng, sửa quyền và đối soát; không xóa audit để “dọn lỗi”.
 
 Migration cộng thêm, không phá bảng ATS/CRM; ghi điểm phục hồi và xác minh quyền/tệp trước mở module. Tính năng chưa qua gate ẩn bằng cấu hình tường minh, không thêm menu rỗng cho mọi nhân viên. Thay `main` là release production; tuân thủ runbook hiện có khi được yêu cầu triển khai.
@@ -329,9 +336,9 @@ Các kiểm tra dưới đây là yêu cầu cho triển khai, **chưa phải k�
 | HRM-13 | Lương thiếu đầu vào, làm tròn, nhiều tiền tệ hoặc commission nhập lại | Không tính âm thầm, không cộng sai tiền tệ, không tính hai lần |
 | HRM-14 | Người soạn tự duyệt, sửa sau duyệt, phát hành retry | Chặn tự duyệt; hủy phê duyệt khi sửa; một bản hợp lệ cho mỗi revision |
 | HRM-15 | Phát hành phiếu nhưng chưa đối soát trả tiền | Không ghi đã thanh toán; tổng phiếu khớp từng khoản và snapshot |
-| HRM-16 | Tải file công khai, sai MIME, file nguy hiểm, cache và export | Không truy cập công khai; cách ly/từ chối; no-store; scope và audit đúng |
+| HRM-16 | Tải file công khai, sai MIME, file nguy hiểm, cache, hold và export | Không truy cập công khai; cách ly/từ chối; no-store; hold chặn xóa; scope và audit đúng |
 | HRM-17 | Chuyển ứng viên thành nhân viên rồi ATS chạy retention | Chuyển đúng trường một lần; HRM không mất tài liệu có vòng đời độc lập |
-| HRM-18 | Nghỉ việc/quay lại hoặc xóa có legal hold | Quyền thu hồi theo mốc; lịch sử giữ đúng; hold ngăn xóa |
+| HRM-18 | Nghỉ việc/quay lại, thu hồi nhiều vai trò hoặc xóa có legal hold | HRM bị khóa theo employment; Workspace access có audit; lịch sử giữ đúng; hold ngăn xóa |
 | HRM-19 | Lark CRM/kênh nhắc việc lỗi hoặc retry | Không gửi dữ liệu HRM qua CRM; nghiệp vụ thành công, outbox không gửi trùng |
 | HRM-20 | EN/VI, mobile, bàn phím, giảm motion và không JS | Nội dung/quyền/trạng thái tương đương, không tràn trang, luồng lõi hoàn tất |
 | HRM-21 | Restore metadata và file từ bản phục hồi thử | Khớp tham chiếu/checksum, không phục hồi quyền đã thu hồi ngoài ý muốn |
@@ -383,3 +390,7 @@ Tiếp tục mở giai đoạn khi mọi test quyền/privacy tương ứng đ�
 - [CRM: ranh giới API và token](../../crm/API.md)
 - [CRM: chính sách hoa hồng](../../crm/COMMISSION.md)
 - [Runbook release hiện có](../../crm/RUNBOOK.md)
+
+**Yêu cầu owner được xác nhận lại, 2026-10-14 — nạp chính sách và xác nhận:** người có quyền `hrm.legal.manage` được tải DOCX làm bản nguồn; người phụ trách cấu hình phiên bản, pháp nhân, đối tượng áp dụng và điều kiện xác nhận. DOCX là tệp nguồn, không được render bằng cách nội suy HTML và không tự trở thành phiên bản phát hành. Mỗi lần phát hành giữ nguyên file/checksum và nội dung phiên bản. Nhân viên và HR được tải PDF làm chứng từ trong đúng phạm vi hồ sơ hoặc tác vụ được giao; mặc định PDF được cách ly đến khi được rà soát, không coi phần mở rộng là bằng chứng an toàn.
+
+Mỗi lượt nhân viên chủ động đánh dấu “Tôi đã đọc và xác nhận” lưu danh tính EmDash, thời gian server UTC, phiên bản/checksum chính xác và kênh thực hiện. UI hiển thị thời gian theo múi giờ tài khoản/Asia/Ho_Chi_Minh, và hiện phiên bản nào đã được xác nhận. Bản mới tạo yêu cầu mới khi chính sách được cấu hình là cần tái xác nhận; không ghi đè hoặc đổi thời gian bản cũ. Tác vụ xác nhận chỉ là acknowledgement; không gọi là chữ ký hợp đồng/chữ ký điện tử và không thay hành động xác nhận riêng ở nhà cung cấp chữ ký đã được duyệt.

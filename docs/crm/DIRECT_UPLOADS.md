@@ -126,3 +126,21 @@ Wrangler schema/Miniflare S3 implementation.
   create API tokens. The R2 bucket had no CORS configuration. No signing secret,
   production migration, CORS change or deployment was performed during local
   verification. Provider/browser production proof is pending those prerequisites.
+
+
+### Production prerequisites configured — 2026-10-15
+
+The account owner authorized creation of the non-expiring account-owned token
+`runlumi-crm-direct-upload`, with Object Read & Write limited to
+`lumi-job-files`. Its two generated keys were transferred through a private
+in-memory pipe directly into the `runlumi` Worker secrets; no credential value
+was printed, committed or written to a local file. The token's active bucket
+scope and secret-name preflight were verified. A real S3 authenticated PUT and
+HEAD succeeded, production-origin CORS succeeded, and the temporary synthetic
+probe object was removed. Actual application presigned/browser production proof
+follows deployment; credential/provider setup alone is not that proof.
+
+Main's HRM P1/P2 changes were reconciled without dropping their role, privacy,
+feature-gate or isolated-integration requirements. The shared isolated runner
+now prepares synthetic native R2 S3 bindings before the HRM gate and CRM
+regressions. No production secrets enter that local configuration.

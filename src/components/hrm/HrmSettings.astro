@@ -1,0 +1,30 @@
+---
+import HrmPage from "./HrmPage.astro";
+import type { PageBase } from "../../lib/hrm/pages";
+import type { Settings } from "../../lib/hrm/service";
+interface Props extends PageBase { settings:Settings; saved:boolean; deploymentEnabled:boolean }
+const d=Astro.props;
+---
+<HrmPage data={d} current="settings">
+  {d.saved&&<div class="crm-notice good" role="status">{d.vi?"Đã lưu cấu hình.":"Settings saved."}</div>}
+  <section class="crm-sheet">
+    <h2 class="crm-h2">{d.vi?"Điều kiện mở HRM":"HRM activation conditions"}</h2>
+    <p>{d.vi?"Policy pháp lý, công–phép và payroll chưa được owner chốt. Production giữ đóng bằng công tắc deployment; lưu cấu hình ở đây chưa cấp quyền hoặc mở dữ liệu.":"Legal, time/leave and payroll rules still need owner approval. Production remains closed by a deployment switch; saving configuration here does not grant access or open HR data."}</p>
+    <p class="crm-meta">{d.vi?"Deployment gate":"Deployment gate"}: <strong>{d.live?(d.settings.enabled? (d.vi?"Đã bật":"Enabled"):(d.vi?"Chưa đủ điều kiện":"Not configured")):(d.vi?"ĐANG TẮT":"OFF")}</strong></p>
+    {d.settings.reviewed_at&&<p class="crm-meta">{d.vi?"Được rà soát bởi":"Reviewed by"} {d.settings.reviewed_by} · {new Date(d.settings.reviewed_at).toLocaleString(d.vi?"vi-VN":"en-GB",{dateStyle:"medium",timeStyle:"short",timeZone:"Asia/Ho_Chi_Minh"})}</p>}
+  </section>
+  <form method="post" class="crm-sheet crm-form">
+    <input type="hidden" name="request_key" value={crypto.randomUUID()} /><input type="hidden" name="version" value={d.settings.version} />
+    <h2 class="crm-h2">{d.vi?"Cấu hình chưa kích hoạt":"Configuration, not yet activated"}</h2>
+    <p>{d.vi?"Các trường dưới đây phải trỏ tới quyết định/tài liệu thực. Không điền giá trị mặc định thay cho quyết định còn thiếu.":"These fields must refer to real decisions and source documents. Do not fill invented defaults for unresolved policies."}</p>
+    <div class="crm-form-grid">
+      <div class="crm-field"><label for="entity">{d.vi?"Pháp nhân sử dụng lao động":"Employing legal entity"}</label><input class="crm-input" id="entity" name="legal_entity" required maxlength="200" value={d.settings.legal_entity} /></div>
+      <div class="crm-field"><label for="purpose">{d.vi?"Mục đích sử dụng dữ liệu HRM":"HRM data purpose"}</label><textarea class="crm-textarea" id="purpose" name="purpose" required maxlength="1000">{d.settings.purpose}</textarea></div>
+      <div class="crm-field"><label for="retention">{d.vi?"Chính sách lưu trữ/hold đã duyệt":"Approved retention/hold policy"}</label><textarea class="crm-textarea" id="retention" name="retention_policy" required maxlength="1000">{d.settings.retention_policy}</textarea></div>
+      <div class="crm-field"><label for="reference">{d.vi?"Nguồn/tài liệu chính sách có thẩm quyền":"Authoritative policy source/reference"}</label><input class="crm-input" id="reference" name="policy_reference" required maxlength="500" value={d.settings.policy_reference} /></div>
+    </div>
+    <label class="crm-check"><input type="checkbox" name="reviewed" value="1" /><span>{d.vi?"Tôi xác nhận các quyết định trên đã được người có thẩm quyền rà soát.":"I confirm the decisions above have been reviewed by the responsible owner."}</span></label>
+    <label class="crm-check"><input type="checkbox" name="enabled" value="1" disabled={!d.deploymentEnabled} checked={d.settings.enabled===1} /><span>{d.vi?"Đề xuất bật HRM (chỉ có hiệu lực khi owner đã bật deployment gate).":"Enable HRM (effective only after the owner turns on the deployment gate)."}</span></label>
+    <div class="crm-actions"><button class="crm-button" type="submit">{d.vi?"Lưu cấu hình":"Save settings"}</button></div>
+  </form>
+</HrmPage>

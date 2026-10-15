@@ -20,7 +20,8 @@ const saved = flash.saved === "1" || (!!flash.saved && !["interview", "scorecard
     <label class="crm-label" for="status">{vi ? "Giai đoạn" : "Stage"}</label>
     <select class="crm-select" style="width:auto" id="status" name="status">{applicationStatuses.map((value) => <option value={value} selected={application.status === value}>{statusName(value, lang)}</option>)}</select>
     <button class="crm-button" type="submit">{vi ? "Cập nhật" : "Update stage"}</button>
-  </form>}</div>
+  </form>}
+  {application.status==="hired"&&user.can("hiring.applications.manage")&&user.can("hrm.records.manage")&&user.hrmEnabled===true&&<a class="crm-button secondary" href={`${vi?"/vi":""}/hrm/transfers/${encodeURIComponent(application.id)}`}>{vi?"Xem trước chuyển sang HRM":"Preview HRM transfer"}</a>}</div>
   {saved && <div class="crm-notice good" role="status">{vi ? "Đã lưu." : "Saved."}</div>}
   <div class="crm-grid two">
     <div>
