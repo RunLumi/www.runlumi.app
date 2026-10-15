@@ -2,7 +2,7 @@ import type { AstroGlobal } from 'astro';
 import { envFromLocals } from '../../ats';
 import { sameOrigin } from '../../http';
 import { ConflictError, NotFoundError, ValidationError, formValues } from '../core';
-import { MAX_UPLOAD, changeFile, createFile, downloadFile, fileChildren, filePeople, readFile, fileVersions, uploadFileVersion, deleteFileVersion, type FileItem, type FileVersion } from '../files';
+import { changeFile, createFolder, downloadFile, fileChildren, filePeople, readFile, fileVersions, deleteFileVersion, type FileItem, type FileVersion } from '../files';
 import type { Lang } from '../i18n';
 import { context, emptyState, notFound, page, type Ctx, type FormState } from '../page';
 
@@ -12,7 +12,7 @@ export interface FilesProps {
 }
 
 export async function boundedFileForm(request: Request): Promise<FormData> {
-  const limit = MAX_UPLOAD + 1024 * 1024;
+  const limit = 64 * 1024;
   if (Number(request.headers.get('content-length')) > limit) throw new RangeError('Upload too large');
   if (!request.body) throw new TypeError('Missing body');
   let size = 0;
@@ -41,8 +41,9 @@ export async function filesRoute(astro: AstroGlobal, lang: Lang): Promise<FilesP
     const intent = String(form.get('intent') ?? '');
     state = { ...emptyState, intent, values: formValues(form) };
     try {
-      if (intent === 'create') await createFile(ctx.db, FILES, user, form);
-      else if (intent === 'upload_version') await uploadFileVersion(ctx.db, FILES, user, form);
+      if (intent === 'create' && form.get('kind') === 'file') throw new ValidationError({ upload: 'direct_upload' });
+      else if (intent === 'create') await createFolder(ctx.db, user, form);
+      else if (intent === 'upload_version') throw new ValidationError({ upload: 'direct_upload' });
       else if (intent === 'delete_version') await deleteFileVersion(ctx.db, FILES, user, form);
       else await changeFile(ctx.db, FILES, ctx.contentDb, user, form);
       const next = new URL(astro.url);

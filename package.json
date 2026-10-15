@@ -11,6 +11,7 @@
     "typecheck": "astro check",
     "lint": "node scripts/check-src.mjs",
     "test": "node --experimental-strip-types --test --import ./scripts/test-setup.mjs \"tests/**/*.test.ts\"",
+    "test:files:prepare": "node scripts/prepare-crm-upload-test.mjs",
     "test:integration": "node scripts/run-integration.mjs",
     "test:integration:hrm": "RUNLUMI_INTEGRATION_SCOPE=hrm node scripts/run-integration.mjs",
     "deploy": "node scripts/preflight.mjs && npm run build && node scripts/release.mjs",
@@ -25,6 +26,7 @@
     "@astrojs/react": "6.0.5",
     "@emdash-cms/cloudflare": "0.38.0",
     "astro": "^7.3.3",
+    "aws4fetch": "1.0.20",
     "emdash": "0.38.0",
     "react": "19.2.0",
     "react-dom": "19.2.0"

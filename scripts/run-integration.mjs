@@ -34,12 +34,17 @@ const env = {
   ASTRO_DEV_BACKGROUND: "0",
   CRM_INTAKE_SECRET: "local-test-secret-not-for-production-0123456789",
   WRANGLER_SEND_METRICS: "false",
+  CLOUDFLARE_VITE_WRANGLER_CONFIG_PATH: resolve(root,".wrangler/crm-upload-test.jsonc"),
 };
 let worker = null;
 let localVars = false;
 let log = "";
 
 try {
+  // Preserve the credential-free HRM gate and add native local R2 S3 support
+  // for CRM uploads. Only synthetic credentials enter the ignored test config.
+  const prepared = spawnSync(process.execPath,["scripts/prepare-crm-upload-test.mjs"],{cwd:root,env,encoding:"utf8",stdio:"inherit"});
+  if(prepared.status !== 0) throw new Error("Local S3 test configuration failed.");
   const migration = spawnSync(
     resolve(root, "node_modules/.bin/wrangler"),
     ["d1", "migrations", "apply", "lumi-jobs", "--local", "--persist-to", persist],

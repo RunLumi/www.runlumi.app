@@ -240,6 +240,15 @@ No existing row changes. Back up first with `wrangler d1 export … --output bac
 
 ## 12. Automatic production deploys (Cloudflare Workers Builds)
 
+**Observed 2026-10-15:** the authenticated `runlumi` Worker dashboard currently
+shows “Connect your Git repository to enable continuous deployment.” The setup
+below describes the intended pipeline; it is not proof that this Worker is
+connected. Until that connection is configured and a real main build is verified,
+use the documented manual fallback from the exact tested merged main commit and
+read back its version/tag, migrations and live routes. Do not claim automatic
+production deployment from a green GitHub Actions run alone.
+
+
 Every push to `main`, including every merged pull request, builds and deploys on Cloudflare's own build servers. This does not depend on the GitHub Actions budget.
 
 ### One-time setup (Cloudflare dashboard, account owner)
@@ -343,3 +352,15 @@ Without `LARK_CRM_WEBHOOK_URL` nothing is sent and nothing fails.
   `last_error` shows the Lark code, for example `lark_19021` for a bad signature or `lark_11232` for rate limiting.
 - **Pause:** `wrangler secret delete LARK_CRM_WEBHOOK_URL`.
 - **Rotate the secret:** reset it in Lark, then `wrangler secret put LARK_CRM_WEBHOOK_SECRET`.
+
+
+## 14. CRM direct file uploads
+
+Follow [DIRECT_UPLOADS.md](DIRECT_UPLOADS.md) for the metadata-only presign/complete
+protocol, bucket-scoped signing secrets, CORS, local S3 tests and cleanup.
+Migration `0014_crm_direct_uploads.sql` is additive. Release preflight now requires
+`CRM_R2_ACCESS_KEY_ID` and `CRM_R2_SECRET_ACCESS_KEY`; it must fail before migrations
+or upload if either is missing. Do not merge/release the direct-upload UI until
+those secrets and the production PUT CORS rule are ready. Keep the current release
+active while setup is incomplete. Never place signing credentials in build vars,
+Git, chat, PRs, or command arguments; use prompted Wrangler secret entry.

@@ -2,7 +2,9 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { sqliteD1 } from './support/d1-sqlite.ts';
 import { makeUser } from '../src/lib/workspace/roles.ts';
-import { uploadFileVersion, deleteFileVersion, fileVersions, canReadFile, changeFile, createFile, downloadFile, fileChildren, fileItem, fileName, publicChildren, publicFile, readFile, MAX_UPLOAD } from '../src/lib/crm/files.ts';
+import { deleteFileVersion, fileVersions, canReadFile, changeFile, createFolder, downloadFile, fileChildren, fileItem, fileName, publicChildren, publicFile, readFile, MAX_UPLOAD } from '../src/lib/crm/files.ts';
+import { reserveUpload, completeUpload } from '../src/lib/crm/direct-uploads.ts';
+import type { WorkspaceUser } from '../src/lib/workspace/roles.ts';
 import { ConflictError, NotFoundError, ValidationError } from '../src/lib/crm/core.ts';
 
 const owner = makeUser({ id: 'owner', name: 'Owner', email: 'owner@example.test' }, false, ['sales_executive']);
@@ -17,12 +19,29 @@ function form(values: Record<string, string | File | string[]>) {
   for (const [key, value] of Object.entries(values)) for (const entry of Array.isArray(value) ? value : [value]) form.append(key, entry);
   return form;
 }
+// Fixtures use the same reservation/completion boundary; only the test
+// bucket receives bytes here. Production Worker code has no upload put().
+async function createFile(db: D1Database, bucket: R2Bucket, user: WorkspaceUser, input: FormData): Promise<string> {
+  if (input.get('kind') === 'folder') return createFolder(db,user,input);
+  const file = input.get('upload');
+  if (!(file instanceof File)) throw new ValidationError({upload:'invalid'});
+  const ticket = await reserveUpload(db,user,{name:file.name,size:file.size,parent:String(input.get('parent') || '')});
+  await bucket.put(ticket.object_key,file.stream());
+  return completeUpload(db,bucket,user,ticket.id);
+}
+async function uploadFileVersion(db: D1Database, bucket: R2Bucket, user: WorkspaceUser, input: FormData): Promise<void> {
+  const file = input.get('upload');
+  if (!(file instanceof File)) throw new ValidationError({upload:'invalid'});
+  const ticket = await reserveUpload(db,user,{name:file.name,size:file.size,fileId:String(input.get('id')),version:Number(input.get('version'))});
+  await bucket.put(ticket.object_key,file.stream()); await completeUpload(db,bucket,user,ticket.id);
+}
 function setup() {
   const db = sqliteD1(); const content = sqliteD1('content');
   // An in-memory bucket double isolates policy tests; real workerd/R2 is verified separately.
   const objects = new Map<string, Uint8Array>();
   const bucket = {
     async put(key: string, stream: ReadableStream) { objects.set(key, new Uint8Array(await new Response(stream).arrayBuffer())); },
+    async head(key: string) { const data = objects.get(key); return data ? { size:data.length,httpMetadata:{contentType:'application/octet-stream'} } : null; },
     async get(key: string) { const data = objects.get(key); return data ? { body: new Blob([data]).stream(), size: data.length } : null; },
     async delete(key: string) { objects.delete(key); },
   } as unknown as R2Bucket;

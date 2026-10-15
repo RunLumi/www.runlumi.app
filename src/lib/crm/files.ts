@@ -3,7 +3,7 @@ import { permissionsFor } from "../workspace/roles";
 import { workspaceMembers } from "../workspace/members";
 import { ConflictError, NotFoundError, fail, text } from "./core";
 
-export const MAX_UPLOAD = 20 * 1024 * 1024;
+export { MAX_UPLOAD } from './file-upload-limits';
 export const visibilityOptions = ['private', 'team', 'people', 'internet', 'inherit'] as const;
 export type Visibility = typeof visibilityOptions[number];
 export interface FileItem {
@@ -66,7 +66,7 @@ export function fileName(value: string): string {
   return name;
 }
 
-export async function createFile(db: D1Database, bucket: R2Bucket, user: WorkspaceUser, form: FormData): Promise<string> {
+export async function createFolder(db: D1Database, user: WorkspaceUser, form: FormData): Promise<string> {
   if (!user.can('crm.access')) throw new NotFoundError();
   const parentId = text(form, 'parent', 100) || null;
   let parent: FileItem | null = null;
@@ -75,28 +75,15 @@ export async function createFile(db: D1Database, bucket: R2Bucket, user: Workspa
     if (parent.kind !== 'folder' || parent.owner_id !== user.id) throw new NotFoundError();
     if (parent.depth >= 20) fail('parent', 'depth');
   }
-  const kind = text(form, 'kind', 20);
-  if (kind !== 'file' && kind !== 'folder') fail('kind', 'invalid');
-  const upload = form.get('upload');
-  if (kind === 'file' && (!(upload instanceof File) || !upload.size || upload.size > MAX_UPLOAD)) fail('upload', 'size');
-  const file = upload instanceof File ? upload : null;
-  const name = fileName(kind === 'file' ? file!.name : text(form, 'name', 180, { required: true }));
-  const id = crypto.randomUUID();
-  const key = kind === 'file' ? `crm-files/${id}` : null;
-  const now = new Date().toISOString();
-  if (key) await bucket.put(key, file!.stream(), { httpMetadata: { contentType: 'application/octet-stream' } });
-  try {
-    // Recheck the parent in the write, including concurrent removal.
-    const result = await db.prepare(`INSERT INTO crm_files
-      (id,parent_id,owner_id,name,kind,object_key,size,visibility,public_token,last_actor,created_at,updated_at)
-      SELECT ?,?,?,?,?,?,?,?,?,?,?,? WHERE ? IS NULL OR EXISTS
-      (SELECT 1 FROM crm_files WHERE id = ? AND owner_id = ? AND kind = 'folder' AND deleted_at IS NULL)`)
-      .bind(id, parentId, user.id, name, kind, key, kind === 'file' ? file!.size : 0, parent ? 'inherit' : 'private', crypto.randomUUID(), user.id, now, now, parentId, parentId, user.id).run();
-    if (!result.meta.changes) throw new NotFoundError();
-  } catch (error) {
-    if (key) await bucket.delete(key);
-    throw error;
-  }
+  if (text(form,'kind',20) !== 'folder') fail('kind','direct_upload');
+  const name = fileName(text(form,'name',180,{required:true}));
+  const id = crypto.randomUUID(); const now = new Date().toISOString();
+  const result = await db.prepare(`INSERT INTO crm_files
+    (id,parent_id,owner_id,name,kind,object_key,size,visibility,public_token,last_actor,created_at,updated_at)
+    SELECT ?,?,?,?,'folder',NULL,0,?,?,?,?,? WHERE ? IS NULL OR EXISTS
+    (SELECT 1 FROM crm_files WHERE id = ? AND owner_id = ? AND kind = 'folder' AND deleted_at IS NULL)`)
+    .bind(id,parentId,user.id,name,parent ? 'inherit' : 'private',crypto.randomUUID(),user.id,now,now,parentId,parentId,user.id).run();
+  if (!result.meta.changes) throw new NotFoundError();
   return id;
 }
 
@@ -111,30 +98,6 @@ export async function fileVersions(db: D1Database, item: FileItem, page = 1): Pr
   const rows = (await db.prepare('SELECT * FROM crm_file_versions WHERE file_id = ? AND deleted_at IS NULL ORDER BY number DESC LIMIT 21 OFFSET ?')
     .bind(item.id, (page - 1) * 20).all<FileVersion>()).results;
   return { rows: rows.slice(0, 20), more: rows.length > 20 };
-}
-
-export async function uploadFileVersion(db: D1Database, bucket: R2Bucket, user: WorkspaceUser, form: FormData): Promise<void> {
-  const item = await readFile(db, user, text(form, 'id', 100));
-  if (item.kind !== 'file' || item.owner_id !== user.id) throw new NotFoundError();
-  const version = Number(form.get('version'));
-  if (!Number.isSafeInteger(version) || item.version !== version) throw new ConflictError();
-  const file = form.get('upload');
-  if (!(file instanceof File) || !file.size || file.size > MAX_UPLOAD) fail('upload', 'size');
-  const name = fileName(file.name);
-  const id = crypto.randomUUID();
-  const key = `crm-files/${item.id}/${id}`;
-  const now = new Date().toISOString();
-  await bucket.put(key, file.stream(), { httpMetadata: { contentType: 'application/octet-stream' } });
-  try {
-    // Insertion and trigger update are one atomic SQL statement. Concurrent
-    // uploads/sharing/deletions fail the version guard instead of overwriting.
-    const result = await db.prepare(`INSERT INTO crm_file_versions
-      (id,file_id,number,object_key,name,size,uploader_id,uploader_name,created_at)
-      SELECT ?,?,COALESCE((SELECT MAX(number) FROM crm_file_versions WHERE file_id = ?),0)+1,?,?,?,?,?,?
-      WHERE EXISTS (SELECT 1 FROM crm_files WHERE id = ? AND owner_id = ? AND version = ? AND deleted_at IS NULL)`)
-      .bind(id,item.id,item.id,key,name,file.size,user.id,user.name,now,item.id,user.id,version).run();
-    if (!result.meta.changes) throw new ConflictError();
-  } catch (error) { await bucket.delete(key); throw error; }
 }
 
 export async function deleteFileVersion(db: D1Database, bucket: R2Bucket, user: WorkspaceUser, form: FormData): Promise<void> {

@@ -7,6 +7,11 @@ interface Env {
   DB: D1Database;
   CONTENT_DB: D1Database;
   FILES: R2Bucket;
+  /** Bucket-scoped R2 S3 credentials, Worker secrets only. */
+  CRM_R2_ACCESS_KEY_ID?: string;
+  CRM_R2_SECRET_ACCESS_KEY?: string;
+  /** Test-only local R2 S3 endpoint; honored only on loopback requests. */
+  CRM_R2_LOCAL_ENDPOINT?: string;
   DISCORD_APPLICATION_WEBHOOK_URL?: string;
   /** Shared HMAC secret for /api/intake/local (≥32 chars). */
   CRM_INTAKE_SECRET?: string;
