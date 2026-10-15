@@ -34,7 +34,9 @@ test('files: private folder, actual multipart upload, attachment bytes and local
   assert.equal((await S.viewer.get(`/crm/files?item=${ids.file}&download=1`)).status, 404);
   assert.equal((await S.admin.get(`/crm/files?item=${ids.file}`)).status, 404);
   assert.equal((await S.hr.get('/crm/files')).status, 403);
-  assert.equal((await fetch(`${BASE}/crm/files`, { redirect: 'manual' })).status, 303);
+  const anonymous = await fetch(`${BASE}/crm/files`, { redirect: 'manual' });
+  assert.equal(anonymous.status, 303);
+  assert.equal(anonymous.headers.get('cache-control'), 'private, no-store', 'sign-in redirects must not be cached');
 });
 
 test('files: sales team, selected viewers, denied mutation and strict origin', async () => {

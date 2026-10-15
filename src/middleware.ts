@@ -35,7 +35,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   if (area) {
     if (!activeUser(context.locals)) {
       if (area.api) return new Response("Unauthorized", { status: 401 });
-      return context.redirect(emdashLoginUrl(path + context.url.search), 303);
+      return new Response(null, { status: 303, headers: { Location: emdashLoginUrl(path + context.url.search), "Cache-Control": "private, no-store" } });
     }
     const { DB } = envFromLocals(context.locals);
     const user = await workspaceUser(context.locals, DB);
