@@ -1,0 +1,137 @@
+---
+import HrmPage from "./HrmPage.astro";
+import type { AssetRegisterPage } from "../../lib/hrm/asset-pages";
+
+const d = Astro.props as AssetRegisterPage;
+const vi = d.vi;
+const prefix = vi ? "/vi" : "";
+const assetState = (value: string) => ({
+  available: vi ? "Sẵn sàng" : "Available",
+  offered: vi ? "Chờ nhân viên xác nhận" : "Awaiting employee",
+  assigned: vi ? "Đang bàn giao" : "Assigned",
+  return_requested: vi ? "Đang chờ trả" : "Return requested",
+  inspection: vi ? "Chờ kiểm tra" : "Inspection",
+  retired: vi ? "Đã thanh lý" : "Retired",
+  lost: vi ? "Báo mất" : "Reported missing",
+}[value] ?? value);
+const assignmentState = (value: string) => ({
+  offered: vi ? "Đã gửi đề nghị" : "Offered",
+  assigned: vi ? "Đã xác nhận" : "Acknowledged",
+  return_requested: vi ? "Đang chờ bàn giao" : "Return requested",
+  returned: vi ? "Đã nhận lại" : "Returned",
+  cancelled: vi ? "Đã hủy" : "Cancelled",
+}[value] ?? value);
+const typeLabel = (value: string) => ({
+  computer: vi ? "Máy tính" : "Computer",
+  phone: vi ? "Điện thoại" : "Phone",
+  monitor: vi ? "Màn hình" : "Monitor",
+  accessory: vi ? "Phụ kiện" : "Accessory",
+  key: vi ? "Chìa khóa/thẻ" : "Key or badge",
+  other: vi ? "Khác" : "Other",
+}[value] ?? value);
+const returnTo = (assetId?: string) => `${prefix}/hrm/assets${assetId ? `?asset=${encodeURIComponent(assetId)}` : ""}`;
+const eventLabel = (value: string) => ({
+  registered: vi ? "Đã đăng ký" : "Registered",
+  offered: vi ? "Đã gửi đề nghị bàn giao" : "Handover offered",
+  accepted: vi ? "Nhân viên xác nhận nhận" : "Receipt acknowledged",
+  return_requested: vi ? "Đã yêu cầu trả" : "Return requested",
+  return_cancelled: vi ? "Đã hủy yêu cầu trả" : "Return request cancelled",
+  handover_reported: vi ? "Nhân viên báo đã bàn giao" : "Handover reported",
+  offer_cancelled: vi ? "Đã hủy đề nghị" : "Offer cancelled",
+  returned: vi ? "Đã nhận lại tài sản" : "Asset received back",
+  inspection_required: vi ? "Chuyển kiểm tra" : "Sent for inspection",
+  marked_lost: vi ? "Báo chưa nhận lại" : "Marked missing",
+  inspection_cleared: vi ? "Đã kiểm tra xong" : "Inspection cleared",
+  retired: vi ? "Đã thanh lý" : "Retired",
+}[value] ?? (vi ? "Đã ghi sự kiện" : "Event recorded"));
+---
+<HrmPage data={d}>
+  <section class="crm-notice" role="note">
+    <strong>{vi ? "Sổ tài sản nội bộ" : "Internal asset register"}</strong>
+    <p>{vi ? "Đề nghị chỉ hoàn tất sau khi nhân viên xác nhận nhận tài sản. HR xác minh khi nhận lại; mất/hỏng không tự khấu trừ lương và không tự provision thiết bị bên ngoài." : "An offer is not a handover until the employee acknowledges receipt. HR verifies returned items. Lost or damaged assets never trigger automatic payroll deductions or external provisioning."}</p>
+  </section>
+
+  <section class="crm-sheet">
+    <h2 class="crm-h2">{vi ? "Đăng ký tài sản" : "Register an asset"}</h2>
+    {d.legalEntity ? <form class="crm-form" method="post" action="/api/hrm/assets">
+      <input type="hidden" name="intent" value="create_asset" />
+      <input type="hidden" name="return_to" value={returnTo()} />
+      <input type="hidden" name="request_key" value={crypto.randomUUID()} />
+      <input type="hidden" name="legal_entity" value={d.legalEntity} />
+      <div class="crm-form-grid">
+        <label class="crm-field"><span>{vi ? "Mã tài sản" : "Asset tag"}</span><input class="crm-input" name="asset_tag" maxlength="48" required /></label>
+        <label class="crm-field"><span>{vi ? "Loại tài sản" : "Asset type"}</span><select class="crm-input" name="asset_type" required>
+          <option value="computer">{typeLabel("computer")}</option><option value="phone">{typeLabel("phone")}</option><option value="monitor">{typeLabel("monitor")}</option><option value="accessory">{typeLabel("accessory")}</option><option value="key">{typeLabel("key")}</option><option value="other">{typeLabel("other")}</option>
+        </select></label>
+      </div>
+      <label class="crm-field"><span>{vi ? "Mô tả" : "Description"}</span><input class="crm-input" name="description" maxlength="240" required /></label>
+      <div class="crm-form-grid">
+        <label class="crm-field"><span>{vi ? "Số sê-ri (chỉ HR)" : "Serial number (HR only)"}</span><input class="crm-input" name="serial_number" maxlength="120" /></label>
+        <label class="crm-field"><span>{vi ? "Địa điểm" : "Location"}</span><input class="crm-input" name="location" maxlength="160" /></label>
+      </div>
+      <button class="crm-button">{vi ? "Lưu tài sản" : "Register asset"}</button>
+    </form> : <p class="crm-empty">{vi ? "Cấu hình pháp nhân HRM trước khi đăng ký tài sản." : "Configure the HRM legal entity before registering assets."}</p>}
+  </section>
+
+  <section class="crm-sheet">
+    <h2 class="crm-h2">{vi ? "Danh mục tài sản" : "Assets"}</h2>
+    {d.assets.length === 0 ? <p class="crm-empty">{vi ? "Chưa có tài sản nào." : "No assets registered."}</p> : <div class="crm-list">
+      {d.assets.map((asset) => <article class="crm-row">
+        <div>
+          <a href={returnTo(asset.id)}><strong>{asset.asset_tag} · {asset.description}</strong></a>
+          <p class="crm-meta">{typeLabel(asset.asset_type)} · {assetState(asset.state)} · {asset.legal_entity}{asset.location ? " · " + asset.location : ""}</p>
+          <p class="crm-meta">{asset.serial_number ? (vi ? "Số sê-ri: " : "Serial: ") + asset.serial_number : (vi ? "Chưa ghi số sê-ri" : "No serial recorded")}</p>
+          {asset.assignment_id && <p>{asset.employee_code} · {asset.display_name} · {assignmentState(asset.assignment_state ?? "")}{asset.expected_return_on ? " · " + asset.expected_return_on : ""}{asset.employee_handover_at ? (vi ? " · Nhân viên báo đã bàn giao" : " · Employee reported handover") : ""}</p>}
+        </div>
+        <div class="crm-actions">
+          {asset.state === "available" && <form class="crm-form" method="post" action="/api/hrm/assets">
+            <h3 class="crm-h3">{vi ? "Đề nghị bàn giao" : "Offer handover"}</h3>
+            <input type="hidden" name="intent" value="offer_asset" /><input type="hidden" name="return_to" value={returnTo(asset.id)} /><input type="hidden" name="request_key" value={crypto.randomUUID()} /><input type="hidden" name="asset_id" value={asset.id} /><input type="hidden" name="asset_version" value={asset.version} />
+            <label class="crm-field"><span>{vi ? "Nhân viên" : "Employee"}</span><select class="crm-input" name="person_id" required>{d.people.map(person => <option value={person.id}>{person.employee_code} · {person.display_name} · {person.department}</option>)}</select></label>
+            <div class="crm-form-grid">
+              <label class="crm-field"><span>{vi ? "Ngày dự kiến trả (nếu có)" : "Expected return (optional)"}</span><input class="crm-input" type="date" name="expected_return_on" /></label>
+              <label class="crm-field"><span>{vi ? "Tình trạng khi giao" : "Condition at issue"}</span><select class="crm-input" name="issued_condition"><option value="good">{vi ? "Tốt" : "Good"}</option><option value="damaged">{vi ? "Đã có hư hỏng" : "Previously damaged"}</option></select></label>
+            </div>
+            <label class="crm-field"><span>{vi ? "Mục đích/lý do" : "Purpose"}</span><input class="crm-input" name="reason" maxlength="500" required /></label>
+            <button class="crm-button secondary small">{vi ? "Gửi đề nghị" : "Offer asset"}</button>
+          </form>}
+          {asset.state === "offered" && asset.assignment_id && <form class="crm-form" method="post" action="/api/hrm/assets">
+            <input type="hidden" name="intent" value="transition_asset" /><input type="hidden" name="action" value="cancel_offer" /><input type="hidden" name="return_to" value={returnTo(asset.id)} /><input type="hidden" name="request_key" value={crypto.randomUUID()} /><input type="hidden" name="assignment_id" value={asset.assignment_id} /><input type="hidden" name="version" value={asset.assignment_version} />
+            <label class="crm-field"><span>{vi ? "Lý do hủy đề nghị" : "Cancellation reason"}</span><input class="crm-input" name="reason" maxlength="500" required /></label>
+            <button class="crm-button danger small">{vi ? "Hủy đề nghị" : "Cancel offer"}</button>
+          </form>}
+          {asset.state === "assigned" && asset.assignment_id && <form class="crm-form" method="post" action="/api/hrm/assets">
+            <input type="hidden" name="intent" value="transition_asset" /><input type="hidden" name="action" value="request_return" /><input type="hidden" name="return_to" value={returnTo(asset.id)} /><input type="hidden" name="request_key" value={crypto.randomUUID()} /><input type="hidden" name="assignment_id" value={asset.assignment_id} /><input type="hidden" name="version" value={asset.assignment_version} />
+            <label class="crm-field"><span>{vi ? "Lý do/yêu cầu trả" : "Return request reason"}</span><input class="crm-input" name="reason" maxlength="500" required /></label>
+            <button class="crm-button secondary small">{vi ? "Yêu cầu trả tài sản" : "Request return"}</button>
+          </form>}
+          {asset.state === "return_requested" && asset.assignment_id && <>
+            <form class="crm-form" method="post" action="/api/hrm/assets">
+              <input type="hidden" name="intent" value="transition_asset" /><input type="hidden" name="action" value="confirm_return" /><input type="hidden" name="return_to" value={returnTo(asset.id)} /><input type="hidden" name="request_key" value={crypto.randomUUID()} /><input type="hidden" name="assignment_id" value={asset.assignment_id} /><input type="hidden" name="version" value={asset.assignment_version} />
+              <label class="crm-field"><span>{vi ? "Tình trạng khi nhận lại" : "Condition at return"}</span><select class="crm-input" name="condition"><option value="good">{vi ? "Tốt" : "Good"}</option><option value="damaged">{vi ? "Hư hỏng — kiểm tra" : "Damaged — inspect"}</option><option value="missing">{vi ? "Chưa nhận được" : "Not received"}</option></select></label>
+              <label class="crm-field"><span>{vi ? "Ghi chú bàn giao" : "Return inspection note"}</span><input class="crm-input" name="reason" maxlength="500" required /></label>
+              <button class="crm-button">{vi ? "Xác nhận đã nhận" : "Confirm physical return"}</button>
+            </form>
+            <form class="crm-form" method="post" action="/api/hrm/assets">
+              <input type="hidden" name="intent" value="transition_asset" /><input type="hidden" name="action" value="cancel_return" /><input type="hidden" name="return_to" value={returnTo(asset.id)} /><input type="hidden" name="request_key" value={crypto.randomUUID()} /><input type="hidden" name="assignment_id" value={asset.assignment_id} /><input type="hidden" name="version" value={asset.assignment_version} />
+              <label class="crm-field"><span>{vi ? "Lý do hủy yêu cầu trả" : "Reason to cancel return request"}</span><input class="crm-input" name="reason" maxlength="500" required /></label>
+              <button class="crm-button secondary small">{vi ? "Giữ tài sản đang giao" : "Keep assigned"}</button>
+            </form>
+          </>}
+          {asset.state === "inspection" && <form class="crm-form" method="post" action="/api/hrm/assets">
+            <input type="hidden" name="intent" value="clear_inspection" /><input type="hidden" name="return_to" value={returnTo(asset.id)} /><input type="hidden" name="request_key" value={crypto.randomUUID()} /><input type="hidden" name="asset_id" value={asset.id} /><input type="hidden" name="asset_version" value={asset.version} />
+            <label class="crm-field"><span>{vi ? "Kết quả kiểm tra" : "Inspection result"}</span><input class="crm-input" name="reason" maxlength="500" required /></label>
+            <button class="crm-button secondary small">{vi ? "Đưa về sẵn sàng" : "Clear inspection"}</button>
+          </form>}
+          {!asset.assignment_id && asset.state !== "retired" && <form class="crm-form" method="post" action="/api/hrm/assets">
+            <input type="hidden" name="intent" value="retire_asset" /><input type="hidden" name="return_to" value={returnTo(asset.id)} /><input type="hidden" name="request_key" value={crypto.randomUUID()} /><input type="hidden" name="asset_id" value={asset.id} /><input type="hidden" name="asset_version" value={asset.version} />
+            <label class="crm-field"><span>{vi ? "Lý do thanh lý" : "Retirement reason"}</span><input class="crm-input" name="reason" maxlength="500" required /></label>
+            <button class="crm-button danger small">{vi ? "Thanh lý" : "Retire"}</button>
+          </form>}
+        </div>
+      </article>)}
+    </div>}
+  </section>
+
+  {d.selectedAssetId && <section class="crm-sheet"><h2 class="crm-h2">{vi ? "Lịch sử tài sản" : "Asset history"}</h2>{d.events.length === 0 ? <p class="crm-empty">{vi ? "Chưa có sự kiện." : "No events."}</p> : <ol class="crm-list">{d.events.map(event => <li class="crm-row"><div><strong>{eventLabel(event.action)}</strong><p class="crm-meta">{event.created_at}</p></div></li>)}</ol>}</section>}
+</HrmPage>
