@@ -63,21 +63,18 @@ Migration `0012_crm_files.sql` adds metadata and an append-only, trigger-written
 actor/timestamp audit table. Existing hiring and commercial records are unchanged.
 Bytes use the existing private `FILES` bucket under the dedicated `crm-files/`
 namespace; ATS file IDs/keys never enter this module. The bucket must remain
-private with no public domain. No new bucket or secret is required.
+private with no public domain. Direct uploads require two bucket-scoped S3 signing secrets; no new bucket is required. See [setup](DIRECT_UPLOADS.md).
 
-Uploads are limited to 20 MiB per file and the entire multipart request to 21 MiB,
-counted while reading. File names reject controls and path separators. Downloads
+Uploads are limited to 20 MiB per file and use the [direct R2 protocol](DIRECT_UPLOADS.md). The browser sends bytes to R2; the CRM Worker accepts only metadata. Multipart file uploads through the Worker are rejected. File names reject controls and path separators. Downloads
 stream from R2, force attachment/octet-stream, disable sniffing, and apply a sandbox
 CSP. This is storage and controlled download, not malware scanning or inline file
 execution. Treat downloaded files according to their source.
 
-Writes check ownership, strict same-origin requests and optimistic versions.
+Writes check ownership, strict same-origin requests and optimistic versions. Direct upload metadata requests are capped at 4 KiB; other CRM file forms at 64 KiB.
 Database triggers record changes in the same transaction as metadata. Deleted
 metadata is tombstoned immediately, then the R2 object is deleted. Folders must be
 empty. If the R2 deletion fails after the tombstone, access remains revoked; an
-operator can retry deleting the recorded `crm-files/` key. Failed metadata inserts
-attempt to remove their uploaded object; a bucket failure can leave an inaccessible
-orphan. Audit and tombstones are retained for operations.
+operator can retry deleting the recorded `crm-files/` key. Unregistered direct uploads are removed by the scheduled reservation cleanup after expiry and grace. Audit and tombstones are retained for operations.
 
 Apply the additive migration through the normal release pipeline before serving
 these routes. Follow `RUNBOOK.md` §12. This feature does not itself authorize a

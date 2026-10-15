@@ -138,3 +138,8 @@ Production verification is recorded in RUNBOOK §6.
 
 The bilingual [Files library](FILES.md) supports folders, uploads, owner-managed
 sharing, selected CRM viewers, sales-team access and revocable public view links.
+
+
+CRM Files now uses [direct-to-R2 uploads](DIRECT_UPLOADS.md), including drag/drop,
+multiple files, progress and retained versions. File bytes bypass the CRM Worker;
+production signing secrets and bucket CORS must be configured before release.

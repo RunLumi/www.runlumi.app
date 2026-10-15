@@ -7,6 +7,17 @@ import { BASE, adminSession, jobs, q, userSession } from './helpers.mjs';
 const run = Date.now().toString(36);
 const S = {}; const ids = {};
 const headers = session => ({ cookie: session.header(), origin: BASE });
+async function directUpload(session, file, extra = {}) {
+  const signedResponse = await fetch(`${BASE}/crm/files/uploads`, { method:'POST',headers:{...headers(session),'content-type':'application/json'},body:JSON.stringify({action:'sign',name:file.name,size:file.size,...extra}),redirect:'manual' });
+  assert.equal(signedResponse.status,200,await signedResponse.clone().text());
+  const ticket = await signedResponse.json();
+  assert.ok(new URL(ticket.url).pathname.startsWith('/cdn-cgi/local/r2/s3/'), 'test bytes must go to local R2, never production');
+  const put = await fetch(ticket.url,{method:'PUT',headers:ticket.headers,body:file});
+  assert.equal(put.status,200,await put.text());
+  const completed = await fetch(`${BASE}/crm/files/uploads`,{method:'POST',headers:{...headers(session),'content-type':'application/json'},body:JSON.stringify({action:'complete',uploadId:ticket.uploadId})});
+  assert.equal(completed.status,200,await completed.clone().text());
+  return {...ticket,...await completed.json()};
+}
 const locate = name => jobs(`SELECT id FROM crm_files WHERE name = ${q(name)} AND deleted_at IS NULL`)[0]?.id;
 const fields = (id, extra = {}) => { const row = jobs(`SELECT * FROM crm_files WHERE id = ${q(id)}`)[0]; return { intent: 'save', id, version: row.version, name: row.name, visibility: row.visibility, ...extra }; };
 
@@ -18,14 +29,11 @@ test('files setup: real sessions and grants', async () => {
   }
 });
 
-test('files: private folder, actual multipart upload, attachment bytes and locale parity', async () => {
+test('files: private folder, direct S3 upload, attachment bytes and locale parity', async () => {
   const name = `TEST Files folder ${run}`;
   assert.equal((await S.owner.post('/crm/files', { intent: 'create', kind: 'folder', name })).status, 303);
   ids.folder = locate(name); assert.ok(ids.folder);
-  const body = new FormData(); body.set('intent', 'create'); body.set('kind', 'file'); body.set('parent', ids.folder);
-  body.set('upload', new File(['TEST local R2 content'], `TEST Files ${run}.txt`, { type: 'text/plain' }));
-  const uploaded = await fetch(`${BASE}/crm/files?folder=${ids.folder}`, { method: 'POST', body, headers: headers(S.owner), redirect: 'manual' });
-  assert.equal(uploaded.status, 303);
+  await directUpload(S.owner,new File(['TEST local R2 content'],`TEST Files ${run}.txt`),{parent:ids.folder});
   ids.file = locate(`TEST Files ${run}.txt`); assert.ok(ids.file);
   for (const prefix of ['', '/vi']) {
     const page = await S.owner.get(`${prefix}/crm/files?folder=${ids.folder}`); assert.equal(page.status, 200); assert.ok(page.html.includes(ids.file));
@@ -56,11 +64,7 @@ test('files: sales team, selected viewers, denied mutation and strict origin', a
 test('files: new versions preserve history; admin or uploader alone deletes, current falls back', async () => {
   await S.owner.post('/crm/files', fields(ids.folder, { visibility: 'team' }));
   const previous = jobs(`SELECT * FROM crm_file_versions WHERE file_id = ${q(ids.file)} AND deleted_at IS NULL`)[0];
-  const upload = new FormData(); upload.set('intent','upload_version'); upload.set('id',ids.file);
-  upload.set('version',String(jobs(`SELECT version FROM crm_files WHERE id = ${q(ids.file)}`)[0].version));
-  upload.set('upload',new File(['TEST version two'], 'TEST revision two.txt', {type:'text/plain'}));
-  const response = await fetch(`${BASE}/crm/files?item=${ids.file}`, {method:'POST',body:upload,headers:headers(S.owner),redirect:'manual'});
-  assert.equal(response.status,303); assert.match(response.headers.get('location'), /item=/);
+  await directUpload(S.owner,new File(['TEST version two'],'TEST revision two.txt'),{fileId:ids.file,version:jobs(`SELECT version FROM crm_files WHERE id = ${q(ids.file)}`)[0].version});
   const versions = jobs(`SELECT * FROM crm_file_versions WHERE file_id = ${q(ids.file)} AND deleted_at IS NULL ORDER BY number DESC`);
   assert.equal(versions.length,2); ids.latest = versions[0].id; ids.previous = previous.id;
   for (const prefix of ['', '/vi']) {
@@ -76,8 +80,7 @@ test('files: new versions preserve history; admin or uploader alone deletes, cur
   assert.equal((await S.owner.get(`/crm/files?item=${ids.file}&download=1`)).html,'TEST local R2 content');
   // Upload another version so public access exercises both current and history.
   version = jobs(`SELECT version FROM crm_files WHERE id = ${q(ids.file)}`)[0].version;
-  upload.set('version',String(version)); upload.set('upload',new File(['TEST version three'],'TEST revision three.txt'));
-  assert.equal((await fetch(`${BASE}/crm/files?item=${ids.file}`,{method:'POST',body:upload,headers:headers(S.owner),redirect:'manual'})).status,303);
+  await directUpload(S.owner,new File(['TEST version three'],'TEST revision three.txt'),{fileId:ids.file,version});
 });
 
 test('files: anonymous public folder, private override, link revocation and deleted bytes', async () => {
@@ -104,4 +107,25 @@ test('files: anonymous public folder, private override, link revocation and dele
   assert.equal((await S.owner.get(`/crm/files?item=${ids.file}&download=1`)).status, 404);
   const folderRow = jobs(`SELECT version FROM crm_files WHERE id = ${q(ids.folder)}`)[0];
   assert.equal((await S.owner.post('/crm/files', { intent: 'delete', id: ids.folder, version: folderRow.version })).status, 303);
+});
+
+
+test('direct upload: URLs are owner-scoped, create-only and finalization is idempotent', async () => {
+  const file = new File(['TEST signed bytes'],`TEST direct ${run}.txt`);
+  const ticket = await directUpload(S.owner,file);
+  const replay = await fetch(ticket.url,{method:'PUT',headers:ticket.headers,body:file});
+  assert.equal(replay.status,412,'signed create-only URL must never overwrite a version');
+  const missingCondition = await fetch(ticket.url,{method:'PUT',headers:{'Content-Type':'application/octet-stream'},body:file});
+  assert.equal(missingCondition.status,403,'create-only condition is signed');
+  const wrongLength = await fetch(ticket.url,{method:'PUT',headers:ticket.headers,body:new File(['different byte length'],'wrong.txt')});
+  assert.equal(wrongLength.status,403,'exact byte length is signed');
+  const complete = session => fetch(`${BASE}/crm/files/uploads`,{method:'POST',headers:{...headers(session),'content-type':'application/json'},body:JSON.stringify({action:'complete',uploadId:ticket.uploadId})});
+  assert.equal((await complete(S.owner)).status,200);
+  assert.equal((await complete(S.viewer)).status,404);
+  assert.equal(jobs(`SELECT COUNT(*) AS n FROM crm_files WHERE id = ${q(ticket.fileId)}`)[0].n,1);
+  const multipart = new FormData(); multipart.set('kind','file'); multipart.set('intent','create'); multipart.set('upload',new File(['proxy forbidden'],'TEST proxy.txt'));
+  assert.equal((await fetch(`${BASE}/crm/files`,{method:'POST',body:multipart,headers:headers(S.owner),redirect:'manual'})).status,422);
+  assert.equal((await fetch(`${BASE}/crm/files/uploads`,{method:'POST',body:multipart,headers:headers(S.owner),redirect:'manual'})).status,415);
+  assert.equal((await fetch(`${BASE}/crm/files/uploads`,{method:'POST',headers:{...headers(S.owner),'content-type':'application/json'},body:JSON.stringify({action:'sign',name:'x',size:1,padding:'x'.repeat(5000)})})).status,413);
+  assert.equal((await fetch(`${BASE}/crm/files/uploads`,{method:'POST',headers:{...headers(S.owner),origin:'https://attacker.example','content-type':'application/json'},body:'{"action":"sign"}'})).status,403);
 });

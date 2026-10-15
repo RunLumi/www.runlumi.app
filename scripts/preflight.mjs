@@ -2,7 +2,7 @@
 // before shipping. Admin access uses EmDash's session and user database.
 import { execFileSync } from "node:child_process";
 
-const REQUIRED_SECRETS = ["EMDASH_ENCRYPTION_KEY", "DISCORD_APPLICATION_WEBHOOK_URL", "CRM_INTAKE_SECRET"];
+const REQUIRED_SECRETS = ["EMDASH_ENCRYPTION_KEY", "DISCORD_APPLICATION_WEBHOOK_URL", "CRM_INTAKE_SECRET", "CRM_R2_ACCESS_KEY_ID", "CRM_R2_SECRET_ACCESS_KEY"];
 
 function wranglerJson(args) {
   return JSON.parse(
@@ -31,7 +31,7 @@ if (missing.length) {
   console.error(`preflight: Worker "${workerName}" is missing required secrets: ${missing.join(", ")}`);
   console.error("Set them with:");
   for (const name of missing) {
-    console.error(`  printf '%s' '<value>' | ./node_modules/.bin/wrangler secret put ${name}`);
+    console.error(`  ./node_modules/.bin/wrangler secret put ${name}`);
   }
   process.exit(1);
 }

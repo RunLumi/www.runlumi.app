@@ -38,3 +38,14 @@
 .files-version { padding-block:16px; border-bottom:1px solid var(--crm-line-soft); }
 .files-version .files-delete { margin-top:12px; }
 .files-version .files-hint { margin-block:8px; }
+
+.files-dropzone { display:grid; gap:12px; padding:24px 16px; border:2px dashed var(--crm-line-strong); border-radius:8px; background:var(--crm-paper); }
+.files-dropzone.is-dragging, .files-dropzone:focus-within { border-color:var(--crm-blue); background:var(--crm-blue-soft); }
+.files-dropzone input[type=file] { border:0; padding:0; background:transparent; }
+.files-dropzone .files-hint { margin:0; }
+.files-upload-queue { list-style:none; padding:0; margin:0; }
+.files-upload-item { display:flex; gap:12px; align-items:start; padding-block:12px; border-bottom:1px solid var(--crm-line); }
+.files-upload-item > div { display:grid; gap:4px; min-width:0; flex:1; overflow-wrap:anywhere; }
+.files-upload-item strong { font-size:14px; }
+.files-upload-item[data-state=invalid], .files-upload-item[data-state=unconfirmed] { color:var(--crm-red); }
+.files-uploader button:disabled { opacity:.6; cursor:not-allowed; }

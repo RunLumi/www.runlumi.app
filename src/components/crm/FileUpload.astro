@@ -1,0 +1,22 @@
+---
+interface Props { vi: boolean; parent?: string; fileId?: string; version?: number; inherited?: boolean }
+const { vi, parent = '', fileId, version, inherited = false } = Astro.props;
+const id = fileId ? 'version-upload' : 'file-upload';
+---
+<form class="crm-form files-uploader" data-files-uploader data-locale={vi ? 'vi' : 'en'} data-parent={parent} data-file-id={fileId} data-version={version}>
+  <p class="files-hint">{fileId ? (vi ? 'Giữ nguyên tên và quyền chia sẻ của tệp. Các bản cũ vẫn được lưu.' : 'Keeps the file’s name and sharing. Earlier versions are retained.') : inherited ? (vi ? 'Tệp mới dùng quyền chia sẻ của thư mục này.' : 'New files use this folder’s sharing.') : (vi ? 'Chỉ bạn được xem tệp mới tải lên.' : 'New uploads are private to you.')}</p>
+  <div class="files-dropzone" data-dropzone>
+    <strong>{fileId ? (vi ? 'Kéo một phiên bản mới vào đây' : 'Drop a new version here') : (vi ? 'Kéo và thả tệp vào đây' : 'Drag and drop files here')}</strong>
+    <label class="crm-label" for={id}>{vi ? 'hoặc chọn từ máy' : 'or choose from your device'}</label>
+    <input id={id} type="file" multiple={!fileId} data-upload-input aria-describedby={`${id}-help`} />
+    <p class="files-hint" id={`${id}-help`}>{vi ? (fileId ? 'Một tệp, tối đa 20 MB.' : 'Tối đa 20 tệp mỗi lần, 20 MB mỗi tệp.') : (fileId ? 'One file, up to 20 MB.' : 'Up to 20 files at a time, 20 MB each.')}</p>
+  </div>
+  <ul class="files-upload-queue" data-upload-queue aria-label={vi ? 'Tệp đã chọn' : 'Selected files'}></ul>
+  <p class="files-hint" data-upload-status role="status" aria-live="polite" aria-atomic="true"></p>
+  <div class="crm-actions"><button class="crm-button" type="submit" data-upload-submit disabled>{fileId ? (vi ? 'Lưu phiên bản mới' : 'Save new version') : (vi ? 'Tải tệp lên' : 'Upload files')}</button><button class="crm-button secondary" type="button" data-upload-clear hidden>{vi ? 'Xóa lựa chọn' : 'Clear selection'}</button></div>
+  <a class="crm-link" data-upload-refresh href={fileId ? `?item=${fileId}#file-details` : parent ? `?folder=${parent}` : '?'} hidden>{vi ? 'Xem tài liệu đã tải lên' : 'View uploaded files'}</a>
+  <noscript><p>{vi ? 'Bật JavaScript để tải tệp trực tiếp lên R2. Thư mục, quyền chia sẻ và tải xuống vẫn dùng được.' : 'Enable JavaScript to upload directly to R2. Folders, sharing and downloads still work.'}</p></noscript>
+</form>
+<script>
+  import '../../scripts/crm-file-upload';
+</script>
