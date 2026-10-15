@@ -1,0 +1,8 @@
+---
+import FilesView from '../../components/crm/FilesView.astro';
+import { filesRoute } from '../../lib/crm/routes/files';
+export const prerender = false;
+const result = await filesRoute(Astro, 'en');
+if (result instanceof Response) return result;
+---
+<FilesView {...result} />

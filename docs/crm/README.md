@@ -133,3 +133,8 @@ Production verification is recorded in RUNBOOK §6.
 - **Authenticated production check.** EmDash sign-in needs a passkey or email link that only the user can complete. An authenticated production walk-through therefore needs a permitted account and the user present. Public routes, redirects, intake authentication and deployment versions are verified without one.
 - **30-day boundary.** The inclusive day-30 rule is an assumption awaiting confirmation (§3).
 - **Duplicate detection.** Admins see duplicate hints and can move an opportunity to another account. There is no automatic merge.
+
+## Files
+
+The bilingual [Files library](FILES.md) supports folders, uploads, owner-managed
+sharing, selected CRM viewers, sales-team access and revocable public view links.

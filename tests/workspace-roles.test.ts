@@ -60,5 +60,5 @@ test("CRM navigation is grouped, every page has an icon, and empty groups are hi
   assert.deepEqual(groupsFor(["sales_manager"]), ["sell", "customers", "results", "operations", "help"]);
   assert.deepEqual(groupsFor(["fulfillment"]), ["sell", "customers", "results", "operations", "help"]);
   const agentLink = visibleGroups(user(["sales_executive"]), crm).find(({ group }) => group.key === "help")!.links.map((link) => link.key);
-  assert.deepEqual(agentLink, ["process", "api"], "everyone selling sees the sales process and the agent guide");
+  assert.deepEqual(agentLink, ["process", "files", "api"], "everyone selling sees files, the sales process and the agent guide");
 });

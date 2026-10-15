@@ -1,0 +1,67 @@
+---
+import CrmShell from '../../layouts/CrmShell.astro';
+import NavIcon from '../workspace/NavIcon.astro';
+import type { FilesProps } from '../../lib/crm/routes/files';
+import type { Visibility } from '../../lib/crm/files';
+import '../../styles/crm-files.css';
+const { ctx, state, folder, selected, rows, more, page, query, people } = Astro.props as FilesProps;
+const { vi, lang, actor, base } = ctx;
+const root = `${base}/files`;
+const here = folder ? `${root}?folder=${folder.id}` : root;
+const owned = !folder || folder.owner_id === actor.id;
+const sharing: Record<Visibility, string> = vi
+  ? { private: 'Riêng tư', team: 'Đội bán hàng', people: 'Người được chọn', internet: 'Bất kỳ ai có liên kết', inherit: 'Theo thư mục' }
+  : { private: 'Private', team: 'Sales team', people: 'Specific people', internet: 'Anyone with the link', inherit: 'Use folder sharing' };
+const link = (params: Record<string, string>) => { const url = new URL(here, Astro.url); for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value); return url.pathname + url.search; };
+const size = (n: number) => n < 1024 ? `${n} B` : n < 1024 * 1024 ? `${(n / 1024).toFixed(1)} KB` : `${(n / 1024 / 1024).toFixed(1)} MB`;
+const selectedRecipients: string[] = selected ? JSON.parse(selected.recipients) : [];
+const fieldLabels: Record<string, string> = vi ? { name: 'Tên', upload: 'Tệp', parent: 'Thư mục', visibility: 'Chia sẻ', recipients: 'Người được chọn', confirm_public: 'Xác nhận công khai', folder: 'Thư mục' } : { name: 'Name', upload: 'File', parent: 'Folder', visibility: 'Sharing', recipients: 'People', confirm_public: 'Public confirmation', folder: 'Folder' };
+const errors: Record<string, string> = vi ? { size: 'Chọn tệp từ 1 byte đến 20 MB.', depth: 'Chỉ hỗ trợ tối đa 20 cấp thư mục.', not_empty_or_changed: 'Thư mục còn tài liệu hoặc vừa thay đổi. Hãy tải lại trang.', required: 'Vui lòng điền hoặc xác nhận mục này.' } : { size: 'Choose a file between 1 byte and 20 MB.', depth: 'Folders support up to 20 levels.', not_empty_or_changed: 'The folder is not empty or has changed. Reload and try again.', required: 'Complete or confirm this field.' };
+---
+<CrmShell title={vi ? 'Tài liệu' : 'Files'} lang={lang} actor={actor} current="files">
+  <div class="crm-head"><div><p class="crm-eyebrow">{vi ? 'Tài liệu CRM' : 'CRM files'}</p><h1 class="crm-h1">{vi ? 'Tài liệu, đúng người xem.' : 'Your files. The right people.'}</h1><p class="crm-lede">{vi ? 'Sắp xếp tài liệu vào thư mục. Bạn quyết định ai được xem.' : 'Keep documents in folders. Choose who can view them.'}</p></div></div>
+  {Astro.url.searchParams.has('saved') && !state.intent && <p class="crm-notice good" role="status">{vi ? 'Đã lưu thay đổi.' : 'Changes saved.'}</p>}
+  {(state.conflict || state.serverError || Object.keys(state.errors).length > 0) && <div class="crm-notice bad" role="alert">
+    {state.conflict ? (vi ? 'Tài liệu vừa thay đổi. Hãy tải lại trang trước khi lưu.' : 'This item changed. Reload before saving.') : state.serverError ? (vi ? 'Không thể hoàn tất. Hãy tải lại để kiểm tra trước khi thử lại.' : 'The action could not finish. Reload to check its state before retrying.') : <ul>{Object.entries(state.errors).map(([field, code]) => <li>{fieldLabels[field] || field}: {errors[code] || (vi ? 'Kiểm tra lại lựa chọn này.' : 'Check this value.')}</li>)}</ul>}
+  </div>}
+  <nav class="files-location" aria-label={vi ? 'Vị trí thư mục' : 'Folder location'}><a class="crm-link" href={root}>{vi ? 'Tất cả tài liệu' : 'All files'}</a>{folder && <><span aria-hidden="true">/</span><strong>{folder.name}</strong></>}</nav>
+  {folder && <p class="crm-muted">{sharing[folder.effective_visibility]} · {vi ? 'Tài liệu mới dùng quyền chia sẻ của thư mục. Chủ sở hữu có thể đặt quyền riêng cho từng tài liệu.' : 'New items use this folder’s sharing. The owner can override sharing for each item.'}</p>}
+  <div class="files-workspace">
+    <section class="crm-sheet files-library" aria-label={vi ? 'Danh sách tài liệu' : 'File library'}>
+      <form class="files-search crm-form" method="get" action={root} role="search">
+        {folder && <input type="hidden" name="folder" value={folder.id} />}
+        <label class="crm-label" for="files-search">{vi ? 'Tìm trong danh sách này' : 'Search this list'}</label><div class="files-search-line"><input class="crm-input" id="files-search" name="q" value={query} maxlength="180" type="search" placeholder={vi ? 'Tên tệp hoặc thư mục' : 'File or folder name'} /><button class="crm-button secondary" type="submit">{vi ? 'Tìm' : 'Search'}</button></div>
+      </form>
+      {rows.length ? <ul class="files-list">{rows.map(item => <li class="files-row">
+        <span class="files-glyph"><NavIcon name={item.kind === 'folder' ? 'files' : 'process'} size={24} /></span>
+        <div class="files-description"><a class="files-name" href={item.kind === 'folder' ? `${root}?folder=${item.id}` : `${link({ item: item.id })}#file-details`}>{item.name}</a><span class="files-meta">{item.kind === 'folder' ? (vi ? 'Thư mục' : 'Folder') : size(item.size)} · {sharing[item.effective_visibility]}{item.owner_id === actor.id && ` · ${vi ? 'Của bạn' : 'Yours'}`}</span></div>
+        <a class="crm-link files-action" href={`${link({ item: item.id })}#file-details`}>{item.owner_id === actor.id ? (vi ? 'Quản lý' : 'Manage') : (vi ? 'Chi tiết' : 'Details')}</a>
+      </li>)}</ul> : <div class="crm-empty files-empty"><NavIcon name="files" size={36} /><h2 class="crm-h2">{query ? (vi ? 'Không tìm thấy tài liệu.' : 'No matching files.') : (vi ? 'Chưa có tài liệu ở đây.' : 'No files here yet.')}</h2><p>{owned ? (vi ? 'Tạo thư mục hoặc tải tệp đầu tiên lên.' : 'Create a folder or upload your first file.') : (vi ? 'Chủ sở hữu chưa chia sẻ tài liệu nào trong thư mục này.' : 'The owner has not shared any items in this folder.')}</p></div>}
+      {(page > 1 || more) && <nav class="files-pagination" aria-label={vi ? 'Phân trang' : 'Pagination'}>{page > 1 && <a class="crm-link" href={link({ page: String(page - 1), q: query })}>{vi ? 'Trước' : 'Previous'}</a>}<span>{vi ? 'Trang' : 'Page'} {page}</span>{more && <a class="crm-link" href={link({ page: String(page + 1), q: query })}>{vi ? 'Tiếp' : 'Next'}</a>}</nav>}
+    </section>
+    <aside class="files-panel">
+      {selected ? <section class="crm-sheet" id="file-details">
+        <div class="files-panel-head"><h2 class="crm-h2 files-wrap">{selected.name}</h2><a class="crm-link" href={here}>{vi ? 'Đóng' : 'Close'}</a></div>
+        <p class="crm-muted">{sharing[selected.effective_visibility]}{selected.visibility === 'inherit' ? ` · ${vi ? 'theo thư mục' : 'inherited from folder'}` : ''}</p>
+        {selected.kind === 'file' && <p><a class="crm-button" href={link({ item: selected.id, download: '1' })}>{vi ? 'Tải xuống' : 'Download'}</a></p>}
+        {selected.owner_id === actor.id ? <>
+          <form method="post" class="crm-form" action={link({ item: selected.id })}>
+            <input type="hidden" name="intent" value="save" /><input type="hidden" name="id" value={selected.id} /><input type="hidden" name="version" value={selected.version} />
+            <label class="crm-label" for="file-name">{vi ? 'Tên' : 'Name'}</label><input class="crm-input" id="file-name" name="name" required maxlength="180" value={state.intent === 'save' ? state.values.name : selected.name} />
+            <label class="crm-label" for="file-sharing">{vi ? 'Ai được xem?' : 'Who can view?'}</label><select class="crm-select" id="file-sharing" name="visibility">{Object.entries(sharing).filter(([key]) => key !== 'inherit' || selected.parent_id).map(([key, label]) => <option value={key} selected={key === (state.intent === 'save' ? state.values.visibility : selected.visibility)}>{label}</option>)}</select>
+            <p class="files-hint">{vi ? 'Riêng tư: chỉ bạn. Đội bán hàng: quản lý, nhân viên bán hàng và admin; không tự cấp quyền cho cộng tác viên, tài chính hay bàn giao. Người xem không được sửa hoặc tải tệp lên.' : 'Private means only you. Sales team includes sales managers, executives and admins; partners, finance and fulfillment need an individual invitation. Viewers cannot edit or upload.'}</p>
+            <details class="files-people" open={selected.visibility === 'people' || !!state.errors.recipients}><summary>{vi ? 'Chọn người được xem' : 'Choose specific people'}</summary><p class="files-hint">{vi ? 'Chỉ áp dụng khi chọn “Người được chọn”.' : 'Used only with “Specific people”.'}</p><div class="files-people-list">{people.filter(person => person.id !== actor.id).map(person => <label class="files-check"><input type="checkbox" name="recipients" value={person.id} checked={state.intent === 'save' ? (state.values.recipients || '').split(',').includes(person.id) : selectedRecipients.includes(person.id)} /><span>{person.name}</span></label>)}{people.filter(person => person.id !== actor.id).length === 0 && <p>{vi ? 'Chưa có người dùng CRM khác đang hoạt động.' : 'No other active CRM members.'}</p>}</div></details>
+            <label class="files-check"><input type="checkbox" name="confirm_public" value="yes" /><span>{vi ? 'Nếu chọn liên kết công khai, tôi đồng ý để bất kỳ ai có liên kết xem và tải xuống, không cần đăng nhập.' : 'For a public link, I confirm anyone with the link may view and download without signing in.'}</span></label>
+            <p class="files-hint">{vi ? 'Đổi quyền của thư mục sẽ áp dụng cho tài liệu đang dùng “Theo thư mục”. Bản đã tải xuống không thể thu hồi.' : 'Folder changes apply to items using folder sharing. Downloaded copies cannot be recalled.'}</p>
+            <button class="crm-button" type="submit">{vi ? 'Lưu quyền chia sẻ' : 'Save sharing'}</button>
+          </form>
+          {selected.effective_visibility === 'internet' && <div class="files-public"><label class="crm-label" for="public-link">{vi ? 'Liên kết công khai' : 'Public link'}</label><input class="crm-input" id="public-link" readonly value={`${Astro.url.origin}${vi ? '/vi' : ''}/shared/files/${selected.policy_token}?item=${selected.id}`} /><a class="crm-link" href={`${vi ? '/vi' : ''}/shared/files/${selected.policy_token}?item=${selected.id}`}>{vi ? 'Mở trang công khai' : 'Open public view'}</a></div>}
+          <details class="files-delete"><summary>{vi ? 'Xóa tài liệu' : 'Delete item'}</summary><p class="files-hint">{vi ? 'Tệp đã xóa không thể khôi phục. Chỉ xóa được thư mục trống.' : 'Deleted files cannot be restored. Folders must be empty.'}</p><form method="post"><input type="hidden" name="intent" value="delete" /><input type="hidden" name="id" value={selected.id} /><input type="hidden" name="version" value={selected.version} /><label class="files-check"><input type="checkbox" required /><span>{vi ? 'Tôi muốn xóa tài liệu này.' : 'I want to delete this item.'}</span></label><button class="crm-button secondary" type="submit">{vi ? 'Xóa vĩnh viễn' : 'Delete permanently'}</button></form></details>
+        </> : <p class="files-hint">{vi ? 'Bạn có quyền xem. Chỉ chủ sở hữu được đổi quyền chia sẻ.' : 'You have view access. Only the owner can change sharing.'}</p>}
+      </section> : owned ? <>
+        <section class="crm-sheet"><h2 class="crm-h2">{vi ? 'Tải tệp lên' : 'Upload a file'}</h2><p class="files-hint">{vi ? 'Tối đa 20 MB mỗi tệp.' : 'Up to 20 MB per file.'} {folder ? (vi ? 'Dùng quyền chia sẻ của thư mục này.' : 'Uses this folder’s sharing.') : (vi ? 'Chỉ bạn được xem khi mới tải lên.' : 'Only you can view it initially.')}</p><form class="crm-form" method="post" enctype="multipart/form-data"><input type="hidden" name="intent" value="create" /><input type="hidden" name="kind" value="file" /><input type="hidden" name="parent" value={folder?.id ?? ''} /><label class="crm-label" for="file-upload">{vi ? 'Chọn tệp' : 'Choose a file'}</label><input id="file-upload" name="upload" type="file" required /><button type="submit" class="crm-button">{vi ? 'Tải lên' : 'Upload file'}</button></form></section>
+        <section class="crm-sheet"><h2 class="crm-h2">{vi ? 'Tạo thư mục' : 'New folder'}</h2><form class="crm-form" method="post"><input type="hidden" name="intent" value="create" /><input type="hidden" name="kind" value="folder" /><input type="hidden" name="parent" value={folder?.id ?? ''} /><label class="crm-label" for="folder-name">{vi ? 'Tên thư mục' : 'Folder name'}</label><input class="crm-input" id="folder-name" name="name" maxlength="180" required value={state.intent === 'create' ? state.values.name : ''} /><button type="submit" class="crm-button secondary">{vi ? 'Tạo thư mục' : 'Create folder'}</button></form></section>
+      </> : <section class="crm-sheet"><h2 class="crm-h2">{vi ? 'Được chia sẻ với bạn' : 'Shared with you'}</h2><p>{vi ? 'Bạn được xem và tải xuống. Chủ sở hữu quản lý tài liệu và quyền chia sẻ.' : 'You can view and download. The owner manages files and sharing.'}</p></section>}
+    </aside>
+  </div>
+</CrmShell>

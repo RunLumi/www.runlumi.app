@@ -11,7 +11,7 @@
     "typecheck": "astro check",
     "lint": "node scripts/check-src.mjs",
     "test": "node --test --import ./scripts/test-setup.mjs \"tests/**/*.test.ts\"",
-    "test:integration": "node --test --test-concurrency=1 tests/integration/crm.integration.test.mjs tests/integration/workspace.integration.test.mjs tests/integration/directory.integration.test.mjs tests/integration/api.integration.test.mjs tests/integration/dashboard.integration.test.mjs",
+    "test:integration": "node --test --test-concurrency=1 tests/integration/crm.integration.test.mjs tests/integration/workspace.integration.test.mjs tests/integration/directory.integration.test.mjs tests/integration/api.integration.test.mjs tests/integration/dashboard.integration.test.mjs tests/integration/files.integration.test.mjs",
     "deploy": "node scripts/preflight.mjs && npm run build && node scripts/release.mjs",
     "release": "node scripts/release.mjs",
     "ci:verify": "npm run lint && npm test && npm run build",
