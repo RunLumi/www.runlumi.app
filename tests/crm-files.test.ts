@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { sqliteD1 } from './support/d1-sqlite.ts';
 import { makeUser } from '../src/lib/workspace/roles.ts';
-import { canReadFile, changeFile, createFile, downloadFile, fileChildren, fileItem, fileName, publicChildren, publicFile, readFile, MAX_UPLOAD } from '../src/lib/crm/files.ts';
+import { uploadFileVersion, deleteFileVersion, fileVersions, canReadFile, changeFile, createFile, downloadFile, fileChildren, fileItem, fileName, publicChildren, publicFile, readFile, MAX_UPLOAD } from '../src/lib/crm/files.ts';
 import { ConflictError, NotFoundError, ValidationError } from '../src/lib/crm/core.ts';
 
 const owner = makeUser({ id: 'owner', name: 'Owner', email: 'owner@example.test' }, false, ['sales_executive']);
@@ -125,4 +125,73 @@ test('access filtering precedes pagination and non-CRM members cannot list publi
   assert.equal((await fileChildren(db, owner, null, 2)).rows.length, 6);
   await save(shared, 'internet', { confirm_public: 'yes' });
   assert.equal((await fileChildren(db, hr, null)).rows.length, 0);
+});
+
+
+test('version uploads preserve earlier bytes, name and sharing; readers cannot upload or delete', async () => {
+  const { db, content, bucket, objects, save } = setup();
+  const id = await createFile(db,bucket,owner,form({kind:'file',upload:new File(['first'],'Original.txt')}));
+  await save(id,'team');
+  const initial = (await fileItem(db,id))!;
+  const old = (await fileVersions(db,initial)).rows[0];
+  const upload = form({id,version:String(initial.version),upload:new File(['second'],'Revision.txt')});
+  await assert.rejects(uploadFileVersion(db,bucket,seller,upload),NotFoundError);
+  await uploadFileVersion(db,bucket,owner,upload);
+  const item = (await fileItem(db,id))!;
+  assert.equal(item.name,'Original.txt'); assert.equal(item.visibility,'team');
+  const versions = (await fileVersions(db,item)).rows;
+  assert.deepEqual(versions.map(v=>v.number),[2,1]); assert.equal(objects.size,2);
+  assert.equal(await (await downloadFile(bucket,item,db,old.id)).text(),'first');
+  assert.equal(await (await downloadFile(bucket,item)).text(),'second');
+  await assert.rejects(uploadFileVersion(db,bucket,owner,upload),ConflictError);
+  await assert.rejects(deleteFileVersion(db,bucket,seller,form({id,revision:old.id,version:String(item.version),confirm_delete:'yes'})),NotFoundError);
+  await deleteFileVersion(db,bucket,admin,form({id,revision:versions[0].id,version:String(item.version),confirm_delete:'yes'}));
+  const fallback = (await fileItem(db,id))!;
+  assert.equal(await (await downloadFile(bucket,fallback)).text(),'first');
+  assert.equal((await downloadFile(bucket,fallback,db,versions[0].id)).status,404);
+  await assert.rejects(deleteFileVersion(db,bucket,owner,form({id,revision:old.id,version:String(item.version),confirm_delete:'yes'})),ConflictError);
+  await deleteFileVersion(db,bucket,owner,form({id,revision:old.id,version:String(fallback.version),confirm_delete:'yes'}));
+  assert.equal(await fileItem(db,id),null); assert.equal(objects.size,0);
+  assert.equal((await db.prepare("SELECT COUNT(*) AS n FROM crm_file_audit WHERE action = 'version_deleted'").first<{n:number}>())!.n,2);
+});
+
+test('a file owner cannot delete another uploader version or bypass it through whole-file deletion', async () => {
+  const { db, content, bucket } = setup();
+  const id = await createFile(db,bucket,owner,form({kind:'file',upload:new File(['original'],'Original.txt')}));
+  db.raw.prepare("UPDATE crm_file_versions SET uploader_id = 'another-uploader' WHERE file_id = ?").run(id);
+  const item = (await fileItem(db,id))!;
+  const revision = (await fileVersions(db,item)).rows[0];
+  await assert.rejects(deleteFileVersion(db,bucket,owner,form({id,revision:revision.id,version:String(item.version),confirm_delete:'yes'})),NotFoundError);
+  await assert.rejects(changeFile(db,bucket,content,owner,form({intent:'delete',id,version:String(item.version)})),NotFoundError);
+});
+
+test('public links expose only this file’s live versions, and sharing revocation hides every version', async () => {
+  const { db, bucket, save } = setup();
+  const id = await createFile(db,bucket,owner,form({kind:'file',upload:new File(['v1'],'Public.txt')}));
+  const other = await createFile(db,bucket,owner,form({kind:'file',upload:new File(['secret'],'Secret.txt')}));
+  const otherVersion = (await fileVersions(db,(await fileItem(db,other))!)).rows[0];
+  await save(id,'internet',{confirm_public:'yes'});
+  let item = (await fileItem(db,id))!;
+  await uploadFileVersion(db,bucket,owner,form({id,version:String(item.version),upload:new File(['v2'],'Public-v2.txt')}));
+  item = (await fileItem(db,id))!;
+  const publicItem = (await publicFile(db,item.public_token))!;
+  assert.equal((await fileVersions(db,publicItem)).rows.length,2);
+  assert.equal((await downloadFile(bucket,publicItem,db,otherVersion.id)).status,404);
+  const old = (await fileVersions(db,item)).rows[1];
+  await deleteFileVersion(db,bucket,owner,form({id,revision:old.id,version:String(item.version),confirm_delete:'yes'}));
+  assert.equal((await downloadFile(bucket,(await publicFile(db,item.public_token))!,db,old.id)).status,404);
+  await save(id,'private'); assert.equal(await publicFile(db,item.public_token),null);
+});
+
+test('the original uploader may delete their version while another file owner cannot', async () => {
+  const { db, bucket, save } = setup();
+  const id = await createFile(db,bucket,owner,form({kind:'file',upload:new File(['old'],'Original.txt')}));
+  await save(id,'team');
+  const item = (await fileItem(db,id))!;
+  const revision = (await fileVersions(db,item)).rows[0];
+  // Represents a version retained from an earlier owner/uploader arrangement.
+  db.raw.prepare('UPDATE crm_file_versions SET uploader_id = ? WHERE id = ?').run(seller.id,revision.id);
+  await assert.rejects(deleteFileVersion(db,bucket,owner,form({id,revision:revision.id,version:String(item.version),confirm_delete:'yes'})),NotFoundError);
+  await deleteFileVersion(db,bucket,seller,form({id,revision:revision.id,version:String(item.version),confirm_delete:'yes'}));
+  assert.equal(await fileItem(db,id),null);
 });

@@ -1,10 +1,10 @@
 import type { AstroGlobal } from 'astro';
 import { envFromLocals } from '../../ats';
-import { publicChildren, publicFile, downloadFile, type FileItem } from '../files';
+import { publicChildren, publicFile, downloadFile, fileVersions, type FileVersion, type FileItem } from '../files';
 import type { Lang } from '../i18n';
 import { page, notFound } from '../page';
 
-export interface SharedFilesProps { lang: Lang; item: FileItem; rows: FileItem[]; more: boolean; page: number; token: string }
+export interface SharedFilesProps { lang: Lang; item: FileItem; rows: FileItem[]; more: boolean; page: number; token: string; versions: FileVersion[]; versionsMore: boolean; versionPage: number }
 export async function sharedFilesRoute(astro: AstroGlobal, lang: Lang): Promise<SharedFilesProps | Response> {
   astro.response.headers.set('Cache-Control', 'private, no-store');
   astro.response.headers.set('Referrer-Policy', 'no-referrer');
@@ -18,7 +18,10 @@ export async function sharedFilesRoute(astro: AstroGlobal, lang: Lang): Promise<
   if (!root) return notFound(lang);
   const item = await publicFile(DB, token, astro.url.searchParams.get('item') || undefined);
   if (!item) return notFound(lang);
-  if (astro.url.searchParams.has('download')) return downloadFile(FILES, item);
+  if (astro.url.searchParams.has('download')) return downloadFile(FILES, item, DB, astro.url.searchParams.get('revision'));
   const list = item.kind === 'folder' ? await publicChildren(DB, item, root.id, page(astro.url)) : { rows: [], more: false };
-  return { lang, item, ...list, page: page(astro.url), token };
+  const versionUrl = new URL(astro.url); versionUrl.searchParams.set('page', astro.url.searchParams.get('versions_page') ?? '1');
+  const versionPage = page(versionUrl);
+  const versions = await fileVersions(DB, item, versionPage);
+  return { versions: versions.rows, versionsMore: versions.more, versionPage, lang, item, ...list, page: page(astro.url), token };
 }

@@ -6,6 +6,29 @@ tokens or MCP. Recipients have read/download access; only the owner can create
 children, rename, change sharing, or delete an item. Admin/manager status does not
 bypass private sharing.
 
+## Version history
+
+The owner can upload a new version from the file details panel. The file keeps
+its name, location and sharing settings. Each upload uses a new R2 object; older
+versions remain downloadable in a paginated history, including from a public
+link while the file is public. Sharing changes and revocation apply to **all**
+versions. A revision ID alone grants no access.
+
+Only a version's uploader or an admin (`users.manage`) may delete that version,
+with confirmation and a version guard. Admin status does not bypass private-file
+visibility: the admin must already have access to the file. Viewers cannot upload
+or delete. Deleting the current version selects the newest remaining version;
+deleting the last version removes the file. Deleted versions cannot be downloaded
+or resurrected. Numbers are never reused. The file owner cannot bypass another
+uploader's deletion rights by deleting the whole file. The UI uses individual
+version deletion for files and empty-folder deletion for folders.
+
+Migration `0013_crm_file_versions.sql` backfills version 1 for any existing live
+files, without copying or overwriting their bytes. SQL triggers atomically update
+the current version and audit on upload/deletion. Deleted bytes are removed after
+the metadata tombstone; a failed R2 deletion leaves them inaccessible and available
+for operator cleanup using the recorded key.
+
 ## Sharing
 
 - **Private:** owner only. This is the default for root items.
@@ -104,3 +127,16 @@ checks separately. Run `npm run ci:verify` as the finish gate.
   (`ECONNRESET`/closed sockets), with no failing business assertions. A focused
   Files rerun passed 4/4. Integration HTTP requests now close each connection to
   avoid reusing idle workerd sockets; mutations are never automatically retried.
+
+
+### Versioning follow-up — 2026-10-15
+
+The initial complete integration rerun passed 47/47 on Node 26 after the
+connection fix. The owner then requested retained file versions before merge.
+Versioning adds tests for old-byte retention, admin/uploader deletion, unauthorized
+viewers, current-version fallback, last-version removal, public history, stale
+writes and cross-file revision isolation. Final checks are reported in the PR.
+
+- Versioning finish gate: Node 26 lint, 92 unit tests, Astro check and build passed.
+  Browser-tested retained history in EN/VI at 320/390/430/1280/1920 px and
+  anonymous public history without JavaScript; no overflow or page errors.

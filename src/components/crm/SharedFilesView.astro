@@ -1,8 +1,9 @@
 ---
+import FileHistory from './FileHistory.astro';
 import '../../styles/crm.css';
 import '../../styles/crm-files.css';
 import type { SharedFilesProps } from '../../lib/crm/routes/shared-files';
-const { lang, item, rows, more, page, token } = Astro.props as SharedFilesProps;
+const { lang, item, rows, more, page, token, versions, versionsMore, versionPage } = Astro.props as SharedFilesProps;
 const vi = lang === 'vi';
 const root = `${vi ? '/vi' : ''}/shared/files/${token}`;
 const here = `${root}?item=${item.id}`;
@@ -14,5 +15,6 @@ const here = `${root}?item=${item.id}`;
 <section class="crm-sheet">
 {item.kind === 'file' ? <><p>{(item.size / 1024 / 1024).toFixed(2)} MB</p><a class="crm-button" href={`${here}&download=1`}>{vi ? 'Tải tệp xuống' : 'Download file'}</a></> : rows.length ? <ul class="files-list">{rows.map(row => <li class="files-row"><div class="files-description"><a class="files-name" href={`${root}?item=${row.id}`}>{row.name}</a><span class="files-meta">{row.kind === 'folder' ? (vi ? 'Thư mục' : 'Folder') : `${(row.size / 1024).toFixed(1)} KB`}</span></div>{row.kind === 'file' && <a class="crm-link" href={`${root}?item=${row.id}&download=1`}>{vi ? 'Tải xuống' : 'Download'}</a>}</li>)}</ul> : <p class="crm-empty">{vi ? 'Không có tài liệu công khai trong thư mục này.' : 'No public files in this folder.'}</p>}
 {(page > 1 || more) && <nav class="files-pagination" aria-label={vi ? 'Phân trang' : 'Pagination'}>{page > 1 && <a class="crm-link" href={`${here}&page=${page - 1}`}>{vi ? 'Trước' : 'Previous'}</a>}<span>{page}</span>{more && <a class="crm-link" href={`${here}&page=${page + 1}`}>{vi ? 'Tiếp' : 'Next'}</a>}</nav>}
+{item.kind === 'file' && <FileHistory item={item} versions={versions} more={versionsMore} page={versionPage} vi={vi} href={here} />}
 </section></main></body></html>
 <style>.shared-header { display:flex; justify-content:space-between; align-items:center; padding-block:24px; }.shared-main { max-width:860px; padding-block:32px 80px; }</style>
