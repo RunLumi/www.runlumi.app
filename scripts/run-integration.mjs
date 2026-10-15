@@ -98,6 +98,7 @@ try {
       "tests/integration/directory.integration.test.mjs",
       "tests/integration/api.integration.test.mjs",
       "tests/integration/dashboard.integration.test.mjs",
+      "tests/integration/files.integration.test.mjs",
     ]);
   }
   if (result.status !== 0) {
