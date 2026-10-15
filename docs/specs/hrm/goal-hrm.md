@@ -9,7 +9,7 @@ NGUỒN SỰ THẬT VÀ PHẠM VI
 
 Đọc AGENTS.md hiện tại, DESIGN.md, docs/specs/hrm/README.md, docs/workspace/README.md, docs/engineering-practices.md, docs/crm/API.md, docs/crm/COMMISSION.md và docs/crm/RUNBOOK.md §12. Kiểm tra lại code, migration, dependency, deployment và trạng thái Git thật; tài liệu cũ không thay thế bằng chứng. Nếu đường dẫn nguồn đã thay đổi, tìm nguồn canonical tương ứng trước khi triển khai.
 
-docs/specs/hrm/README.md là hợp đồng sản phẩm: thực hiện §1–13, toàn bộ HRM-01–25 ở §14, thứ tự/gate P0–P5 ở §15 và các quyết định §16. Các tiêu chí trong prompt này bổ sung cho đặc tả, không thay thế hoặc thu hẹp đặc tả. Lập ma trận từng yêu cầu → code → test → bằng chứng → trạng thái.
+docs/specs/hrm/README.md là hợp đồng sản phẩm: thực hiện §1–13, toàn bộ HRM-01–28 ở §14, thứ tự/gate P0–P5 ở §15 và các quyết định §16. Các tiêu chí trong prompt này bổ sung cho đặc tả, không thay thế hoặc thu hẹp đặc tả. Lập ma trận từng yêu cầu → code → test → bằng chứng → trạng thái.
 
 Đây là nhiệm vụ triển khai được ủy quyền khi người dùng gửi prompt này. Tạo PR theo từng giai đoạn, merge phần đã qua gate và kiểm tra production sau merge; không merge phase chưa sẵn sàng. Main thay đổi sẽ phát hành production. Không gộp tất cả thành một PR lớn thiếu khả năng kiểm tra/rollback.
 
@@ -62,10 +62,10 @@ Integration Gate: HRM-08, 10–12, 17–19, 22–25; xác minh quyền upload DO
 
 P3 — LỊCH LÀM VIỆC, CÔNG VÀ NGHỈ PHÉP
 
-Hoàn thiện lịch có múi giờ/hiệu lực, ngày nghỉ, ca, part-time, làm từ xa, ghi công, import/đối soát, sửa công, OT, công tác và chốt kỳ theo §8–9. Có preview tính phép, loại nghỉ/chính sách phiên bản, số dư/sổ biến động, giữ chỗ, duyệt nhiều bước nếu được cấu hình, người thay thế hợp lệ, rút/hủy/sửa đơn và xử lý sau khóa kỳ. Lịch đội không lộ lý do riêng tư.
+Hoàn thiện lịch có múi giờ/hiệu lực, ngày nghỉ, ca, part-time, làm từ xa, ghi công, import/đối soát, sửa công, OT, công tác và chốt kỳ theo §8–9. CSV công dùng UTF-8, giới hạn 512 KB/100 dòng và header cố định; preview đối chiếu lịch/ca, nhân viên, phép, OT, trùng lặp và dòng lỗi. Không ghi công trước khi HR xác nhận; retry idempotent; staging không lưu CSV thô, không giữ PII dòng lỗi, và xóa bản sao sau xác nhận/từ chối; pending import chặn khóa kỳ. Loại nghỉ bắt buộc chứng từ phải chặn duyệt cho tới khi employee/HR nộp PDF được rà soát độc lập, giữ đúng scope, actor, thời điểm, checksum và retention category. Có preview tính phép, loại nghỉ/chính sách phiên bản, số dư/sổ biến động, giữ chỗ, duyệt nhiều bước nếu được cấu hình, người thay thế hợp lệ, rút/hủy/sửa đơn và xử lý sau khóa kỳ. Lịch đội không lộ lý do riêng tư.
 
 Contract Gate: quy tắc lịch/ca/tích lũy/đơn vị/làm tròn/hold đã chốt; input payroll chỉ lấy công/phép đã khóa; mọi mutation concurrency-safe.
-Integration Gate: HRM-06–09; kiểm chứng hai đơn đồng thời, retry, ngày lễ, nửa ngày, part-time, ca đêm, đổi quản lý, tự duyệt và cancel sau khóa. Đối chiếu kết quả với bộ ca do người phụ trách kiểm tra, không chỉ test phản ánh cùng thuật toán.
+Integration Gate: HRM-06–09, 26–28; kiểm chứng CSV lỗi/trùng, stale assignment, pending-import lock guard, confirm/reject/retry và staging minimization; chứng minh loại nghỉ bắt buộc không được duyệt thiếu PDF hoặc trước khi review, PDF được cách ly/giữ kín, retry không trùng, uploader không thể self-review, quyền employee/manager/HR đúng scope, retention/hold áp dụng và amendment tạo snapshot/version mới, tính lại số dư, vô hiệu chứng từ cũ và chặn revision stale. Đã có test tám đơn 480 phút gửi đồng thời vào quota bốn ngày; delegation theo loại duyệt đã test tạo/thu hồi/hết hạn và đổi quản lý khi đơn chờ. Race cùng một đơn giữa hai quyết định duyệt, hai duyệt hủy và hai amendment chỉ cho một lệnh thắng; hai yêu cầu riêng đã giữ chỗ cũng được duyệt đồng thời mà không vượt số dư. Lịch part-time thử nghiệm ba ca 3 giờ mỗi tuần và một ngày lễ giữa tuần cho preview sáu giờ đã qua. Còn kiểm chứng race amendment/review/correction xuyên nhiều đơn, mốc ngày hiệu lực của lịch, ca đêm và bộ expected cases do người phụ trách HR kiểm tra; ma trận browser đầy đủ cũng còn mở.
 
 P4 — PAYROLL VÀ PAYSLIP
 
@@ -83,7 +83,7 @@ Hoàn thiện §11–13: phúc lợi, tài sản và bàn giao, yêu cầu HR/ch
 Có runbook cho file lộ, ghép sai người, phát hành nhầm payslip, sai khóa kỳ, job lỗi; retention/legal hold và yêu cầu dữ liệu; export riêng tư; backup/restore gồm D1 và R2; đối soát orphan file và tài liệu thiếu. Định nghĩa mục tiêu phục hồi được owner duyệt và kiểm tra phục hồi bằng dữ liệu giả. Không dùng backup production để seed môi trường test.
 
 Contract Gate: từng chức năng có nguồn dữ liệu, actor, scope, trạng thái, điều kiện hoàn tất và owner vận hành.
-Integration Gate: HRM-19–21, regression đầy đủ HRM-01–25 và các module hiện có; chuỗi end-to-end sau đây chạy được thực tế.
+Integration Gate: HRM-19–21, regression đầy đủ HRM-01–28 và các module hiện có; chuỗi end-to-end sau đây chạy được thực tế.
 
 CHUỖI END-TO-END VÀ KIỂM TRA
 
@@ -110,7 +110,7 @@ Module/chức năng chỉ mở cho người dùng thật sau gate và cấu hìn
 ĐIỀU KIỆN KẾT THÚC
 
 Chỉ báo hoàn thành khi:
-1. Toàn bộ yêu cầu §1–13 và HRM-01–25 được map và đạt; P1–P5 đều có Contract Gate và Integration Gate. Không còn scaffold/TODO hoặc chức năng bắt buộc âm thầm bị thay bằng demo.
+1. Toàn bộ yêu cầu §1–13 và HRM-01–28 được map và đạt; P1–P5 đều có Contract Gate và Integration Gate. Không còn scaffold/TODO hoặc chức năng bắt buộc âm thầm bị thay bằng demo.
 2. Chuỗi end-to-end thật chạy được, quyền A/B/team/private-file/payroll/revoke được chứng minh và ATS/CRM không hồi quy.
 3. EN/VI và browser accessibility đạt ở các viewport yêu cầu; không có claim chưa được chứng minh.
 4. Chính sách bắt buộc, phương thức ký và phép tính có xác nhận đúng chuyên môn; giới hạn/tích hợp tùy chọn được ghi rõ, không giả capability.

@@ -1,0 +1,6 @@
+---
+import HrmLeave from "../../../components/hrm/HrmLeave.astro";
+import { leaveManagePage } from "../../../lib/hrm/time-pages";
+export const prerender=false;let data;try{data=await leaveManagePage(Astro,"en");if(data instanceof Response)return data}catch(error){const user=Astro.locals.workspace!;data={lang:"en",vi:false,user,title:"Leave policies and requests",error:error instanceof Error?error.message:"internal_error"};Astro.response.status=typeof error==="object"&&error!==null&&"status" in error?Number(error.status):500}
+---
+<HrmLeave {...data}/>

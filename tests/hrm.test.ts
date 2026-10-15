@@ -7,14 +7,19 @@ import { modules, visibleLinks, visibleModules } from "../src/lib/workspace/nav.
 import { HrmError, readRecord, readableFileType } from "../src/lib/hrm/fields.ts";
 import { isDocxPackage, readLegalForm } from "../src/lib/hrm/legal-files.ts";
 import { validateOnboardingConfig } from "../src/lib/hrm/onboarding.ts";
+import { localDateTimeToUtc, parseCalendarSchedule, parseLeaveRules } from "../src/lib/hrm/time-leave.ts";
+import { parseAttendanceCsv } from "../src/lib/hrm/time-import.ts";
+import { RETENTION_CATEGORIES, retentionCategoryForHrm } from "../src/lib/hrm/retention.ts";
 const person=(user_id:string|null):Person=>({id:"person_test",employment_id:"employment_test",profile_version:1,employee_code:"E-001",user_id,legal_name:"Test Employee",preferred_name:"Test",work_email:"work@example.test",work_phone:"",department:"Ops",job_title:"Operator",legal_entity:"Test entity",location:"HCMC",manager_user_id:"manager",status:"active",started_on:"2026-01-01",ended_on:null,version:1,actor_id:"hr",created_at:"2026-01-01T00:00:00.000Z",updated_at:"2026-01-01T00:00:00.000Z"});
 const user=(id:string,granted:Parameters<typeof makeUser>[2])=>makeUser({id,name:id,email:id+"@example.test"},false,granted);
 test("HRM grants are separate from ATS, CRM and user administration",()=>{
- assert.deepEqual(ROLE_PERMISSIONS.employee,["workspace.access","hrm.access","hrm.profile.self","hrm.legal.self","hrm.coi.self","hrm.onboarding.self","hrm.onboarding.tasks"]);
- const employee=user("employee",["employee"]);assert.equal(employee.can("hrm.legal.manage"),false);assert.equal(employee.can("hrm.onboarding.manage"),false);
+ assert.deepEqual(ROLE_PERMISSIONS.employee,["workspace.access","hrm.access","hrm.profile.self","hrm.legal.self","hrm.coi.self","hrm.onboarding.self","hrm.onboarding.tasks","hrm.time.self","hrm.leave.self"]);
+ const employee=user("employee",["employee"]);assert.equal(employee.can("hrm.legal.manage"),false);assert.equal(employee.can("hrm.onboarding.manage"),false);assert.equal(employee.can("hrm.time.self"),true);assert.equal(employee.can("hrm.time.manage"),false);assert.equal(employee.can("hrm.leave.self"),true);assert.equal(employee.can("hrm.leave.review"),false);
  for(const role of ["hr","finance","sales_manager","partner"] as const)assert.equal(user(role,[role]).can("hrm.access"),false);
- const hrm=user("hrm",["hrm_admin"]);assert.equal(hrm.can("users.manage"),false);assert.equal(hrm.can("hiring.access"),false);assert.equal(hrm.can("crm.access"),false);assert.equal(hrm.can("hrm.legal.activate"),true);assert.equal(hrm.can("hrm.coi.review"),true);assert.equal(hrm.can("hrm.onboarding.manage"),true);assert.equal(hrm.can("hrm.retention.manage"),true);assert.equal(hrm.can("hrm.legalhold.manage"),true);
- const officer=user("officer",["hrm_officer"]);assert.equal(officer.can("hrm.legal.manage"),true);assert.equal(officer.can("hrm.legal.activate"),false);assert.equal(officer.can("hrm.coi.review"),true);assert.equal(officer.can("hrm.retention.review"),true);assert.equal(officer.can("hrm.retention.manage"),false);assert.equal(officer.can("users.manage"),false);
+ const hrm=user("hrm",["hrm_admin"]);assert.equal(hrm.can("users.manage"),false);assert.equal(hrm.can("hiring.access"),false);assert.equal(hrm.can("crm.access"),false);assert.equal(hrm.can("hrm.legal.activate"),true);assert.equal(hrm.can("hrm.coi.review"),true);assert.equal(hrm.can("hrm.onboarding.manage"),true);assert.equal(hrm.can("hrm.retention.manage"),true);assert.equal(hrm.can("hrm.legalhold.manage"),true);assert.equal(hrm.can("hrm.time.configure"),true);assert.equal(hrm.can("hrm.leave.configure"),true);
+ const manager=user("manager",["people_manager"]);assert.equal(manager.can("hrm.approval.delegate"),true);assert.equal(employee.can("hrm.approval.delegate"),false);
+ const hrmAdmin=user("hrm-admin",["hrm_admin"]);assert.equal(hrmAdmin.can("hrm.approval.delegate"),false);
+ const officer=user("officer",["hrm_officer"]);assert.equal(officer.can("hrm.legal.manage"),true);assert.equal(officer.can("hrm.legal.activate"),false);assert.equal(officer.can("hrm.coi.review"),true);assert.equal(officer.can("hrm.retention.review"),true);assert.equal(officer.can("hrm.retention.manage"),false);assert.equal(officer.can("hrm.approval.delegate"),false);assert.equal(officer.can("users.manage"),false);
  assert.equal(makeUser({id:"system",name:"System",email:"system@example.test"},true,[]).can("hrm.configure"),true);
  const migration=readFileSync(new URL("../migrations/0014_hrm_records.sql",import.meta.url),"utf8");
  for(const role of ["employee","people_manager","hrm_officer","hrm_admin","hr","sales_manager","sales_executive","partner","finance","fulfillment"])assert.ok(migration.includes("'" + role + "'"));
@@ -58,4 +63,39 @@ test("onboarding templates reject unsafe owners, unknown prerequisites and depen
  assert.throws(()=>validateOnboardingConfig("{}",JSON.stringify([{...base,key:"a",dependencies:["missing"]}])),HrmError);
  assert.throws(()=>validateOnboardingConfig("{}",JSON.stringify([{...base,key:"aa",dependencies:["bb"]},{...base,key:"bb",dependencies:["aa"]}])),error=>error instanceof HrmError&&error.message==="onboarding_dependency_cycle");
  assert.throws(()=>validateOnboardingConfig("{}",JSON.stringify([{...base,key:"pdf",verifier_kind:"none",evidence_type:"pdf"}])),error=>error instanceof HrmError&&error.message==="onboarding_pdf_needs_reviewer");
+});
+test("calendar schedule parsing requires seven explicit weekdays, valid local shifts and a reviewed OT basis",()=>{
+ const schedule={weekdays:Array.from({length:7},(_,index)=>({weekday:index+1,shifts:index===0?[{key:"night",start:"22:00",end:"06:00",break_minutes:30,remote_allowed:false}]:[]})),holidays:["2026-12-25"],overtime:{enabled:true,requires_approval:true,basis:"TEST synthetic owner-reviewed basis"}};
+ const parsed=parseCalendarSchedule(JSON.stringify(schedule));assert.equal(parsed.weekdays.length,7);assert.equal(parsed.weekdays[0].shifts[0].end,"06:00");assert.equal(parsed.holidays[0],"2026-12-25");
+ assert.throws(()=>parseCalendarSchedule(JSON.stringify({...schedule,weekdays:schedule.weekdays.slice(1)})),error=>error instanceof HrmError&&error.message==="calendar_invalid");
+ assert.throws(()=>parseCalendarSchedule(JSON.stringify({...schedule,overtime:{...schedule.overtime,basis:" "}})),error=>error instanceof HrmError&&error.message==="calendar_invalid");
+ assert.throws(()=>parseCalendarSchedule(JSON.stringify({...schedule,weekdays:schedule.weekdays.map(day=>({...day,shifts:day.weekday===1?[{...schedule.weekdays[0].shifts[0],break_minutes:600}]:day.shifts}))})),error=>error instanceof HrmError&&error.message==="calendar_invalid");
+});
+test("leave policies are explicit, versionable, and do not assume allowances",()=>{
+ const rules=[{key:"annual",title_en:"Annual leave",title_vi:"Phép năm",paid:true,annual_grant_minutes:0,monthly_accrual_minutes:0,prorate_on_start:false,carryover_limit_minutes:0,max_negative_minutes:0,evidence_required:false,exclude_holidays:true,basis:"TEST no grant without owner-approved values"}];
+ assert.deepEqual(parseLeaveRules(JSON.stringify(rules)),rules);
+ assert.throws(()=>parseLeaveRules(JSON.stringify([...rules,...rules])),error=>error instanceof HrmError&&error.message==="leave_policy_invalid");
+ assert.throws(()=>parseLeaveRules(JSON.stringify([{...rules[0],annual_grant_minutes:-1}])),error=>error instanceof HrmError&&error.message==="leave_policy_invalid");
+});
+test("local attendance timestamps resolve to one UTC instant and reject DST gaps or overlaps",()=>{
+ assert.equal(localDateTimeToUtc("2026-10-15T09:00","Asia/Ho_Chi_Minh"),"2026-10-15T02:00:00.000Z");
+ assert.throws(()=>localDateTimeToUtc("2024-03-10T02:30","America/New_York"),error=>error instanceof HrmError&&error.message==="invalid_time");
+ assert.throws(()=>localDateTimeToUtc("2024-11-03T01:30","America/New_York"),error=>error instanceof HrmError&&error.message==="invalid_time");
+});
+test("attendance CSV parsing is strict UTF-8, exact-header, RFC-quoted, and capped at 100 rows",()=>{
+ const encode=(value:string)=>new TextEncoder().encode(value).buffer as ArrayBuffer;
+ const headers="employee_code,work_date,shift_key,check_in_local,check_out_local,break_minutes";
+ const parsed=parseAttendanceCsv(encode(`\uFEFF${headers}\r\n\"E-001\",2026-10-15,day,2026-10-15T09:00,2026-10-15T18:00,60\r\n`));
+ assert.equal(parsed.length,1);assert.equal(parsed[0].employee_code,"E-001");assert.equal(parsed[0].break_minutes,"60");
+ assert.throws(()=>parseAttendanceCsv(encode("employee_code,work_date,shift_key,check_in_local,check_out_local,break_minutes\nE-001,2026-10-15,day,2026-10-15T09:00,2026-10-15T18:00,60,extra")),error=>error instanceof HrmError&&error.message==="time_import_columns");
+ assert.throws(()=>parseAttendanceCsv(encode(`${headers}\n\"E-001,2026-10-15,day,2026-10-15T09:00,2026-10-15T18:00,60`)),error=>error instanceof HrmError&&error.message==="time_import_csv");
+ const row="E-001,2026-10-15,day,2026-10-15T09:00,2026-10-15T18:00,60";
+ assert.equal(parseAttendanceCsv(encode(`${headers}\n${Array.from({length:100},()=>row).join("\n")}`)).length,100);
+ assert.throws(()=>parseAttendanceCsv(encode(`${headers}\n${Array.from({length:101},()=>row).join("\n")}`)),error=>error instanceof HrmError&&error.message==="time_import_rows");
+ assert.throws(()=>parseAttendanceCsv(new Uint8Array([0xc3]).buffer),error=>error instanceof HrmError&&error.message==="time_import_encoding");
+ assert.throws(()=>parseAttendanceCsv(new Uint8Array(512*1024+1).buffer),error=>error instanceof HrmError&&error.status===413);
+});
+test("required leave PDFs have their own configurable retention category",()=>{
+ assert.equal(retentionCategoryForHrm("leave_evidence"),"leave_evidence");
+ assert.ok((RETENTION_CATEGORIES as readonly string[]).includes("leave_evidence"));
 });

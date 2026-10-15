@@ -90,6 +90,7 @@ export async function command(db: D1Database,user: WorkspaceUser,key: string,ope
   } catch(error) {
     const retry = await previous(); if(retry) return check(retry);
     const message = error instanceof Error ? error.message : "";
+    if(message.includes("time_period_import_pending")) throw new HrmError("time_period_import_pending",409);
     if (/CHECK constraint failed|UNIQUE constraint failed|immutable_history/.test(message)) throw new HrmError("conflict",409);
     throw error;
   }
@@ -98,6 +99,10 @@ export async function command(db: D1Database,user: WorkspaceUser,key: string,ope
 export function guard(db: D1Database, condition: string, params: (string | number | null)[]): D1PreparedStatement {
   // Rows are deliberately transient; successful guards remove themselves.
   return db.prepare(`INSERT INTO hrm_write_guards(id,valid) SELECT ?,CASE WHEN (${condition}) THEN 1 ELSE 0 END`).bind(id("guard"),...params);
+}
+/** Boolean EXISTS/NOT EXISTS predicates can be inserted directly; a failed CHECK rolls back the batch. */
+export function guardBoolean(db: D1Database, predicate: string, params: (string | number | null)[]): D1PreparedStatement {
+  return db.prepare(`INSERT INTO hrm_write_guards(id,valid) SELECT ?,(${predicate})`).bind(id("guard"),...params);
 }
 const clearGuards = (db: D1Database) => db.prepare("DELETE FROM hrm_write_guards");
 export async function saveSettings(db: D1Database,user: WorkspaceUser,key: string,input: {version:number;legal_entity:string;purpose:string;retention_policy:string;policy_reference:string;reviewed:boolean;enabled:boolean}): Promise<void> {

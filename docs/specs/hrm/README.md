@@ -1,6 +1,6 @@
 # HRM — Quản trị nhân sự và cổng nhân viên
 
-**Trạng thái:** hợp đồng phạm vi và tiêu chí nghiệm thu; tình trạng triển khai được theo dõi tại [STATUS.md](STATUS.md). **Ngày cập nhật:** 2026-10-14.
+**Trạng thái:** hợp đồng phạm vi và tiêu chí nghiệm thu; tình trạng triển khai được theo dõi tại [STATUS.md](STATUS.md). **Ngày cập nhật:** 2026-10-15.
 
 HRM là phân hệ nhân sự trong Lumi Workspace, phục vụ cả nhân viên, người quản lý, HR và người phụ trách tiền lương. Hiring quản lý ứng viên trước khi tuyển; HRM quản lý quan hệ làm việc từ tiếp nhận đến nghỉ việc. Cả hai dùng chung danh tính EmDash nhưng có quyền riêng. CRM tiếp tục độc lập về nghiệp vụ và quyền dữ liệu.
 
@@ -22,29 +22,32 @@ Dùng phiên đăng nhập, trạng thái tài khoản và người dùng EmDash
 
 Nhân viên có `employee_id` nghiệp vụ ổn định, tách khỏi `emdash_user_id`. Hồ sơ có thể được HR tạo trước khi có tài khoản; liên kết tài khoản phải do người có quyền xác minh, có ràng buộc duy nhất và audit. Email trùng nhau không đủ để tự ghép danh tính. Một người có nhiều đợt làm việc nhưng chỉ một hồ sơ con người và lịch sử đợt làm việc riêng.
 
-Các vai trò **đề xuất mới**: Employee, People Manager, HRM Officer và Payroll Officer. Vai trò HR hiện có chỉ giữ quyền ATS; Finance hiện có chỉ giữ quyền CRM. Không tự cấp quyền HRM cho HR, Finance, Sales Manager, Partner hay bất kỳ thành viên Workspace nào. Admin cấp thêm vai trò một cách tường minh; thay đổi CHECK constraint bằng migration cộng thêm, giữ các grant hiện có.
+Các vai trò đang grantable trong Workspace: Employee, People Manager, HRM Officer và HRM Admin. HRM Admin là vai trò riêng cho vận hành HRM, không có `users.manage`; HR hiện có chỉ giữ quyền ATS, Finance chỉ giữ quyền CRM. Payroll Officer là vai trò dự kiến ở P4, chưa có trong allowlist/permission map hiện tại. System Super Admin là EmDash Admin role 50, không lưu thành Workspace role; chỉ role này quản lý users/roles tại `/workspace/users`. HRM Admin và System Super Admin có thể duyệt các thao tác nằm trong capability được cấp; phạm vi duyệt theo nghiệp vụ vẫn áp dụng và không ai tự duyệt yêu cầu của mình.
 
-| Nhóm quyền đề xuất | Nhân viên | Quản lý trực tiếp | HRM Officer | Payroll Officer | Admin |
-|---|---|---|---|---|---|
-| `hrm.access` | Cổng của mình | Cổng và đội | Bàn nhân sự | Bàn lương | Toàn bộ |
-| `hrm.profile.self` | Xem mình; gửi đề nghị sửa | Như nhân viên nếu có hồ sơ | Như nhân viên nếu có hồ sơ | Như nhân viên nếu có hồ sơ | Có |
-| `hrm.team.read` | Không | Thông tin công việc của đội | Không tự suy ra từ chức danh | Không | Có |
-| `hrm.records.manage` | Không | Không | Hồ sơ nghiệp vụ | Không | Có |
-| `hrm.identity.read` | Giấy tờ mình | Không | CCCD/người phụ thuộc theo nhu cầu | Không | Có |
-| `hrm.legal.manage` | Không | Không | Phát hành/theo dõi tài liệu | Không | Có |
-| `hrm.legal.self` | Đọc, ký/xác nhận tài liệu mình | Chỉ tài liệu mình | Chỉ tài liệu mình | Chỉ tài liệu mình | Có |
-| `hrm.leave.request` | Phép mình | Phép mình | Theo grant | Theo grant | Có |
-| `hrm.leave.approve` | Không | Đội được giao | Theo luồng thay thế đã cấu hình | Không | Có |
-| `hrm.attendance.manage` | Gửi giải trình | Duyệt đội nếu được giao | Kiểm tra/khóa công | Đọc snapshot công đã chốt | Có |
-| `hrm.payroll.prepare` | Không | Không | Không mặc định | Soạn kỳ lương | Có |
-| `hrm.payroll.approve` | Không | Không | Không mặc định | Grant riêng; không tự duyệt kỳ đã soạn | Có; vẫn không tự duyệt |
-| `hrm.payroll.self` | Payslip mình | Payslip mình | Payslip mình | Payslip mình | Có |
-| `hrm.compensation.read` | Thu nhập mình | Không | Grant riêng | Dữ liệu cần cho lương | Có |
-| `hrm.export`, `hrm.audit.read`, `hrm.configure` | Không | Không | Grant riêng cho xuất/audit | Grant riêng cho xuất/audit | Có |
+| Nhóm quyền | Nhân viên | Quản lý trực tiếp | HRM Officer | HRM Admin | Payroll Officer (P4, dự kiến) | System Super Admin (EmDash 50) |
+|---|---|---|---|---|---|---|
+| `hrm.access` | Cổng của mình | Cổng và đội | Bàn nhân sự | Capability HRM được cấp; không có `users.manage` | Bàn lương khi P4 mở | Toàn bộ capability; theo feature gate |
+| `hrm.profile.self` | Xem mình; gửi đề nghị sửa | Như nhân viên nếu có hồ sơ | Như nhân viên nếu có hồ sơ | Hồ sơ của mình nếu được liên kết | Hồ sơ của mình nếu được liên kết | Có |
+| `hrm.team.read` | Không | Thông tin công việc của đội | Không tự suy ra từ chức danh | Có | Không | Có |
+| `hrm.records.manage` | Không | Không | Hồ sơ nghiệp vụ | Có | Không | Có |
+| `hrm.identity.read` | Giấy tờ mình | Không | Theo quyền và phạm vi | Có | Không | Có |
+| `hrm.legal.manage` | Không | Không | Phát hành/theo dõi tài liệu | Có | Không | Có |
+| `hrm.legal.activate` | Không | Không | Không | Kích hoạt bản người khác đã rà soát | Không | Kích hoạt; không tự duyệt |
+| `hrm.legal.self` | Đọc, ký/xác nhận tài liệu mình | Chỉ tài liệu mình | Tài liệu mình nếu được liên kết | Tài liệu mình nếu được liên kết | Tài liệu mình nếu được liên kết | Có |
+| `hrm.leave.request` | Phép mình | Phép mình | Chỉ khi có grant nhân viên riêng | Phép mình nếu được liên kết | Theo thiết kế P4 | Có |
+| `hrm.leave.approve` | Không | Đội được giao | Theo phạm vi review | HRM theo capability | Không | Có; không tự duyệt |
+| `hrm.attendance.manage` | Gửi giải trình | Duyệt đội nếu được giao | Kiểm tra/khóa công | Kiểm tra/khóa công | Đọc snapshot công đã chốt ở P4 | Có |
+| `hrm.payroll.prepare` | Không | Không | Không mặc định | Theo phân tách nhiệm vụ P4 | Theo phân tách nhiệm vụ P4 | Theo quy trình; không tự duyệt |
+| `hrm.payroll.approve` | Không | Không | Không mặc định | Có; không tự duyệt | Chỉ khi được tách khỏi người soạn | Có; không tự duyệt |
+| `hrm.payroll.self` | Payslip mình | Payslip mình | Payslip mình nếu được liên kết | Payslip mình nếu được liên kết | Payslip mình nếu được liên kết | Có |
+| `hrm.compensation.read` | Thu nhập mình | Không | Grant riêng | Theo nhu cầu HRM | Dữ liệu cần cho lương | Có |
+| `hrm.export`, `hrm.audit.read`, `hrm.configure` | Không | Không | Grant riêng cho audit/xuất | Theo capability HRM | Grant riêng khi P4 mở | Có |
+
+Các hàng payroll là hợp đồng đích cho P4, chưa phải quyền đang chạy. Mọi thay đổi role/permission phải mở rộng CHECK constraint bằng migration additive, giữ grant hiện có và tiếp tục dùng `src/lib/workspace/roles.ts` làm ánh xạ duy nhất.
 
 Ma trận là yêu cầu cho permission map, không phải logic kiểm tra tên vai trò. Server kiểm tra capability **và** phạm vi bản ghi **và** loại trường/tệp. Có nhiều vai trò thì kết hợp quyền, nhưng không bỏ kiểm soát tự duyệt, khóa kỳ hoặc giới hạn dữ liệu. Quản lý nhân sự khác quản trị tài khoản.
 
-Phạm vi đội được tính từ phân công quản lý có ngày hiệu lực; không cho quản lý đọc ngược hồ sơ riêng tư của người từng thuộc đội. Người duyệt thay thế có ngày bắt đầu/kết thúc, không tự ủy quyền và không duyệt yêu cầu của chính mình. Chưa có người duyệt hợp lệ thì vào hàng chờ HR/Admin, không tự chấp thuận.
+Phạm vi đội được tính từ phân công quản lý có ngày hiệu lực; không cho quản lý đọc ngược hồ sơ riêng tư của người từng thuộc đội. Quản lý trực tiếp có thể tạo ủy quyền duyệt chấm công hoặc nghỉ phép riêng theo từng loại, chọn một tài khoản People Manager đang hoạt động và ngày bắt đầu/kết thúc cùng lý do. Grant được audit và giữ lịch sử tạo/thu hồi bất biến; hết hạn, thu hồi vai trò hoặc đổi người quản lý làm quyền ủy quyền mất hiệu lực ngay trong request tiếp theo. Người được ủy quyền chỉ nhận phạm vi phê duyệt hiện tại, không nhận quyền hồ sơ/file riêng tư hay quyền ủy quyền tiếp. Không tự duyệt yêu cầu của chính mình. Chưa có người duyệt hợp lệ thì yêu cầu tiếp tục chờ HR/Admin, không tự chấp thuận.
 
 Thu hồi thành viên/vai trò hoặc vô hiệu hóa tài khoản có hiệu lực ở request tiếp theo, kể cả tải file, export và thao tác nền. Hồ sơ nghỉ việc vẫn tồn tại theo chính sách; không giữ quyền cổng nhân viên vô thời hạn. Việc nhận giấy tờ sau nghỉ việc dùng quy trình xác minh và bàn giao riêng, không link công khai.
 
@@ -123,11 +126,13 @@ Endpoint tải kiểm tra session, permission và chủ thể ở mỗi request,
 
 ### 6.2. Mẫu, phát hành và nghĩa vụ
 
-Mỗi mẫu có `document_type`, mã/phiên bản, pháp nhân, ngôn ngữ, đối tượng áp dụng, phương thức ký/xác nhận, người ký các bên, thời hạn, ngày hiệu lực, chủ duyệt và checksum nội dung. Mẫu có trạng thái `draft → reviewed → active → retired`. Chỉ Admin kích hoạt mẫu đã được người phụ trách xác nhận; sửa nội dung tạo phiên bản mới, không thay bản đã phát hành.
+Mỗi mẫu có `document_type`, mã/phiên bản, pháp nhân, ngôn ngữ, đối tượng áp dụng, phương thức ký/xác nhận, người ký các bên, thời hạn, ngày hiệu lực, chủ duyệt và checksum nội dung. Mẫu có trạng thái `draft → reviewed → active → retired`. HRM Admin hoặc System Super Admin có `hrm.legal.activate` mới được kích hoạt phiên bản đã được người khác rà soát; người tạo không tự kích hoạt. Sửa nội dung tạo phiên bản mới, không thay bản đã phát hành.
 
 Mỗi lần phát hành lưu snapshot nội dung và các trường được điền, chủ thể, phiên bản mẫu, hạn xử lý, chính sách áp dụng và người phát hành. Trạng thái: `draft → issued → viewed → awaiting_action → completed`; có `declined`, `expired`, `cancelled`, `superseded`. “Đã xem” không tự chuyển thành “đã ký”. Nếu cần nhiều bên ký, hoàn tất chỉ khi đủ các bên và xác minh bằng chứng; lưu tiến độ từng bên.
 
 Dashboard cho HR thấy người chưa nhận, chưa xem, chờ ký, từ chối, hết hạn và bản cần thay thế. Nhắc hạn có giới hạn tần suất và khóa chống gửi trùng; gửi thông báo chỉ khi kênh được cấu hình và được phép. Thay mẫu không tự hủy tài liệu cũ: ghi quan hệ thay thế và phát hành yêu cầu mới theo chính sách.
+
+**Tải chính sách và lưu bằng chứng:** người có quyền `hrm.legal.manage` tải DOCX làm bản nguồn. DOCX được kiểm tra cấu trúc, lưu riêng và cách ly; một người khác rà soát tệp trước khi tạo phiên bản, rồi người có quyền `hrm.legal.activate` kích hoạt. Phiên bản phát hành giữ đúng file nguồn và checksum; không render DOCX như HTML hoặc coi việc tải lên là phát hành. Nhân viên và HR có thể tải PDF vào đúng issue ký giấy được cấp quyền; PDF cũng được cách ly và chỉ hoàn tất sau khi một người khác rà soát/xác minh. Tải file không tự đánh dấu đã ký.
 
 ### 6.3. Phân biệt xác nhận với chữ ký
 
@@ -139,6 +144,8 @@ Dashboard cho HR thấy người chưa nhận, chưa xem, chờ ký, từ chối
 | Ký điện tử qua nhà cung cấp | Yêu cầu giao dịch, callback đã xác minh, tài liệu hoàn tất, chứng cứ nhà cung cấp và checksum | Chỉ ghi “Đã ký” khi giao dịch hợp lệ và đủ bên |
 
 Checkbox, tên gõ hoặc ảnh chữ ký không tự tạo tuyên bố giá trị pháp lý. Phương thức được phép cho từng loại giấy tờ phải được rà soát trước khi bật. Nếu chưa tích hợp nhà cung cấp ký, hỗ trợ quy trình giấy/scan và xác nhận đã đọc; không tạo trạng thái ký điện tử giả.
+
+Khi nhân viên chủ động chọn “Tôi đã đọc và xác nhận”, hệ thống lưu EmDash user ID, thời gian UTC do máy chủ ghi, issue, phiên bản và checksum chính xác. Lịch sử không sửa/xóa; gửi lại cùng xác nhận không tạo sự kiện thứ hai. Giao diện hiển thị thời gian theo `Asia/Ho_Chi_Minh` và phiên bản đã xác nhận. Một phiên bản mới cần xác nhận mới nếu được cấu hình; xác nhận đã đọc vẫn không phải chữ ký hợp đồng hay chữ ký điện tử.
 
 Với tích hợp tương lai: callback xác thực nguồn, chống replay, idempotent, đối chiếu tài liệu/người ký; callback trễ sau hủy không tự làm sống lại yêu cầu. Download bản để ký không phải bằng chứng hoàn tất. Tài liệu sửa sau khi gửi yêu cầu ký phải phát hành lại và yêu cầu lại đúng các bên.
 
@@ -219,6 +226,8 @@ Phân biệt ngày theo lịch, ngày làm việc theo lịch được giao, gi�
 
 Nhân viên xem lịch của mình, check-in/out nếu được bật, xem công đã nhập và gửi sửa công. HR có thể nhập công với nguồn rõ ràng, upload bảng có preview và đối soát. Bản ghi gốc được giữ; sửa qua điều chỉnh và audit. Không mặc định nhận diện khuôn mặt, GPS hoặc kết nối thiết bị.
 
+Nhập bảng công dùng CSV UTF-8 tối đa 512 KB/100 dòng với các cột `employee_code,work_date,shift_key,check_in_local,check_out_local,break_minutes`. Preview đối chiếu nhân viên, đợt làm việc, lịch/ca/múi giờ, ngày nghỉ, OT, đơn nghỉ và dòng trùng; mỗi lỗi chỉ hiện số dòng và mã lỗi, không lưu dữ liệu cá nhân của dòng không hợp lệ. CSV gốc không được giữ. Không tạo công trước khi người có quyền xem đối soát và xác nhận; bản nhập đã xác nhận tạo công ở trạng thái chờ rà soát, không tự duyệt. Kỳ công không được khóa khi còn preview đang chờ. Xác nhận giữ checksum, người/thời điểm và liên kết dòng → bản ghi công; từ chối/hoàn tất xóa dữ liệu trùng ở staging, giữ dấu vết tối thiểu. Không upsert hay sửa bản ghi công đã có; cần chỉnh qua quy trình giải trình.
+
 Giải trình: `draft → submitted → approved/rejected → applied`; gồm ngày/ca, giá trị gốc, đề nghị mới, lý do, bằng chứng và người duyệt. Không tự duyệt. Có nhãn thiếu check-out, trùng lần ghi, nghỉ phép trùng giờ, ngày lễ, đi công tác, ca qua nửa đêm, thay ca và dữ liệu chưa xác minh.
 
 Lưu instant theo UTC và múi giờ lịch cho hiển thị/tính ngày; ca qua đêm tính theo quy tắc lịch có phiên bản, không cắt sai theo ngày UTC. OT có đăng ký/phê duyệt, giờ thực tế và giờ được tính riêng. Hệ số OT và điều kiện áp dụng là cấu hình được rà soát, không tự suy từ số giờ có mặt.
@@ -230,6 +239,8 @@ Chốt công theo kỳ `open → reviewing → locked`. Chỉ snapshot đã khó
 Loại nghỉ cấu hình: phép năm, nghỉ không lương, nghỉ ốm, thai sản/chăm sóc gia đình, việc riêng, nghỉ bù và loại khác theo chính sách thực tế. Phân biệt nghỉ hưởng lương/không lương, hạn mức, chứng từ, người duyệt và tác động tới công/lương. Không mặc định mọi loại đều trừ cùng một quỹ.
 
 Nhân viên chọn loại, khoảng ngày/giờ hoặc nửa ngày, lý do chỉ khi cần, người bàn giao và tệp nếu bắt buộc. Preview hiện số giờ/ngày bị trừ, ngày nghỉ/lễ bị loại, số dư dự kiến, phiên bản chính sách và tuyến duyệt. Không tự lấy số ngày lịch làm số ngày phép.
+
+Nếu loại nghỉ yêu cầu chứng từ, nhân viên gửi đơn trước rồi tải PDF vào đúng đơn; HR cũng có thể tải thay trong phạm vi quyền. Tệp được kiểm tra chữ ký PDF, lưu riêng trong R2 và cách ly đến khi người khác rà soát. Đơn vẫn ở trạng thái chờ; không thể duyệt trước khi chứng từ đạt rà soát. Người quản lý được giao xem trạng thái và mở PDF để rà soát, nhưng không xem lý do nghỉ riêng tư. `leave_evidence` có danh mục retention/legal hold riêng; không có thời hạn mặc định, và production vẫn đóng tới khi owner phê duyệt căn cứ/thời hạn.
 
 Luồng: `draft → submitted → pending_approval → approved/rejected`; rút trước duyệt thành `withdrawn`; hủy đơn đã duyệt là yêu cầu riêng `cancellation_requested → cancelled/cancellation_rejected`. Sửa đơn đang duyệt tạo revision và vô hiệu phê duyệt cũ; thay đổi sau duyệt phải xin lại. Lý do từ chối/bổ sung được ghi và nhân viên nhìn thấy.
 
@@ -287,7 +298,7 @@ Không gửi dữ liệu HRM qua webhook Lark CRM hiện có. Outbox có khóa c
 | `hrm_coi_declarations`, `hrm_coi_reviews` | Khai báo, revision, người rà soát và kết quả có quyền riêng |
 | `hrm_calendars`, `hrm_shifts`, `hrm_time_entries`, `hrm_time_adjustments` | Lịch/ca có phiên bản; công gốc và sửa công độc lập |
 | `hrm_leave_policies`, `hrm_leave_requests`, `hrm_leave_ledger` | Chính sách theo hiệu lực, đơn và sổ phép chống trùng |
-| `hrm_approval_steps`, `hrm_delegations` | Tuyến duyệt snapshot, quyết định từng bước và ủy quyền có hạn |
+| `hrm_approval_steps`, `hrm_approval_delegations`, `hrm_approval_delegation_history` | Tuyến duyệt snapshot, quyết định từng bước và ủy quyền công/nghỉ có hiệu lực, thu hồi và lịch sử bất biến |
 | `hrm_payroll_runs`, `hrm_payroll_inputs`, `hrm_payslips`, `hrm_payroll_adjustments`, `hrm_payment_confirmations` | Snapshot, khoản tính, bản phát hành bất biến, điều chỉnh và bằng chứng trả tiền |
 | `hrm_onboarding_templates`, `hrm_onboarding_plans`, `hrm_onboarding_tasks`, `hrm_onboarding_dependencies`, `hrm_onboarding_submissions` | Mẫu phiên bản, kế hoạch theo đợt làm việc, todo có owner/hạn, phụ thuộc không chu trình, bằng chứng và lần kiểm tra |
 | `hrm_checklists`, `hrm_assets`, `hrm_benefits`, `hrm_service_requests` | Vòng đời, tài sản, phúc lợi, dịch vụ HR |
@@ -346,6 +357,9 @@ Các kiểm tra dưới đây là yêu cầu cho triển khai, **chưa phải k�
 | HRM-23 | Nộp hồ sơ/ký chưa đủ bên, task bị chặn hoặc miễn không hợp lệ | Không báo hoàn tất sai; phụ thuộc được kiểm tra, chu trình bị từ chối, miễn cần quyền và lý do |
 | HRM-24 | Buddy/quản lý mở todo có CCCD, COI, lương hoặc cấp quyền | Chỉ thấy trạng thái được phép; nguồn/tệp vẫn có quyền riêng; không cấp quyền qua todo |
 | HRM-25 | Người phụ trách mất quyền, hủy gia nhập hoặc kết thúc onboarding | Có hàng chờ phân công lại; dừng nhắc việc đã hủy; không tự duyệt thử việc hay bỏ bước thu hồi |
+| HRM-26 | CSV vượt giới hạn/sai header, có dòng lỗi/trùng, assignment đổi, retry xác nhận hoặc khóa kỳ còn preview | Không ghi trước xác nhận; lỗi chỉ giữ số dòng/mã lỗi; xác nhận atomic/idempotent tạo công chờ duyệt; từ chối/hoàn tất xóa staging PII, giữ checksum/audit/liên kết; kỳ không khóa khi preview còn mở |
+| HRM-27 | Loại phép bắt buộc chứng từ nhưng thiếu PDF, file sai chữ ký, upload/review lặp, reviewer không đúng scope, giữ hồ sơ hoặc người khác mở file | Thiếu/chưa review phải chặn duyệt; PDF cách ly/private, checksum và actor/time được audit, uploader không tự review; legal hold/retention bao phủ file mới; employee chỉ xem đơn và chứng từ của mình |
+| HRM-28 | Nhân viên/HR sửa đơn đang chờ duyệt, retry sửa, revision cũ có PDF, reviewer dùng revision stale | Lưu snapshot bất biến trước/sau cùng actor/thời gian/lý do; update dùng expected-version và idempotency; tính lại số giờ/số dư; phê duyệt chỉ gắn revision mới; PDF của revision trước không thỏa chứng từ và phải được nộp/rà soát lại |
 
 Trước mỗi giai đoạn: cập nhật permission map, migration, navigation, middleware, tài liệu và hai locale cùng thay đổi; chạy `npm run build` cùng các kiểm tra phù hợp. Build xanh không chứng minh tính đúng của payroll, chữ ký hay quyền truy cập production.
 
@@ -356,7 +370,7 @@ Trước mỗi giai đoạn: cập nhật permission map, migration, navigation,
 | P0 — Chốt chính sách | Pháp nhân, đối tượng, permission map, mục đích dữ liệu, retention, người duyệt, cách ký từng giấy tờ | Owner/HR/người phụ trách chuyên môn duyệt các quyết định §16 |
 | P1 — Hồ sơ và cổng nhân viên | Danh tính, hồ sơ, phụ thuộc, file, đề nghị sửa, danh bạ hạn chế, EN/VI | HRM-01–05, 16, 18, 20; hồi quy ATS/CRM |
 | P2 — Hồ sơ pháp lý và vòng đời | Hợp đồng, NDA, COI, chính sách, onboarding/offboarding, ký giấy/xác nhận đọc | HRM-08, 10–12, 17–19, 22–25; ký điện tử chỉ bật sau kiểm chứng riêng |
-| P3 — Công và phép | Lịch/ca, giải trình, tuyến duyệt, sổ phép, chốt công | HRM-06–09; đối chiếu với bảng công/phép đã được HR kiểm tra |
+| P3 — Công và phép | Lịch/ca, giải trình, import/đối soát công, tuyến duyệt, sổ phép, chứng từ và chốt công | HRM-06–09, 26–28; đối chiếu với bộ công/phép đã được HR kiểm tra |
 | P4 — Lương và payslip | Snapshot, tính/duyệt, phiếu, khiếu nại, điều chỉnh, xác nhận trả tiền | HRM-09, 13–15; ít nhất một kỳ chạy song song được đối soát không có chênh lệch chưa giải thích |
 | P5 — Mở rộng | Phúc lợi, tài sản, đào tạo/đánh giá, reports, tích hợp có nhu cầu thật | Gate quyền/dữ liệu cho từng chức năng; HRM-19–21 và hồi quy |
 
@@ -390,7 +404,3 @@ Tiếp tục mở giai đoạn khi mọi test quyền/privacy tương ứng đ�
 - [CRM: ranh giới API và token](../../crm/API.md)
 - [CRM: chính sách hoa hồng](../../crm/COMMISSION.md)
 - [Runbook release hiện có](../../crm/RUNBOOK.md)
-
-**Yêu cầu owner được xác nhận lại, 2026-10-14 — nạp chính sách và xác nhận:** người có quyền `hrm.legal.manage` được tải DOCX làm bản nguồn; người phụ trách cấu hình phiên bản, pháp nhân, đối tượng áp dụng và điều kiện xác nhận. DOCX là tệp nguồn, không được render bằng cách nội suy HTML và không tự trở thành phiên bản phát hành. Mỗi lần phát hành giữ nguyên file/checksum và nội dung phiên bản. Nhân viên và HR được tải PDF làm chứng từ trong đúng phạm vi hồ sơ hoặc tác vụ được giao; mặc định PDF được cách ly đến khi được rà soát, không coi phần mở rộng là bằng chứng an toàn.
-
-Mỗi lượt nhân viên chủ động đánh dấu “Tôi đã đọc và xác nhận” lưu danh tính EmDash, thời gian server UTC, phiên bản/checksum chính xác và kênh thực hiện. UI hiển thị thời gian theo múi giờ tài khoản/Asia/Ho_Chi_Minh, và hiện phiên bản nào đã được xác nhận. Bản mới tạo yêu cầu mới khi chính sách được cấu hình là cần tái xác nhận; không ghi đè hoặc đổi thời gian bản cũ. Tác vụ xác nhận chỉ là acknowledgement; không gọi là chữ ký hợp đồng/chữ ký điện tử và không thay hành động xác nhận riêng ở nhà cung cấp chữ ký đã được duyệt.
