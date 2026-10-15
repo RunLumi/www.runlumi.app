@@ -127,6 +127,6 @@ The status is for the complete acceptance criterion in §14, not only its P1 sub
 
 ## Next actions
 
-1. Refresh the PR #52 status/body, mark it ready, and wait for hosted CI on the exact rebased head. Local P3 integration and selected route/state browser audits now pass on synthetic Worker/D1/R2.
+1. Refresh the PR #52 status/body, mark it ready, and wait for hosted CI on its exact rebased head. Local P3 integration and selected route/state browser audits pass on synthetic Worker/D1/R2.
 2. Keep PR #52 unmerged until its exact-head hosted check passes and the Cloudflare deployments from P1/P2 are verified; then pull `main` and confirm the merge SHA before starting P4.
 3. Finish P3's remaining effective-date, correction-race and global HRM-20 coverage. Build P4 payroll/payslips and P5 employee services with independent approvals and recovery proof. Keep P0 closed until owners approve legal entity, purpose, category retention, signing, schedule and payroll rules.
