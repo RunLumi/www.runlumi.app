@@ -1,12 +1,12 @@
 # HRM — Implementation status
 
-Updated: 2026-10-15. The overall HRM goal is active. P1's employee/profile browser matrix passes locally on latest main `6c83cc68`; the rebased PR head still needs hosted CI. No phase has been released.
+Updated: 2026-10-15. The overall HRM goal is active. P1's profile/file slice and employee browser matrix pass locally on latest main `6c83cc68`; hosted CI run `38698775322` passed on exact PR head `fe107e4`. P1 is not yet merged. HRM remains closed in production while P0 decisions and P2–P5 are incomplete.
 
 ## Current state and ownership
 
 - The user checkout at `/Volumes/SSD/www.runlumi` remains on `codex/restore-repo-privacy-todo` with unrelated untracked files `docs/hiring/recruitment-worklog.md` and `docs/security-publication-review.md`. They were not modified.
 - HRM work is in the isolated clone `/private/tmp/runlumi-hrm-refresh`, branch `codex/hrm-p1-refresh`, rebased on latest main `6c83cc68`. The HRM migration sequence starts at `0014_hrm_records.sql`, after CRM's `0012` and `0013` migrations.
-- PR #50 is open and remains a draft until the full phase contract passes. Read its live head and exact hosted checks before any merge; this file is not a live check feed.
+- PR #50 was re-read on 2026-10-15: open draft, head `fe107e4`, base `main` at `6c83cc68`, exact hosted CI run `38698775322` passed. The live review decision is blank. Re-read before any merge; this file is not a live check feed.
 - No real employee, policy, contract or payroll data was used. Production HRM remains closed. No production access grant or deployment was made.
 
 ## Owner decisions and unresolved policy
@@ -21,7 +21,7 @@ Updated: 2026-10-15. The overall HRM goal is active. P1's employee/profile brows
 | Phase | Contract Gate | Integration Gate | Release state | Dependency / next action |
 |---|---|---|---|---|
 | P0 — policy and ownership | BLOCKED: core roles clarified; legal entity, purpose/legal basis, retention by category, signing method and payroll reviewers are unapproved | UNPROVEN | CLOSED by owner decision | Keep the live switch off; record approved policy owners before production activation |
-| P1 — employee profile and private files | PASS for the technical P1 contract: additive schema, independent grants, EmDash link, private-file custody and EN/VI routes are implemented; retention remains configurable and production closed | PARTIAL: local Worker/D1/R2 tests cover access scope, file custody and rehire. Real Chrome now covers P1 overview, employee and reviewer access to all six profile sections, people/manager lists, create employee, work details, settings, and private-file pending/reviewed states in EN/VI at 320/430/1280px with no-JS, reduced motion, keyboard focus and no overflow. Full HRM-18 offboarding/hold scope and P2/P3 routes remain in later phases; exact hosted CI on this test head is pending. | NOT MERGED | Keep P1 draft until the P1 slice and shared HRM-18 dependency are accepted; then verify exact-head hosted CI and release state |
+| P1 — employee profile and private files | PASS for the implemented P1 slice: additive schema, independent grants, EmDash identity, private-file custody and EN/VI routes are implemented; production remains closed | PASS for P1 scope on latest main `6c83cc68`: local Worker/D1/R2 integration and Chrome route/state matrix passed; hosted CI run `38698775322` passed on exact head `fe107e4`. Full HRM-18 lifecycle, file export and global HRM-20 remain cross-phase requirements. | NOT MERGED | Merge the reviewed P1 foundation with HRM disabled, then pull the resulting `main` before updating P2 |
 | P2 — legal papers and onboarding TODO | BLOCKED | BLOCKED | NOT RELEASED | Start after P1; implement DOCX issue snapshots, PDF evidence and timestamped acknowledgement, contracts/NDA/COI, onboarding workflow and lifecycle transfer |
 | P3 — schedules, attendance and leave | BLOCKED | BLOCKED | NOT RELEASED | Requires reviewed calendar/shift/accrual/leave rules and locked attendance inputs |
 | P4 — payroll and payslips | BLOCKED | BLOCKED | NOT RELEASED | Requires specialist-approved inputs/rules, independent preparer/approver and an independently checked parallel run |
@@ -61,7 +61,7 @@ The status is for the complete acceptance criterion in §14, not only its P1 sub
 | HRM-13 | Payroll calculation and independent-currency/commission inputs not implemented. | BLOCKED — P4 |
 | HRM-14 | Payroll separation of duties, approval invalidation and publish idempotency not implemented. | BLOCKED — P4 |
 | HRM-15 | Payslip publication versus reconciled payment evidence not implemented. | BLOCKED — P4 |
-| HRM-16 | File API, MIME signature, size, quarantine, cross-user denial, unauthenticated 401, no-store download and file-review timestamp are tested in local HRM integration; MIME signature validator has unit coverage. Export remains P5. | PASS — P1 private-file checks |
+| HRM-16 | File API, MIME signature, size, quarantine, cross-user denial, unauthenticated 401, no-store download and file-review timestamp are tested in local HRM integration; MIME signature validator has unit coverage. Export remains P5. | PARTIAL — private-file slice passes; export is not implemented |
 | HRM-17 | ATS-to-HRM controlled transfer and independent document retention not implemented. | BLOCKED — P2 |
 | HRM-18 | `startEmploymentPeriod`, the work-details rehire form and local integration preserve an ended period, create a later period, audit the actor, make retry idempotent and conflict on a second rehire. Employee-only access is denied after employment ends and returns with a new period. Manager/grant offboarding and legal-hold deletion remain incomplete. | UNPROVEN — tested self-access/rehire subset passes |
 | HRM-19 | HRM notification/outbox behavior is not implemented; CRM notifications remain separate. | BLOCKED — P5 |
@@ -89,6 +89,7 @@ The status is for the complete acceptance criterion in §14, not only its P1 sub
 - 2026-10-15 P1 Chrome matrix on latest main `76fb886b`: `RUNLUMI_INTEGRATION_SCOPE=hrm HRM_BROWSER_BINARY='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' npm run test:integration` PASS. Synthetic Worker/D1/R2 verifies the P1 HRM scenario plus 48 CRM/Workspace/directory/API/dashboard/ATS/CRM Files regression cases. Chrome covers P1 overview, self-service and HR-reviewed views for all six profile sections, people scopes, create employee, work details, settings and identity-file pending/review states in EN/VI at 320/430/1280px with JavaScript disabled, reduced motion, keyboard focus and no horizontal overflow. Artifacts are under `/private/tmp/runlumi-hrm-p1-browser-matrix-20261015-v2`.
 - After rebasing onto latest main `6c83cc68`, P1 `npm run ci:verify` passed locally on the isolated worktree: lint (229 source files), 97 unit tests, Astro check (0 errors; one pre-existing Hiring hint) and Cloudflare build.
 - After rebasing onto latest main `6c83cc68`, P1 `RUNLUMI_INTEGRATION_SCOPE=hrm HRM_BROWSER_BINARY='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' npm run test:integration` passed: the full P1 Chrome/Worker/D1/R2 scenario and 48 CRM/Workspace/directory/API/dashboard/ATS/CRM Files regression tests. Browser artifacts are under `/private/tmp/runlumi-hrm-p1-browser-matrix-20261015-final`.
+- Hosted CI run `38698775322` passed on PR #50 head `fe107e4` with base `main` at `6c83cc68`. The exact head changes when this status record is refreshed, so the new head must receive a fresh hosted check before merge.
 - `npm run ci:verify`: PASS locally on the isolated clone — lint, 83 unit tests, Astro check and build. The build has an existing large-chunk warning and an unrelated Hiring unused-import hint. A local listener required sandbox escalation; no production service was contacted.
 - `npm run test:integration`: PASS locally — one HRM P1 suite plus 43 CRM/Workspace/ATS/directory/API/dashboard regression tests against an isolated Astro Worker, EmDash sessions, temporary D1 and local R2. The HRM suite covers roles, closed/live gates, employee A/B scope, manager restrictions, CSRF, identity submission/review timestamps, stale bank revisions, MIME mismatch rejection, unauthenticated/cross-user file denial, quarantine, file review timestamps, no-store download, employment-end self-access denial/navigation hiding, rehire history/idempotency/access restore and explicit role revocation.
 - Hosted CI: run 38443175443 PASS on PR head `72cbbc49d5c74072b72b1f1bee04269d39926f16`; all jobs passed (lint, unit, migration, integration, build).
@@ -101,6 +102,6 @@ The status is for the complete acceptance criterion in §14, not only its P1 sub
 
 ## Next actions
 
-1. After any source or status update, read the live PR #50 head and verify hosted checks on that exact SHA. Do not merge a head with pending/failed checks.
-2. Complete P1's remaining HRM-18 lifecycle dependency; then refresh the exact PR head, wait for hosted CI, and merge only if the phase gate remains green.
-3. Keep P0 production configuration closed until the owner approves entity, purposes, policy, category retention and signing. Continue P2/P3 route-state coverage and complete P2–P5 under their phase gates.
+1. Read the exact PR #50 head and CI after this status-only commit; merge only after the new head is green and the HRM switch remains closed.
+2. Pull merged `main`, rebase P2, complete exact-head CI and integration proof, and keep P2 draft while owner-approved retention/disposition and restore gates remain open.
+3. Keep P0 production configuration closed until the owner approves entity, purposes, policy, category retention and signing. Continue P3–P5 route/state and restore gates.
