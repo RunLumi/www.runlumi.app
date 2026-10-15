@@ -1,0 +1,82 @@
+# HRM incident, retention and recovery runbook
+
+**Reviewed:** 2026-10-15 against current Cloudflare D1 and R2 documentation. **Status:** operational procedure draft. HRM production remains closed pending owner-approved retention, restore objectives and recovery ownership. No production restore or R2 backup copy has been demonstrated. This document does not prove recoverability.
+
+This runbook covers HRM files and records in the `lumi-jobs` D1 database and the private `FILES` R2 binding (`lumi-job-files`). EmDash account state is held separately in `lumi-content`; Workspace grants and HRM records are in `lumi-jobs`. The repository declares no separate R2 backup binding. Confirm the active account, database backend, bucket, Worker version and jurisdiction from the authenticated Cloudflare environment before any production action; the repository configuration alone does not prove which resources are serving traffic.
+
+## Authority and stop conditions
+
+- HRM Admin coordinates the employee-data incident. System Super Admin controls shared Workspace access. The Cloudflare account owner or authorized infrastructure operator controls D1/R2 recovery. Payroll incidents also require the designated payroll owner and an independent reviewer.
+- Do not restore, delete, change retention, publish or mark payment records confirmed with real data unless the responsible owner has approved that exact action, target and time. Never test with real employee records or a production backup copied into a test environment.
+- Keep `HRM_LIVE_ENABLED` closed until legal entity, purpose, retention, signing, schedules, payroll policy and recovery responsibilities are configured and approved. A feature flag does not prove those decisions or the recovery gate.
+- Preserve actor/audit history and copies of relevant error codes. Store incident evidence in an approved private location; do not paste names, CCCD, payslips, private object keys, tokens or file contents into tickets, chat or logs.
+- If the affected population, restored point, R2 source, backup freshness or access state is uncertain, stop the restore and leave affected HRM actions unavailable. Do not improvise retention periods, RPO/RTO or identity matching.
+
+## First response by incident
+
+| Incident | Immediate containment | Recovery rule |
+|---|---|---|
+| Private file or payslip exposed | Disable the affected HRM route/scope, revoke the relevant access grant, preserve access/audit evidence, identify affected people and request legal/privacy-owner direction. | Do not delete the source or audit trail to conceal exposure. Re-enable only after access tests with two synthetic employees prove cross-person denial. |
+| File attached to the wrong person | Stop further downloads and downstream review, quarantine the file, preserve both metadata records and checksums, and have HR verify identity from an approved source. | Relink only through an audited, version-guarded correction reviewed by another HRM Admin/System Super Admin. Keep the original event and decide retention/legal hold separately. |
+| Payslip published with incorrect inputs | Stop further publication and payment confirmation for that run; preserve the published snapshot and payroll events. Notify the payroll owner and independent reviewer. | Never edit a published slip. Create a correction version with reason, source snapshot and independent approval; do not claim money was paid without reconciled evidence. |
+| Wrong attendance period locked or payroll input differs | Stop calculation/publication, preserve the lock checksum, import batch and revisions. | Correct through the configured adjustment workflow and re-review. Never rewrite a locked or published snapshot to make totals match. |
+| Worker, reminder or outbox job failed | Inspect the bounded job state and redacted error code; preserve the request key and attempts. | Retry only through the idempotent path. Do not create a second request or externally notify employees to compensate for an unverified delivery. |
+| Suspected D1 corruption, migration damage or missing HRM files | Stop HRM writes and file deletion for the affected scope; record UTC incident time, last known good release and available D1 bookmark. | Follow the D1 and R2 procedures below as one coordinated recovery. Restoring D1 alone is not a complete HRM recovery. |
+| Retention deletion or legal hold conflict | Stop the affected deletion job; preserve its request, reviewer, executor and tombstone state. | Do not remove a legal hold or recreate a file from an unverified copy. Legal/records owner decides retention and restoration authority. |
+
+## Coordinated D1 and R2 recovery
+
+Cloudflare D1 Time Travel can restore a database to a prior point, but the restore overwrites that database in place and cancels in-flight queries. Capture the current bookmark first; Cloudflare returns a previous bookmark that can be used to undo the restore. Verify that the target D1 database uses the supported storage backend and that the approved timestamp is within the account's configured retention window. See [D1 Time Travel and backups](https://developers.cloudflare.com/d1/reference/time-travel/).
+
+R2 objects are separate from D1. Cloudflare documents object deletion as irreversible; an R2 delete is not undone by a D1 restore. A restore therefore requires an independently retained private copy of the needed R2 objects and a manifest that can be reconciled against D1 metadata. The repository does not currently configure or prove that copy/restore process. See [R2 Delete Objects](https://developers.cloudflare.com/r2/objects/delete-objects/) and [R2 consistency](https://developers.cloudflare.com/r2/reference/consistency/).
+
+### Before the restore
+
+1. Assign an incident lead, a recovery operator and an independent verifier. Record the authorization, affected data range, proposed UTC restore point, current Worker version and intended rollback point.
+2. Verify the production database identity and backend with the Cloudflare account owner. The read-only `wrangler d1 time-travel info lumi-jobs` command obtains a current bookmark; the `--timestamp` form can inspect a proposed UTC time. Do not select a point merely because it precedes the first error: account for valid HR changes, legal holds, access revocations and files written after that point.
+3. Preserve the current D1 export/bookmark and R2 inventory in the approved private recovery location. Never commit a backup, export, manifest with person/object identifiers, or credentials to Git.
+4. Confirm that a separate R2 copy exists for every in-scope live `hrm_files` object, including bytes and SHA-256 checksum. If a copy is missing, this runbook cannot recover those bytes; record the gap and stop before enabling access.
+5. Keep HRM unavailable while the recovery operator and verifier compare the proposed D1 timestamp with the R2 copy's coverage. Agree how events newer than the D1 restore point will be preserved or replayed. If there is no approved decision for newer writes, stop.
+
+### Restore D1 (production action requires separate owner approval)
+
+The following is a destructive command. Do not run it as part of routine CI, a local test, a draft PR review or this runbook's publication:
+
+```sh
+./node_modules/.bin/wrangler d1 time-travel restore lumi-jobs --bookmark="<owner-approved-bookmark>"
+```
+
+Use a timestamp only when the approved incident plan specifies it and the operator has verified the resulting bookmark. Record the returned new and previous bookmarks securely. The previous bookmark is the rollback point; do not discard it until the restore has passed verification and the owner has accepted the result.
+
+After the command, keep HRM closed. Verify migration/schema version, required tables and indexes, employee/employment counts, open workflow counts, audit continuity, legal-hold state, and current shared account grants. A restored database may predate a membership revocation; re-check revocations against the current authoritative account state before restoring anyone's access. Do not publish payslips or run file-retention jobs during this step.
+
+### Restore and reconcile R2
+
+1. Restore only from the approved private copy. Keep the destination private and inaccessible to public URLs. Do not overwrite an existing production key until the two-person review confirms the target file and checksum.
+2. For each D1 file row that should be live, verify that the exact R2 object exists and its SHA-256 and byte count match `hrm_files`. Preserve MIME type, original filename, legal-hold and deletion metadata from the approved D1 state; do not infer them from the object key.
+3. Check both directions: D1 rows with missing objects, and R2 objects with no matching live D1 row or approved tombstone. Keep mismatches quarantined. Never expose an orphan because its filename looks familiar, and do not purge orphans until the records/legal owner resolves them.
+4. Verify synthetic A/B access boundaries, manager denial for identity/pay/private reasons, legal holds, retention eligibility, and file downloads through the application routes. Direct bucket URLs are not an acceptance test.
+5. Record counts and checksum-match totals only in ordinary logs. Any detailed identifier-to-object manifest remains private and access-controlled.
+
+### Reopen and rollback
+
+Reopen HRM only after the independent verifier confirms the D1 point, D1/R2 checksum reconciliation, current account revocations, legal holds, permissions and smoke tests. The owner must explicitly accept any known loss window. If data, access or files do not reconcile, keep HRM closed and restore the saved previous D1 bookmark or follow the approved object-repair plan; do not attempt an unreviewed second restore.
+
+## Synthetic recovery drill
+
+This drill is **not yet implemented or passed**. It must run entirely with disposable local D1/R2 and synthetic EmDash users, never production data:
+
+1. Create two synthetic employees, HRM Officer/Admin and one manager. Create a private file for A, legal-hold it, and create a separate synthetic file for B; record their D1 metadata and SHA-256 hashes in a temporary private test artifact.
+2. Back up the local D1 state and copy the exact R2 objects into an isolated recovery target. Record a manifest hash and backup time. Delete or corrupt one disposable copy to exercise detection, not the source fixture.
+3. Restore the saved D1 and object copies into fresh isolated state; verify A/B authorization, hold state, metadata-to-byte checksums, missing-file detection and orphan detection. Confirm old/revoked access is not restored and every test file remains private.
+4. Capture command output, test commit, D1 migration set, R2 object/checksum counts, elapsed time and cleanup result. Do not include employee names, real identifiers, object keys or file bytes in the committed report.
+
+A passing synthetic drill proves only the local recovery procedure. Production restore remains `UNPROVEN` until the owner approves RPO/RTO, the private R2 backup mechanism and retention, a production-specific recovery authority, and a separately authorized recovery test.
+
+## Open operator decisions
+
+- Authoritative D1 backup/restore ownership, approved RPO and RTO, and who can authorize an in-place restore.
+- A separate R2 backup destination, copy cadence, access separation, checksum manifest, retention/legal-hold treatment and restore authority.
+- Owner-approved retention windows and legal basis for each HRM file and structured-record category.
+- Whether restore access reconciliation uses EmDash/Workspace as the authority for revocations made after the restore point.
+- Evidence retention location and required incident/report approvals.
