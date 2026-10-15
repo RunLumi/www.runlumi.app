@@ -79,6 +79,7 @@ export const modules: NavModule[] = [
       { key: "assets", en: "Asset register", vi: "Quản lý tài sản", path: "/hrm/assets", icon: "hrm_people", anyOf: ["hrm.assets.manage"] },
       { key: "benefits", en: "Benefits", vi: "Quản lý phúc lợi", path: "/hrm/benefits", icon: "hrm_people", anyOf: ["hrm.benefits.manage"] },
       { key: "training", en: "Training and certificates", vi: "Đào tạo và chứng chỉ", path: "/hrm/training", icon: "hrm_people", anyOf: ["hrm.training.manage"] },
+      { key: "reports", en: "Reports", vi: "Báo cáo", path: "/hrm/reports", icon: "hrm_settings", anyOf: ["hrm.reports.read"] },
       { key: "settings", en: "Settings", vi: "Thiết lập", path: "/hrm/settings", icon: "hrm_settings", anyOf: ["hrm.configure"] },
     ],
   },
