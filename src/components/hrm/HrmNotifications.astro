@@ -1,0 +1,12 @@
+---
+import HrmPage from "./HrmPage.astro";
+import type { NotificationsPage } from "../../lib/hrm/employee-service-pages";
+const d=Astro.props as NotificationsPage,vi=d.vi,prefix=vi?"/vi":"";
+const label=(type:string)=>({request_created:vi?"Yêu cầu HR mới cần xử lý":"A new HR request needs handling",request_assigned:vi?"Yêu cầu HR đã được phân công":"An HR request was assigned",request_updated:vi?"Yêu cầu HR có cập nhật":"An HR request was updated"}[type]??(vi?"Thông báo HRM":"HRM notification"));
+const timestamp=(value:string)=>new Date(value).toLocaleString(vi?"vi-VN":"en-GB",{dateStyle:"medium",timeStyle:"short",timeZone:"Asia/Ho_Chi_Minh"});
+---
+<HrmPage data={d}>
+ <section class="crm-sheet"><p class="crm-eyebrow">{d.unread} {vi?"chưa đọc":"unread"}</p><h2 class="crm-h2">{vi?"Thông báo trong ứng dụng":"In-app notifications"}</h2><p class="crm-help">{vi?"Thông báo chỉ ghi loại việc cần xử lý và đường dẫn nội bộ; nội dung yêu cầu, CCCD và lương không được gửi qua CRM hoặc kênh bên ngoài.":"Notifications contain only a task type and an internal link. Request contents, identity data and pay are not sent through CRM or external channels."}</p>
+ {d.notifications.length===0?<p class="crm-empty">{vi?"Chưa có thông báo.":"No notifications yet."}</p>:<div class="crm-list">{d.notifications.map(note=><article class="crm-row"><div><strong>{label(note.event_type)} · {note.state==="unread"?(vi?"Chưa đọc":"Unread"):(vi?"Đã đọc":"Read")}</strong><p class="crm-meta">{timestamp(note.created_at)}</p><a href={`${prefix}${note.href}`}>{vi?"Mở yêu cầu":"Open request"}</a></div>{note.state==="unread"&&<form method="post" action="/api/hrm/services"><input type="hidden" name="intent" value="mark_read"/><input type="hidden" name="return_to" value={`${prefix}/hrm/notifications`}/><input type="hidden" name="request_key" value={crypto.randomUUID()}/><input type="hidden" name="notification_id" value={note.id}/><input type="hidden" name="version" value={note.version}/><button class="crm-button secondary small">{vi?"Đánh dấu đã đọc":"Mark as read"}</button></form>}</article>)}</div>}
+ </section>
+</HrmPage>

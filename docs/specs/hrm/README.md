@@ -22,7 +22,7 @@ Dùng phiên đăng nhập, trạng thái tài khoản và người dùng EmDash
 
 Nhân viên có `employee_id` nghiệp vụ ổn định, tách khỏi `emdash_user_id`. Hồ sơ có thể được HR tạo trước khi có tài khoản; liên kết tài khoản phải do người có quyền xác minh, có ràng buộc duy nhất và audit. Email trùng nhau không đủ để tự ghép danh tính. Một người có nhiều đợt làm việc nhưng chỉ một hồ sơ con người và lịch sử đợt làm việc riêng.
 
-Các vai trò grantable trong Workspace gồm Employee, People Manager, HRM Officer, HRM Admin và Payroll Officer. Payroll Officer chỉ được đọc/chuẩn bị dữ liệu payroll và xử lý thắc mắc được cấp; không đọc CCCD, tài khoản ngân hàng, thuế, hồ sơ nhân sự, payslip của người khác hoặc tự duyệt/phát hành. HRM Admin và System Super Admin (EmDash role 50) được rà soát/phê duyệt/phát hành/xác nhận thanh toán trong capability tương ứng, nhưng không thể tự duyệt nội dung do chính mình chuẩn bị. HRM Admin không có `users.manage`; HR hiện có chỉ giữ quyền ATS, Finance chỉ giữ quyền CRM. System Super Admin không lưu thành Workspace role và là vai trò duy nhất quản lý users/roles tại `/workspace/users`. Mọi grant vẫn do System Super Admin quản lý.
+Các vai trò grantable trong Workspace gồm Employee, People Manager, HRM Officer, HRM Admin và Payroll Officer. Payroll Officer chỉ được đọc/chuẩn bị dữ liệu payroll và xử lý thắc mắc được cấp; không đọc CCCD, tài khoản ngân hàng, thuế, hồ sơ nhân sự, payslip của người khác hoặc tự duyệt/phát hành. HRM Officer/Admin xử lý yêu cầu HR; People Manager không xem hàng chờ hoặc ghi chú riêng tư. HRM Admin và System Super Admin (EmDash role 50) được rà soát/phê duyệt/phát hành/xác nhận thanh toán trong capability tương ứng, nhưng không thể tự duyệt nội dung do chính mình chuẩn bị. HRM Admin không có `users.manage`; HR hiện có chỉ giữ quyền ATS, Finance chỉ giữ quyền CRM. System Super Admin không lưu thành Workspace role và là vai trò duy nhất quản lý users/roles tại `/workspace/users`. Mọi grant vẫn do System Super Admin quản lý.
 
 | Nhóm quyền | Nhân viên | Quản lý trực tiếp | HRM Officer | HRM Admin | Payroll Officer (P4; production gate đóng) | System Super Admin (EmDash 50) |
 |---|---|---|---|---|---|---|
@@ -47,6 +47,9 @@ Các vai trò grantable trong Workspace gồm Employee, People Manager, HRM Offi
 | `hrm.payroll.self` | Payslip mình | Chỉ khi có grant Employee | Chỉ khi có grant Employee | Chỉ khi có grant Employee | Không | Có |
 | `hrm.payroll.dispute` | Thắc mắc phiếu của mình | Thắc mắc phiếu của mình | Không | Không mặc định | Không | Có |
 | `hrm.payroll.dispute.manage` | Không | Không | Không | Có | Xử lý thắc mắc payroll | Có |
+| `hrm.services.self` | Gửi/xem yêu cầu của mình | Không | Không | Không | Không | Có |
+| `hrm.services.manage` | Không | Không | Có | Có | Không | Có |
+| `hrm.notifications.read` | Thông báo HRM của mình | Thông báo HRM của mình | Có | Có | Có | Có |
 | `hrm.compensation.read` | Thu nhập mình | Không | Grant riêng | Theo nhu cầu HRM | Dữ liệu cần cho lương | Có |
 | `hrm.export`, `hrm.audit.read`, `hrm.configure` | Không | Không | Grant riêng cho audit/xuất | Theo capability HRM | Grant riêng khi P4 mở | Có |
 

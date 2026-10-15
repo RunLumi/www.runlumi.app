@@ -1,0 +1,9 @@
+---
+import HrmServiceDesk from "../../../components/hrm/HrmServiceDesk.astro";
+import { HrmError } from "../../../lib/hrm/fields";
+import { serviceDeskPage } from "../../../lib/hrm/employee-service-pages";
+export const prerender=false;
+let data;
+try{data=await serviceDeskPage(Astro,"en");if(data instanceof Response)return data}catch(error){const user=Astro.locals.workspace!;data={lang:"en",vi:false,user,title:"HR service desk",live:user.hrmEnabled===true,error:error instanceof HrmError?error.message:"internal_error",status:error instanceof HrmError?error.status:500};Astro.response.status=data.status}
+---
+<HrmServiceDesk {...data}/>
