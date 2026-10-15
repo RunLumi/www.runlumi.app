@@ -1,0 +1,23 @@
+---
+import HrmPage from "./HrmPage.astro";
+import type { MyTrainingPage } from "../../lib/hrm/training-pages";
+
+const d=Astro.props as MyTrainingPage,vi=d.vi,prefix=vi?"/vi":"",returnTo=`${prefix}/hrm/me/training`;
+const categoryLabel=(value:string)=>({compliance:vi?"Tuân thủ":"Compliance",role:vi?"Theo vị trí":"Role-specific",professional:vi?"Chuyên môn":"Professional",development:vi?"Phát triển":"Development",certification:vi?"Chứng chỉ":"Certification",other:vi?"Khác":"Other"}[value]??value);
+const stateLabel=(value:string)=>({assigned:vi?"Được giao":"Assigned",submitted:vi?"Chờ HR duyệt":"Pending HR review",approved:vi?"Đã xác nhận":"Verified",declined:vi?"Cần bổ sung/không đạt":"Needs follow-up",cancelled:vi?"Đã hủy":"Cancelled",quarantined:vi?"Chờ HR kiểm tra":"Awaiting HR review",reviewed:vi?"Đã kiểm tra":"Reviewed",rejected:vi?"Bị từ chối":"Rejected"}[value]??value);
+const ready=(assignmentId:string,required:number)=>!required||(d.evidence[assignmentId]??[]).some(file=>file.state==="reviewed"&&!file.object_deleted_at);
+---
+<HrmPage data={d}>
+ <section class="crm-notice" role="note"><strong>{vi?"Đào tạo và chứng chỉ của tôi":"My training and certificates"}</strong><p>{vi?"Chỉ khóa học HR đã giao mới xuất hiện. Nếu cần chứng cứ, hãy tải PDF và chờ HRM Admin/System Super Admin kiểm tra trước khi gửi hoàn tất. Không gửi dữ liệu nhà cung cấp hoặc chứng chỉ thật vào môi trường kiểm thử.":"Only courses assigned by HR appear here. If evidence is required, upload the PDF and wait for an HRM Admin/System Super Admin review before submitting completion."}</p></section>
+ {d.error&&<p class="crm-notice error" role="alert">{vi?"Không thể lưu thay đổi: ":"Could not save: "}{d.error}</p>}
+ {d.saved&&<p class="crm-notice success" role="status">{vi?"Đã lưu thay đổi.":"Changes saved."}</p>}
+ <section class="crm-sheet"><h2 class="crm-h2">{vi?"Khóa học được giao":"Assigned courses"}</h2>{d.assignments.length===0?<p class="crm-empty">{vi?"Chưa có khóa học nào được giao.":"No training has been assigned."}</p>:<div class="crm-list">{d.assignments.map(item=>{
+   const evidence=d.evidence[item.id]??[],canSubmit=item.state==="assigned"&&ready(item.id,item.evidence_required);
+   return <article class="crm-row"><div><strong>{item.course_title} · {item.course_code} v{item.course_version_no}</strong><p class="crm-meta">{categoryLabel(item.category)} · {stateLabel(item.state)}{item.due_on?` · ${vi?"Hạn hoàn thành":"Due"}: ${item.due_on}`:""}{item.renew_by?` · ${vi?"Gia hạn đến":"Renew by"}: ${item.renew_by}`:""}</p>{item.employee_note&&<p>{vi?"Ghi chú của bạn: ":"Your note: "}{item.employee_note}</p>}{item.review_reason&&<p>{vi?"Phản hồi HR: ":"HR feedback: "}{item.review_reason}</p>}{item.evidence_required&&!ready(item.id,item.evidence_required)&&<p class="crm-meta">{vi?"Tải chứng cứ PDF lên; HR phải duyệt trước khi bạn gửi hoàn tất.":"Upload PDF evidence; HR must review it before you can submit completion."}</p>}</div>
+    <div class="crm-actions">{evidence.map(file=><p class="crm-meta"><a href={`/api/hrm/training/evidence/${encodeURIComponent(file.id)}`}>{file.original_name}</a> · {stateLabel(file.state)} · {file.created_at}</p>)}
+    {!["approved","declined","cancelled"].includes(item.state)&&<form class="crm-form" method="post" action="/api/hrm/training/evidence" enctype="multipart/form-data"><input type="hidden" name="intent" value="upload_evidence"/><input type="hidden" name="return_to" value={returnTo}/><input type="hidden" name="request_key" value={crypto.randomUUID()}/><input type="hidden" name="assignment_id" value={item.id}/><label class="crm-field"><span>{vi?"Chứng cứ PDF (tối đa 5 MB)":"PDF evidence (up to 5 MB)"}</span><input class="crm-input" type="file" name="file" accept="application/pdf,.pdf" required/></label><button class="crm-button secondary">{vi?"Tải chứng cứ":"Upload evidence"}</button></form>}
+    {canSubmit&&<form class="crm-form" method="post" action="/api/hrm/training"><input type="hidden" name="intent" value="submit_completion"/><input type="hidden" name="return_to" value={returnTo}/><input type="hidden" name="request_key" value={crypto.randomUUID()}/><input type="hidden" name="assignment_id" value={item.id}/><input type="hidden" name="assignment_revision" value={item.revision}/><label class="crm-field"><span>{vi?"Ghi chú tùy chọn":"Optional note"}</span><input class="crm-input" name="employee_note" maxlength="1000"/></label><button class="crm-button">{vi?"Gửi hoàn tất":"Submit completion"}</button></form>}
+    {item.state==="submitted"&&<p class="crm-meta">{vi?"Đã gửi · ":"Submitted · "}{item.submitted_at}</p>}
+   </div></article>;
+  })}</div>}</section>
+</HrmPage>
