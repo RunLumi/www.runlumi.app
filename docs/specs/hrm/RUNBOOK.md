@@ -2,6 +2,8 @@
 
 **Reviewed:** 2026-10-15 against current Cloudflare D1 and R2 documentation. **Status:** operational procedure draft. HRM production remains closed pending owner-approved retention, restore objectives and recovery ownership. No production restore or R2 backup copy has been demonstrated. This document does not prove recoverability.
 
+[Tiếng Việt](RUNBOOK.vi.md)
+
 This runbook covers HRM files and records in the `lumi-jobs` D1 database and the private `FILES` R2 binding (`lumi-job-files`). EmDash account state is held separately in `lumi-content`; Workspace grants and HRM records are in `lumi-jobs`. The repository declares no separate R2 backup binding. Confirm the active account, database backend, bucket, Worker version and jurisdiction from the authenticated Cloudflare environment before any production action; the repository configuration alone does not prove which resources are serving traffic.
 
 ## Authority and stop conditions

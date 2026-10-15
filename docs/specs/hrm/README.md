@@ -337,7 +337,7 @@ Tích hợp agent/API là giai đoạn riêng: chưa có thì không quảng cá
 
 ## 13. Lưu trữ, quyền riêng tư và vận hành
 
-Quy trình sự cố file, khôi phục D1/R2 và đánh giá dữ liệu sau restore được theo dõi tại [RUNBOOK.md](RUNBOOK.md). Runbook là hướng dẫn khôi phục đang hoàn thiện; nó không phải bằng chứng đã sao lưu hoặc đã thử khôi phục.
+Quy trình xử lý sự cố file, khôi phục D1/R2 và đối soát dữ liệu sau phục hồi nằm trong [RUNBOOK.md](RUNBOOK.md) (English) và [RUNBOOK.vi.md](RUNBOOK.vi.md) (Tiếng Việt). Đây là hướng dẫn đang hoàn thiện, không phải bằng chứng đã sao lưu hay đã thử phục hồi.
 
 Trước mở production phải chốt mục đích/căn cứ xử lý, trường bắt buộc, người xem, hạn giữ từng loại, quy trình yêu cầu truy cập/sửa/xóa và người chịu trách nhiệm. Không dùng một hạn giữ chung cho ứng viên, CCCD, COI, hợp đồng và payroll. Xóa phải xét nghĩa vụ lưu giữ, tranh chấp/legal hold và tham chiếu; legal hold có người đặt/gỡ và lý do.
 
