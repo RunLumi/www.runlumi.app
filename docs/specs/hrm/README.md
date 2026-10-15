@@ -129,6 +129,8 @@ Mỗi lần phát hành lưu snapshot nội dung và các trường được đi
 
 Dashboard cho HR thấy người chưa nhận, chưa xem, chờ ký, từ chối, hết hạn và bản cần thay thế. Nhắc hạn có giới hạn tần suất và khóa chống gửi trùng; gửi thông báo chỉ khi kênh được cấu hình và được phép. Thay mẫu không tự hủy tài liệu cũ: ghi quan hệ thay thế và phát hành yêu cầu mới theo chính sách.
 
+**Tải chính sách và lưu bằng chứng:** người có quyền `hrm.legal.manage` tải DOCX làm bản nguồn. DOCX được kiểm tra cấu trúc, lưu riêng và cách ly; một người khác rà soát tệp trước khi tạo phiên bản, rồi người có quyền `hrm.legal.activate` kích hoạt. Phiên bản phát hành giữ đúng file nguồn và checksum; không render DOCX như HTML hoặc coi việc tải lên là phát hành. Nhân viên và HR có thể tải PDF vào đúng issue ký giấy được cấp quyền; PDF cũng được cách ly và chỉ hoàn tất sau khi một người khác rà soát/xác minh. Tải file không tự đánh dấu đã ký.
+
 ### 6.3. Phân biệt xác nhận với chữ ký
 
 | Phương thức | Bằng chứng cần giữ | Cách trình bày |
@@ -139,6 +141,8 @@ Dashboard cho HR thấy người chưa nhận, chưa xem, chờ ký, từ chối
 | Ký điện tử qua nhà cung cấp | Yêu cầu giao dịch, callback đã xác minh, tài liệu hoàn tất, chứng cứ nhà cung cấp và checksum | Chỉ ghi “Đã ký” khi giao dịch hợp lệ và đủ bên |
 
 Checkbox, tên gõ hoặc ảnh chữ ký không tự tạo tuyên bố giá trị pháp lý. Phương thức được phép cho từng loại giấy tờ phải được rà soát trước khi bật. Nếu chưa tích hợp nhà cung cấp ký, hỗ trợ quy trình giấy/scan và xác nhận đã đọc; không tạo trạng thái ký điện tử giả.
+
+Khi nhân viên chủ động chọn “Tôi đã đọc và xác nhận”, hệ thống lưu EmDash user ID, thời gian UTC do máy chủ ghi, issue, phiên bản và checksum chính xác. Lịch sử không sửa/xóa; gửi lại cùng xác nhận không tạo sự kiện thứ hai. Giao diện hiển thị thời gian theo `Asia/Ho_Chi_Minh` và phiên bản đã xác nhận. Một phiên bản mới cần xác nhận mới nếu được cấu hình; xác nhận đã đọc vẫn không phải chữ ký hợp đồng hay chữ ký điện tử.
 
 Với tích hợp tương lai: callback xác thực nguồn, chống replay, idempotent, đối chiếu tài liệu/người ký; callback trễ sau hủy không tự làm sống lại yêu cầu. Download bản để ký không phải bằng chứng hoàn tất. Tài liệu sửa sau khi gửi yêu cầu ký phải phát hành lại và yêu cầu lại đúng các bên.
 
@@ -397,7 +401,3 @@ Tiếp tục mở giai đoạn khi mọi test quyền/privacy tương ứng đ�
 - [CRM: ranh giới API và token](../../crm/API.md)
 - [CRM: chính sách hoa hồng](../../crm/COMMISSION.md)
 - [Runbook release hiện có](../../crm/RUNBOOK.md)
-
-**Yêu cầu owner được xác nhận lại, 2026-10-14 — nạp chính sách và xác nhận:** người có quyền `hrm.legal.manage` được tải DOCX làm bản nguồn; người phụ trách cấu hình phiên bản, pháp nhân, đối tượng áp dụng và điều kiện xác nhận. DOCX là tệp nguồn, không được render bằng cách nội suy HTML và không tự trở thành phiên bản phát hành. Mỗi lần phát hành giữ nguyên file/checksum và nội dung phiên bản. Nhân viên và HR được tải PDF làm chứng từ trong đúng phạm vi hồ sơ hoặc tác vụ được giao; mặc định PDF được cách ly đến khi được rà soát, không coi phần mở rộng là bằng chứng an toàn.
-
-Mỗi lượt nhân viên chủ động đánh dấu “Tôi đã đọc và xác nhận” lưu danh tính EmDash, thời gian server UTC, phiên bản/checksum chính xác và kênh thực hiện. UI hiển thị thời gian theo múi giờ tài khoản/Asia/Ho_Chi_Minh, và hiện phiên bản nào đã được xác nhận. Bản mới tạo yêu cầu mới khi chính sách được cấu hình là cần tái xác nhận; không ghi đè hoặc đổi thời gian bản cũ. Tác vụ xác nhận chỉ là acknowledgement; không gọi là chữ ký hợp đồng/chữ ký điện tử và không thay hành động xác nhận riêng ở nhà cung cấp chữ ký đã được duyệt.

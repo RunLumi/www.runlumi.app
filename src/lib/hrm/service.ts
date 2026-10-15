@@ -100,6 +100,10 @@ export function guard(db: D1Database, condition: string, params: (string | numbe
   // Rows are deliberately transient; successful guards remove themselves.
   return db.prepare(`INSERT INTO hrm_write_guards(id,valid) SELECT ?,CASE WHEN (${condition}) THEN 1 ELSE 0 END`).bind(id("guard"),...params);
 }
+/** Boolean EXISTS/NOT EXISTS predicates can be inserted directly; a failed CHECK rolls back the batch. */
+export function guardBoolean(db: D1Database, predicate: string, params: (string | number | null)[]): D1PreparedStatement {
+  return db.prepare(`INSERT INTO hrm_write_guards(id,valid) SELECT ?,(${predicate})`).bind(id("guard"),...params);
+}
 const clearGuards = (db: D1Database) => db.prepare("DELETE FROM hrm_write_guards");
 export async function saveSettings(db: D1Database,user: WorkspaceUser,key: string,input: {version:number;legal_entity:string;purpose:string;retention_policy:string;policy_reference:string;reviewed:boolean;enabled:boolean}): Promise<void> {
   requirePermission(user,"hrm.configure");
