@@ -2,6 +2,7 @@ import type { WorkspaceUser } from "../workspace/roles";
 import { membersWithRoles } from "../workspace/members";
 import { HrmError } from "./fields";
 import { audit, command, digest, guardBoolean, id, now, requirePermission } from "./service";
+import { listServiceAttachments } from "./service-attachments";
 
 export const SERVICE_REQUEST_TYPES = ["employment_confirmation", "profile_support", "policy_question", "benefit_question", "asset_return", "training_question", "reimbursement", "sensitive_complaint", "other"] as const;
 export type ServiceRequestType = typeof SERVICE_REQUEST_TYPES[number];
@@ -82,9 +83,12 @@ export async function serviceRequestDetail(db:D1Database,user:WorkspaceUser,requ
     FROM hrm_service_requests r JOIN hrm_people p ON p.id=r.person_id WHERE r.id=? ${manage?"":"AND p.user_id=?"}`).bind(...(manage?[requestId]:[requestId,user.id])).first<ServiceRequestView&{user_id:string}>();
   if(!row)throw new HrmError("not_found",404);
   if(!manage&&row.sensitivity==="restricted"&&row.user_id!==user.id)throw new HrmError("not_found",404);
-  const events=await db.prepare("SELECT * FROM hrm_service_request_events WHERE request_id=? AND (?=1 OR visibility='employee') ORDER BY created_at,id LIMIT 200").bind(requestId,manage?1:0).all<ServiceEvent>();
-  await audit(db,user,"hr_service_request_read",row.person_id,row.id,{state:row.state,sensitivity:row.sensitivity,event_count:events.results.length});
-  return {request:row,events:events.results};
+  const [events,attachments]=await Promise.all([
+    db.prepare("SELECT * FROM hrm_service_request_events WHERE request_id=? AND (?=1 OR visibility='employee') ORDER BY created_at,id LIMIT 200").bind(requestId,manage?1:0).all<ServiceEvent>(),
+    listServiceAttachments(db,requestId),
+  ]);
+  await audit(db,user,"hr_service_request_read",row.person_id,row.id,{state:row.state,sensitivity:row.sensitivity,event_count:events.results.length,attachment_count:attachments.length});
+  return {request:row,events:events.results,attachments};
 }
 
 export async function transitionServiceRequest(db:D1Database,contentDb:D1Database,user:WorkspaceUser,key:string,requestId:string,expectedVersion:number,input:{action:string;body:string;assignTo?:string}):Promise<void>{

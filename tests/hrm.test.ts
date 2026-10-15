@@ -101,9 +101,11 @@ test("attendance CSV parsing is strict UTF-8, exact-header, RFC-quoted, and capp
  assert.throws(()=>parseAttendanceCsv(new Uint8Array([0xc3]).buffer),error=>error instanceof HrmError&&error.message==="time_import_encoding");
  assert.throws(()=>parseAttendanceCsv(new Uint8Array(512*1024+1).buffer),error=>error instanceof HrmError&&error.status===413);
 });
-test("required leave PDFs have their own configurable retention category",()=>{
+test("leave and HR service PDFs have separate configurable retention categories",()=>{
  assert.equal(retentionCategoryForHrm("leave_evidence"),"leave_evidence");
+ assert.equal(retentionCategoryForHrm("service_evidence"),"service_evidence");
  assert.ok((RETENTION_CATEGORIES as readonly string[]).includes("leave_evidence"));
+ assert.ok((RETENTION_CATEGORIES as readonly string[]).includes("service_evidence"));
 });
 test("payroll policy accepts only explicit component definitions and no executable formula fields",()=>{
  const components=[{code:"base",title_en:"Base pay",title_vi:"Lương cơ bản",direction:"earning",required:true,source_kind:"employment_record"},{code:"deduction",title_en:"Deduction",title_vi:"Khấu trừ",direction:"deduction",required:false,source_kind:"manual_evidence"}];

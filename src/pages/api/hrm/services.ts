@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 import { envFromLocals } from "../../../lib/ats";
 import { HrmError, revision, text } from "../../../lib/hrm/fields";
 import { createServiceRequest, markNotificationRead, retryServiceOutbox, transitionServiceRequest } from "../../../lib/hrm/employee-services";
+import { reviewServiceAttachment } from "../../../lib/hrm/service-attachments";
 import { sameOrigin } from "../../../lib/http";
 
 export const prerender=false;
@@ -23,6 +24,10 @@ export const POST:APIRoute=async context=>{
   const env=envFromLocals(context.locals),key=text(form,"request_key",100,true),intent=text(form,"intent",40,true);
   if(intent==="create_request")await createServiceRequest(env.DB,env.CONTENT_DB,user,key,{request_type:text(form,"request_type",40,true),subject:text(form,"subject",120,true),body:text(form,"body",3000,true)});
   else if(intent==="transition")await transitionServiceRequest(env.DB,env.CONTENT_DB,user,key,text(form,"request_id",100,true),revision(form),{action:text(form,"action",30,true),body:text(form,"body",3000,true),assignTo:text(form,"assign_to",100)});
+  else if(intent==="review_attachment"){
+   const decision=text(form,"decision",10,true);if(decision!=="approve"&&decision!=="reject")throw new HrmError("invalid_decision",400);
+   await reviewServiceAttachment(env.DB,user,key,text(form,"attachment_id",100,true),revision(form,"file_version"),decision,text(form,"reason",500,true));
+  }
   else if(intent==="mark_read")await markNotificationRead(env.DB,user,key,text(form,"notification_id",100,true),revision(form));
   else if(intent==="retry_outbox")await retryServiceOutbox(env.DB,user,key,text(form,"outbox_id",100,true));
   else throw new HrmError("invalid_action",400);
