@@ -2,6 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { BASE, adminSession, content, jobs, localFetch, q, userSession } from "./helpers.mjs";
+import { startHrmBrowserQa } from "./hrm-browser-qa.mjs";
 
 const run=Date.now().toString(36);const S={};const P={};
 const grant=(user,role)=>S.system.post("/workspace/users",{intent:"grant",email:user.email,roles:[role]});
@@ -11,7 +12,7 @@ const createPerson=async({user,code,name,manager="",status="active"})=>{
 };
 async function multipart(session,path,fields,file){const form=new FormData();for(const [key,value] of Object.entries(fields))form.set(key,String(value));form.set("file",file);const response=await localFetch(BASE+path,{method:"POST",body:form,headers:{cookie:session.header(),origin:BASE},redirect:"manual"});session.absorb(response);return {status:response.status,location:response.headers.get("location"),body:await response.text(),headers:response.headers};}
 
-test("HRM P1 uses EmDash sessions, isolated HRM grants, scoped records, D1 history and private R2 files",async()=>{
+test("HRM P1 uses EmDash sessions, isolated HRM grants, scoped records, D1 history and private R2 files",async(t)=>{
  S.system=await adminSession();
  S.hrm=await userSession(S.system,{email:`test-hrm-admin-${run}@example.test`,name:`TEST HRM Admin ${run}`});
  S.hr=await userSession(S.system,{email:`test-hrm-officer-${run}@example.test`,name:`TEST HRM Officer ${run}`});
@@ -20,6 +21,12 @@ test("HRM P1 uses EmDash sessions, isolated HRM grants, scoped records, D1 histo
  S.employeeB=await userSession(S.system,{email:`test-employee-b-${run}@example.test`,name:`TEST Employee B ${run}`});
  S.finance=await userSession(S.system,{email:`test-hrm-finance-${run}@example.test`,name:`TEST Finance ${run}`});
  for(const [user,role] of [[S.hrm,"hrm_admin"],[S.hr,"hrm_officer"],[S.manager,"people_manager"],[S.employeeA,"employee"],[S.employeeB,"employee"],[S.finance,"finance"]])assert.equal((await grant(user,role)).status,303);
+ const browserQa=process.env.HRM_BROWSER_BINARY?await startHrmBrowserQa({baseUrl:BASE,binary:process.env.HRM_BROWSER_BINARY,artifactDir:process.env.HRM_BROWSER_ARTIFACT_DIR}):null;
+ if(browserQa)t.after(()=>browserQa.close());
+ const auditPair=async(user,name,enPath,viPath,enText,viText,formsRequired=true)=>{
+  try{await browserQa.auditPage(user,enPath,{expectedText:enText,artifactName:`${name}-en`,formsRequired});}catch(error){throw new Error(`${name} EN (${enPath}) expected ${enText}: ${error instanceof Error?error.message:String(error)}`)}
+  try{await browserQa.auditPage(user,viPath,{expectedText:viText,artifactName:`${name}-vi`,formsRequired});}catch(error){throw new Error(`${name} VI (${viPath}) expected ${viText}: ${error instanceof Error?error.message:String(error)}`)}
+ };
  assert.equal((await S.finance.get("/hrm")).status,403,"CRM Finance is not HRM access");
  assert.equal((await S.hr.get("/workspace/users")).status,403,"HRM Officer cannot manage accounts");
  const closed=await S.employeeA.get("/hrm");assert.equal(closed.status,503,"Closed HRM gate response: " + closed.html);
@@ -30,6 +37,22 @@ test("HRM P1 uses EmDash sessions, isolated HRM grants, scoped records, D1 histo
  P.b=await createPerson({user:S.employeeB,code:`TEST-B-${run}`,name:"TEST Employee B",manager:S.manager.id});
  assert.equal((await S.employeeA.get("/hrm")).status,200,"a linked active employment period enables self-service");
  assert.equal((await S.employeeA.get("/hrm/me?section=bank")).status,200);
+ if(browserQa){
+  await auditPair(S.employeeA,"p1-home","/hrm","/vi/hrm","HRM overview","Tổng quan HRM",false);
+  await auditPair(S.employeeA,"p1-me-overview","/hrm/me","/vi/hrm/me","Employee profile","Hồ sơ nhân viên");
+  await auditPair(S.hrm,"p1-people-admin","/hrm/people","/vi/hrm/people","People","Nhân sự",false);
+  await auditPair(S.manager,"p1-people-manager","/hrm/people","/vi/hrm/people","People","Nhân sự",false);
+  await auditPair(S.hrm,"p1-new-person","/hrm/people/new","/vi/hrm/people/new","Employment record","Tạo hồ sơ");
+  await auditPair(S.hrm,"p1-work-details-admin",`/hrm/people/${P.b}`,`/vi/hrm/people/${P.b}`,"Work details","Thông tin công việc");
+  await auditPair(S.manager,"p1-work-details-manager",`/hrm/people/${P.b}`,`/vi/hrm/people/${P.b}`,"Work details","Thông tin công việc",false);
+  await auditPair(S.hrm,"p1-settings","/hrm/settings","/vi/hrm/settings","HRM activation conditions","Điều kiện mở HRM");
+  const profileSections=[["contact","Contact and emergency","Liên hệ và khẩn cấp"],["personal","Personal information","Thông tin cá nhân"],["identity","Identity documents","Giấy tờ định danh"],["dependent","Dependents","Người phụ thuộc"],["bank","Salary payment account","Tài khoản nhận lương"],["tax","Tax and insurance","Thuế và bảo hiểm"]];
+  for(const [section,en,vi] of profileSections){
+   await auditPair(S.employeeA,`p1-self-${section}`,`/hrm/me?section=${section}`,`/vi/hrm/me?section=${section}`,en,vi);
+   await auditPair(S.hrm,`p1-review-${section}`,`/hrm/people/${P.a}/profile?section=${section}`,`/vi/hrm/people/${P.a}/profile?section=${section}`,en,vi);
+  }
+  await auditPair(S.hr,"p1-officer-identity",`/hrm/people/${P.b}/profile?section=identity`,`/vi/hrm/people/${P.b}/profile?section=identity`,"Identity documents","Giấy tờ định danh");
+ }
  const viOverview=await S.employeeA.get("/vi/hrm");assert.equal(viOverview.status,200,"Vietnamese HRM overview is available");assert.match(viOverview.html,/<html lang="vi"/);
  const viProfile=await S.employeeA.get("/vi/hrm/me?section=identity");assert.equal(viProfile.status,200,"Vietnamese employee profile is available");assert.ok(viProfile.html.includes("Giấy tờ định danh"));
  const privatePage=await S.employeeA.get("/hrm/people/"+P.b+"/profile?section=identity");assert.equal(privatePage.status,404,"employees cannot open another employee's records: "+privatePage.html);
@@ -58,10 +81,12 @@ test("HRM P1 uses EmDash sessions, isolated HRM grants, scoped records, D1 histo
  const badMime=await multipart(S.employeeA,"/api/hrm/files/upload",{person_id:P.a,kind:"identity",record_id:identityRecord,request_key:`file_bad_${run}`,return_to:"/hrm/me"},new File(["TEST not a PDF"],"TEST-bad.pdf",{type:"application/pdf"}));assert.equal(badMime.status,422,"declared MIME without matching file signature is rejected");assert.equal(jobs(`SELECT COUNT(*) AS n FROM hrm_files WHERE person_id=${q(P.a)}`)[0].n,0,"rejected bytes are not committed to R2 metadata");
  const uploaded=await multipart(S.employeeA,"/api/hrm/files/upload",{person_id:P.a,kind:"identity",record_id:identityRecord,request_key:`file_upload_${run}`,return_to:"/hrm/me"},fakePdf);assert.equal(uploaded.status,303,uploaded.body);
  const meta=jobs(`SELECT id,object_key,state,checksum FROM hrm_files WHERE person_id=${q(P.a)} AND kind='identity'`)[0];assert.ok(meta.object_key.startsWith("hrm/"));assert.equal(meta.state,"quarantined");
+ if(browserQa){await auditPair(S.employeeA,"p1-identity-file-pending",`/hrm/me?section=identity`,`/vi/hrm/me?section=identity`,"Awaiting review","Chờ rà soát");await auditPair(S.hrm,"p1-identity-file-review-form",`/hrm/people/${P.a}/profile?section=identity`,`/vi/hrm/people/${P.a}/profile?section=identity`,"Reviewed","Đã rà soát");}
  assert.equal((await localFetch(BASE+`/api/hrm/files/${meta.id}`)).status,401,"HRM file API is not public");
  assert.equal((await S.employeeB.get(`/api/hrm/files/${meta.id}`)).status,404,"different employee cannot fetch the R2 object");
  const review=await S.hrm.post(`/api/hrm/files/${meta.id}`,{intent:"reviewed",person_id:P.a,version:1,request_key:`file_review_${run}`,reason:"TEST reviewed synthetic bytes",return_to:"/hrm/people/"+P.a,section:"identity"});assert.equal(review.status,303);
  const reviewedFile=jobs(`SELECT state,reviewed_by,reviewed_at FROM hrm_files WHERE id=${q(meta.id)}`)[0];assert.equal(reviewedFile.state,"reviewed");assert.equal(reviewedFile.reviewed_by,S.hrm.id);assert.ok(Number.isFinite(Date.parse(reviewedFile.reviewed_at)),"file review records its server timestamp");
+ if(browserQa)await auditPair(S.employeeA,"p1-identity-file-reviewed",`/hrm/me?section=identity`,`/vi/hrm/me?section=identity`,"Reviewed by HR","HR đã rà soát");
  const download=await S.employeeA.get(`/api/hrm/files/${meta.id}`);assert.equal(download.status,200);assert.equal(download.headers.get("cache-control"),"private, no-store");assert.match(download.headers.get("content-disposition"),/attachment/);assert.match(download.html,/TEST/);
  assert.ok(jobs(`SELECT COUNT(*) AS n FROM hrm_audit WHERE person_id=${q(P.a)} AND action='file_downloaded'`)[0].n>=1);
  const currentPeriod=jobs(`SELECT p.user_id,p.legal_name,p.preferred_name,p.version AS profile_version,e.* FROM hrm_people p JOIN hrm_employments e ON e.person_id=p.id WHERE p.id=${q(P.a)} AND e.status!='ended'`)[0];
