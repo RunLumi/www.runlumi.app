@@ -22,14 +22,14 @@ test("admins hold every permission; roles hold only their own", () => {
 });
 
 test("every role is allowed by the database constraint", () => {
-  const sql = readFileSync(new URL("../migrations/0007_workspace_partner_role.sql", import.meta.url), "utf8");
+  const sql = readFileSync(new URL("../migrations/0014_hrm_records.sql", import.meta.url), "utf8");
   for (const role of roles) assert.ok(sql.includes(`'${role}'`), role);
   for (const role of roles) assert.ok(ROLE_PERMISSIONS[role].includes("workspace.access"), `${role} can reach the Workspace home`);
 });
 
 test("navigation lists only modules and pages a person may open", () => {
   assert.deepEqual(visibleModules(user(["hr"])).map((module) => module.key), ["home", "hiring"]);
-  assert.deepEqual(visibleModules(user([], true)).map((module) => module.key), ["home", "hiring", "crm", "admin"]);
+  assert.deepEqual(visibleModules(user([], true)).map((module) => module.key), ["home", "hiring", "crm", "hrm", "admin"]);
   const crm = modules.find((module) => module.key === "crm")!;
   assert.ok(!visibleLinks(user(["sales_executive"]), crm).some((link) => ["operations", "playbooks", "offers", "fulfillment"].includes(link.key)));
   assert.ok(visibleLinks(user(["sales_manager"]), crm).some((link) => link.key === "operations"));

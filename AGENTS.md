@@ -66,7 +66,8 @@ including CMS-only changes through EmDash API/MCP.
 ## Workspace roles contract
 
 - Private modules (Hiring, CRM, and later ones) share one EmDash identity, one Workspace allowlist (`workspace_members`), combinable roles (`workspace_roles`) and one permission map in `src/lib/workspace/roles.ts`. See [docs/workspace/README.md](docs/workspace/README.md).
-- Roles: Admin (EmDash role 50; never stored), HR, Sales Manager, Sales Executive, Partner (Cộng tác viên), Finance and Fulfillment. Check permissions, never role names, in routes, APIs, queries and navigation.
+- Roles: System Super Admin (EmDash role 50; never stored), HR (ATS), Sales Manager, Sales Executive, Partner (Cộng tác viên), Finance, Fulfillment, Employee, People Manager, HRM Officer and HRM Admin. HRM grants are separate from ATS/CRM grants. Check permissions, never role names, in routes, APIs, queries and navigation.
+- HRM requirements and gates live in [docs/specs/hrm/README.md](docs/specs/hrm/README.md); track implementation evidence in `docs/specs/hrm/STATUS.md`. Production HRM stays fail-closed unless policy review, the HRM settings record and the `HRM_LIVE_ENABLED` deployment switch all agree. HRM Admin never self-approves or gains Workspace user/role administration.
 - Only Admins manage users and roles (`/workspace/users`); every access change is written to `workspace_audit`. Nobody changes their own access.
 - Navigation comes from `src/lib/workspace/nav.ts` and shows only entries the person may open; every private page renders inside `WorkspaceShell` and has a `/vi` peer.
 

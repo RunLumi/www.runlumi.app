@@ -369,3 +369,23 @@ body.crm #emdash-toolbar, body.crm #emdash-toolbar-bootstrap { display: none !im
 .agent-aside { position: sticky; top: 90px; }
 @media (max-width: 640px) { .agent-faq { grid-template-columns: minmax(0, 1fr); } .agent-faq dd { margin-bottom: 6px; } }
 @media (max-width: 900px) { .agent-aside { position: static; order: -1; } }
+
+/* HRM reuses the Workspace surfaces while keeping dense lists inside their
+   own cards and allowing long Vietnamese field labels to wrap. */
+.crm-actions-between { justify-content: space-between; }
+.crm-form-inline { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; }
+.crm-form-inline .crm-field { flex: 1 1 220px; }
+.crm-employee-heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px; }
+.crm-employee-heading .crm-h2 { margin-top: 0; }
+.crm-tabs { display: flex; flex-wrap: nowrap; gap: 6px; overflow-x: auto; max-width: 100%; margin: 0 0 18px; padding: 0 0 8px; border-bottom: 1px solid var(--crm-line); }
+.crm-tabs a { display: inline-flex; min-height: 42px; align-items: center; padding: 0 13px; border: 1px solid var(--crm-line); border-radius: var(--crm-radius); background: white; color: var(--crm-navy); font-weight: 600; text-decoration: none; white-space: nowrap; }
+.crm-tabs a[aria-current="page"] { border-color: var(--crm-blue); background: var(--crm-blue-soft); }
+.crm-tabs a:focus-visible, .crm-upload button:focus-visible { outline: 2px solid var(--crm-blue); outline-offset: 2px; }
+.crm-json { max-width: 100%; white-space: pre-wrap; overflow-wrap: anywhere; font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.crm-upload { grid-template-columns: minmax(0,1fr) auto; align-items: end; padding-top: 16px; border-top: 1px solid var(--crm-line-soft); }
+.crm-review-reason { min-height: 36px; width: min(100%, 220px); }
+@media (max-width: 640px) {
+  .crm-upload { grid-template-columns: minmax(0,1fr); }
+  .crm-review-reason { width: 100%; }
+  .crm-tabs a { min-height: 44px; }
+}

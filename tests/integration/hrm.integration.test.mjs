@@ -1,0 +1,107 @@
+// HRM against an isolated Astro Worker, EmDash, D1 and local R2. Synthetic identities/files only.
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { BASE, adminSession, content, jobs, localFetch, q, userSession } from "./helpers.mjs";
+import { startHrmBrowserQa } from "./hrm-browser-qa.mjs";
+
+const run=Date.now().toString(36);const S={};const P={};
+const grant=(user,role)=>S.system.post("/workspace/users",{intent:"grant",email:user.email,roles:[role]});
+const createPerson=async({user,code,name,manager="",status="active"})=>{
+ const result=await S.hrm.post("/hrm/people/new",{request_key:`person_${code}_${run}`,employee_code:code,account_email:user?.email??"",legal_name:name,preferred_name:name,work_email:`${code.toLowerCase()}@work.example.test`,work_phone:"0900000000",department:"TEST Operations",job_title:"TEST Analyst",legal_entity:"TEST Local entity",location:"Ho Chi Minh City",manager_user_id:manager,status,started_on:"2026-10-13"});
+ assert.equal(result.status,303,result.html);const row=jobs(`SELECT id FROM hrm_people WHERE employee_code=${q(code)}`)[0];assert.ok(row);return row.id;
+};
+async function multipart(session,path,fields,file){const form=new FormData();for(const [key,value] of Object.entries(fields))form.set(key,String(value));form.set("file",file);const response=await localFetch(BASE+path,{method:"POST",body:form,headers:{cookie:session.header(),origin:BASE},redirect:"manual"});session.absorb(response);return {status:response.status,location:response.headers.get("location"),body:await response.text(),headers:response.headers};}
+
+test("HRM P1 uses EmDash sessions, isolated HRM grants, scoped records, D1 history and private R2 files",async(t)=>{
+ S.system=await adminSession();
+ S.hrm=await userSession(S.system,{email:`test-hrm-admin-${run}@example.test`,name:`TEST HRM Admin ${run}`});
+ S.hr=await userSession(S.system,{email:`test-hrm-officer-${run}@example.test`,name:`TEST HRM Officer ${run}`});
+ S.manager=await userSession(S.system,{email:`test-hrm-manager-${run}@example.test`,name:`TEST Manager ${run}`});
+ S.employeeA=await userSession(S.system,{email:`test-employee-a-${run}@example.test`,name:`TEST Employee A ${run}`});
+ S.employeeB=await userSession(S.system,{email:`test-employee-b-${run}@example.test`,name:`TEST Employee B ${run}`});
+ S.finance=await userSession(S.system,{email:`test-hrm-finance-${run}@example.test`,name:`TEST Finance ${run}`});
+ for(const [user,role] of [[S.hrm,"hrm_admin"],[S.hr,"hrm_officer"],[S.manager,"people_manager"],[S.employeeA,"employee"],[S.employeeB,"employee"],[S.finance,"finance"]])assert.equal((await grant(user,role)).status,303);
+ const browserQa=process.env.HRM_BROWSER_BINARY?await startHrmBrowserQa({baseUrl:BASE,binary:process.env.HRM_BROWSER_BINARY,artifactDir:process.env.HRM_BROWSER_ARTIFACT_DIR}):null;
+ if(browserQa)t.after(()=>browserQa.close());
+ const auditPair=async(user,name,enPath,viPath,enText,viText,formsRequired=true)=>{
+  try{await browserQa.auditPage(user,enPath,{expectedText:enText,artifactName:`${name}-en`,formsRequired});}catch(error){throw new Error(`${name} EN (${enPath}) expected ${enText}: ${error instanceof Error?error.message:String(error)}`)}
+  try{await browserQa.auditPage(user,viPath,{expectedText:viText,artifactName:`${name}-vi`,formsRequired});}catch(error){throw new Error(`${name} VI (${viPath}) expected ${viText}: ${error instanceof Error?error.message:String(error)}`)}
+ };
+ assert.equal((await S.finance.get("/hrm")).status,403,"CRM Finance is not HRM access");
+ assert.equal((await S.hr.get("/workspace/users")).status,403,"HRM Officer cannot manage accounts");
+ const closed=await S.employeeA.get("/hrm");assert.equal(closed.status,503,"Closed HRM gate response: " + closed.html);
+ assert.equal((await S.hrm.get("/hrm/settings")).status,200,"HRM Admin can configure while the employee module remains unavailable");
+ const configured=await S.hrm.post("/hrm/settings",{request_key:"hrm_policy_"+run,version:1,legal_entity:"TEST Local entity",purpose:"Synthetic test only",retention_policy:"Synthetic records deleted with test state",policy_reference:"TEST-only synthetic policy",reviewed:"1",enabled:"1"});assert.equal(configured.status,303,configured.html);
+ assert.equal((await S.employeeA.get("/hrm")).status,403,"an employee without a linked employment period has no self-service access");
+ P.a=await createPerson({user:S.employeeA,code:`TEST-A-${run}`,name:"TEST Employee A"});
+ P.b=await createPerson({user:S.employeeB,code:`TEST-B-${run}`,name:"TEST Employee B",manager:S.manager.id});
+ assert.equal((await S.employeeA.get("/hrm")).status,200,"a linked active employment period enables self-service");
+ assert.equal((await S.employeeA.get("/hrm/me?section=bank")).status,200);
+ if(browserQa){
+  await auditPair(S.employeeA,"p1-home","/hrm","/vi/hrm","HRM overview","Tổng quan HRM",false);
+  await auditPair(S.employeeA,"p1-me-overview","/hrm/me","/vi/hrm/me","Employee profile","Hồ sơ nhân viên");
+  await auditPair(S.hrm,"p1-people-admin","/hrm/people","/vi/hrm/people","People","Nhân sự",false);
+  await auditPair(S.manager,"p1-people-manager","/hrm/people","/vi/hrm/people","People","Nhân sự",false);
+  await auditPair(S.hrm,"p1-new-person","/hrm/people/new","/vi/hrm/people/new","Employment record","Tạo hồ sơ");
+  await auditPair(S.hrm,"p1-work-details-admin",`/hrm/people/${P.b}`,`/vi/hrm/people/${P.b}`,"Work details","Thông tin công việc");
+  await auditPair(S.manager,"p1-work-details-manager",`/hrm/people/${P.b}`,`/vi/hrm/people/${P.b}`,"Work details","Thông tin công việc",false);
+  await auditPair(S.hrm,"p1-settings","/hrm/settings","/vi/hrm/settings","HRM activation conditions","Điều kiện mở HRM");
+  const profileSections=[["contact","Contact and emergency","Liên hệ và khẩn cấp"],["personal","Personal information","Thông tin cá nhân"],["identity","Identity documents","Giấy tờ định danh"],["dependent","Dependents","Người phụ thuộc"],["bank","Salary payment account","Tài khoản nhận lương"],["tax","Tax and insurance","Thuế và bảo hiểm"]];
+  for(const [section,en,vi] of profileSections){
+   await auditPair(S.employeeA,`p1-self-${section}`,`/hrm/me?section=${section}`,`/vi/hrm/me?section=${section}`,en,vi);
+   await auditPair(S.hrm,`p1-review-${section}`,`/hrm/people/${P.a}/profile?section=${section}`,`/vi/hrm/people/${P.a}/profile?section=${section}`,en,vi);
+  }
+  await auditPair(S.hr,"p1-officer-identity",`/hrm/people/${P.b}/profile?section=identity`,`/vi/hrm/people/${P.b}/profile?section=identity`,"Identity documents","Giấy tờ định danh");
+ }
+ const viOverview=await S.employeeA.get("/vi/hrm");assert.equal(viOverview.status,200,"Vietnamese HRM overview is available");assert.match(viOverview.html,/<html lang="vi"/);
+ const viProfile=await S.employeeA.get("/vi/hrm/me?section=identity");assert.equal(viProfile.status,200,"Vietnamese employee profile is available");assert.ok(viProfile.html.includes("Giấy tờ định danh"));
+ const privatePage=await S.employeeA.get("/hrm/people/"+P.b+"/profile?section=identity");assert.equal(privatePage.status,404,"employees cannot open another employee's records: "+privatePage.html);
+ assert.equal((await S.hrm.get(`/hrm/people/${P.b}/profile?section=bank`)).status,200);
+ assert.equal((await S.hr.get(`/hrm/people/${P.b}/profile?section=identity`)).status,200);
+ assert.equal((await S.hr.get(`/hrm/people/${P.b}/profile?section=bank`)).status,404,"HRM Officer has no bank access");
+ const team=await S.manager.get("/hrm/people");const overlay=/"message":"([^"\\]*(?:\\.[^"\\]*)*)"/.exec(team.html)?.[1];assert.equal(team.status,200,"Manager people response status="+team.status+" error="+overlay+" body="+team.html.slice(-2500));assert.ok(team.html.includes("TEST Employee B"));assert.ok(!team.html.includes("account_number"));
+ assert.equal((await S.manager.get(`/hrm/people/${P.b}/profile?section=identity`)).status,404,"manager gets work scope only");
+ const csrf=await S.employeeA.post("/hrm/me?section=identity",{intent:"submit",section:"identity",request_key:`csrf_${run}`,record_id:"",expected_version:"0",document_type:"CCCD",document_number:"TEST-IDENTITY-001",issued_on:"2020-01-01"},{origin:"https://attacker.example"});assert.equal(csrf.status,400);
+ const submitted=await S.employeeA.post("/hrm/me?section=identity",{intent:"submit",section:"identity",request_key:"identity_"+run,record_id:"",expected_version:"0",document_type:"CCCD",document_number:"TEST-IDENTITY-001",issued_on:"2020-01-01",issued_by:"TEST issuer"});const formError=submitted.html.split('role="alert">')[1]?.split("</div>")[0]?.replace(/<[^>]*>/g," ").trim();assert.equal(submitted.status,303,`Employee identity submission: HTTP ${submitted.status}; location=${String(submitted.location)}; notice=${formError}`);
+ let pending=jobs(`SELECT id,version,state,submitted_by,created_at FROM hrm_change_requests WHERE person_id=${q(P.a)} AND kind='identity'`)[0];assert.equal(pending.state,"submitted");assert.equal(pending.submitted_by,S.employeeA.id);assert.ok(Number.isFinite(Date.parse(pending.created_at)),"submission records its server timestamp");
+ const approve=await S.hrm.post(`/hrm/people/${P.a}/profile?section=identity`,{intent:"review",section:"identity",request_key:`approve_${run}`,change_id:pending.id,version:pending.version,decision:"approved",reason:"TEST checked synthetic document"});assert.equal(approve.status,303);
+ const verifiedIdentity=jobs(`SELECT state,verified_by,verified_at FROM hrm_records WHERE person_id=${q(P.a)} AND kind='identity'`)[0];assert.equal(verifiedIdentity.state,"verified");assert.equal(verifiedIdentity.verified_by,S.hrm.id);assert.ok(Number.isFinite(Date.parse(verifiedIdentity.verified_at)),"review records its server timestamp");
+ // Competing updates share one existing record revision; only the first may be approved.
+ assert.equal((await S.employeeA.post("/hrm/me?section=bank",{intent:"submit",section:"bank",request_key:`bank_initial_${run}`,record_id:"",expected_version:"0",bank:"TEST BANK",account_number:"TEST-INITIAL",account_name:"TEST EMPLOYEE",currency:"VND"})).status,303);
+ const initialBankRequest=jobs(`SELECT id,version FROM hrm_change_requests WHERE person_id=${q(P.a)} AND kind='bank'`)[0];
+ assert.equal((await S.hrm.post(`/hrm/people/${P.a}/profile?section=bank`,{intent:"review",section:"bank",request_key:`bank_initial_review_${run}`,change_id:initialBankRequest.id,version:1,decision:"approved",reason:"TEST establishes initial account"})).status,303);
+ const bankRecord=jobs(`SELECT id,version FROM hrm_records WHERE person_id=${q(P.a)} AND kind='bank'`)[0];assert.equal(bankRecord.version,1);
+ for(const suffix of ["one","two"])assert.equal((await S.employeeA.post("/hrm/me?section=bank",{intent:"submit",section:"bank",request_key:`bank_${suffix}_${run}`,record_id:bankRecord.id,expected_version:String(bankRecord.version),bank:"TEST BANK",account_number:`TEST-${suffix}`,account_name:"TEST EMPLOYEE",currency:"VND"})).status,303);
+ const bankRequests=jobs(`SELECT id,version FROM hrm_change_requests WHERE person_id=${q(P.a)} AND kind='bank' AND state='submitted' ORDER BY created_at`);assert.equal(bankRequests.length,2);
+ const bankApprove=await S.hrm.post(`/hrm/people/${P.a}/profile?section=bank`,{intent:"review",section:"bank",request_key:`bank_review_1_${run}`,change_id:bankRequests[0].id,version:1,decision:"approved",reason:"TEST approves first snapshot"});assert.equal(bankApprove.status,303);
+ const stale=await S.hrm.post(`/hrm/people/${P.a}/profile?section=bank`,{intent:"review",section:"bank",request_key:`bank_review_2_${run}`,change_id:bankRequests[1].id,version:1,decision:"approved",reason:"TEST stale revision must fail"});assert.equal(stale.status,409,"stale approval returns a conflict without applying it");
+ assert.equal(jobs(`SELECT state FROM hrm_change_requests WHERE id=${q(bankRequests[1].id)}`)[0].state,"submitted","stale review does not overwrite or approve the second request");
+ const fakePdf=new File([new Uint8Array([37,80,68,70,45,49,46,55,10,84,69,83,84])],"TEST-id.pdf",{type:"application/pdf"});
+ const identityRecord=jobs(`SELECT id FROM hrm_records WHERE person_id=${q(P.a)} AND kind='identity'`)[0].id;
+ const badMime=await multipart(S.employeeA,"/api/hrm/files/upload",{person_id:P.a,kind:"identity",record_id:identityRecord,request_key:`file_bad_${run}`,return_to:"/hrm/me"},new File(["TEST not a PDF"],"TEST-bad.pdf",{type:"application/pdf"}));assert.equal(badMime.status,422,"declared MIME without matching file signature is rejected");assert.equal(jobs(`SELECT COUNT(*) AS n FROM hrm_files WHERE person_id=${q(P.a)}`)[0].n,0,"rejected bytes are not committed to R2 metadata");
+ const uploaded=await multipart(S.employeeA,"/api/hrm/files/upload",{person_id:P.a,kind:"identity",record_id:identityRecord,request_key:`file_upload_${run}`,return_to:"/hrm/me"},fakePdf);assert.equal(uploaded.status,303,uploaded.body);
+ const meta=jobs(`SELECT id,object_key,state,checksum FROM hrm_files WHERE person_id=${q(P.a)} AND kind='identity'`)[0];assert.ok(meta.object_key.startsWith("hrm/"));assert.equal(meta.state,"quarantined");
+ if(browserQa){await auditPair(S.employeeA,"p1-identity-file-pending",`/hrm/me?section=identity`,`/vi/hrm/me?section=identity`,"Awaiting review","Chờ rà soát");await auditPair(S.hrm,"p1-identity-file-review-form",`/hrm/people/${P.a}/profile?section=identity`,`/vi/hrm/people/${P.a}/profile?section=identity`,"Reviewed","Đã rà soát");}
+ assert.equal((await localFetch(BASE+`/api/hrm/files/${meta.id}`)).status,401,"HRM file API is not public");
+ assert.equal((await S.employeeB.get(`/api/hrm/files/${meta.id}`)).status,404,"different employee cannot fetch the R2 object");
+ const review=await S.hrm.post(`/api/hrm/files/${meta.id}`,{intent:"reviewed",person_id:P.a,version:1,request_key:`file_review_${run}`,reason:"TEST reviewed synthetic bytes",return_to:"/hrm/people/"+P.a,section:"identity"});assert.equal(review.status,303);
+ const reviewedFile=jobs(`SELECT state,reviewed_by,reviewed_at FROM hrm_files WHERE id=${q(meta.id)}`)[0];assert.equal(reviewedFile.state,"reviewed");assert.equal(reviewedFile.reviewed_by,S.hrm.id);assert.ok(Number.isFinite(Date.parse(reviewedFile.reviewed_at)),"file review records its server timestamp");
+ if(browserQa)await auditPair(S.employeeA,"p1-identity-file-reviewed",`/hrm/me?section=identity`,`/vi/hrm/me?section=identity`,"Reviewed by HR","HR đã rà soát");
+ const download=await S.employeeA.get(`/api/hrm/files/${meta.id}`);assert.equal(download.status,200);assert.equal(download.headers.get("cache-control"),"private, no-store");assert.match(download.headers.get("content-disposition"),/attachment/);assert.match(download.html,/TEST/);
+ assert.ok(jobs(`SELECT COUNT(*) AS n FROM hrm_audit WHERE person_id=${q(P.a)} AND action='file_downloaded'`)[0].n>=1);
+ const currentPeriod=jobs(`SELECT p.user_id,p.legal_name,p.preferred_name,p.version AS profile_version,e.* FROM hrm_people p JOIN hrm_employments e ON e.person_id=p.id WHERE p.id=${q(P.a)} AND e.status!='ended'`)[0];
+ const employeeEmail=content(`SELECT email FROM users WHERE id=${q(currentPeriod.user_id)}`)[0].email;
+ const offboarded=await S.hrm.post(`/hrm/people/${P.a}`,{intent:"save",request_key:`end_period_${run}`,employee_code:jobs(`SELECT employee_code FROM hrm_people WHERE id=${q(P.a)}`)[0].employee_code,account_email:employeeEmail,legal_name:currentPeriod.legal_name,preferred_name:currentPeriod.preferred_name,work_email:currentPeriod.work_email,work_phone:currentPeriod.work_phone,department:currentPeriod.department,job_title:currentPeriod.job_title,legal_entity:currentPeriod.legal_entity,location:currentPeriod.location,manager_user_id:currentPeriod.manager_user_id??"",status:"ended",started_on:currentPeriod.started_on,ended_on:"2026-10-14",version:currentPeriod.version,profile_version:currentPeriod.profile_version,employment_id:currentPeriod.id});assert.equal(offboarded.status,303,"ending a period keeps the person record");
+ const endedPeriod=jobs(`SELECT id,version,status FROM hrm_employments WHERE person_id=${q(P.a)} ORDER BY created_at DESC LIMIT 1`)[0];assert.equal(endedPeriod.status,"ended");
+ assert.equal((await S.employeeA.get("/hrm")).status,403,"an ended employee loses self-service module access on the next request");
+ const endedSelfProfile=await S.employeeA.get("/hrm/me?section=identity");assert.equal(endedSelfProfile.status,403,"an ended employee cannot read the previous self-service profile");assert.ok(!endedSelfProfile.html.includes("TEST-IDENTITY-001"),"the prior identity document is not rendered after employment ends");
+ const endedWorkspace=await S.employeeA.get("/workspace");assert.equal(endedWorkspace.status,200);assert.ok(!/href="(?:\/vi)?\/hrm(?:[/?"])/.test(endedWorkspace.html),"the HRM module disappears from navigation after employment ends");
+ const rehireFields={intent:"rehire",request_key:`rehire_period_${run}`,previous_employment_id:endedPeriod.id,previous_version:endedPeriod.version,started_on:"2026-10-15",status:"preboarding",work_email:"test-rehire@work.example.test",work_phone:"0900000001",department:"TEST Return",job_title:"TEST Analyst",legal_entity:"TEST Local entity",location:"Ho Chi Minh City",manager_user_id:S.manager.id};
+ assert.equal((await S.hrm.post(`/hrm/people/${P.a}`,rehireFields)).status,303,"rehire starts a separate employment period");
+ assert.equal((await S.hrm.post(`/hrm/people/${P.a}`,rehireFields)).status,303,"retrying the same rehire request is idempotent");
+ const periods=jobs(`SELECT id,status,started_on,ended_on,actor_id FROM hrm_employments WHERE person_id=${q(P.a)} ORDER BY created_at`);assert.equal(periods.length,2);assert.equal(periods[0].status,"ended");assert.equal(periods[1].status,"preboarding");assert.equal(periods[1].started_on,"2026-10-15");assert.equal(periods[1].actor_id,S.hrm.id);assert.ok(jobs(`SELECT COUNT(*) AS n FROM hrm_audit WHERE person_id=${q(P.a)} AND action='employment_rehired' AND actor_id=${q(S.hrm.id)}`)[0].n>=1);
+ assert.equal((await S.employeeA.get("/hrm/me?section=identity")).status,200,"rehire restores self-service eligibility from the new employment period");
+ const duplicateRehire=await S.hrm.post(`/hrm/people/${P.a}`,{...rehireFields,request_key:`rehire_duplicate_${run}`});assert.equal(duplicateRehire.status,409,"a second rehire based on the same ended period conflicts");assert.equal(jobs(`SELECT COUNT(*) AS n FROM hrm_employments WHERE person_id=${q(P.a)} AND status!='ended'`)[0].n,1);
+ assert.equal((await S.system.post("/workspace/users",{intent:"update",user_id:S.employeeA.id,roles:["employee"],enabled:"0"})).status,303);
+ assert.equal((await S.employeeA.get("/hrm")).status,403,"revocation applies on the next EmDash-backed request");
+});

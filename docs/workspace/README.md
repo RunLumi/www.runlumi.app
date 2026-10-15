@@ -1,14 +1,14 @@
 # Lumi Workspace: roles, navigation and modules
 
-Lumi Workspace is the private side of runlumi.app. Today it has two modules:
+Lumi Workspace is the private side of runlumi.app. It has Hiring and CRM, with an HRM module whose production gate remains off until the owner-approved configuration and deployment switch are ready:
 - **Hiring:** an applicant tracking system (ATS) at `/admin/jobs`.
 - **CRM:** at `/crm`.
 
 Both share one identity (EmDash), one role model and one navigation shell. Every route has a Vietnamese peer under `/vi`.
 
-**Planned module:** [HRM — employee records and self-service](../specs/hrm/README.md) specifies profiles, dependents, private identity files, contracts, NDA/COI acknowledgements and signatures, working time, leave and payslips. It is a proposal, not an implemented module; its permissions must be granted separately from Hiring and CRM.
+**HRM / Quản trị nhân sự:** [HRM specification](../specs/hrm/README.md) is the product contract. The server-rendered bilingual employee/profile module is in implementation; it remains unavailable in production until `HRM_LIVE_ENABLED` and the owner-reviewed policy configuration are both enabled. HRM role grants are separate from Hiring and CRM. The P1 implementation checkpoint is [STATUS.md](../specs/hrm/STATUS.md).
 
-**Phân hệ dự kiến:** [HRM — quản trị nhân sự và cổng nhân viên](../specs/hrm/README.md) đặc tả hồ sơ, người phụ thuộc, giấy tờ định danh riêng tư, hợp đồng, ký/xác nhận NDA và COI, công, phép và phiếu lương. Chưa triển khai; quyền HRM được cấp riêng với Hiring và CRM.
+**HRM:** [Đặc tả HRM](../specs/hrm/README.md) là hợp đồng sản phẩm. Phân hệ hồ sơ song ngữ phía máy chủ đang được triển khai; production vẫn đóng cho đến khi `HRM_LIVE_ENABLED` và cấu hình chính sách do owner rà soát cùng được bật. Quyền HRM cấp riêng với Hiring và CRM. Tiến độ P1 ở [STATUS.md](../specs/hrm/STATUS.md).
 
 ## 1. Research findings (2026-10-08)
 
@@ -35,27 +35,38 @@ Remaining gaps, not built:
 
 ## 2. Roles
 
-**EmDash admin (role 50) is the Workspace Admin.** It holds every permission and is never stored in the Workspace tables. The other roles are granted on **Admin → Users and roles** (`/workspace/users`) and can be combined.
+**System Super Admin is the EmDash admin (role 50).** It holds every permission and is never stored in Workspace tables. HRM Admin is a separate grant for HRM configuration and operations; it cannot manage Workspace accounts or enter ATS/CRM unless separately granted another role. All grantable roles are assigned to existing EmDash accounts on **Admin → Users and roles** (`/workspace/users`) and can be combined. Nobody can edit their own access; the System Super Admin controls grants, while HRM Admin controls the HRM business module.
 
-| Permission | Admin | HR | Sales Manager | Sales Executive | Partner | Finance | Fulfillment |
-|---|:-:|:-:|:-:|:-:|:-:|:-:|:-:|
-| `workspace.access` (Overview) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `users.manage` (users and roles) | ✓ | | | | | | |
-| `hiring.access` (roles, candidates, private files) | ✓ | ✓ | | | | | |
-| `hiring.jobs.manage` | ✓ | ✓ | | | | | |
-| `hiring.applications.manage` (stage, notes) | ✓ | ✓ | | | | | |
-| `hiring.applications.delete` | ✓ | ✓ | | | | | |
-| `hiring.export` (CSV) | ✓ | ✓ | | | | | |
-| `crm.access` (own opportunities) | ✓ | | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `crm.refer` (refer a business to the team, follow its status) | ✓ | | ✓ | ✓ | ✓ | | |
-| `crm.payments.report` (report a payment received, pending confirmation) | ✓ | | ✓ | ✓ | | | |
-| `crm.team` (every opportunity, assignment, inbound and referral queues, cohorts) | ✓ | | ✓ | | | | |
-| `crm.configure` (playbooks, offers, commission policy, seller terms) | ✓ | | | | | | |
-| `crm.finance` (confirm payments, refunds, voids, payouts) | ✓ | | | | | ✓ | |
-| `crm.fulfillment` (delivery, owner approval, launch checks) | ✓ | | | | | | ✓ |
+| Permission | System Super Admin | HR (ATS) | Employee | People Manager | HRM Officer | HRM Admin | Sales Manager | Sales Executive | Partner | Finance | Fulfillment |
+| :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: |
+| `workspace.access` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `users.manage` | ✓ |  |  |  |  |  |  |  |  |  |  |
+| `hiring.access` | ✓ | ✓ |  |  |  |  |  |  |  |  |  |
+| `hiring.jobs.manage` | ✓ | ✓ |  |  |  |  |  |  |  |  |  |
+| `hiring.applications.manage` | ✓ | ✓ |  |  |  |  |  |  |  |  |  |
+| `hiring.applications.delete` | ✓ | ✓ |  |  |  |  |  |  |  |  |  |
+| `hiring.export` | ✓ | ✓ |  |  |  |  |  |  |  |  |  |
+| `crm.access` | ✓ |  |  |  |  |  | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `crm.refer` | ✓ |  |  |  |  |  | ✓ | ✓ | ✓ |  |  |
+| `crm.payments.report` | ✓ |  |  |  |  |  | ✓ | ✓ |  |  |  |
+| `crm.team` | ✓ |  |  |  |  |  | ✓ |  |  |  |  |
+| `crm.configure` | ✓ |  |  |  |  |  |  |  |  |  |  |
+| `crm.finance` | ✓ |  |  |  |  |  |  |  |  | ✓ |  |
+| `crm.fulfillment` | ✓ |  |  |  |  |  |  |  |  |  | ✓ |
+| `hrm.access` | ✓ |  | ✓ | ✓ | ✓ | ✓ |  |  |  |  |  |
+| `hrm.profile.self` | ✓ |  | ✓ | ✓ | ✓ | ✓ |  |  |  |  |  |
+| `hrm.team.read` | ✓ |  |  | ✓ |  | ✓ |  |  |  |  |  |
+| `hrm.records.manage` | ✓ |  |  |  | ✓ | ✓ |  |  |  |  |  |
+| `hrm.identity.read` | ✓ |  |  |  | ✓ | ✓ |  |  |  |  |  |
+| `hrm.bank.read` | ✓ |  |  |  |  | ✓ |  |  |  |  |  |
+| `hrm.tax.read` | ✓ |  |  |  |  | ✓ |  |  |  |  |  |
+| `hrm.files.review` | ✓ |  |  |  | ✓ | ✓ |  |  |  |  |  |
+| `hrm.audit.read` | ✓ |  |  |  | ✓ | ✓ |  |  |  |  |  |
+| `hrm.configure` | ✓ |  |  |  |  | ✓ |  |  |  |  |  |
 
 **Invariants**
-- **CRM roles never open candidate records or files.** HR never opens the CRM.
+- **ATS HR and CRM roles remain separate from HRM.** Granting HR (ATS), Finance, Sales Manager or Partner does not grant HRM. HRM Officers and HRM Admins do not automatically enter Hiring or CRM. The System Super Admin is EmDash role 50.
+- **HRM profile scope is field-specific.** Employees see their own profile; People Managers see current direct reports’ work details; HRM Officer and HRM Admin capabilities determine private identity, banking and tax access. Every query and file endpoint enforces scope. HRM Admin can approve within HRM, but cannot self-approve a request or file. Production remains fail-closed until the owner-reviewed configuration and deployment switch are ready.
 - **Revoking access** — or disabling the EmDash account — takes effect on the next request. The person's records stay, and admins reassign them.
 - **Self-service is blocked.** Nobody can change their own access.
 - **Admins are not grantable.** EmDash admins cannot be granted Workspace roles; they already hold every permission.
@@ -63,7 +74,7 @@ Remaining gaps, not built:
 - **Only Admins lift do-not-contact.**
 - **Partners (Cộng tác viên) are outside staff.** They work their own opportunities and refer businesses on *CRM → Referrals*. A referral starts unassigned, with the partner recorded as referrer; a Sales Manager assigns it on *Operations*. After that the partner sees only the stage and outcome, never notes, contacts or money. Partners cannot report payments: customers pay Lumi directly and staff record it. Their commission needs seller terms (full-cycle or referral) declared on *Commission*; the users page flags partners without them.
 
-Migration `0007_workspace_partner_role.sql` rebuilds `workspace_roles` so its CHECK constraint accepts `partner`; existing rows are copied unchanged.
+Migrations `0007_workspace_partner_role.sql` and `0014_hrm_records.sql` rebuild `workspace_roles` to add the Partner and HRM roles while preserving existing grants. `0014` adds versioned people/employment periods, private record metadata, approvals, checksummed file metadata, idempotency, and immutable history/audit. HRM files use the `hrm/` prefix in the private `FILES` bucket; the production feature gate is off unless `HRM_LIVE_ENABLED=true` and policy configuration is ready.
 
 Migration `0005_workspace_roles.sql` carries existing access over unchanged:
 - every `crm_members` row becomes a Workspace member with the **Sales Executive** role, keeping its enabled flag;
@@ -83,6 +94,7 @@ CRM                 /crm                       grouped sidebar (Menu disclosure 
   Operations                                   Fulfillment (fulfillment or team) · Assignment and cohorts (team)
   Setup                                        Playbooks · Offers and prices (configure)
   Guides and tools                             Sales process · Connect an AI agent
+HRM                 /hrm                       My overview · My profile · People · Settings (each entry permission-gated)
 Admin               /workspace/users           Users and roles
 ```
 

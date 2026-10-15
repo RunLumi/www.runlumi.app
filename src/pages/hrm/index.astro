@@ -1,0 +1,7 @@
+---
+import HrmHome from "../../components/hrm/HrmHome.astro";
+import HrmFailure from "../../components/hrm/HrmFailure.astro";
+import { overviewPage } from "../../lib/hrm/pages";
+export const prerender=false;let data;try{data=await overviewPage(Astro,"en")}catch(error){const user=Astro.locals.workspace!;data={lang:"en",vi:false,user,title:"HRM",error:error instanceof Error?error.message:"internal_error",status: typeof error === "object" && error !== null && "status" in error ? Number(error.status) : 500};Astro.response.status=data.status}
+---
+{ "person" in data ? <HrmHome {...data}/> : <HrmFailure data={data}/> }
