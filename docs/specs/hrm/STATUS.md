@@ -1,11 +1,11 @@
 # HRM — Implementation status
 
-Updated: 2026-10-15. The overall HRM goal is active. P1's employee/profile browser matrix has been added and passes locally on latest main `76fb886b`; the exact updated PR head still needs hosted CI. No phase has been released.
+Updated: 2026-10-15. The overall HRM goal is active. P1's employee/profile browser matrix passes locally on latest main `6c83cc68`; the rebased PR head still needs hosted CI. No phase has been released.
 
 ## Current state and ownership
 
 - The user checkout at `/Volumes/SSD/www.runlumi` remains on `codex/restore-repo-privacy-todo` with unrelated untracked files `docs/hiring/recruitment-worklog.md` and `docs/security-publication-review.md`. They were not modified.
-- HRM work is in the isolated clone `/private/tmp/runlumi-hrm-refresh`, branch `codex/hrm-p1-refresh`, rebased on latest main `76fb886b`. The HRM migration sequence starts at `0014_hrm_records.sql`, after CRM's `0012` and `0013` migrations.
+- HRM work is in the isolated clone `/private/tmp/runlumi-hrm-refresh`, branch `codex/hrm-p1-refresh`, rebased on latest main `6c83cc68`. The HRM migration sequence starts at `0014_hrm_records.sql`, after CRM's `0012` and `0013` migrations.
 - PR #50 is open and remains a draft until the full phase contract passes. Read its live head and exact hosted checks before any merge; this file is not a live check feed.
 - No real employee, policy, contract or payroll data was used. Production HRM remains closed. No production access grant or deployment was made.
 
@@ -87,6 +87,8 @@ The status is for the complete acceptance criterion in §14, not only its P1 sub
 ## Verification log
 
 - 2026-10-15 P1 Chrome matrix on latest main `76fb886b`: `RUNLUMI_INTEGRATION_SCOPE=hrm HRM_BROWSER_BINARY='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' npm run test:integration` PASS. Synthetic Worker/D1/R2 verifies the P1 HRM scenario plus 48 CRM/Workspace/directory/API/dashboard/ATS/CRM Files regression cases. Chrome covers P1 overview, self-service and HR-reviewed views for all six profile sections, people scopes, create employee, work details, settings and identity-file pending/review states in EN/VI at 320/430/1280px with JavaScript disabled, reduced motion, keyboard focus and no horizontal overflow. Artifacts are under `/private/tmp/runlumi-hrm-p1-browser-matrix-20261015-v2`.
+- After rebasing onto latest main `6c83cc68`, P1 `npm run ci:verify` passed locally on the isolated worktree: lint (229 source files), 97 unit tests, Astro check (0 errors; one pre-existing Hiring hint) and Cloudflare build.
+- After rebasing onto latest main `6c83cc68`, P1 `RUNLUMI_INTEGRATION_SCOPE=hrm HRM_BROWSER_BINARY='/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' npm run test:integration` passed: the full P1 Chrome/Worker/D1/R2 scenario and 48 CRM/Workspace/directory/API/dashboard/ATS/CRM Files regression tests. Browser artifacts are under `/private/tmp/runlumi-hrm-p1-browser-matrix-20261015-final`.
 - `npm run ci:verify`: PASS locally on the isolated clone — lint, 83 unit tests, Astro check and build. The build has an existing large-chunk warning and an unrelated Hiring unused-import hint. A local listener required sandbox escalation; no production service was contacted.
 - `npm run test:integration`: PASS locally — one HRM P1 suite plus 43 CRM/Workspace/ATS/directory/API/dashboard regression tests against an isolated Astro Worker, EmDash sessions, temporary D1 and local R2. The HRM suite covers roles, closed/live gates, employee A/B scope, manager restrictions, CSRF, identity submission/review timestamps, stale bank revisions, MIME mismatch rejection, unauthenticated/cross-user file denial, quarantine, file review timestamps, no-store download, employment-end self-access denial/navigation hiding, rehire history/idempotency/access restore and explicit role revocation.
 - Hosted CI: run 38443175443 PASS on PR head `72cbbc49d5c74072b72b1f1bee04269d39926f16`; all jobs passed (lint, unit, migration, integration, build).
