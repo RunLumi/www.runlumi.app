@@ -28,11 +28,11 @@ export async function localFetch(url,options={}){
     const body=options.body;const hasIdempotencyKey=body instanceof URLSearchParams?body.has("request_key"):body instanceof FormData?body.has("request_key"):false;
     const cause=error&&typeof error==="object"&&"cause" in error?error.cause:error,code=cause&&typeof cause==="object"&&"code" in cause?String(cause.code):"";
     const retryable=(isHrm||isCrm||isWorkspace&&method==="GET")&&(method==="GET"||method==="POST"&&hasIdempotencyKey);
-    if(retryable&&(code==="ECONNRESET"||code==="UND_ERR_SOCKET")){
+    if(retryable&&(code==="ECONNRESET"||code==="UND_ERR_SOCKET"||code==="EPIPE")){
       let lastError=error;
       for(const delay of [80,160,320]){
         await new Promise(resolve=>setTimeout(resolve,delay));
-        try{const response=await globalThis.fetch(url,requestOptions);console.error("local_integration_safe_retry",method,path,"recovered");return response}catch(retryError){lastError=retryError;const retryCause=retryError&&typeof retryError==="object"&&"cause" in retryError?retryError.cause:retryError;const retryCode=retryCause&&typeof retryCause==="object"&&"code" in retryCause?String(retryCause.code):"";if(retryCode!=="ECONNRESET"&&retryCode!=="UND_ERR_SOCKET")break;}
+        try{const response=await globalThis.fetch(url,requestOptions);console.error("local_integration_safe_retry",method,path,"recovered");return response}catch(retryError){lastError=retryError;const retryCause=retryError&&typeof retryError==="object"&&"cause" in retryError?retryError.cause:retryError;const retryCode=retryCause&&typeof retryCause==="object"&&"code" in retryCause?String(retryCause.code):"";if(retryCode!=="ECONNRESET"&&retryCode!=="UND_ERR_SOCKET"&&retryCode!=="EPIPE")break;}
       }
       failedRequest(method,url,lastError);throw lastError;
     }
