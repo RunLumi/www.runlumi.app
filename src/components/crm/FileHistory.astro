@@ -1,0 +1,20 @@
+---
+import type { FileItem, FileVersion } from '../../lib/crm/files';
+interface Props { item: FileItem; versions: FileVersion[]; more: boolean; page: number; vi: boolean; href: string; userId?: string; admin?: boolean }
+const { item, versions, more, page, vi, href, userId, admin = false } = Astro.props;
+const date = (value: string) => new Intl.DateTimeFormat(vi ? 'vi-VN' : 'en-GB', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date(value));
+---
+<section class="files-history" aria-labelledby="version-history-title">
+  <h3 class="crm-h2" id="version-history-title">{vi ? 'Lịch sử phiên bản' : 'Version history'}</h3>
+  <p class="files-hint">{vi ? 'Các bản cũ vẫn tải được cho đến khi bị xóa. Mọi phiên bản dùng quyền chia sẻ hiện tại của tệp.' : 'Earlier versions stay downloadable until deleted. Every version uses the file’s current sharing settings.'}</p>
+  <ol class="files-list">{versions.map(revision => <li class="files-version">
+    <div class="files-panel-head"><strong>v{revision.number}</strong>{revision.object_key === item.object_key && <span class="crm-badge">{vi ? 'Hiện tại' : 'Current'}</span>}</div>
+    <p class="files-wrap files-hint">{revision.name} · {(revision.size / 1024).toFixed(1)} KB<br /><time datetime={revision.created_at}>{date(revision.created_at)}</time> (GMT+7){userId && <><br />{vi ? 'Người tải lên' : 'Uploaded by'}: {revision.uploader_id === userId ? (vi ? 'Bạn' : 'You') : revision.uploader_name || (vi ? 'Chủ sở hữu tệp' : 'File owner')}</>}</p>
+    <a class="crm-link" href={`${href}&download=1&revision=${revision.id}`}>{vi ? `Tải bản v${revision.number}` : `Download v${revision.number}`}</a>
+    {userId && (admin || revision.uploader_id === userId) && <details class="files-delete"><summary>{vi ? `Xóa bản v${revision.number}` : `Delete v${revision.number}`}</summary><p class="files-hint">{vi ? 'Xóa bản hiện tại sẽ dùng bản mới nhất còn lại. Xóa bản cuối cùng sẽ xóa tệp.' : 'Deleting the current version uses the newest remaining version. Deleting the last version removes the file.'}</p><form method="post" action={href}>
+      <input type="hidden" name="intent" value="delete_version" /><input type="hidden" name="id" value={item.id} /><input type="hidden" name="revision" value={revision.id} /><input type="hidden" name="version" value={item.version} />
+      <label class="files-check"><input type="checkbox" name="confirm_delete" value="yes" required /><span>{vi ? 'Tôi muốn xóa vĩnh viễn phiên bản này.' : 'I want to permanently delete this version.'}</span></label><button type="submit" class="crm-button danger">{vi ? 'Xóa phiên bản' : 'Delete version'}</button>
+    </form></details>}
+  </li>)}</ol>
+  {(page > 1 || more) && <nav class="files-pagination" aria-label={vi ? 'Các trang phiên bản' : 'Version pages'}>{page > 1 && <a class="crm-link" href={`${href}&versions_page=${page - 1}#version-history-title`}>{vi ? 'Trước' : 'Previous'}</a>}<span>{vi ? 'Trang' : 'Page'} {page}</span>{more && <a class="crm-link" href={`${href}&versions_page=${page + 1}#version-history-title`}>{vi ? 'Tiếp' : 'Next'}</a>}</nav>}
+</section>

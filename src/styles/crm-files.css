@@ -32,3 +32,9 @@
 .files-pagination { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-top:24px; }
 @media(max-width:1000px) { .files-workspace { grid-template-columns:minmax(0,1fr); } .files-panel { grid-template-columns:repeat(auto-fit,minmax(min(280px,100%),1fr)); } }
 @media(max-width:430px) { .files-row { flex-wrap:wrap; gap:12px; } .files-action { margin-left:36px; } }
+
+.files-history, .files-version-upload { margin-block:24px; padding-top:20px; border-top:1px solid var(--crm-line); }
+.files-version-upload summary { min-height:40px; cursor:pointer; color:var(--crm-blue); font-weight:600; }
+.files-version { padding-block:16px; border-bottom:1px solid var(--crm-line-soft); }
+.files-version .files-delete { margin-top:12px; }
+.files-version .files-hint { margin-block:8px; }
