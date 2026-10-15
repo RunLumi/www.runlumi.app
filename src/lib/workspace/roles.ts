@@ -5,13 +5,14 @@
 // permissions here and a nav entry in src/lib/workspace/nav.ts.
 import { activeUser } from "../admin-auth";
 
-export const roles = ["hr", "sales_manager", "sales_executive", "partner", "finance", "fulfillment", "employee", "people_manager", "hrm_officer", "hrm_admin"] as const;
+export const roles = ["hr", "sales_manager", "sales_executive", "partner", "finance", "fulfillment", "employee", "people_manager", "hrm_officer", "hrm_admin", "payroll_officer"] as const;
 export type Role = typeof roles[number];
 
 export const permissions = [
   "hrm.access", "hrm.profile.self", "hrm.team.read", "hrm.records.manage", "hrm.identity.read", "hrm.bank.read", "hrm.tax.read", "hrm.files.review", "hrm.audit.read", "hrm.configure",
   "hrm.legal.self", "hrm.legal.manage", "hrm.legal.review", "hrm.legal.activate", "hrm.coi.self", "hrm.coi.review", "hrm.onboarding.self", "hrm.onboarding.tasks", "hrm.onboarding.manage", "hrm.offboarding.tasks", "hrm.offboarding.manage", "hrm.retention.manage", "hrm.retention.review", "hrm.retention.activate", "hrm.legalhold.manage",
   "hrm.time.self", "hrm.time.manage", "hrm.time.review", "hrm.time.configure", "hrm.leave.self", "hrm.leave.manage", "hrm.leave.review", "hrm.leave.configure", "hrm.approval.delegate",
+  "hrm.payroll.read", "hrm.payroll.configure", "hrm.payroll.prepare", "hrm.payroll.review", "hrm.payroll.approve", "hrm.payroll.publish", "hrm.payroll.payment.confirm", "hrm.payroll.self", "hrm.payroll.dispute", "hrm.payroll.dispute.manage",
   "workspace.access",
   "users.manage",
   "hiring.access", "hiring.jobs.manage", "hiring.applications.manage", "hiring.applications.delete", "hiring.export",
@@ -21,10 +22,11 @@ export type Permission = typeof permissions[number];
 
 /** What each grantable role may do. Admin (EmDash role 50) has every permission. */
 export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
-  employee: ["workspace.access", "hrm.access", "hrm.profile.self", "hrm.legal.self", "hrm.coi.self", "hrm.onboarding.self", "hrm.onboarding.tasks", "hrm.time.self", "hrm.leave.self"],
+  employee: ["workspace.access", "hrm.access", "hrm.profile.self", "hrm.legal.self", "hrm.coi.self", "hrm.onboarding.self", "hrm.onboarding.tasks", "hrm.time.self", "hrm.leave.self", "hrm.payroll.self", "hrm.payroll.dispute"],
   people_manager: ["workspace.access", "hrm.access", "hrm.profile.self", "hrm.team.read", "hrm.legal.self", "hrm.coi.self", "hrm.onboarding.self", "hrm.onboarding.tasks", "hrm.offboarding.tasks", "hrm.time.self", "hrm.time.review", "hrm.leave.self", "hrm.leave.review", "hrm.approval.delegate"],
   hrm_officer: ["workspace.access", "hrm.access", "hrm.profile.self", "hrm.records.manage", "hrm.identity.read", "hrm.files.review", "hrm.audit.read", "hrm.legal.self", "hrm.legal.manage", "hrm.legal.review", "hrm.coi.self", "hrm.coi.review", "hrm.onboarding.self", "hrm.onboarding.tasks", "hrm.onboarding.manage", "hrm.offboarding.tasks", "hrm.offboarding.manage", "hrm.retention.review", "hrm.time.manage", "hrm.time.review", "hrm.leave.manage", "hrm.leave.review"],
-  hrm_admin: ["workspace.access", "hrm.access", "hrm.profile.self", "hrm.team.read", "hrm.records.manage", "hrm.identity.read", "hrm.bank.read", "hrm.tax.read", "hrm.files.review", "hrm.audit.read", "hrm.configure", "hrm.legal.self", "hrm.legal.manage", "hrm.legal.review", "hrm.legal.activate", "hrm.coi.self", "hrm.coi.review", "hrm.onboarding.self", "hrm.onboarding.tasks", "hrm.onboarding.manage", "hrm.offboarding.tasks", "hrm.offboarding.manage", "hrm.retention.manage", "hrm.retention.review", "hrm.retention.activate", "hrm.legalhold.manage", "hrm.time.self", "hrm.time.manage", "hrm.time.review", "hrm.time.configure", "hrm.leave.self", "hrm.leave.manage", "hrm.leave.review", "hrm.leave.configure"],
+  hrm_admin: ["workspace.access", "hrm.access", "hrm.profile.self", "hrm.team.read", "hrm.records.manage", "hrm.identity.read", "hrm.bank.read", "hrm.tax.read", "hrm.files.review", "hrm.audit.read", "hrm.configure", "hrm.legal.self", "hrm.legal.manage", "hrm.legal.review", "hrm.legal.activate", "hrm.coi.self", "hrm.coi.review", "hrm.onboarding.self", "hrm.onboarding.tasks", "hrm.onboarding.manage", "hrm.offboarding.tasks", "hrm.offboarding.manage", "hrm.retention.manage", "hrm.retention.review", "hrm.retention.activate", "hrm.legalhold.manage", "hrm.time.self", "hrm.time.manage", "hrm.time.review", "hrm.time.configure", "hrm.leave.self", "hrm.leave.manage", "hrm.leave.review", "hrm.leave.configure", "hrm.payroll.read", "hrm.payroll.configure", "hrm.payroll.prepare", "hrm.payroll.review", "hrm.payroll.approve", "hrm.payroll.publish", "hrm.payroll.payment.confirm", "hrm.payroll.dispute.manage"],
+  payroll_officer: ["workspace.access", "hrm.access", "hrm.payroll.read", "hrm.payroll.prepare", "hrm.payroll.dispute.manage"],
   hr: ["workspace.access", "hiring.access", "hiring.jobs.manage", "hiring.applications.manage", "hiring.applications.delete", "hiring.export"],
   sales_manager: ["workspace.access", "crm.access", "crm.files.team", "crm.team", "crm.refer", "crm.payments.report"],
   sales_executive: ["workspace.access", "crm.files.team", "crm.access", "crm.refer", "crm.payments.report"],
@@ -40,6 +42,7 @@ export const roleLabels: Record<Role | "admin", [string, string]> = {
   people_manager: ["People Manager", "Quản lý nhân sự trực tiếp"],
   hrm_officer: ["HRM Officer", "Chuyên viên nhân sự"],
   hrm_admin: ["HRM Admin", "Quản trị HRM"],
+  payroll_officer: ["Payroll Officer", "Phụ trách payroll"],
   admin: ["System Super Admin", "Siêu quản trị hệ thống"],
   hr: ["HR", "Nhân sự (HR)"],
   sales_manager: ["Sales Manager", "Quản lý bán hàng"],
@@ -54,6 +57,7 @@ export const roleDescriptions: Record<Role | "admin", [string, string]> = {
   people_manager: ["Work information for current direct reports. No identity documents or pay.", "Thông tin công việc của nhân viên đang quản lý trực tiếp. Không xem giấy tờ định danh hoặc lương."],
   hrm_officer: ["Employee records and identity verification. No banking, tax, user administration or other modules.", "Hồ sơ nhân viên và xác minh định danh. Không xem ngân hàng, thuế, quản trị tài khoản hoặc phân hệ khác."],
   hrm_admin: ["HRM configuration and records; approves within HRM without self-approval. No user/role administration.", "Cấu hình, hồ sơ và phê duyệt HRM; không tự duyệt. Không quản trị tài khoản/vai trò."],
+  payroll_officer: ["Prepare payroll inputs and handle assigned payroll inquiries. Cannot approve or publish a run.", "Chuẩn bị đầu vào payroll và xử lý thắc mắc được giao; không được duyệt hoặc phát hành kỳ lương."],
   admin: ["System-wide authority from EmDash role 50, including account administration and all Workspace modules.", "Quyền toàn hệ thống từ EmDash role 50, gồm quản lý tài khoản và mọi phân hệ Workspace."],
   hr: ["Hiring desk: roles, application tests, candidates, notes, export and candidate files. No CRM.", "Tuyển dụng: vị trí, bài test, ứng viên, ghi chú, xuất dữ liệu và hồ sơ ứng viên. Không vào CRM."],
   sales_manager: ["CRM for the whole team: every opportunity, assignment, inbound queue, cohorts and team reports. No hiring.", "CRM của cả đội: mọi cơ hội, phân công, hàng chờ inbound, cohort và báo cáo đội. Không vào tuyển dụng."],

@@ -10,19 +10,24 @@ import { validateOnboardingConfig } from "../src/lib/hrm/onboarding.ts";
 import { localDateTimeToUtc, parseCalendarSchedule, parseLeaveRules } from "../src/lib/hrm/time-leave.ts";
 import { parseAttendanceCsv } from "../src/lib/hrm/time-import.ts";
 import { RETENTION_CATEGORIES, retentionCategoryForHrm } from "../src/lib/hrm/retention.ts";
+import { calculatePayrollTotals, formatPayrollMoney, parseMinorAmount, parsePayrollComponents, renderPayrollSlipHtml } from "../src/lib/hrm/payroll.ts";
 const person=(user_id:string|null):Person=>({id:"person_test",employment_id:"employment_test",profile_version:1,employee_code:"E-001",user_id,legal_name:"Test Employee",preferred_name:"Test",work_email:"work@example.test",work_phone:"",department:"Ops",job_title:"Operator",legal_entity:"Test entity",location:"HCMC",manager_user_id:"manager",status:"active",started_on:"2026-01-01",ended_on:null,version:1,actor_id:"hr",created_at:"2026-01-01T00:00:00.000Z",updated_at:"2026-01-01T00:00:00.000Z"});
 const user=(id:string,granted:Parameters<typeof makeUser>[2])=>makeUser({id,name:id,email:id+"@example.test"},false,granted);
 test("HRM grants are separate from ATS, CRM and user administration",()=>{
- assert.deepEqual(ROLE_PERMISSIONS.employee,["workspace.access","hrm.access","hrm.profile.self","hrm.legal.self","hrm.coi.self","hrm.onboarding.self","hrm.onboarding.tasks","hrm.time.self","hrm.leave.self"]);
+ assert.deepEqual(ROLE_PERMISSIONS.employee,["workspace.access","hrm.access","hrm.profile.self","hrm.legal.self","hrm.coi.self","hrm.onboarding.self","hrm.onboarding.tasks","hrm.time.self","hrm.leave.self","hrm.payroll.self","hrm.payroll.dispute"]);
  const employee=user("employee",["employee"]);assert.equal(employee.can("hrm.legal.manage"),false);assert.equal(employee.can("hrm.onboarding.manage"),false);assert.equal(employee.can("hrm.time.self"),true);assert.equal(employee.can("hrm.time.manage"),false);assert.equal(employee.can("hrm.leave.self"),true);assert.equal(employee.can("hrm.leave.review"),false);
  for(const role of ["hr","finance","sales_manager","partner"] as const)assert.equal(user(role,[role]).can("hrm.access"),false);
  const hrm=user("hrm",["hrm_admin"]);assert.equal(hrm.can("users.manage"),false);assert.equal(hrm.can("hiring.access"),false);assert.equal(hrm.can("crm.access"),false);assert.equal(hrm.can("hrm.legal.activate"),true);assert.equal(hrm.can("hrm.coi.review"),true);assert.equal(hrm.can("hrm.onboarding.manage"),true);assert.equal(hrm.can("hrm.retention.manage"),true);assert.equal(hrm.can("hrm.legalhold.manage"),true);assert.equal(hrm.can("hrm.time.configure"),true);assert.equal(hrm.can("hrm.leave.configure"),true);
+ assert.equal(hrm.can("hrm.payroll.approve"),true);assert.equal(hrm.can("hrm.payroll.publish"),true);assert.equal(hrm.can("hrm.payroll.payment.confirm"),true);
+ const payroll=user("payroll",["payroll_officer"]);assert.equal(payroll.can("hrm.payroll.prepare"),true);assert.equal(payroll.can("hrm.payroll.read"),true);assert.equal(payroll.can("hrm.payroll.approve"),false);assert.equal(payroll.can("hrm.payroll.publish"),false);assert.equal(payroll.can("hrm.identity.read"),false);assert.equal(payroll.can("hrm.bank.read"),false);assert.equal(payroll.can("users.manage"),false);
+ assert.equal(employee.can("hrm.payroll.self"),true);assert.equal(employee.can("hrm.payroll.prepare"),false);assert.equal(employee.can("hrm.payroll.approve"),false);
  const manager=user("manager",["people_manager"]);assert.equal(manager.can("hrm.approval.delegate"),true);assert.equal(employee.can("hrm.approval.delegate"),false);
  const hrmAdmin=user("hrm-admin",["hrm_admin"]);assert.equal(hrmAdmin.can("hrm.approval.delegate"),false);
  const officer=user("officer",["hrm_officer"]);assert.equal(officer.can("hrm.legal.manage"),true);assert.equal(officer.can("hrm.legal.activate"),false);assert.equal(officer.can("hrm.coi.review"),true);assert.equal(officer.can("hrm.retention.review"),true);assert.equal(officer.can("hrm.retention.manage"),false);assert.equal(officer.can("hrm.approval.delegate"),false);assert.equal(officer.can("users.manage"),false);
  assert.equal(makeUser({id:"system",name:"System",email:"system@example.test"},true,[]).can("hrm.configure"),true);
  const migration=readFileSync(new URL("../migrations/0014_hrm_records.sql",import.meta.url),"utf8");
  for(const role of ["employee","people_manager","hrm_officer","hrm_admin","hr","sales_manager","sales_executive","partner","finance","fulfillment"])assert.ok(migration.includes("'" + role + "'"));
+ const payrollMigration=readFileSync(new URL("../migrations/0024_hrm_payroll.sql",import.meta.url),"utf8");assert.ok(payrollMigration.includes("'payroll_officer'"));
 });
 test("managers cannot read identity, dependent, contact, banking or tax data for their reports",()=>{
  const manager=user("manager",["people_manager"]);const other=person("employee-b");assert.equal(own(other,manager),false);
@@ -32,7 +37,7 @@ test("managers cannot read identity, dependent, contact, banking or tax data for
 });
 test("the production kill switch hides employee navigation but leaves available HRM configuration screens for admins",()=>{
  const ordinary=makeUser({id:"employee",name:"Employee",email:"e@example.test"},false,["employee"]);ordinary.hrmEnabled=false;assert.equal(visibleModules(ordinary).some(m=>m.key==="hrm"),false);
- const admin=makeUser({id:"hrm",name:"HRM",email:"h@example.test"},false,["hrm_admin"]);admin.hrmEnabled=false;const module=modules.find(m=>m.key==="hrm")!;assert.deepEqual(visibleLinks(admin,module).map(l=>l.key),["legal-documents","onboarding-manage","retention","settings"]);
+ const admin=makeUser({id:"hrm",name:"HRM",email:"h@example.test"},false,["hrm_admin"]);admin.hrmEnabled=false;const module=modules.find(m=>m.key==="hrm")!;assert.deepEqual(visibleLinks(admin,module).map(l=>l.key),["legal-documents","onboarding-manage","retention","payroll","settings"]);
 });
 test("profile validators reject malformed values and external states without evidence",()=>{
  assert.throws(()=>readRecord(new FormData(),"contact"),HrmError);
@@ -98,4 +103,24 @@ test("attendance CSV parsing is strict UTF-8, exact-header, RFC-quoted, and capp
 test("required leave PDFs have their own configurable retention category",()=>{
  assert.equal(retentionCategoryForHrm("leave_evidence"),"leave_evidence");
  assert.ok((RETENTION_CATEGORIES as readonly string[]).includes("leave_evidence"));
+});
+test("payroll policy accepts only explicit component definitions and no executable formula fields",()=>{
+ const components=[{code:"base",title_en:"Base pay",title_vi:"Lương cơ bản",direction:"earning",required:true,source_kind:"employment_record"},{code:"deduction",title_en:"Deduction",title_vi:"Khấu trừ",direction:"deduction",required:false,source_kind:"manual_evidence"}];
+ assert.deepEqual(parsePayrollComponents(JSON.stringify(components)),components);
+ assert.throws(()=>parsePayrollComponents(JSON.stringify([{...components[0],formula:"amount * 0.1"}])),error=>error instanceof HrmError&&error.message==="payroll_components_invalid");
+ assert.throws(()=>parsePayrollComponents(JSON.stringify([{...components[0],required:false}])),error=>error instanceof HrmError&&error.message==="payroll_required_earning_missing");
+ assert.throws(()=>parsePayrollComponents(JSON.stringify([components[0],components[0]])),error=>error instanceof HrmError&&error.message==="payroll_components_invalid");
+});
+test("payroll arithmetic stays in exact integer minor units and blocks unknown, unsafe or negative results",()=>{
+ assert.equal(parseMinorAmount("9007199254740991"),Number.MAX_SAFE_INTEGER);
+ assert.throws(()=>parseMinorAmount("9007199254740992"),error=>error instanceof HrmError&&error.message==="payroll_amount_invalid");
+ assert.throws(()=>parseMinorAmount("12.5"),error=>error instanceof HrmError&&error.message==="payroll_amount_invalid");
+ assert.deepEqual(calculatePayrollTotals([{direction:"earning",amount_minor:9007199254740000},{direction:"earning",amount_minor:50},{direction:"deduction",amount_minor:25}]),{gross_minor:9007199254740050,deductions_minor:25,net_minor:9007199254740025});
+ assert.throws(()=>calculatePayrollTotals([{direction:"earning",amount_minor:50},{direction:"deduction",amount_minor:51}]),error=>error instanceof HrmError&&error.message==="payroll_totals_invalid");
+ assert.equal(formatPayrollMoney(123456,"USD",2),"USD 1,234.56");
+ assert.equal(formatPayrollMoney(123456,"VND",0),"VND 123,456");
+});
+test("downloaded payslip HTML escapes snapshot text and preserves issue/payment distinction",()=>{
+ const html=renderPayrollSlipHtml(JSON.stringify({policy:{title_en:"<img src=x onerror=alert(1)>",legal_entity:"TEST & Co",currency:"USD",minor_unit_scale:2},period_key:"2026-10",starts_on:"2026-10-01",ends_on:"2026-10-31",employee_code:"E-1",display_name:"<script>alert(1)</script>",correction_of_payslip_id:null,lines:[{title_en:"<b>base</b>",direction:"earning",amount_minor:12345,source_reference:"internal"}],gross_minor:12345,deductions_minor:0,net_minor:12345}));
+ assert.ok(!html.includes("<script>alert(1)</script>"));assert.ok(!html.includes("<img src=x"));assert.ok(html.includes("USD 123.45"));assert.ok(html.includes("does not confirm payment"));
 });

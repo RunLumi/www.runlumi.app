@@ -1,0 +1,7 @@
+---
+import { formatPayrollMoney, type PayrollPayment } from "../../lib/hrm/payroll";
+interface Props { payments: PayrollPayment[]; currency: string; scale: number; carryoverMinor: number; vi: boolean }
+const { payments, currency, scale, carryoverMinor, vi } = Astro.props as Props;
+---
+{carryoverMinor > 0 && <p class="crm-meta">{vi ? "Đã trả theo phiếu được thay thế" : "Previously confirmed on superseded payslip"}: {formatPayrollMoney(carryoverMinor,currency,scale)}</p>}
+{payments.length > 0 && <details class="crm-disclosure"><summary>{vi ? `Lịch sử đối soát (${payments.length})` : `Reconciliation history (${payments.length})`}</summary><ol>{payments.map(payment => <li><strong>{formatPayrollMoney(payment.amount_minor,currency,scale)}</strong> · {payment.paid_on} · <code>{payment.payment_reference}</code> · {vi ? "Chứng từ" : "Evidence"}: <code>{payment.evidence_reference}</code> · <code>{payment.confirmed_by}</code> · <code>{payment.confirmed_at}</code></li>)}</ol></details>}
