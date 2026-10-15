@@ -96,7 +96,7 @@ export async function startHrmBrowserQa({ baseUrl, binary, artifactDir = join(tm
   }
 
   return {
-    async auditPage(userSession, path, { expectedText, artifactName }) {
+    async auditPage(userSession, path, { expectedText, artifactName, formsRequired = true }) {
       const cookies = [...userSession.cookies.entries()];
       await cdp.send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] }, sessionId);
       await cdp.send("Emulation.setScriptExecutionDisabled", { value: true }, sessionId);
@@ -112,7 +112,7 @@ export async function startHrmBrowserQa({ baseUrl, binary, artifactDir = join(tm
         assert.ok(state.documentWidth <= width && state.bodyWidth <= width, `no horizontal page overflow at ${width}px (document=${state.documentWidth}, body=${state.bodyWidth}, diagnosis=${JSON.stringify(overflowNodes)})`);
         assert.ok(state.text.includes(expectedText), `server-rendered content remains available with page JavaScript disabled at ${width}px`);
         assert.equal(state.reduce, true, "reduced-motion preference is emulated");
-        if (width === 320) assert.ok(state.forms.length > 0, "native forms are present without client JavaScript");
+        if (width === 320 && formsRequired) assert.ok(state.forms.length > 0, "native forms are present without client JavaScript");
       }
 
       await cdp.send("Emulation.setScriptExecutionDisabled", { value: false }, sessionId);
