@@ -26,6 +26,13 @@ interface LeaveBalanceExportRow extends ExportRow {leave_type_key:string;balance
 interface PayslipExportRow extends ExportRow {id:string;supersedes_payslip_id:string|null;snapshot_json:string;paid_minor:number}
 interface PayrollDisputeExportRow extends ExportRow {id:string;payslip_id:string}
 interface PayrollDisputeEventExportRow extends ExportRow {dispute_id:string}
+interface EmployeeAssetExportRow extends ExportRow {id:string}
+interface EmployeeAssetEvidenceExportRow extends ExportRow {assignment_id:string;object_available:number}
+interface EmployeeAssetReminderExportRow extends ExportRow {assignment_id:string}
+interface EmployeeBenefitPlanExportRow extends ExportRow {id:string}
+interface EmployeeBenefitEnrollmentExportRow extends ExportRow {id:string;plan_version_id:string}
+interface EmployeeTrainingAssignmentExportRow extends ExportRow {id:string}
+interface EmployeeTrainingEvidenceExportRow extends ExportRow {assignment_id:string;object_available:number}
 interface SelfPayrollLine {component_code:string;title_en:string;title_vi:string;direction:"earning"|"deduction";amount_minor:number}
 interface SelfPayrollSnapshot {
  policy:{title_en:string;title_vi:string;legal_entity:string;currency:string;minor_unit_scale:number;revision:number};
@@ -75,7 +82,7 @@ export async function exportOwnHrmProfile(db:D1Database,user:WorkspaceUser):Prom
  if(!own(person,user))throw new HrmError("not_found",404);
  if(!user.can("hrm.services.self")&&!user.can("hrm.services.manage"))throw new HrmError("forbidden",403);
  if(!user.can("hrm.onboarding.self")&&!user.can("hrm.onboarding.manage"))throw new HrmError("forbidden",403);
- const exportOwnPayroll=user.can("hrm.payroll.self"),exportOwnPayrollDisputes=exportOwnPayroll&&user.can("hrm.payroll.dispute");
+ const exportOwnPayroll=user.can("hrm.payroll.self"),exportOwnPayrollDisputes=exportOwnPayroll&&user.can("hrm.payroll.dispute"),exportOwnAssets=user.can("hrm.assets.self"),exportOwnBenefits=user.can("hrm.benefits.self"),exportOwnTraining=user.can("hrm.training.self");
  let batch:D1Result<unknown>[];
  try{batch=await db.batch([
   guard(db,"EXISTS(SELECT 1 FROM hrm_people p JOIN hrm_employments e ON e.person_id=p.id WHERE p.id=? AND p.user_id=? AND p.version=? AND e.id=? AND e.version=? AND e.status!='ended' AND (e.ended_on IS NULL OR e.ended_on>?))",[person.id,user.id,person.profile_version,person.employment_id,person.version,localDate()]),
@@ -186,11 +193,39 @@ export async function exportOwnHrmProfile(db:D1Database,user:WorkspaceUser):Prom
     JOIN hrm_payslips s ON s.id=d.payslip_id AND s.person_id=d.person_id
     JOIN hrm_people p ON p.id=d.person_id AND p.user_id=?
     WHERE ?=1 ORDER BY event.dispute_id,event.created_at,event.id LIMIT ?`).bind(user.id,exportOwnPayrollDisputes?1:0,ROW_LIMIT+1),
+  db.prepare(`SELECT x.id,a.asset_tag,a.asset_type,a.description,a.legal_entity,a.location,a.state AS asset_state,
+      x.state AS assignment_state,x.expected_return_on,x.issued_condition,x.offered_at,x.accepted_at,x.return_requested_at,x.employee_handover_at,x.returned_at,x.return_condition,x.return_note
+    FROM hrm_asset_assignments x JOIN hrm_assets a ON a.id=x.asset_id JOIN hrm_people p ON p.id=x.person_id AND p.user_id=?
+    WHERE ?=1 AND x.state IN ('offered','assigned','return_requested','returned','cancelled')
+    ORDER BY CASE x.state WHEN 'offered' THEN 0 WHEN 'return_requested' THEN 1 WHEN 'assigned' THEN 2 ELSE 3 END,x.updated_at DESC,x.id LIMIT ?`).bind(user.id,exportOwnAssets?1:0,ROW_LIMIT+1),
+  db.prepare(`SELECT l.assignment_id,l.evidence_type,f.original_name,f.mime_type,f.size_bytes,f.checksum,f.state,f.created_at,
+      CASE WHEN f.object_deleted_at IS NULL THEN 1 ELSE 0 END AS object_available
+    FROM hrm_asset_evidence_links l JOIN hrm_asset_assignments x ON x.id=l.assignment_id AND x.person_id=l.person_id
+    JOIN hrm_people p ON p.id=l.person_id AND p.user_id=? JOIN hrm_files f ON f.id=l.file_id AND f.person_id=l.person_id AND f.kind='asset_evidence'
+    WHERE ?=1 ORDER BY l.created_at,l.id LIMIT ?`).bind(user.id,exportOwnAssets?1:0,ROW_LIMIT+1),
+  db.prepare(`SELECT n.assignment_id,a.asset_tag,a.description,x.state AS assignment_state,n.due_on,n.days_before_due,n.state,n.created_at,n.read_at
+    FROM hrm_asset_reminders n JOIN hrm_asset_assignments x ON x.id=n.assignment_id AND x.asset_id=n.asset_id AND x.person_id=n.person_id
+    JOIN hrm_assets a ON a.id=x.asset_id JOIN hrm_people p ON p.id=x.person_id AND p.user_id=?
+    WHERE n.recipient_user_id=? AND ?=1 ORDER BY n.due_on,n.created_at,n.id LIMIT ?`).bind(user.id,user.id,exportOwnAssets?1:0,ROW_LIMIT+1),
+  db.prepare(`SELECT id,plan_code,version_no,legal_entity,category,name,description,eligibility_text,effective_from,effective_to
+    FROM hrm_benefit_plans WHERE legal_entity=? AND state='active' AND effective_from<=? AND effective_to>=? AND ?=1
+    ORDER BY plan_code,version_no DESC LIMIT ?`).bind(person.legal_entity,localDate(),localDate(),exportOwnBenefits?1:0,ROW_LIMIT+1),
+  db.prepare(`SELECT e.id,e.plan_version_id,e.plan_code,e.plan_version_no,e.legal_entity,e.category,e.state,e.employee_note,e.created_at,e.reviewed_at,e.review_reason,e.updated_at,p.name AS plan_name
+    FROM hrm_benefit_enrollments e JOIN hrm_benefit_plans p ON p.id=e.plan_version_id
+    WHERE e.person_id=? AND ?=1 ORDER BY e.created_at,e.id LIMIT ?`).bind(person.id,exportOwnBenefits?1:0,ROW_LIMIT+1),
+  db.prepare(`SELECT a.id,a.course_code,a.course_version_no,a.legal_entity,a.category,a.evidence_required,a.renewal_days,a.due_on,a.renew_by,a.state,a.employee_note,a.submitted_at,a.created_at,a.reviewed_at,a.review_reason,c.title AS course_title
+    FROM hrm_training_assignments a JOIN hrm_training_courses c ON c.id=a.course_version_id
+    WHERE a.person_id=? AND ?=1 ORDER BY CASE a.state WHEN 'submitted' THEN 0 WHEN 'assigned' THEN 1 ELSE 2 END,a.due_on,a.created_at DESC,a.id LIMIT ?`).bind(person.id,exportOwnTraining?1:0,ROW_LIMIT+1),
+  db.prepare(`SELECT l.assignment_id,f.original_name,f.mime_type,f.size_bytes,f.checksum,f.state,f.created_at,
+      CASE WHEN f.object_deleted_at IS NULL THEN 1 ELSE 0 END AS object_available
+    FROM hrm_training_evidence_links l JOIN hrm_training_assignments a ON a.id=l.assignment_id AND a.person_id=l.person_id
+    JOIN hrm_people p ON p.id=l.person_id AND p.user_id=? JOIN hrm_files f ON f.id=l.file_id AND f.person_id=l.person_id AND f.kind='training_evidence'
+    WHERE a.person_id=? AND ?=1 ORDER BY a.created_at,a.id,l.created_at,l.id LIMIT ?`).bind(user.id,person.id,exportOwnTraining?1:0,ROW_LIMIT+1),
   db.prepare("DELETE FROM hrm_write_guards"),
  ])}catch(error){if(error instanceof Error&&/CHECK constraint failed/.test(error.message))throw new HrmError("conflict",409);throw error}
  const employmentPeriods=batch[1]?.results as ExportRow[]??[],records=batch[2]?.results as RecordRow[]??[],recordHistory=batch[3]?.results as HistoryRow[]??[],changeRequests=batch[4]?.results as ChangeRow[]??[],files=batch[5]?.results as FileRow[]??[];
- const legalIssueRows=batch[6]?.results as LegalIssueRow[]??[],employeeParties=batch[7]?.results as ExportRow[]??[],coiRows=batch[8]?.results as CoiRow[]??[],coiEvents=batch[9]?.results as ExportRow[]??[],legalFiles=batch[10]?.results as ExportRow[]??[],serviceRequests=batch[11]?.results as ServiceRequestRow[]??[],serviceEvents=batch[12]?.results as ServiceEventRow[]??[],serviceFiles=batch[13]?.results as ServiceFileRow[]??[],onboardingPlans=batch[14]?.results as OnboardingPlanRow[]??[],onboardingTasks=batch[15]?.results as OnboardingTaskRow[]??[],onboardingFiles=batch[16]?.results as OnboardingFileRow[]??[],timeEntries=batch[17]?.results as TimeEntryRow[]??[],timeAdjustments=batch[18]?.results as TimeAdjustmentRow[]??[],leaveRequests=batch[19]?.results as LeaveRequestExportRow[]??[],leaveBalances=batch[20]?.results as LeaveBalanceExportRow[]??[],payslips=batch[21]?.results as PayslipExportRow[]??[],payrollDisputes=batch[22]?.results as PayrollDisputeExportRow[]??[],payrollDisputeEvents=batch[23]?.results as PayrollDisputeEventExportRow[]??[];
- for(const collection of [employmentPeriods,records,recordHistory,changeRequests,files,legalIssueRows,employeeParties,coiRows,coiEvents,legalFiles,serviceRequests,serviceEvents,serviceFiles,onboardingPlans,onboardingTasks,onboardingFiles,timeEntries,timeAdjustments,leaveRequests,leaveBalances,payslips,payrollDisputes,payrollDisputeEvents])if(collection.length>ROW_LIMIT)throw new HrmError("profile_export_too_large",413);
+ const legalIssueRows=batch[6]?.results as LegalIssueRow[]??[],employeeParties=batch[7]?.results as ExportRow[]??[],coiRows=batch[8]?.results as CoiRow[]??[],coiEvents=batch[9]?.results as ExportRow[]??[],legalFiles=batch[10]?.results as ExportRow[]??[],serviceRequests=batch[11]?.results as ServiceRequestRow[]??[],serviceEvents=batch[12]?.results as ServiceEventRow[]??[],serviceFiles=batch[13]?.results as ServiceFileRow[]??[],onboardingPlans=batch[14]?.results as OnboardingPlanRow[]??[],onboardingTasks=batch[15]?.results as OnboardingTaskRow[]??[],onboardingFiles=batch[16]?.results as OnboardingFileRow[]??[],timeEntries=batch[17]?.results as TimeEntryRow[]??[],timeAdjustments=batch[18]?.results as TimeAdjustmentRow[]??[],leaveRequests=batch[19]?.results as LeaveRequestExportRow[]??[],leaveBalances=batch[20]?.results as LeaveBalanceExportRow[]??[],payslips=batch[21]?.results as PayslipExportRow[]??[],payrollDisputes=batch[22]?.results as PayrollDisputeExportRow[]??[],payrollDisputeEvents=batch[23]?.results as PayrollDisputeEventExportRow[]??[],assetAssignments=batch[24]?.results as EmployeeAssetExportRow[]??[],assetEvidence=batch[25]?.results as EmployeeAssetEvidenceExportRow[]??[],assetReminders=batch[26]?.results as EmployeeAssetReminderExportRow[]??[],benefitPlans=batch[27]?.results as EmployeeBenefitPlanExportRow[]??[],benefitEnrollments=batch[28]?.results as EmployeeBenefitEnrollmentExportRow[]??[],trainingAssignments=batch[29]?.results as EmployeeTrainingAssignmentExportRow[]??[],trainingEvidence=batch[30]?.results as EmployeeTrainingEvidenceExportRow[]??[];
+ for(const collection of [employmentPeriods,records,recordHistory,changeRequests,files,legalIssueRows,employeeParties,coiRows,coiEvents,legalFiles,serviceRequests,serviceEvents,serviceFiles,onboardingPlans,onboardingTasks,onboardingFiles,timeEntries,timeAdjustments,leaveRequests,leaveBalances,payslips,payrollDisputes,payrollDisputeEvents,assetAssignments,assetEvidence,assetReminders,benefitPlans,benefitEnrollments,trainingAssignments,trainingEvidence])if(collection.length>ROW_LIMIT)throw new HrmError("profile_export_too_large",413);
  const recordIds=[...new Set([...records.map(row=>row.id),...recordHistory.map(row=>row.record_id),...changeRequests.map(row=>row.record_id),...files.flatMap(row=>row.record_id?[row.record_id]:[])])];
  const recordRefs=new Map(recordIds.map((recordId,index)=>[recordId,`record-${index+1}`]));
  const recordData=records.map(row=>{const {id:recordId,...value}=row;return {...parseData(value),record_ref:recordRefs.get(recordId)}});
@@ -233,14 +268,28 @@ export async function exportOwnHrmProfile(db:D1Database,user:WorkspaceUser):Prom
  const payrollDisputeRefs=new Map(payrollDisputes.map((row,index)=>[row.id,`payroll-inquiry-${index+1}`]));
  const payrollDisputeData=payrollDisputes.map(({id:disputeId,payslip_id:payslipId,...value})=>({...value,dispute_ref:payrollDisputeRefs.get(disputeId),payslip_ref:payslipRefs.get(payslipId)??null}));
  const payrollDisputeEventData=payrollDisputeEvents.map(({dispute_id:disputeId,...value})=>({...value,dispute_ref:payrollDisputeRefs.get(disputeId)??null}));
+ const assetAssignmentRefs=new Map(assetAssignments.map((row,index)=>[row.id,`asset-assignment-${index+1}`]));
+ const assetData=assetAssignments.map(({id:assignmentId,...value})=>({...value,assignment_ref:assetAssignmentRefs.get(assignmentId)}));
+ const assetEvidenceData=assetEvidence.map((row,index)=>{const {assignment_id:assignmentId,...value}=row;return {...value,evidence_ref:`asset-evidence-${index+1}`,assignment_ref:assetAssignmentRefs.get(assignmentId)??null,object_available:Boolean(value.object_available)}});
+ const assetReminderData=assetReminders.map((row,index)=>{const {assignment_id:assignmentId,...value}=row;return {...value,reminder_ref:`asset-reminder-${index+1}`,assignment_ref:assetAssignmentRefs.get(assignmentId)??null}});
+ const benefitPlanIds=[...new Set([...benefitPlans.map(row=>row.id),...benefitEnrollments.map(row=>row.plan_version_id)])];
+ const benefitPlanRefs=new Map(benefitPlanIds.map((planId,index)=>[planId,`benefit-plan-${index+1}`]));
+ const benefitPlanData=benefitPlans.map(({id:planId,...value})=>({...value,plan_ref:benefitPlanRefs.get(planId)}));
+ const benefitEnrollmentData=benefitEnrollments.map(({id:enrollmentId,plan_version_id:planId,...value},index)=>({...value,enrollment_ref:`benefit-enrollment-${index+1}`,plan_ref:benefitPlanRefs.get(planId)??null}));
+ const trainingAssignmentRefs=new Map(trainingAssignments.map((row,index)=>[row.id,`training-assignment-${index+1}`]));
+ const trainingAssignmentData=trainingAssignments.map(({id:assignmentId,...value})=>({...value,assignment_ref:trainingAssignmentRefs.get(assignmentId),evidence_required:Boolean(value.evidence_required)}));
+ const trainingEvidenceData=trainingEvidence.map((row,index)=>{const {assignment_id:assignmentId,...value}=row;return {...value,evidence_ref:`training-evidence-${index+1}`,assignment_ref:trainingAssignmentRefs.get(assignmentId)??null,object_available:Boolean(value.object_available)}});
  const included=["profile_identity","employment_periods","structured_profile_records","record_revision_history","profile_change_requests","profile_file_metadata","legal_document_issues","employee_party_status","policy_acknowledgements","coi_declarations","coi_event_actions","legal_evidence_file_metadata","employee_hr_requests","employee_visible_request_events","service_request_file_metadata","onboarding_plans","onboarding_tasks","onboarding_evidence_file_metadata","attendance_entries","attendance_adjustments","leave_requests","leave_balance_summary","leave_evidence_file_metadata"];
- const excluded=["file_contents","object_keys","internal_review_notes","reviewer_identity","required_parties","other_legal_parties","hr_only_request_notes","other_people_onboarding","onboarding_internal_owner_ids","onboarding_event_details","assets","benefits","training","other_people","audit_log"];
+ const excluded=["file_contents","object_keys","internal_review_notes","reviewer_identity","required_parties","other_legal_parties","hr_only_request_notes","other_people_onboarding","onboarding_internal_owner_ids","onboarding_event_details","other_people","audit_log"];
  if(exportOwnPayroll){included.push("employee_payslips");excluded.push("other_people_payroll","payroll_policy_configuration","payroll_payment_references","payroll_reconciliation_evidence");if(exportOwnPayrollDisputes)included.push("employee_payroll_disputes","employee_visible_payroll_dispute_events");else excluded.push("employee_payroll_disputes")}
  else excluded.push("payroll");
+ if(exportOwnAssets)included.push("employee_asset_assignments","employee_asset_evidence_file_metadata","employee_asset_reminders");else excluded.push("assets");
+ if(exportOwnBenefits)included.push("available_benefit_plans","employee_benefit_enrollments");else excluded.push("benefits");
+ if(exportOwnTraining)included.push("employee_training_assignments","employee_training_evidence_file_metadata");else excluded.push("training");
  const createdAt=now();
  const bundle={
-  schema_version:6,
-  export_scope:"self_profile_legal_coi_requests_onboarding_time_leave_payroll_snapshot",
+  schema_version:7,
+  export_scope:"self_profile_legal_coi_requests_onboarding_time_leave_payroll_employee_services_snapshot",
   exported_at:createdAt,
   included,
   excluded,
@@ -269,10 +318,17 @@ export async function exportOwnHrmProfile(db:D1Database,user:WorkspaceUser):Prom
   payslips:payslipData,
   payroll_disputes:payrollDisputeData,
   payroll_dispute_events:payrollDisputeEventData,
+  assets:assetData,
+  asset_evidence_files:assetEvidenceData,
+  asset_reminders:assetReminderData,
+  available_benefit_plans:benefitPlanData,
+  benefit_enrollments:benefitEnrollmentData,
+  training_assignments:trainingAssignmentData,
+  training_evidence_files:trainingEvidenceData,
  };
  const body=JSON.stringify(bundle,null,2),contentBytes=new TextEncoder().encode(body).byteLength;
  if(contentBytes>BYTE_LIMIT)throw new HrmError("profile_export_too_large",413);
  const exportId=id("profile_export");
- await audit(db,user,"employee_profile_exported",person.id,exportId,{scope:"self_profile_legal_coi_requests_onboarding_time_leave_payroll_snapshot",employment_period_count:employmentPeriods.length,record_count:recordData.length,history_count:historyData.length,change_request_count:changeData.length,file_metadata_count:files.length,legal_document_count:legalDocuments.length,acknowledgement_count:acknowledgements.length,coi_declaration_count:coiDeclarations.length,legal_file_metadata_count:legalFileData.length,service_request_count:serviceRequestData.length,service_event_count:serviceEventData.length,service_file_metadata_count:serviceFileData.length,onboarding_plan_count:onboardingPlanData.length,onboarding_task_count:onboardingTaskData.length,onboarding_file_metadata_count:onboardingFileData.length,time_entry_count:timeEntryData.length,time_adjustment_count:timeAdjustmentData.length,leave_request_count:leaveRequestData.length,leave_balance_count:leaveBalanceData.length,leave_evidence_metadata_count:leaveEvidenceMetadataCount,payslip_count:payslipData.length,payroll_dispute_count:payrollDisputeData.length,payroll_dispute_event_count:payrollDisputeEventData.length,content_bytes:contentBytes});
+ await audit(db,user,"employee_profile_exported",person.id,exportId,{scope:"self_profile_legal_coi_requests_onboarding_time_leave_payroll_employee_services_snapshot",employment_period_count:employmentPeriods.length,record_count:recordData.length,history_count:recordHistory.length,change_request_count:changeData.length,file_metadata_count:files.length,legal_document_count:legalDocuments.length,acknowledgement_count:acknowledgements.length,coi_declaration_count:coiDeclarations.length,legal_file_metadata_count:legalFileData.length,service_request_count:serviceRequestData.length,service_event_count:serviceEventData.length,service_file_metadata_count:serviceFileData.length,onboarding_plan_count:onboardingPlanData.length,onboarding_task_count:onboardingTaskData.length,onboarding_file_metadata_count:onboardingFileData.length,time_entry_count:timeEntryData.length,time_adjustment_count:timeAdjustmentData.length,leave_request_count:leaveRequestData.length,leave_balance_count:leaveBalanceData.length,leave_evidence_metadata_count:leaveEvidenceMetadataCount,payslip_count:payslipData.length,payroll_dispute_count:payrollDisputeData.length,payroll_dispute_event_count:payrollDisputeEventData.length,asset_assignment_count:assetData.length,asset_evidence_metadata_count:assetEvidenceData.length,asset_reminder_count:assetReminderData.length,benefit_plan_count:benefitPlanData.length,benefit_enrollment_count:benefitEnrollmentData.length,training_assignment_count:trainingAssignmentData.length,training_evidence_metadata_count:trainingEvidenceData.length,content_bytes:contentBytes});
  return {body,contentBytes,personId:person.id};
 }
