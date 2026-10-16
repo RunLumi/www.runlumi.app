@@ -13,7 +13,7 @@ export const POST:APIRoute=async context=>{
  if(!sameOrigin(context.request))return new Response("Invalid request origin",{status:400,headers:privateHeaders});
  try{
   const env=envFromLocals(context.locals),lang=context.url.searchParams.get("lang")==="vi"?"vi":"en";
-  const csv=await exportHrmReportCsv(env.DB,user,lang);
+  const csv=await exportHrmReportCsv(env.DB,user,lang,{period:context.url.searchParams.get("period"),department:context.url.searchParams.get("department")});
   return new Response(csv,{headers:{...privateHeaders,"Content-Type":"text/csv; charset=utf-8","Content-Disposition":'attachment; filename="lumi-hrm-summary.csv"'}});
  }catch(error){
   const status=error instanceof HrmError?error.status:500,body=error instanceof HrmError?error.message:"internal_error";
