@@ -12,6 +12,7 @@ import { parseAttendanceCsv } from "../src/lib/hrm/time-import.ts";
 import { RETENTION_CATEGORIES, retentionCategoryForHrm } from "../src/lib/hrm/retention.ts";
 import { calculatePayrollTotals, formatPayrollMoney, parseMinorAmount, parsePayrollComponents, renderPayrollSlipHtml } from "../src/lib/hrm/payroll.ts";
 import { parseAssetReminderOffsets } from "../src/lib/hrm/asset-reminders.ts";
+import { reportCsvContent, reportMonthRange, type HrmReportSnapshot } from "../src/lib/hrm/reports.ts";
 const person=(user_id:string|null):Person=>({id:"person_test",employment_id:"employment_test",profile_version:1,employee_code:"E-001",user_id,legal_name:"Test Employee",preferred_name:"Test",work_email:"work@example.test",work_phone:"",department:"Ops",job_title:"Operator",legal_entity:"Test entity",location:"HCMC",manager_user_id:"manager",status:"active",started_on:"2026-01-01",ended_on:null,version:1,actor_id:"hr",created_at:"2026-01-01T00:00:00.000Z",updated_at:"2026-01-01T00:00:00.000Z"});
 const user=(id:string,granted:Parameters<typeof makeUser>[2])=>makeUser({id,name:id,email:id+"@example.test"},false,granted);
 test("HRM grants are separate from ATS, CRM and user administration",()=>{
@@ -119,6 +120,17 @@ test("asset reminder offsets require explicit unique bounded integer days",()=>{
  assert.throws(()=>parseAssetReminderOffsets("7,7"),error=>error instanceof HrmError&&error.message==="asset_reminder_days_invalid");
  assert.throws(()=>parseAssetReminderOffsets("1.5"),error=>error instanceof HrmError&&error.message==="asset_reminder_days_invalid");
  assert.throws(()=>parseAssetReminderOffsets("366"),error=>error instanceof HrmError&&error.message==="asset_reminder_days_invalid");
+});
+test("HRM report months use Vietnam calendar boundaries and reject invalid months",()=>{
+ assert.deepEqual(reportMonthRange("2026-01"),{period:"2026-01",startDate:"2026-01-01",nextDate:"2026-02-01",startUtc:"2025-12-31T17:00:00.000Z",endUtc:"2026-01-31T17:00:00.000Z"});
+ assert.deepEqual(reportMonthRange("2026-12"),{period:"2026-12",startDate:"2026-12-01",nextDate:"2027-01-01",startUtc:"2026-11-30T17:00:00.000Z",endUtc:"2026-12-31T17:00:00.000Z"});
+ for(const period of ["2026-00","2026-13","26-01","2026-1"])assert.throws(()=>reportMonthRange(period),error=>error instanceof HrmError&&error.message==="report_period_invalid");
+});
+test("HRM aggregate CSV preserves report filters and neutralizes formula-like values",()=>{
+ const report:HrmReportSnapshot={legal_entity:"=TEST entity",generated_at:"2026-10-16T00:00:00.000Z",period:"2026-10",department:"+Operations",departments:["+Operations"],groups:[{key:"movement",title_en:"Movement",title_vi:"Biến động",rows:[{key:"started",count:2}]}]};
+ const en=reportCsvContent(report,"en"),vi=reportCsvContent(report,"vi");
+ assert.ok(en.includes("\"Legal entity\",\"'=TEST entity\""));assert.ok(en.includes("\"Report period\",\"2026-10\""));assert.ok(en.includes("\"Current department\",\"'+Operations\""));assert.ok(en.includes("\"Movement\",\"Started\",2"));
+ assert.ok(vi.includes("\"Kỳ báo cáo\",\"2026-10\""));assert.ok(vi.includes("\"Phòng ban hiện tại\",\"'+Operations\""));
 });
 test("payroll policy accepts only explicit component definitions and no executable formula fields",()=>{
  const components=[{code:"base",title_en:"Base pay",title_vi:"Lương cơ bản",direction:"earning",required:true,source_kind:"employment_record"},{code:"deduction",title_en:"Deduction",title_vi:"Khấu trừ",direction:"deduction",required:false,source_kind:"manual_evidence"}];

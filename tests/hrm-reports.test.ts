@@ -9,7 +9,7 @@ test("HRM aggregate CSV escapes spreadsheet formula cells and preserves CSV quot
 });
 
 test("HRM aggregate CSV is localized, contains only counts and neutralizes a formula-shaped entity",()=>{
-  const report:HrmReportSnapshot={legal_entity:"=1+1",generated_at:"2026-10-15T00:00:00.000Z",groups:[{key:"headcount",title_en:"Current employment",title_vi:"Tình trạng làm việc",rows:[{key:"active",count:2},{key:"unexpected_state",count:1}]}]};
+  const report:HrmReportSnapshot={legal_entity:"=1+1",generated_at:"2026-10-15T00:00:00.000Z",period:"2026-10",department:null,departments:[],groups:[{key:"headcount",title_en:"Current employment",title_vi:"Tình trạng làm việc",rows:[{key:"active",count:2},{key:"unexpected_state",count:1}]}]};
   const csv=reportCsvContent(report,"vi");
   assert.ok(csv.startsWith("\uFEFF"));
   assert.ok(csv.includes("\"Pháp nhân\",\"'=1+1\""));
