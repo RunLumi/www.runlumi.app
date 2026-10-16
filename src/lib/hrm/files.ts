@@ -22,7 +22,7 @@ export async function uploadFile(db:D1Database,bucket:R2Bucket,user:WorkspaceUse
  const hash=await digest(JSON.stringify(payload));const previous=await db.prepare("SELECT payload_hash,result_id FROM hrm_commands WHERE actor_id=? AND request_key=?").bind(user.id,key).first<{payload_hash:string;result_id:string}>();
  if(previous){if(previous.payload_hash!==hash)throw new HrmError("request_key_conflict",409);return previous.result_id}
  const target=id("file"),objectKey=`hrm/${person.id}/${target}`,time=now();const recordKind=kind==="avatar"?"personal":kind,category=retentionCategoryForHrm(kind);
- const guards=recordId?[guard(db,"EXISTS(SELECT 1 FROM hrm_records WHERE id=? AND person_id=? AND kind=?)",[recordId,person.id,recordKind])]:[];
+ const guards=recordId?[guard(db,"EXISTS(SELECT 1 FROM hrm_records WHERE id=? AND person_id=? AND kind=?)",[recordId,person.id,recordKind]),guard(db,"NOT EXISTS(SELECT 1 FROM hrm_structured_disposition_requests WHERE record_id=? AND state IN ('pending_review','approved','executing','completed'))",[recordId])]:[];
  await bucket.put(objectKey,bytes,{httpMetadata:{contentType:detected},customMetadata:{checksum,person:person.id,kind}});
  try{
   await command(db,user,key,"file_upload",payload,target,guards,[

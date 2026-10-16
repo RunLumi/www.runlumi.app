@@ -166,10 +166,12 @@ details.crm-disclosure > summary { cursor: pointer; color: var(--crm-blue); font
 .crm-row:last-child { border-bottom: 0; }
 .crm-row a.crm-row-title { color: var(--crm-navy); font-weight: 650; text-decoration: none; overflow-wrap: anywhere; }
 .crm-row a.crm-row-title:hover { color: var(--crm-blue); text-decoration: underline; }
+.crm-row > div > strong { overflow-wrap: anywhere; }
 .crm-row .crm-row-meta { display: flex; flex-wrap: wrap; gap: 4px 12px; color: var(--crm-slate); font-size: var(--crm-meta); }
 .crm-row-side { display: flex; flex-wrap: wrap; gap: 6px; }
 .crm-onboarding-copy > strong, .crm-onboarding-copy > .crm-meta { display: block; }
-.crm-onboarding-copy > strong { margin-bottom: 4px; }
+.crm-onboarding-copy > strong { margin-bottom: 4px; overflow-wrap: anywhere; }
+.crm-onboarding-copy .crm-meta { overflow-wrap: anywhere; }
 .crm-empty { color: var(--crm-slate); margin: 0; }
 
 /* Today: a rail marks urgency without colour floods. */
