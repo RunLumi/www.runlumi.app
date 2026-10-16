@@ -5,7 +5,7 @@ import { exportOwnHrmProfile } from "../src/lib/hrm/profile-export.ts";
 import { makeUser } from "../src/lib/workspace/roles.ts";
 import { sqliteD1 } from "./support/d1-sqlite.ts";
 
-test("profile export is bounded, self-only, audited, and omits internal IDs/review notes and file bytes",async()=>{
+test("HRM self export includes own legal and COI history without exposing other parties or reviewer data",async()=>{
  const db=sqliteD1(),time=new Date().toISOString();
  const employee={...makeUser({id:"profile_export_employee",name:"TEST employee",email:"employee@example.test"},false,["employee"]),hrmEnabled:true};
  const other={...makeUser({id:"profile_export_other",name:"TEST other",email:"other@example.test"},false,["employee"]),hrmEnabled:true};
@@ -19,16 +19,73 @@ test("profile export is bounded, self-only, audited, and omits internal IDs/revi
   db.raw.prepare("INSERT INTO hrm_employments(id,person_id,legal_entity,status,started_on,actor_id,created_at,updated_at) VALUES('profile_export_other_employment','profile_export_other_person','TEST entity','active','2026-01-01','hr',?,?)").run(time,time);
   db.raw.prepare("INSERT INTO hrm_records(id,person_id,kind,data,state,version,actor_id,created_at,updated_at) VALUES('profile_export_other_record','profile_export_other_person','identity',?,'verified',1,'hr',?,?)").run(JSON.stringify({document_number:"TEST-OTHER-SECRET"}),time,time);
 
+  db.raw.prepare(`INSERT INTO hrm_legal_templates(id,document_key,document_type,title_en,title_vi,state,created_by,updated_by,actor_id,created_at,updated_at)
+    VALUES('profile_export_template','profile-export-test','nda','TEST Mutual NDA','TEST NDA song phuong','draft','hr','hr','hr',?,?)`).run(time,time);
+  db.raw.prepare(`INSERT INTO hrm_legal_files(id,object_key,kind,template_id,original_name,mime_type,size_bytes,checksum,state,uploaded_by,actor_id,created_at,updated_at)
+    VALUES('profile_export_source','hrm/legal/profile-export-source','docx_source','profile_export_template','TEST policy.docx','application/vnd.openxmlformats-officedocument.wordprocessingml.document',12,'TEST-DOCX-CHECKSUM','reviewed','hr','hr',?,?)`).run(time,time);
+  db.raw.prepare(`INSERT INTO hrm_legal_template_versions(id,template_id,version_number,source_file_id,source_checksum,language,legal_entity,purpose,audience_json,requires_ack,signing_mode,required_parties_json,effective_on,due_days,state,created_by,created_at,reviewed_by,reviewed_at,activated_by,activated_at,updated_by,updated_at)
+    VALUES('profile_export_legal_version','profile_export_template',1,'profile_export_source','TEST-DOCX-CHECKSUM','bilingual','TEST entity','TEST policy purpose','["active"]',1,'acknowledgement','[{"party_key":"employee","party_kind":"employee","display_name":"TEST Export Employee","required":true},{"party_key":"company","party_kind":"company","display_name":"TEST-OTHER-PARTY-SECRET","required":true}]','2026-01-01',30,'active','hr',?,'reviewer',?,'reviewer',?,'reviewer',?)`).run(time,time,time,time);
+  db.raw.prepare("UPDATE hrm_legal_templates SET current_version_id='profile_export_legal_version',state='active',updated_by='reviewer',updated_at=? WHERE id='profile_export_template'").run(time);
+  const issueSnapshot={document_type:"nda",title_en:"TEST Mutual NDA",title_vi:"TEST NDA song phuong",version:1,language:"bilingual",legal_entity:"TEST entity",purpose:"TEST policy purpose",effective_on:"2026-01-01",source_checksum:"TEST-DOCX-CHECKSUM",signing_mode:"acknowledgement",requires_ack:true,required_parties:[{party_kind:"employee",display_name:"TEST Export Employee"},{party_kind:"company",display_name:"TEST-OTHER-PARTY-SECRET"}]};
+  for(const [issueId,personId,employmentId,issueNo] of [["profile_export_own_issue","profile_export_person","profile_export_employment",1],["profile_export_other_issue","profile_export_other_person","profile_export_other_employment",1]] as const){
+   db.raw.prepare(`INSERT INTO hrm_legal_issues(id,template_id,template_version_id,person_id,employment_id,issue_no,snapshot_json,source_checksum,state,issued_by,issued_at,due_at,actor_id,created_at,updated_at)
+     VALUES(?,'profile_export_template','profile_export_legal_version',?,?,?,?,'TEST-DOCX-CHECKSUM','completed','hr',?,?,'hr',?,?)`).run(issueId,personId,employmentId,issueNo,JSON.stringify(issueSnapshot),time,time,time,time);
+  }
+  db.raw.prepare(`INSERT INTO hrm_legal_parties(id,issue_id,party_key,party_kind,user_id,display_name,required,state,signed_at,actor_id,created_at,updated_at)
+    VALUES('profile_export_employee_party','profile_export_own_issue','employee','employee',?,'TEST Export Employee',1,'acknowledged',?,'profile_export_employee',?,?)`).run(employee.id,time,time,time);
+  db.raw.prepare(`INSERT INTO hrm_legal_parties(id,issue_id,party_key,party_kind,display_name,required,state,signed_at,actor_id,created_at,updated_at)
+    VALUES('profile_export_company_party','profile_export_own_issue','company','company','TEST-OTHER-PARTY-SECRET',1,'acknowledged',?,'hr',?,?)`).run(time,time,time);
+  db.raw.prepare(`INSERT INTO hrm_policy_acknowledgements(id,issue_id,person_id,actor_id,template_version_id,source_checksum,acknowledged_at,created_at)
+    VALUES('profile_export_ack','profile_export_own_issue','profile_export_person',?,'profile_export_legal_version','TEST-DOCX-CHECKSUM',?,?)`).run(employee.id,time,time);
+  db.raw.prepare(`INSERT INTO hrm_policy_acknowledgements(id,issue_id,person_id,actor_id,template_version_id,source_checksum,acknowledged_at,created_at)
+    VALUES('profile_export_other_ack','profile_export_other_issue','profile_export_other_person',?,'profile_export_legal_version','TEST-DOCX-CHECKSUM',?,?)`).run(other.id,time,time);
+  db.raw.prepare(`INSERT INTO hrm_legal_files(id,object_key,kind,template_id,original_name,mime_type,size_bytes,checksum,state,uploaded_by,actor_id,created_at,updated_at)
+    VALUES('profile_export_source_v2','hrm/legal/profile-export-source-v2','docx_source','profile_export_template','TEST policy v2.docx','application/vnd.openxmlformats-officedocument.wordprocessingml.document',12,'TEST-DOCX-CHECKSUM-2','reviewed','hr','hr',?,?)`).run(time,time);
+  db.raw.prepare(`INSERT INTO hrm_legal_template_versions(id,template_id,version_number,source_file_id,source_checksum,language,legal_entity,purpose,audience_json,requires_ack,signing_mode,required_parties_json,effective_on,due_days,state,created_by,created_at,reviewed_by,reviewed_at,activated_by,activated_at,updated_by,updated_at)
+    VALUES('profile_export_legal_version_v2','profile_export_template',2,'profile_export_source_v2','TEST-DOCX-CHECKSUM-2','bilingual','TEST entity','TEST policy purpose v2','["active"]',1,'acknowledgement','[]','2026-02-01',30,'active','hr',?,'reviewer',?,'reviewer',?,'reviewer',?)`).run(time,time,time,time);
+  db.raw.prepare(`INSERT INTO hrm_legal_issues(id,template_id,template_version_id,person_id,employment_id,issue_no,snapshot_json,source_checksum,state,issued_by,issued_at,due_at,actor_id,created_at,updated_at)
+    VALUES('profile_export_mismatched_ack_issue','profile_export_template','profile_export_legal_version_v2','profile_export_person','profile_export_employment',2,?,'TEST-DOCX-CHECKSUM-2','completed','hr',?,?,'hr',?,?)`).run(JSON.stringify({...issueSnapshot,version:2,source_checksum:"TEST-DOCX-CHECKSUM-2",purpose:"TEST policy purpose v2",required_parties:[]}),time,time,time,time);
+  db.raw.prepare(`INSERT INTO hrm_policy_acknowledgements(id,issue_id,person_id,actor_id,template_version_id,source_checksum,acknowledged_at,created_at)
+    VALUES('profile_export_mismatched_ack','profile_export_mismatched_ack_issue','profile_export_person',?,'profile_export_legal_version_v2','TEST-WRONG-CHECKSUM',?,?)`).run(employee.id,time,time);
+
+  db.raw.prepare(`INSERT INTO hrm_coi_declarations(id,person_id,employment_id,declaration_no,answers_json,state,submitted_by,submitted_at,reviewed_by,reviewed_at,review_reason,mitigation,followup_due,actor_id,created_at,updated_at)
+    VALUES('profile_export_coi','profile_export_person','profile_export_employment',1,?,'mitigation_required',?,?,'profile_export_reviewer',?,'TEST-INTERNAL-COI-REVIEW-NOTE','TEST-EMPLOYEE-VISIBLE-MITIGATION','2026-11-01','profile_export_reviewer',?,?)`).run(JSON.stringify({has_conflict:"yes",related_organization:"TEST-COI-ORG"}),employee.id,time,time,time,time);
+  db.raw.prepare(`INSERT INTO hrm_coi_events(declaration_id,actor_id,action,detail,created_at) VALUES('profile_export_coi','profile_export_reviewer','declaration_mitigation_required',?,?)`).run(JSON.stringify({review_reason:"TEST-INTERNAL-COI-REVIEW-NOTE",assigned_reviewer_id:"profile_export_reviewer"}),time);
+  db.raw.prepare(`INSERT INTO hrm_coi_declarations(id,person_id,employment_id,declaration_no,answers_json,state,submitted_by,submitted_at,actor_id,created_at,updated_at)
+    VALUES('profile_export_other_coi','profile_export_other_person','profile_export_other_employment',1,?,'submitted',?,?, 'hr',?,?)`).run(JSON.stringify({related_organization:"TEST-OTHER-COI-SECRET"}),other.id,time,time,time);
+  db.raw.prepare(`INSERT INTO hrm_legal_files(id,object_key,kind,issue_id,person_id,original_name,mime_type,size_bytes,checksum,state,uploaded_by,reviewed_by,reviewed_at,review_reason,actor_id,created_at,updated_at)
+    VALUES('profile_export_legal_pdf','hrm/legal/profile-export-legal-pdf','pdf_evidence','profile_export_own_issue','profile_export_person','TEST NDA signed.pdf','application/pdf',10,'TEST-PDF-CHECKSUM','reviewed',?,'profile_export_reviewer',?,'TEST-INTERNAL-LEGAL-FILE-REVIEW','hr',?,?)`).run(employee.id,time,time,time);
+  db.raw.prepare(`INSERT INTO hrm_legal_files(id,object_key,kind,coi_declaration_id,person_id,original_name,mime_type,size_bytes,checksum,state,uploaded_by,reviewed_by,reviewed_at,review_reason,actor_id,created_at,updated_at)
+    VALUES('profile_export_coi_pdf','hrm/legal/profile-export-coi-pdf','pdf_evidence','profile_export_coi','profile_export_person','TEST COI evidence.pdf','application/pdf',11,'TEST-COI-PDF-CHECKSUM','reviewed',?,'profile_export_reviewer',?,'TEST-INTERNAL-COI-FILE-REVIEW','hr',?,?)`).run(employee.id,time,time,time);
+
   const first=await exportOwnHrmProfile(db,employee);
   assert.equal(first.contentBytes,new TextEncoder().encode(first.body).byteLength);
-  const bundle=JSON.parse(first.body) as {schema_version:number;export_scope:string;profile:{employee_code:string};employment_periods:{is_current:number;manager_user_id?:string}[];records:{record_ref:string;kind:string;data:Record<string,string>}[];record_history:{record_ref:string;data:Record<string,string>}[];change_requests:{record_ref:string;data:Record<string,string>;review_reason?:string}[];profile_files:{record_ref:string|null;original_name:string;object_key?:string;object_available:boolean}[];excluded:string[]};
-  assert.equal(bundle.schema_version,1);assert.equal(bundle.export_scope,"self_profile_snapshot");assert.equal(bundle.profile.employee_code,"TEST-EXPORT-001");assert.equal(bundle.employment_periods.length,1);assert.equal(bundle.employment_periods[0].is_current,1);assert.ok(!("manager_user_id" in bundle.employment_periods[0]));
-  assert.ok(bundle.records.some(row=>row.data.document_number==="TEST-OWN-SECRET"));assert.ok(bundle.record_history.some(row=>row.data.document_number==="TEST-OWN-SECRET"));assert.ok(bundle.change_requests.every(row=>!('review_reason' in row)));
-  assert.ok(bundle.profile_files.some(file=>file.original_name==="TEST identity.pdf"&&file.object_available));assert.ok(bundle.profile_files.every(file=>!('object_key' in file)));
-  assert.ok(!first.body.includes("TEST-OTHER-SECRET"));assert.ok(!first.body.includes("TEST-INTERNAL-REVIEW-NOTE"));assert.ok(!first.body.includes("hrm/private/profile_export_file"));assert.ok(bundle.excluded.includes("file_contents"));assert.ok(bundle.excluded.includes("payroll"));
+  const bundle=JSON.parse(first.body) as {
+   schema_version:number;export_scope:string;profile:{employee_code:string};employment_periods:{is_current:number;manager_user_id?:string}[];
+   records:{record_ref:string;kind:string;data:Record<string,string>}[];record_history:{record_ref:string;data:Record<string,string>}[];
+   change_requests:{record_ref:string;data:Record<string,string>;review_reason?:string}[];
+   profile_files:{record_ref:string|null;original_name:string;object_key?:string;object_available:boolean}[];
+   legal_documents:{issue_no:number;source_checksum:string;acknowledged_at:string|null;snapshot:Record<string,unknown>}[];
+   employee_party_status:{issue_no:number;party_key:string;state:string}[];
+   policy_acknowledgements:{issue_no:number;version:number;source_checksum:string;acknowledged_at:string}[];
+   coi_declarations:{declaration_no:number;answers:Record<string,string>;mitigation:string;review_reason?:string;reviewed_by?:string}[];
+   coi_event_actions:{declaration_no:number;action:string;detail?:string;actor_id?:string}[];
+   legal_evidence_files:{issue_no:number|null;declaration_no:number|null;original_name:string;object_key?:string;object_available:boolean}[];excluded:string[];
+  };
+  assert.equal(bundle.schema_version,2);assert.equal(bundle.export_scope,"self_profile_legal_coi_snapshot");assert.equal(bundle.profile.employee_code,"TEST-EXPORT-001");assert.equal(bundle.employment_periods.length,1);assert.equal(bundle.employment_periods[0].is_current,1);assert.ok(!("manager_user_id" in bundle.employment_periods[0]));
+  assert.ok(bundle.records.some(row=>row.data.document_number==="TEST-OWN-SECRET"));assert.ok(bundle.record_history.some(row=>row.data.document_number==="TEST-OWN-SECRET"));assert.ok(bundle.change_requests.every(row=>!("review_reason" in row)));
+  assert.ok(bundle.profile_files.some(file=>file.original_name==="TEST identity.pdf"&&file.object_available));assert.ok(bundle.profile_files.every(file=>!("object_key" in file)));
+  assert.equal(bundle.legal_documents.length,2);assert.equal(bundle.legal_documents[0].issue_no,1);assert.equal(bundle.legal_documents[0].snapshot.document_type,"nda");assert.equal(bundle.legal_documents[0].acknowledged_at,time);assert.equal(bundle.legal_documents[1].issue_no,2);assert.equal(bundle.legal_documents[1].acknowledged_at,null,"a policy acknowledgement with a mismatched checksum is not attached to the issued snapshot");assert.ok(bundle.legal_documents.every(document=>!("required_parties" in document.snapshot)));
+  assert.deepEqual(bundle.employee_party_status.map(p=>p.party_key),["employee"]);assert.equal(bundle.employee_party_status[0].state,"acknowledged");
+  assert.deepEqual(bundle.policy_acknowledgements,[{issue_no:1,version:1,source_checksum:"TEST-DOCX-CHECKSUM",acknowledged_at:time}]);
+  assert.equal(bundle.coi_declarations.length,1);assert.equal(bundle.coi_declarations[0].answers.related_organization,"TEST-COI-ORG");assert.equal(bundle.coi_declarations[0].mitigation,"TEST-EMPLOYEE-VISIBLE-MITIGATION");assert.ok(bundle.coi_event_actions.some(event=>event.action==="declaration_mitigation_required"));assert.ok(bundle.coi_event_actions.every(event=>!("detail" in event)&&!("actor_id" in event)));
+  assert.equal(bundle.legal_evidence_files.length,2);assert.ok(bundle.legal_evidence_files.every(file=>file.object_available&&!("object_key" in file)));
+  assert.ok(!first.body.includes("TEST-OTHER-SECRET"));assert.ok(!first.body.includes("TEST-OTHER-PARTY-SECRET"));assert.ok(!first.body.includes("TEST-OTHER-COI-SECRET"));assert.ok(!first.body.includes("TEST-INTERNAL-REVIEW-NOTE"));assert.ok(!first.body.includes("TEST-INTERNAL-COI-REVIEW-NOTE"));assert.ok(!first.body.includes("TEST-INTERNAL-LEGAL-FILE-REVIEW"));assert.ok(!first.body.includes("TEST-INTERNAL-COI-FILE-REVIEW"));assert.ok(!first.body.includes("profile_export_reviewer"));assert.ok(!first.body.includes("hrm/private/profile_export_file"));assert.ok(!first.body.includes("hrm/legal/profile-export-legal-pdf"));assert.ok(bundle.excluded.includes("file_contents"));assert.ok(bundle.excluded.includes("required_parties"));assert.ok(bundle.excluded.includes("payroll"));
   assert.equal(db.raw.prepare("SELECT COUNT(*) AS n FROM hrm_audit WHERE actor_id=? AND action='employee_profile_exported' AND person_id='profile_export_person'").get(employee.id)?.n,1);
   const manager={...makeUser({id:"profile_export_manager",name:"TEST manager",email:"manager@example.test"},false,["people_manager"]),hrmEnabled:true};
   await assert.rejects(exportOwnHrmProfile(db,manager),error=>error instanceof HrmError&&error.message==="not_found");
+  const profileOnly={...makeUser({id:"profile_export_profile_only",name:"TEST profile only",email:"profile-only@example.test"},false,["employee"]),hrmEnabled:true,can:(permission:string)=>permission==="hrm.profile.self"};
+  await assert.rejects(exportOwnHrmProfile(db,profileOnly),error=>error instanceof HrmError&&error.message==="forbidden");
   const closed={...employee,hrmEnabled:false};await assert.rejects(exportOwnHrmProfile(db,closed),error=>error instanceof HrmError&&error.message==="hrm_closed");
   db.raw.prepare("UPDATE hrm_employments SET status='ended',ended_on='2026-10-01',version=version+1,updated_at=? WHERE id='profile_export_employment'").run(time);
   await assert.rejects(exportOwnHrmProfile(db,employee),error=>error instanceof HrmError&&error.message==="not_found");
