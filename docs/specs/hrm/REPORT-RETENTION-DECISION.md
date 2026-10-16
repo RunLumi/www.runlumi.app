@@ -1,0 +1,164 @@
+# HRM report snapshots — retention decision for approval
+
+[Tiếng Việt](REPORT-RETENTION-DECISION.vi.md) · [Specification](README.md) · [Implementation status](STATUS.md) · [Operator runbook](RUNBOOK.md)
+
+**Status: PROPOSED — no owner or legal approval recorded; not a production policy.**
+
+Prepared 2026-10-17 (Asia/Ho_Chi_Minh). Reviewed [PR #72](https://github.com/RunLumi/www.runlumi.app/pull/72), merged at `ae5a8afe32b810d40e0a02a28d90000520513ac4`, against repository `main` at `af903a1142054e5e7b08c27cabaea1a7ee415f8e` after PR #73; rechecked against `6dc1ab096adfdb17b787b3919013bd6ec993c23a` after PRs #74/#76. The report implementation remains unchanged. STATUS records production observations for their indicated revisions, including PR #74; this documentation review did not inspect or change live resources. A successful synthetic test, a nonempty `retention_basis`, an application role, or this document's merge is not policy approval.
+
+## 1. Decision requested
+
+Approve a purpose and accountable owner for each report class before choosing a duration. Daily, weekly and monthly are capture frequencies; they are not legal record classes. This proposal covers saved aggregate reports and their schedules, copies and lifecycle metadata. It does not set retention for source employee records, payroll/payslips, locked attendance snapshots, contracts, files or reminders.
+
+**Recommendation:** retain the current production block. Consider option B only after the decisions and acceptance gates below are complete. No option is selected by this document, no duration becomes an input default, and no schedule is created.
+
+| Option | Concrete scope for approval | Benefit | Cost / reason to reject |
+|---|---|---|---|
+| A — defer saved production reporting | No production saved snapshots or schedules. Use synthetic reports to establish the need. | Avoids introducing an ungoverned historical copy while decisions remain open. | No saved operational comparison. Opening another HRM workflow later would require a proven separate report gate; the current global HRM gate stays closed. |
+| B — limited operational history; recommended candidate | Manual review 30 days; daily operations 30 days only if needed; weekly operations 90 days only if needed; one entity-level monthly series 400 days for annual comparison. Approve each class separately. | Supports short investigations, quarterly review and a previous-year comparison without keeping every daily observation for years. | Small cohorts can still be identifiable. Requires effective holds, governed policy values and a complete copy/metadata lifecycle. Monthly reports have the mixed time semantics in §2. |
+| C — extended management history | B, but weekly 180 days and monthly 730 days. Daily history remains 30 days unless a specific exception is approved. | Longer comparisons when an identified recurring decision actually needs them. | More identifiable history and preservation/disposition work. Reject absent evidence that B cannot answer the decision; this is not a statutory archive. |
+
+The strongest objection to B is that no recurring decision may need saved reports at all. Before approving a class, its HR owner should identify one decision, its reader, required fields and oldest comparison needed, then demonstrate it using synthetic snapshots. After an authorized 90-day pilot, stop new captures for an unused class; existing snapshots continue under their approved retention and holds. These are proposed review criteria, not a scheduled automation or permission to begin a pilot.
+
+## 2. Verified baseline and its limits
+
+| Evidence | What is implemented | Consequence for this decision |
+|---|---|---|
+| [Migration 0034](../../../migrations/0034_hrm_report_snapshots.sql), [report service](../../../src/lib/hrm/report-snapshots.ts) | Each snapshot/schedule requires `retention_days` in 1–36,500 and a trimmed basis of 1–1,000 characters; the service validates whole days. No duration or schedule is seeded. | These are input constraints, not an approved retention period or legally sufficient basis. The upper bound is not a recommendation. |
+| Same sources, `saveReportSnapshot` / `createReportSchedule` | A report manager supplies the duration and free-text basis; there is no report policy ID/version, independent review or approval lookup. | Approval of global HRM settings does not approve every subsequent value. A reference typed in a field is not enforcement. |
+| Same sources, schedule schema / sweep | The schedule copies its duration into every new snapshot. Its definition is immutable; it has no automatic end/review date. | A 30-day schedule can generate reports indefinitely. Changing a definition requires a new schedule; pause or retire the old one to stop future captures. Existing snapshots retain their entered duration and basis, not an approved policy version. |
+| [Report builder](../../../src/lib/hrm/reports.ts), `buildHrmReportSnapshotForEntity` | Payloads contain aggregate counts, entity, selected month/department, department names and generation time. Queries omit employee names/IDs, pay values and case narratives. No small-cell suppression is applied. | Treat reports as restricted, potentially identifiable information until reviewed. A department filter is not an anonymity guarantee. Metadata and free-text basis need their own review. |
+| Same builder / `reportPeriodForSchedule` | Daily and Monday-weekly captures select the current month. First-of-month captures select the previous month. Headcount, assets, latest benefits and overdue training reflect generation-time state; assets remain entity-wide. Departments are current assignments, not reconstructed historical assignments. | Saved output records what the report showed when generated. It is not a complete month-end personnel ledger, payroll evidence or statutory report. Re-running a past month does not reproduce its historical state. |
+| `reportExpiryDate`, `readReportSnapshot`, sweep | `expires_on = recorded capture date in UTC+7 + N` (manual: current date; scheduled: Cron event date); reads allow that date inclusively. The next local day blocks ordinary reads. Redaction follows a successful Cron sweep, bounded to 1,000 rows per invocation. | A calendar window is not exactly N × 24 hours. A 30-day input manually saved on 2026-10-17 is readable through 2026-11-16; ordinary reads stop 2026-11-17, with payload purge normally at that day's 08:40 sweep. A failure/backlog delays purge. |
+| Sweep and [Worker](../../../src/worker.ts) | Expiry runs **before** checking HRM settings and `HRM_LIVE_ENABLED`; it does not inspect legal holds. New generation is gated. | Turning HRM off, or pausing/retiring a schedule, does **not** preserve existing snapshots. Do not use those actions as a hold procedure. |
+| Migration 0034 triggers | Expiry replaces JSON with `{}` and clears the checksum to `NULL`. Snapshot/schedule rows and events cannot ordinarily be deleted; snapshot retention/expiry cannot be edited. | Tombstones retain entity, department, period, basis, actor identifiers, dates and links. Their finite disposition is not implemented. An expired payload cannot be recovered through the report UI. |
+| [Existing hold schema](../../../migrations/0019_hrm_retention_controls.sql), [structured retention](../../../src/lib/hrm/structured-retention.ts) | Holds protect person/file scopes and relevant structured records. Reports have no source-person membership manifest and no report hold check. | A hold on a person or file does not prove preservation of derived reports, exports or backups. Scope must be established explicitly. |
+| `createReportSchedule`, `setReportScheduleState`, sweep | Creation checks a 20-active cap; resume does not repeat it. The sweep selects only 20 active rows. The selected schedule state is not rechecked at snapshot insertion. | Cap/resume, concurrent pause/retire and fair processing need acceptance coverage. The configured cap alone is not proof every due schedule runs. |
+
+For scheduled snapshots, recorded `generated_at`/`created_at` and the retention anchor use the Cron event's scheduled time; source queries run when the handler processes the event. A delayed run is not a reconstruction of database state at the scheduled instant. Manual captures use the current date/time. Approve how actual capture time and scheduled time must be distinguished before relying on this history.
+
+The PR records passing `ci:verify` and P5 integration using synthetic data. This review treats those results as implementation evidence for their tested scope, not proof of legal classification, anonymity, effective report holds or production recovery. An additional isolated in-memory SQLite check using migration 0034 and the current resume UPDATE admitted 21 active schedules while the sweep selects 20; it was not a Worker integration test.
+
+## 3. Candidate purposes, periods and clocks
+
+**Every number in this section is an unapproved operational proposal.** Ordinary retention is an upper business window, subject to an earlier applicable deletion requirement or loss of purpose and a separately justified preservation exception. Counsel must resolve conflicts; neither “delete everything” nor “keep the longest period” is a universal rule.
+
+| Proposed class | Specific purpose and permitted scope | B candidate | Alternative / information needed |
+|---|---|---|---|
+| `RPT-REVIEW` | A named internal review of the aggregate figures available at the time; minimum entity/department scope necessary. | 30 days from capture, or earlier approved disposal after the purpose ends. | 7 days if used only to check a meeting; 90 days only for a documented longer review. A dispute moves to the separate hold process rather than an arbitrary longer TTL. |
+| `RPT-DAILY-OPS` | Compare recent backlog/status changes when a daily decision needs them. | 30 days from each capture. | Do not schedule if live or weekly reporting suffices. Do not recreate an old report solely to restart its clock. |
+| `RPT-WEEKLY-OPS` | Review a quarter's operational progress and follow up unresolved work. | 90 days from each capture. | 180 days under C if a documented review cycle needs it. The current-month filter does not produce a seven-day event report. |
+| `RPT-MONTHLY-MGMT` | Compare management aggregates with the previous year's observations, using consistent scope and definitions. Prefer the whole entity. | 400 days from capture. | 730 days under C. These are exact day inputs, not promises of 13/24 complete calendar-month records or historical headcount accuracy. |
+| `RPT-CASE` | Preserve explicitly identified evidence for a verified dispute, investigation, order or other lawful preservation need. | No generic duration. Preserve only the approved scope until the authorized release decision, with periodic review. | This is a proposed hold class, not a valid current `retention_days=null` setting. No substitute such as 36,500 days is authorized. Preserve relevant source records separately. |
+
+The current manual-capture / scheduled-event date anchor can fit operational copies, subject to the delayed-run qualification above; it may not fit a legal record whose clock starts at financial-year close, termination, case closure or another event. Record that event explicitly if required and implement it before claiming support. An old-period manual capture currently starts a fresh clock. Future approved policy must prevent clock resets that evade disposal, including re-saves, replacements, copies and restores; genuinely new observations may have a new clock if their purpose is approved.
+
+**Timing choice for approval:** keep the present inclusive UTC+7 date convention and display “last readable date”, or implement an exact `expires_at` timestamp. The candidate is the existing calendar convention with routine content access denied at 00:00 on the following date and an **unapproved operational target** of payload redaction within 24 hours of that cutoff. Earlier legal deadlines override the target. Monitoring, retries and backlog handling must prove that target; one daily Cron is not proof. Technical deletion failures trigger incident handling, not silent extension of the approved period.
+
+### Other copies and metadata
+
+| Object | Proposed disposition / decision | Current gap |
+|---|---|---|
+| Schedule definition | Assign an organizational owner; review necessity every 90 days; reauthorize within 365 days or stop new captures. Retirement does not erase history or cancel existing retention/holds. | Review/end dates and automatic stop are absent. Background generation does not recheck the creator's current role; choose organizational ownership with reassignment, or implement revocation-linked stopping. |
+| Snapshot tombstone, report events and report-specific audit entries | Candidate: 365 days after payload disposal for a minimal disposal proof. Approve exact remaining fields and a separate justification for any longer period. | Current rows/events are immutable and have no purge. Related audit/command references must be inventoried; changing lifecycle needs an additive migration and a reviewed, referentially safe process. |
+| Retired schedule metadata/events | Candidate: 365 days after retirement **and** completion of the last dependent snapshot's lifecycle, whichever is later, unless an applicable hold remains. | No disposition flow. Long-lived active schedules need a separately approved event-history window; do not silently keep all run events forever. |
+| CSV, screenshots and other controlled copies | Same purpose, original policy reference and original cutoff as the source; copies do not restart retention. Inventory approved destinations/custodians and record deletion or lawful hold. | Current CSV omits snapshot reference, policy and expiry labels. `no-store` and export permission do not recall downloads or prevent a reader copying data. Disable ungoverned exports in the future rollout scope if custody cannot be established. |
+| D1 recovery history, database exports and operational logs | Approve actual provider/recovery windows, backup locations, access, RPO/RTO, log minimization and final disposal separately. Shortest feasible recovery window that meets the approved recovery purpose; no number inferred here. | Purging report JSON does not erase backups. On restore, reconcile current holds, disposals and revoked access **before** reopening reads or expiry. Record residual recoverable copies and their final expiry; no promise of immediate complete erasure. |
+| R2 evidence and source HR/payroll records | Their own approved categories, clocks and hold scope. Report snapshots themselves are D1 data. | A report period does not set source-file retention or delete payroll, employment history or evidence. The existing D1/R2 recovery gate remains open. |
+
+All candidate metadata/review windows are business proposals, not statutory minima. Do not enter a person's name, allegation, health detail or legal analysis in `retention_basis`, department labels, event detail or public approval records. A future basis value should reference an approved non-sensitive policy ID/version; legal advice and case evidence belong in a separately authorized private location.
+
+## 4. Legal applicability and evidence to obtain
+
+**Verified sources do not establish applicability to this deployment.** Owner and qualified legal/privacy reviewers must name the employing entity, controller/processor roles, affected people/workplaces, processing locations and any cross-border flow. A brand, Vietnamese locale or a Singapore incorporation elsewhere does not answer those questions. Review the law in force at approval; this register is dated 2026-10-17.
+
+| Source checked | What it establishes | What still needs written confirmation |
+|---|---|---|
+| [L1 — Vietnam Law 91/2025/QH15](https://chinhphu.vn/?classid=1&docid=214590&pageid=27160&typegroupid=3), effective 2026-01-01; [signed text](https://datafiles.chinhphu.vn/cpp/files/vbpq/2025/7/91qh.signed.pdf). [Ministry of Public Security explanation of Article 25](https://bocongan.gov.vn/bai-viet/bao-ve-du-lieu-ca-nhan-trong-mot-so-hoat-dong-1754989261). | Article 25 addresses employee-data retention under law/agreement and deletion at contract termination, subject to its exceptions. | Which reports/metadata remain personal data, which terms and exceptions apply, and how termination or a valid deletion request affects existing derivatives and copies. Do not assume a 400-day business preference overrides this assessment. |
+| [L2 — Vietnam Decree 356/2025/NĐ-CP](https://vanban.chinhphu.vn/?docid=216387&pageid=27160&typegroupid=4); [signed text](https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/01/356-nd.signed.pdf), Article 42. | The implementing decree took effect on 2026-01-01; Decree 13/2023/NĐ-CP ceased to have effect that day. | Applicable procedures, roles, assessments, exemptions and any transfer requirements for the actual processing. Do not rely on an old Decree 13-only checklist or infer a fixed HRM report period. |
+| [L3 — consolidated Accounting Law 41/VBHN-VPQH, 2026-03-16](https://congbao.chinhphu.vn/van-ban/van-ban-hop-nhat-so-41-vbhn-vpqh-469126.htm). | The official publication record is verified. Its full consolidated attachment was unavailable in this review; no numerical accounting period was verified from it. | Accountant/counsel must classify any claimed accounting record, obtain the operative text/provision and start event, and establish whether this exact report is required or merely a duplicate. No accounting minimum is applied to aggregate HRM snapshots here. |
+| [L4 — Singapore PDPA, section 25](https://sso.agc.gov.sg/Act/PDPA2012?ProvIds=pr25-); [PDPC obligations](https://www.pdpc.gov.sg/data-protection-obligations). | The retention limitation concerns ending identifiable retention when collection purpose is no longer served and retention is no longer necessary for legal/business purposes. | Whether Singapore law applies, which entity bears duties and what necessity justifies this copy. It does not establish a universal report-retention number. |
+
+The legal review must distinguish: authority to process; necessity to retain this derivative; any mandatory minimum/maximum; the correct start event; early erasure/restriction triggers; preservation exceptions; and proof needed for each. A limitation period for a possible claim is not automatically a requirement to retain every HR report for that entire period. A statutory duty concerning source payroll records does not automatically extend to this separate aggregate copy. No universal report-specific legal-hold duty or retention duration has been established in this review.
+
+For privacy classification, examine small departments, rare categories, subtraction between filters, repeated daily changes, known staffing facts, actor identifiers and department lists. Prefer coarser scope/fewer captures; consider cell suppression or restricted report classes if necessary. Any threshold is a proposed control requiring testing, not proof of anonymization. If an applicable erasure obligation reaches a saved identifiable aggregate, decide whether to dispose of the entire affected snapshot/copies or apply a verified anonymization method; source-record redaction alone does not prove the derivative has been handled.
+
+## 5. Proposed legal-hold process
+
+This section specifies a control to build and approve. It is **not implemented** for reports. No real case is declared or placed on hold by this document.
+
+1. **Authorize and delimit.** The designated legal/records authority identifies the case or order reference, actual preservation basis, entity, time range, report references, relevant filters, source evidence, exports and backup scope. Preserve only the justified set. Record who can place, review and release the hold; choose a next review date. A 90-day review interval is a candidate, not an automatic release date.
+2. **Preserve effectively.** Place an audited hold checked atomically at the final expiry/disposition operation. Cover existing identified snapshots and future matching captures only when their continuing creation is itself authorized. Protect payload/checksum and required evidence metadata. Do not rewrite the original retention date or silently increase the duration. A person/file hold needs a documented mapping to reports; absent reliable source lineage, a custodian must identify and justify a conservative report scope rather than claiming automatic inheritance.
+3. **Separate preservation from use.** Routine access still ends at the normal cutoff; only a specifically authorized custodian may access preserved content for the case, with access/export audit. A hold does not grant new HR/manager permissions or permit unrelated analysis. Multiple holds may overlap; releasing one cannot permit disposal while another applicable hold remains.
+4. **Release independently.** Require documented legal/records authority and an executor/reviewer different from the placer, with current scope/version checks. After the last hold is released, recompute disposition eligibility against the original cutoff and any remaining lawful purpose; if already due, use the approved next disposal run. Do not give it a fresh full retention period. Record unsuccessful preservation if content was already redacted; do not claim a later hold restores it.
+5. **Handle urgent preservation separately.** Before live use, provide a tested report-specific way to suspend destructive expiry under authorized incident control. Current HRM switches and schedule pause/retire are insufficient. If evidence is unexpectedly at risk, escalate to the authorized incident/legal owner for a scoped, verifiable preservation action and account for effects on shared Cron jobs; do not improvise a global shutdown, extend all dates or export all HR data. Keep production reporting disabled and do not introduce production snapshots until this gap is resolved.
+
+Holds must survive job retries, deployment rollback, policy retirement and recovery. Restore current hold/disposition decisions before any resumed sweep can destroy or re-expose restored content. The owner must choose both the preservation authority and the means; a policy document alone cannot intercept expiry.
+
+## 6. Access, policy enforcement and approval responsibility
+
+### Verified application permissions
+
+| Role, without additional HRM grants | Read saved aggregates | Save / manage schedules | Export CSV |
+|---|---|---|---|
+| HRM Officer | Yes | No | No |
+| HRM Admin | Yes | Yes | Yes |
+| System Super Admin | Yes | Yes | Yes |
+| Employee, People Manager, Payroll Officer, ATS-only HR or CRM-only roles | No | No | No |
+
+Source: [Workspace permission map](../../../src/lib/workspace/roles.ts) and report service/API. Current requests re-evaluate identity, membership and HRM readiness; saved reads use the configured entity. Read-only Officers do not receive schedule details or the management-only basis. Combined roles combine capabilities. Department filters do not implement department authorization, and one configured entity is not a proven multi-entity access system. Export is separately checked, same-origin, audited and `no-store`; none of these controls prevents an authorized reader copying information.
+
+**Proposed approval enforcement:** use a small versioned report-policy record, reusing existing HRM review patterns. It should bind class, entity, purpose/evidence reference, scope/fields, duration/clock, copies/hold rule, business owner, independent reviewer, approval/effective/review dates and status. The approval record is not an arbitrary legal judgment by software. Save/create/resume and each scheduled insertion must validate an applicable approved version; reject unapproved combinations. Preserve that version/reference on snapshots and schedules. A policy change stops new use of the old version; existing records need an explicit migration/disposition decision rather than a silent rewrite.
+
+A procedural alternative is a private approved register with exact allowed values and reconciliation before every manual capture or schedule change. It costs less implementation but current APIs cannot enforce it, arbitrary values remain possible, and recurring jobs outlive human checks. It is not equivalent to the proposed gate. Any exception requires an explicit owner/legal decision and demonstrated compensating controls; the present recommendation is the enforceable versioned approach, not production use under a checklist alone.
+
+| Decision / evidence | Accountable role to name | Boundary |
+|---|---|---|
+| Which recurring decisions justify capture, granularity and access | HR data/business owner | Owns purpose and necessity; cannot declare a statutory basis without support. |
+| Entity, jurisdiction, data classification, applicable law/agreement, early deletion and hold authority | Qualified legal/privacy reviewer with the responsible entity | Supplies applicability reasoning, precise sources and unresolved conditions. Application role 50 is not legal qualification. |
+| Accounting/payroll record classification if asserted | Accounting/payroll owner and qualified reviewer | Confirms exact record type and clock; cannot transfer source-record periods to every report. |
+| Final selection of each class, periods, exceptions and accountable people | Authorized representative of the responsible entity | Approves the specific version and scope; approval remains incomplete while legal prerequisites are unresolved. |
+| RBAC, immutable provenance, holds, purge, backup/export custody and monitoring | Engineering/security/operations owners | Implement approved controls and report actual evidence; cannot invent the business/legal values. |
+| Acceptance and release readiness | Independent reviewer plus authorized release owner | Verifies tested revision and signed decisions; deployment activation is a separate explicitly authorized action. |
+
+At least the policy proposer and independent policy reviewer must be different people under the proposed process. Preserve existing no-self-approval and user-administration rules. Store signed approvals, employment agreements, case details and legal advice privately; this public repository should contain only non-sensitive status and reference IDs. All actual owner names and approval references below remain unfilled.
+
+## 7. Acceptance gates for a later implementation / activation decision
+
+These are new proposed criteria, not claims that the PR #72 tests already cover them. Link results to the exact tested commit and synthetic fixtures. Keep HRM-20, recovery and other existing gates in [STATUS.md](STATUS.md) intact.
+
+| ID | Evidence required to accept | Current assessment |
+|---|---|---|
+| RPT-01 | Signed entity/jurisdiction/classification and purpose matrix, class-by-class values/clock, authority, legal sources/exceptions and review dates. No unfilled approver; no invented legal minimum. | BLOCKED — owner/legal decision. |
+| RPT-02 | Save/create/resume/job insertion reject missing, unapproved, expired or mismatched policy versions and arbitrary durations/bases. Verify independent review, rollover, concurrency and no input defaults. | NOT IMPLEMENTED — explicit values alone are insufficient. |
+| RPT-03 | Hold before due date, after due date before purge, overlapping holds, future scope and hold-versus-expiry race preserve the correct content. Release needs independent authority and cannot revive/redate expired data. Ordinary expired access remains denied; authorized held access is tested separately. | NOT IMPLEMENTED for report snapshots. |
+| RPT-04 | Boundary tests for UTC+7 midnight, leap/month/year changes and inclusive date or approved timestamp semantics. Verify delayed-event timestamps, actual capture semantics and retention anchoring; do not label current queried data as reconstructed historical state. Simulate failed/missed Cron, >1,000 overdue rows, retry and outage recovery; prove approved purge SLA and alerts without payload logging. HRM-off expiry behavior is explicit and hold-safe. | PARTIAL — current date/expiry tests do not prove these additions. |
+| RPT-05 | Current-role and entity access, combined-role permission outcomes and unauthorized-access denials, basis visibility, direct URL/export and revocation tests; approved coarse scope and small-cell/differencing cases. Label period-scoped vs generated-time data. | PARTIAL — baseline permissions exist; anonymity and new policy scope are unproven. |
+| RPT-06 | Cap on create **and resume**, concurrent schedule changes, entity change and fair due-job selection; pause/retire/policy withdrawal racing insertion follows an explicit contract. Organizational-owner departure and reauthorization cannot leave unowned captures. | OPEN — resume cap defect; governance and race behavior need work. |
+| RPT-07 | Export carries original reference/cutoff and approved custody; inventory all controlled copies. Prove finite, hold-aware disposition of metadata/events/audit/command references without breaking referential history. No sensitive free-text basis. | NOT IMPLEMENTED as a complete lifecycle. |
+| RPT-08 | Synthetic restore after disposal/hold placement/role revocation replays authoritative current decisions before reads and jobs. Backup windows/destinations and residual copies are documented and separately approved. | OPEN — existing D1/R2 drill is not this report-lifecycle or production proof. |
+| RPT-09 | A valid erasure request or applicable termination-triggered deletion obligation is assessed under the relevant rules, mapped to identifiable derivatives/copies and disposed of or preserved under a documented exception. Termination-related duties do not depend on an employee making a request. Re-saving, copying or restoring cannot evade the decision. | NOT IMPLEMENTED as a report-specific workflow. |
+| RPT-10 | Independent review of relevant unit/integration and EN/VI behavior on the exact revision; live settings/schema/schedules verified by the authorized operator before any separately approved activation. Existing HRM/P0/payroll/recovery gates remain applicable. | BLOCKED — this documentation review grants no release approval. |
+
+### Work that can proceed technically
+
+This documentation PR can correct operator descriptions, record the choices and define evidence without touching runtime, migrations, data or policy settings. A follow-up implementation can build the bounded policy/hold/disposition mechanisms and synthetic cases with no seeded business durations. Any selected numbers, legal scope, custody, named authority and production activation must wait for the corresponding decision; technical success cannot fill those fields.
+
+The smallest coherent production path is: one justified entity-level report class, its approved version, effective preservation/early-disposition controls, finite metadata/copy lifecycle, and observed deletion/recovery behavior. Broader schedules and departmental histories are separate choices. If those controls or the legal classification remain unresolved, stop at option A.
+
+## 8. Approval record — intentionally unapproved
+
+| Field | Decision to record |
+|---|---|
+| Responsible entity; controller/processor; jurisdictions | UNCONFIRMED |
+| Selected option and approved report classes | NOT SELECTED |
+| Purpose, fields/cohort, recipients, explicit days and clock for each class | NOT APPROVED |
+| Basis/source/agreement reference; legal classification and exceptions | NOT VERIFIED for deployment |
+| Snapshot / schedule / audit / export / backup lifecycle and purge target | NOT APPROVED |
+| Hold placement/review/release authority, scope and review interval | NOT APPOINTED / NOT APPROVED |
+| Business owner; qualified legal/privacy reviewer; final representative | NOT APPOINTED |
+| Independent technical reviewer; exact tested revision; evidence references | PENDING IMPLEMENTATION / ACCEPTANCE |
+| Policy version, effective date, next review and superseded version | NOT SET |
+| Separate production release/activation authorization | NOT GRANTED |
+
+Next decision meeting: HR brings the synthetic use-case demonstration and proposed scope; the responsible entity names the qualified reviewer and supplies applicable agreements/source-record classifications; engineering presents the unresolved controls in §7. Record approval or rejection for each row rather than a blanket “HRM approved”. Seven days is a proposed preparation window, not a deadline to activate or a substitute for legal review.

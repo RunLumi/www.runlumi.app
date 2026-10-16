@@ -16,6 +16,16 @@ Updated: 2026-10-17. HRM remains active and incomplete. PR #69 extended self-exp
 - 2026-10-16: the HRM asset-reminder follow-up adds versioned, explicit day offsets with independent review and activation; recipients are limited to the linked employee and the HR account that issued the assignment. Notices stay in-app, are idempotent, can be marked read, and unread notices resolve when an assignment closes. No default policy or production activation is introduced.
 - Separate payroll preparer and approver identities, specialist-reviewed calculations, and jurisdiction-specific tax/insurance rules remain unresolved. The System Super Admin approval capability does not waive payroll self-approval controls.
 
+## Report-retention decision awaiting owner review
+
+> **Snapshot-retention review, 2026-10-17:** the [approval proposal](REPORT-RETENTION-DECISION.md) ([Tiếng Việt](REPORT-RETENTION-DECISION.vi.md)) was originally checked against main `af903a1142054e5e7b08c27cabaea1a7ee415f8e` after PR #73 and rechecked against `83ca23371b710c2760dfb07cfad5db9c0656a263` after PR #77. Report implementation still matches PR #72. Production deployment evidence below belongs to the indicated earlier revisions; this documentation review does not refresh that evidence. Policy/hold approval and production activation remain blocked.
+
+- [Decision proposal and acceptance criteria RPT-01–10](REPORT-RETENTION-DECISION.md) ([Vietnamese](REPORT-RETENTION-DECISION.vi.md)) distinguish verified input constraints from candidate business periods and legal applicability. No option, duration, policy version, approver or production setting is approved or populated by the proposal.
+- The current expiry sweep runs before the HRM/deployment activation check and does not consult person/file holds. Disabling HRM or pausing/retiring a schedule does not preserve existing snapshots. Effective report holds, early disposition and policy-version enforcement remain unimplemented.
+- Expiry clears payload and checksum; metadata, basis, actor identifiers and event/audit history remain. Schedule lifetime, copies, backups and finite metadata disposition need separate decisions and controls. Report aggregates have not been proven anonymous or classified as statutory records.
+- Creation checks the 20-active schedule cap but resume does not; a synthetic in-memory SQLite reproduction admitted 21 active rows while the sweep selects 20. This is a focused implementation finding, not a new Worker/P5 integration PASS. Cap/resume/race coverage remains open.
+- Documentation corrections align both runbooks with checksum deletion, independent expiry and inclusive UTC+7 date semantics. Existing HRM-20, payroll and recovery gates are unchanged; only an explicitly authorized later action can activate production.
+
 ## Phase gates
 
 | Phase | Contract Gate | Integration Gate | Release state | Dependency / next action |
