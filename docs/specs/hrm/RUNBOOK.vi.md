@@ -87,6 +87,12 @@ Task thu hồi tài sản trong offboarding liệt kê từng assignment đang m
 
 Nếu PDF sai hoặc gắn nhầm assignment, dừng review và tải xuống, giữ audit/checksum, rồi làm theo quy trình sự cố ghép nhầm người/tệp ở trên. Không sửa hoặc chuyển liên kết chứng từ bất biến; yêu cầu tải lại theo đúng assignment. Không tự đặt thời hạn retention hoặc gỡ legal hold chỉ để dọn hàng chờ.
 
+## Snapshot và lịch báo cáo tổng hợp
+
+Chỉ HRM Admin/System Super Admin được lưu snapshot hoặc tạo, tạm dừng và tiếp tục lịch; HRM Officer được đọc snapshot aggregate đã lưu, còn tải CSV vẫn cần `hrm.reports.export`. Snapshot chỉ chứa payload aggregate và bộ lọc, không có tên nhân viên, định danh, nội dung vụ việc HR hoặc dữ liệu lương. Mỗi lần lưu/lập lịch phải nhập rõ thời hạn và căn cứ; không có giá trị mặc định. Khi hết hạn, hệ thống thay JSON báo cáo bằng `{}` và giữ checksum, bộ lọc, actor cùng lịch sử event ở dạng tombstone. Không thể khôi phục nội dung snapshot đã hết hạn từ giao diện này.
+
+Worker Cron hằng ngày hiện có chạy lúc 08:40 giờ Việt Nam. Lịch daily chụp tháng hiện tại; weekly chạy thứ Hai và chụp tháng hiện tại; monthly chạy ngày đầu tháng và chụp tháng trọn vẹn vừa kết thúc. Tối đa 20 lịch có thể chạy cùng lúc trên mỗi pháp nhân. Mỗi lịch chỉ sinh tối đa một snapshot trong một ngày địa phương; không gửi email/Lark/thông báo ra ngoài; lỗi chỉ lưu mã đã lọc. Xem lần chạy gần nhất trong `/vi/hrm/reports`; tạm dừng hoặc kết thúc lịch lỗi trong khi điều tra, và tạo lịch thay thế nếu cần đổi phòng ban hoặc căn cứ lưu trữ. Job bỏ qua khi công tắc HRM hoặc `HRM_LIVE_ENABLED` đang tắt. Khi hết hạn, JSON và checksum báo cáo bị xóa; chỉ còn tombstone audit tối thiểu. Lịch production và thời hạn lưu vẫn đóng cho tới khi owner duyệt căn cứ.
+
 ## Các quyết định vận hành còn thiếu
 
 - Ai sở hữu backup/restore D1, RPO và RTO nào được duyệt, ai có quyền phê duyệt phục hồi ghi đè database.
@@ -94,3 +100,4 @@ Nếu PDF sai hoặc gắn nhầm assignment, dừng review và tải xuống, g
 - Thời hạn lưu được chủ sở hữu duyệt và căn cứ pháp lý cho từng loại tệp cùng hồ sơ HRM có cấu trúc.
 - Khi đối chiếu quyền sau restore, EmDash/Workspace có phải nguồn chuẩn cho các lần thu hồi phát sinh sau mốc phục hồi hay không.
 - Nơi lưu bằng chứng và các bước phê duyệt bắt buộc cho báo cáo sự cố.
+- Căn cứ/thời hạn được owner duyệt cho snapshot báo cáo aggregate đã lưu/lên lịch; chưa có quy trình legal hold cho snapshot này.

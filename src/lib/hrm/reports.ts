@@ -1,6 +1,6 @@
 import type { WorkspaceUser } from "../workspace/roles";
 import { HrmError } from "./fields";
-import { audit, localDate, now, requirePermission } from "./service";
+import { audit, now, requirePermission } from "./service";
 
 export interface HrmReportRow {key:string;count:number}
 export interface HrmReportGroup {key:string;title_en:string;title_vi:string;rows:HrmReportRow[]}
@@ -48,17 +48,16 @@ const departmentClause=(alias:string,department:string|null)=>department?` AND $
 const departmentBindings=(department:string|null):string[]=>department?[department]:[];
 const latestEmployment=`e.id=(SELECT e2.id FROM hrm_employments e2 WHERE e2.person_id=e.person_id ORDER BY CASE WHEN e2.status!='ended' THEN 0 ELSE 1 END,e2.started_on DESC,e2.created_at DESC LIMIT 1)`;
 
-export async function hrmReportSnapshot(db:D1Database,user:WorkspaceUser,filters:HrmReportFilters={}):Promise<HrmReportSnapshot>{
-  requirePermission(user,"hrm.reports.read");live(user);
-  const settings=await db.prepare("SELECT legal_entity FROM hrm_settings WHERE id=1").first<{legal_entity:string|null}>();
-  if(!settings?.legal_entity)throw new HrmError("hrm_entity_unconfigured",409);
-  const entity=settings.legal_entity,period=(filters.period??localDate().slice(0,7)).trim(),range=reportMonthRange(period),requestedDepartment=(filters.department??"").trim();
+export async function buildHrmReportSnapshotForEntity(db:D1Database,entity:string,filters:HrmReportFilters={},generatedAt=now()):Promise<HrmReportSnapshot>{
+  if(!entity.trim()||entity.length>100)throw new HrmError("hrm_entity_unconfigured",409);
+  const generatedTime=Date.parse(generatedAt);if(!Number.isFinite(generatedTime))throw new HrmError("report_generated_at_invalid",400);
+  const today=new Date(generatedTime+7*60*60*1000).toISOString().slice(0,10),period=(filters.period??today.slice(0,7)).trim(),range=reportMonthRange(period),requestedDepartment=(filters.department??"").trim();
   if(requestedDepartment.length>120||/[\u0000-\u001f\u007f]/u.test(requestedDepartment))throw new HrmError("report_department_invalid",400);
   const departments=(await db.prepare(`SELECT DISTINCT e.department AS department FROM hrm_employments e
     WHERE e.legal_entity=? AND ${latestEmployment} AND trim(e.department)!='' ORDER BY e.department`).bind(entity).all<{department:string}>()).results.map(row=>row.department);
   const department=requestedDepartment||null;
   if(department&&!departments.includes(department))throw new HrmError("report_department_invalid",400);
-  const dep=departmentClause("e",department),depBindings=departmentBindings(department),today=localDate(),asOf=now();
+  const dep=departmentClause("e",department),depBindings=departmentBindings(department);
   const [headcount,movement,attendance,overtime,onboarding,leave,services,assets,benefits,training,overdueTraining]=await Promise.all([
     grouped(db,`SELECT e.status AS key,COUNT(*) AS count FROM hrm_employments e WHERE e.legal_entity=? AND ${latestEmployment}${dep} GROUP BY e.status ORDER BY e.status`,entity,...depBindings),
     grouped(db,`SELECT 'started' AS key,COUNT(*) AS count FROM hrm_employments e WHERE e.legal_entity=? AND e.started_on>=? AND e.started_on<?${dep}
@@ -96,8 +95,16 @@ export async function hrmReportSnapshot(db:D1Database,user:WorkspaceUser,filters
     {key:"training",title_en:"Training and certification deadlines in selected period",title_vi:"Hạn đào tạo và chứng chỉ trong kỳ",rows:training},
     {key:"overdue_training",title_en:"Currently overdue training/certification items",title_vi:"Mục đào tạo/chứng chỉ hiện quá hạn",rows:[{key:"overdue",count:overdueTraining?.count??0}]},
   ];
-  await audit(db,user,"hrm_report_snapshot_read",null,"reports",{legal_entity:entity,period,department:department??"all",group_count:groups.length});
-  return {legal_entity:entity,generated_at:asOf,period,department,departments,groups};
+  return {legal_entity:entity,generated_at:generatedAt,period,department,departments,groups};
+}
+
+export async function hrmReportSnapshot(db:D1Database,user:WorkspaceUser,filters:HrmReportFilters={}):Promise<HrmReportSnapshot>{
+  requirePermission(user,"hrm.reports.read");live(user);
+  const settings=await db.prepare("SELECT legal_entity FROM hrm_settings WHERE id=1").first<{legal_entity:string|null}>();
+  if(!settings?.legal_entity)throw new HrmError("hrm_entity_unconfigured",409);
+  const report=await buildHrmReportSnapshotForEntity(db,settings.legal_entity,filters);
+  await audit(db,user,"hrm_report_snapshot_read",null,"reports",{legal_entity:report.legal_entity,period:report.period,department:report.department??"all",group_count:report.groups.length});
+  return report;
 }
 
 export async function exportHrmReportCsv(db:D1Database,user:WorkspaceUser,lang:HrmReportLanguage,filters:HrmReportFilters={}):Promise<string>{

@@ -87,6 +87,12 @@ The offboarding asset-return task lists each active assignment linked to that em
 
 If the PDF is wrong or attached to another assignment, stop review and download, preserve its audit/checksum record, and follow the wrong-person/file incident procedure above. Do not move or relink the immutable evidence record; request a corrected upload under the right assignment. Do not invent a retention period or release a legal hold to clear the queue.
 
+## Aggregate report snapshots and schedules
+
+Only HRM Admin/System Super Admin can save snapshots or create, pause and resume schedules; HRM Officer can read saved aggregates, while CSV download still requires `hrm.reports.export`. Saved reports contain only the aggregate report payload and filters, never employee names, identifiers, HR case text or pay data. A save or schedule requires an explicit retention duration and basis; no default is seeded. Expiry redacts the stored report JSON to `{}` and preserves the checksum, filters, actor and event history as a tombstone. An expired snapshot cannot be restored from this interface.
+
+The existing daily Worker Cron runs at 08:40 Vietnam time. Daily schedules capture the current month; weekly schedules run Monday and capture the current month; monthly schedules run on day one and capture the previous complete month. A maximum of 20 schedules may be active per legal entity. The job creates at most one snapshot for each schedule and local date, sends no email/Lark/external notification, and records a sanitized error code for failures. Check the schedule's latest run on `/hrm/reports`; pause or retire a failing schedule while investigating, and create a replacement if its department or retention basis needs to change. The run is skipped unless both the HRM setting and `HRM_LIVE_ENABLED` are open. On expiry, report JSON and its checksum are cleared; an audit tombstone remains. Production schedules and retention durations remain closed until the owner approves their basis.
+
 ## Open operator decisions
 
 - Authoritative D1 backup/restore ownership, approved RPO and RTO, and who can authorize an in-place restore.
@@ -94,3 +100,4 @@ If the PDF is wrong or attached to another assignment, stop review and download,
 - Owner-approved retention windows and legal basis for each HRM file and structured-record category.
 - Whether restore access reconciliation uses EmDash/Workspace as the authority for revocations made after the restore point.
 - Evidence retention location and required incident/report approvals.
+- Owner-approved retention basis/durations for saved and scheduled aggregate report snapshots; a snapshot hold process is not implemented.

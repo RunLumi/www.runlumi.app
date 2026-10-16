@@ -4,6 +4,6 @@ import { HrmError } from "../../../lib/hrm/fields";
 import { reportsPage } from "../../../lib/hrm/report-pages";
 export const prerender=false;
 let data;
-try{data=await reportsPage(Astro,"en");if(data instanceof Response)return data}catch(error){const user=Astro.locals.workspace!;data={lang:"en",vi:false,user,title:"HRM reports",live:user.hrmEnabled===true,legalEntity:"",generatedAt:"",period:"",department:null,departments:[],groups:[],error:error instanceof HrmError?error.message:"internal_error",status:error instanceof HrmError?error.status:500};Astro.response.status=data.status}
+try{data=await reportsPage(Astro,"en");if(data instanceof Response)return data}catch(error){const user=Astro.locals.workspace!;data={lang:"en",vi:false,user,title:"HRM reports",live:user.hrmEnabled===true,legalEntity:"",generatedAt:"",period:"",department:null,departments:[],groups:[],snapshots:[],snapshotPage:1,hasMoreSnapshots:false,schedules:[],schedulePage:1,hasMoreSchedules:false,saved:"",error:error instanceof HrmError?error.message:"internal_error",status:error instanceof HrmError?error.status:500};Astro.response.status=data.status}
 ---
 <HrmReports {...data}/>
