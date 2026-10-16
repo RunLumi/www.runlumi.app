@@ -1,16 +1,14 @@
-// Synthetic-only recovery proof across local D1 exports, private R2 objects,
+// Synthetic-only recovery proof across local D1 snapshots, private R2 objects,
 // EmDash revocation state and the actual HRM download route.
 import assert from "node:assert/strict";
 import { spawn, execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
 import { cp, mkdir, mkdtemp, readFile, readdir, rm, stat, symlink, writeFile } from "node:fs/promises";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { join, relative, resolve, sep } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { AwsClient } from "aws4fetch";
-import ts from "typescript";
 import { BASE, PERSIST, content, jobs, q } from "./helpers.mjs";
 
 const root = process.cwd();
@@ -52,23 +50,7 @@ function databaseRows(persist, database, command) {
   return JSON.parse(output)[0].results;
 }
 
-async function exportLocalDatabase({ database, databaseId, sourcePersist, destination, directory }) {
-  const exportRoot = join(directory, `export-${database}`);
-  const stateRoot = join(exportRoot, ".wrangler", "state");
-  await mkdir(stateRoot, { recursive: true });
-  await cp(sourcePersist, stateRoot, { recursive: true });
-  const configPath = join(exportRoot, "wrangler.jsonc");
-  await writeFile(configPath, JSON.stringify({
-    name: "runlumi-hrm-recovery-test",
-    d1_databases: [{ binding: "DB", database_name: database, database_id: databaseId }],
-  }));
-  runWrangler([
-    "d1", "export", database, "--local", "--config", configPath,
-    "--output", destination, "--skip-confirmation",
-  ], { cwd: exportRoot });
-}
-
-async function removeLocalDatabaseFile(persist, tableName) {
+async function findLocalDatabaseFile(persist, tableName) {
   const pending = [persist];
   while (pending.length) {
     const current = pending.pop();
@@ -84,22 +66,24 @@ async function removeLocalDatabaseFile(persist, tableName) {
           database = new DatabaseSync(path, { readOnly: true });
           found = Boolean(database.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?").get(tableName));
         } catch {} finally { database?.close(); }
-        if (found) {
-          for (const suffix of ["", "-wal", "-shm"]) await rm(`${path}${suffix}`, { force: true });
-          return path;
-        }
+        if (found) return path;
       }
     }
   }
   throw new Error(`Could not find the isolated local D1 file containing ${tableName}.`);
 }
 
-function sourceDatabaseId(name) {
-  const parsed = ts.parseConfigFileTextToJson("wrangler.jsonc", readFileSync(resolve(root, "wrangler.jsonc"), "utf8"));
-  if (parsed.error) throw new Error("Could not parse Wrangler config for the synthetic recovery drill.");
-  const row = parsed.config.d1_databases?.find((database) => database.database_name === name);
-  if (!row?.database_id) throw new Error(`D1 binding is missing for ${name}.`);
-  return row.database_id;
+async function snapshotLocalDatabase({ sourcePersist, tableName, backupPath, directory }) {
+  const snapshotRoot = join(directory, "d1-snapshot");
+  await cp(sourcePersist, snapshotRoot, { recursive: true });
+  const sourceFile = await findLocalDatabaseFile(snapshotRoot, tableName);
+  const database = new DatabaseSync(sourceFile);
+  try {
+    database.exec(`VACUUM INTO '${backupPath.replaceAll("'", "''")}'`);
+  } finally {
+    database.close();
+  }
+  return sourceFile;
 }
 
 function s3Url(base, key, query = {}) {
@@ -244,17 +228,16 @@ export async function runHrmRecoveryDrill({
   const tempRoot = await mkdtemp(join(tmpdir(), "runlumi-hrm-recovery-drill-"));
   const backupRoot = join(tempRoot, "r2-backup");
   await mkdir(backupRoot, { recursive: true });
-  const jobsDump = join(tempRoot, "lumi-jobs.sql");
+  const jobsSnapshot = join(tempRoot, "lumi-jobs.sqlite");
   const recoveryPersist = join(tempRoot, "recovery-state");
 
   let recoveryWorker;
   let disabledForRecovery = false;
   try {
-    await exportLocalDatabase({
-      database: "lumi-jobs",
-      databaseId: sourceDatabaseId("lumi-jobs"),
+    await snapshotLocalDatabase({
       sourcePersist: PERSIST,
-      destination: jobsDump,
+      tableName: "hrm_files",
+      backupPath: jobsSnapshot,
       directory: join(tempRoot, "jobs-export"),
     });
 
@@ -276,13 +259,12 @@ export async function runHrmRecoveryDrill({
     disabledForRecovery = true;
     assert.equal(content(`SELECT disabled FROM users WHERE id=${q(employeeUserId)}`)[0].disabled, 1);
 
-    // EmDash's current D1 contains FTS5 virtual tables, which Wrangler's SQL
-    // export intentionally rejects. Preserve that current identity authority
-    // from the copied local state while restoring only HRM's jobs database.
+    // Preserve EmDash's current identity database from the copied local state
+    // while replacing only HRM's D1 file with the earlier local SQLite snapshot.
     await cp(PERSIST, recoveryPersist, { recursive: true });
-    const removedJobsDatabase = await removeLocalDatabaseFile(recoveryPersist, "hrm_files");
-    assert.ok(removedJobsDatabase, "the disposable HRM D1 file is isolated before restoring the SQL snapshot");
-    runWrangler(["d1", "execute", "lumi-jobs", "--local", "--persist-to", recoveryPersist, "--file", jobsDump]);
+    const recoveryJobsFile = await findLocalDatabaseFile(recoveryPersist, "hrm_files");
+    for (const suffix of ["", "-wal", "-shm"]) await rm(`${recoveryJobsFile}${suffix}`, { force: true });
+    await cp(jobsSnapshot, recoveryJobsFile);
 
     recoveryWorker = await startRecoveryWorker(recoveryPersist, await listenPort(), tempRoot);
 
