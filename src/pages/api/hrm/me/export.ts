@@ -12,6 +12,7 @@ export const POST:APIRoute=async context=>{
  if(!user)return new Response(JSON.stringify({error:"forbidden"}),{status:403,headers:{...privateHeaders,"Content-Type":"application/json; charset=utf-8"}});
  if(!user.can("hrm.profile.self")||!user.can("hrm.legal.self")||!user.can("hrm.coi.self"))return new Response(JSON.stringify({error:"forbidden"}),{status:403,headers:{...privateHeaders,"Content-Type":"application/json; charset=utf-8"}});
  if(!sameOrigin(context.request))return new Response(JSON.stringify({error:"invalid_origin"}),{status:400,headers:{...privateHeaders,"Content-Type":"application/json; charset=utf-8"}});
+ if(!user.can("hrm.services.self")&&!user.can("hrm.services.manage"))return new Response(JSON.stringify({error:"forbidden"}),{status:403,headers:{...privateHeaders,"Content-Type":"application/json; charset=utf-8"}});
  try{
   const result=await exportOwnHrmProfile(envFromLocals(context.locals).DB,user);
   return new Response(result.body,{headers:{...privateHeaders,"Content-Type":"application/json; charset=utf-8","Content-Disposition":"attachment; filename=\"lumi-hrm-self-data.json\""}});
