@@ -137,6 +137,8 @@ export async function createLegalHold(db:D1Database,user:WorkspaceUser,key:strin
   const file=await sourceFile(db,input.source_table,input.target_file_id);if(!file||file.object_deleted_at)throw new HrmError("not_found",404);
   input.person_id=file.person_id??"";input.category=input.source_table==="hrm_files"?retentionCategoryForHrm(file.kind):retentionCategoryForLegal(file);
  }
+ const structuredKindCategory="CASE r.record_kind WHEN 'contact' THEN 'personal' WHEN 'bank' THEN 'banking' ELSE r.record_kind END",structuredHoldScope="r.person_id=? AND (?='*' OR "+structuredKindCategory+"=?)",structuredHoldUpdateScope="person_id=? AND (?='*' OR CASE record_kind WHEN 'contact' THEN 'personal' WHEN 'bank' THEN 'banking' ELSE record_kind END=?)",structuredHoldParams=input.scope_kind==="person"?[input.person_id,input.category,input.category]:[];
+ if(input.scope_kind==="person"&&await db.prepare(`SELECT 1 FROM hrm_structured_disposition_requests r WHERE r.state='completed' AND ${structuredHoldScope} LIMIT 1`).bind(...structuredHoldParams).first())throw new HrmError("legal_hold_record_disposed",409);
  const payload={...input,reason:input.reason.trim()},prior=await previous(db,user,key,"legal_hold_create",payload);if(prior)return prior;
  const holdId=id("legal_hold"),time=now(),scopeParams=input.scope_kind==="person"?personScopeParams(input.person_id,input.category):[input.source_table!,input.target_file_id!];
  const existingDeletionScope=requestScopeSql(input.scope_kind),fileHoldScope=fileScopeSql("hrm_files",input.scope_kind),legalHoldScope=fileScopeSql("hrm_legal_files",input.scope_kind);
@@ -144,12 +146,14 @@ export async function createLegalHold(db:D1Database,user:WorkspaceUser,key:strin
  await command(db,user,key,"legal_hold_create",payload,holdId,[
   guard(db,"NOT EXISTS(SELECT 1 FROM hrm_legal_holds WHERE state='active' AND scope_kind=? AND ((scope_kind='person' AND person_id=? AND category=?) OR (scope_kind='file' AND source_table=? AND target_file_id=?)))",[input.scope_kind,input.person_id,input.category,input.source_table??null,input.target_file_id??null]),
   guard(db,`NOT EXISTS(SELECT 1 FROM hrm_file_deletion_requests WHERE state IN ('deleting','retryable') AND ${existingDeletionScope})`,scopeParams),
+  ...(input.scope_kind==="person"?[guard(db,`NOT EXISTS(SELECT 1 FROM hrm_structured_disposition_requests r WHERE r.state='completed' AND ${structuredHoldScope})`,structuredHoldParams)]:[]),
  ],[
   db.prepare("INSERT INTO hrm_legal_holds(id,scope_kind,person_id,category,source_table,target_file_id,state,reason,placed_by,placed_at,version,actor_id,created_at,updated_at) VALUES(?,?,?,?,?,?,'active',?,?,?,1,?,?,?)")
    .bind(holdId,input.scope_kind,input.scope_kind==="person"?input.person_id:null,input.scope_kind==="person"?input.category:null,input.scope_kind==="file"?input.source_table:null,input.scope_kind==="file"?input.target_file_id:null,input.reason.trim(),user.id,time,user.id,time,time),
   db.prepare(`UPDATE hrm_files SET legal_hold=1,retention_actor_id=?,version=version+1,updated_at=? WHERE ${fileHoldScope}`).bind(user.id,time,...(input.scope_kind==="person"?personScopeParams(input.person_id,input.category):[input.target_file_id!])),
   db.prepare(`UPDATE hrm_legal_files SET legal_hold=1,actor_id=?,version=version+1,updated_at=? WHERE ${legalHoldScope}`).bind(user.id,time,...(input.scope_kind==="person"?personScopeParams(input.person_id,input.category):[input.target_file_id!])),
   db.prepare(`UPDATE hrm_file_deletion_requests SET state='blocked',block_reason='Blocked by a newly placed legal hold.',version=version+1,actor_id=?,updated_at=? WHERE state IN ('pending_review','approved') AND ${existingDeletionScope}`).bind(user.id,time,...scopeParams),
+  ...(input.scope_kind==="person"?[db.prepare(`UPDATE hrm_structured_disposition_requests SET state='blocked',block_reason='Blocked by a newly placed legal hold.',version=version+1,actor_id=?,updated_at=? WHERE state IN ('pending_review','approved') AND ${structuredHoldUpdateScope}`).bind(user.id,time,...structuredHoldParams)]:[]),
   db.prepare("DELETE FROM hrm_write_guards"),
  ]);
  return holdId;

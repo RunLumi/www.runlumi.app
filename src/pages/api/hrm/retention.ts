@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 import { envFromLocals } from "../../../lib/ats";
 import { HrmError } from "../../../lib/hrm/fields";
 import { createFileDeletionRequest, createLegalHold, createRetentionPolicy, executeFileDeletion, releaseLegalHold, reviewFileDeletion, reviewRetentionPolicy, activateRetentionPolicy, type RetentionSource } from "../../../lib/hrm/retention";
+import { activateStructuredRetentionPolicy, createStructuredDispositionRequest, createStructuredRetentionPolicy, executeStructuredDispositionRequest, reviewStructuredDispositionRequest, reviewStructuredRetentionPolicy } from "../../../lib/hrm/structured-retention";
 import { sameOrigin } from "../../../lib/http";
 
 export const prerender=false;
@@ -23,6 +24,16 @@ export const POST:APIRoute=async context=>{
  try{
   const form=await readFields(context.request),intent=field(form,"intent",40,true),key=field(form,"request_key",100,true),env=envFromLocals(context.locals);
   if(intent==="create_policy")await createRetentionPolicy(env.DB,user,key,field(form,"rules_json",20000,true));
+  else if(intent==="create_structured_policy")await createStructuredRetentionPolicy(env.DB,user,key,field(form,"structured_rules_json",20000,true));
+  else if(intent==="review_structured_policy"){
+   const decision=field(form,"decision",10,true);if(decision!=="approve"&&decision!=="reject")throw new HrmError("invalid_decision");
+   await reviewStructuredRetentionPolicy(env.DB,user,key,field(form,"policy_id",100,true),int(form,"version"),decision==="approve",field(form,"reason",500,true));
+  }else if(intent==="activate_structured_policy")await activateStructuredRetentionPolicy(env.DB,user,key,field(form,"policy_id",100,true),int(form,"version"));
+  else if(intent==="request_structured_disposition")await createStructuredDispositionRequest(env.DB,user,key,field(form,"record_id",100,true),field(form,"reason",500,true));
+  else if(intent==="review_structured_disposition"){
+   const decision=field(form,"decision",10,true);if(decision!=="approve"&&decision!=="reject")throw new HrmError("invalid_decision");
+   await reviewStructuredDispositionRequest(env.DB,user,key,field(form,"request_id",100,true),int(form,"version"),decision==="approve",field(form,"reason",500,true));
+  }else if(intent==="execute_structured_disposition")await executeStructuredDispositionRequest(env.DB,user,key,field(form,"request_id",100,true),int(form,"version"));
   else if(intent==="review_policy"){
    const decision=field(form,"decision",10,true);if(decision!=="approve"&&decision!=="reject")throw new HrmError("invalid_decision");
    await reviewRetentionPolicy(env.DB,user,key,field(form,"policy_id",100,true),int(form,"version"),decision==="approve",field(form,"reason",500,true));
@@ -42,6 +53,7 @@ export const POST:APIRoute=async context=>{
   else throw new HrmError("invalid_action");
   return new Response(null,{status:303,headers:{Location:`${vi?"/vi":""}/hrm/retention?saved=${encodeURIComponent(intent)}`,"Cache-Control":"private, no-store"}});
  }catch(error){
+  if(!(error instanceof HrmError)&&import.meta.env.DEV)console.error("[hrm] retention request failed:",error instanceof Error?`${error.name}: ${error.message.slice(0,180)}`:"unknown");
   const target=new URL(`${vi?"/vi":""}/hrm/retention`,context.request.url);target.searchParams.set("error",error instanceof HrmError?error.message:"internal_error");
   return new Response(null,{status:303,headers:{Location:target.pathname+target.search,"Cache-Control":"private, no-store","X-Content-Type-Options":"nosniff"}});
  }

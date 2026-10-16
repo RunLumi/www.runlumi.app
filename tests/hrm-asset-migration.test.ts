@@ -19,6 +19,8 @@ test("asset evidence migration preserves existing private files and evidence his
     assert.ok(offboardingAssetMigration, "offboarding asset-link migration exists");
     const assetReminderMigration = migrations.find((file) => file.startsWith("0032_hrm_asset_reminders"));
     assert.ok(assetReminderMigration, "asset reminder migration exists");
+    const structuredRetentionMigration = migrations.find((file) => file.startsWith("0033_hrm_structured_retention"));
+    assert.ok(structuredRetentionMigration, "structured retention migration exists");
     for (const migration of migrations) {
       if (migration === assetEvidenceMigration) break;
       db.exec(readFileSync(join(root, "migrations", migration), "utf8"));
@@ -214,6 +216,45 @@ test("asset evidence migration preserves existing private files and evidence his
     assert.equal(db.prepare("SELECT COUNT(*) AS n FROM hrm_asset_reminder_events WHERE reminder_id IN ('asset_reminder_employee_test','asset_reminder_hr_test')").get()?.n,4,"created, read and automatic resolution history is append-only");
     assert.throws(()=>db.prepare("UPDATE hrm_asset_reminder_events SET detail_json='{}' WHERE reminder_id='asset_reminder_hr_test'").run(),/immutable_history/);
     assert.throws(()=>db.prepare("UPDATE hrm_asset_reminders SET due_on='2026-10-20' WHERE id='asset_reminder_hr_test'").run(),/immutable_asset_reminder/);
+
+    db.exec(readFileSync(join(root,"migrations",structuredRetentionMigration),"utf8"));
+    assert.equal(db.prepare("SELECT COUNT(*) AS n FROM hrm_structured_retention_policy_versions").get()?.n,0,"no structured retention policy is seeded");
+    assert.equal(db.prepare("SELECT COUNT(*) AS n FROM hrm_structured_disposition_requests").get()?.n,0,"no structured profile record is scheduled for deletion by default");
+    const structuredRules=JSON.stringify(["contact","personal","identity","dependent","bank","tax"].map(kind=>({kind,retention_days:kind==="identity"?1:null,retention_anchor:kind==="identity"?"record_created":null,basis:"TEST owner-configured structured record rule"})));
+    const insertStructuredPolicy=db.prepare(`INSERT INTO hrm_structured_retention_policy_versions(
+      id,legal_entity,version_number,rules_json,state,created_by,created_at,reviewed_by,reviewed_at,review_reason,activated_by,activated_at,version,actor_id,updated_at
+    ) VALUES(?,?,1,?,'active','record_policy_creator',?,'record_policy_reviewer',?,'TEST independent review','record_policy_activator',?,2,'record_policy_activator',?)`);
+    assert.throws(()=>insertStructuredPolicy.run("invalid_structured_policy","TEST entity",JSON.stringify(["contact","personal","identity","dependent","bank","tax"].map(kind=>({kind,retention_days:kind==="identity"?1:null,retention_anchor:null,basis:"TEST invalid anchor"}))),time,time,time,time),/structured_retention_rules_invalid/);
+    assert.throws(()=>insertStructuredPolicy.run("extra_field_structured_policy","TEST entity",JSON.stringify(["contact","personal","identity","dependent","bank","tax"].map(kind=>({kind,retention_days:null,retention_anchor:null,basis:"TEST no defaults",unreviewed_private_value:"TEST secret"}))),time,time,time,time),/structured_retention_rules_invalid/);
+    insertStructuredPolicy.run("structured_policy_test","TEST entity",structuredRules,time,time,time,time);
+    const structuredRecordData=JSON.stringify({document_type:"CCCD",document_number:"TEST-STRUCTURED-SECRET",issued_by:"TEST issuer"});
+    db.prepare(`INSERT INTO hrm_records(id,person_id,kind,data,state,effective_from,version,actor_id,verified_by,verified_at,created_at,updated_at)
+      VALUES('structured_record_test','reminder_person_test','identity',?,'verified','2026-01-01',1,'test_hr','test_reviewer',?,'2026-01-01T00:00:00.000Z','2026-01-01T00:00:00.000Z')`).run(structuredRecordData,time);
+    db.prepare(`INSERT INTO hrm_change_requests(id,person_id,record_id,kind,expected_version,data,state,submitted_by,reviewed_by,review_reason,actor_id,created_at,updated_at)
+      VALUES('structured_change_test','reminder_person_test','structured_record_test','identity',1,?,'rejected','test_employee','test_reviewer','TEST-CHANGE-SECRET','test_reviewer',?,?)`)
+      .run(JSON.stringify({document_number:"TEST-CHANGE-SECRET"}),time,time);
+    const structuredRequestInsert=db.prepare(`INSERT INTO hrm_structured_disposition_requests(
+      id,record_id,person_id,record_kind,record_version,policy_version_id,policy_version,retention_due_on,state,request_reason,requested_by,requested_at,version,actor_id,created_at,updated_at
+    ) VALUES('structured_disposition_test','structured_record_test','reminder_person_test','identity',1,'structured_policy_test',1,'2026-01-03','pending_review','TEST structured record disposition','record_requester',?,1,'record_requester',?,?)`);
+    structuredRequestInsert.run(time,time,time);
+    assert.throws(()=>db.prepare("UPDATE hrm_records SET data='{}' WHERE id='structured_record_test'").run(),/structured_disposition_in_progress/);
+    assert.throws(()=>db.prepare("DELETE FROM hrm_record_history WHERE record_id='structured_record_test'").run(),/structured_disposition_guard_required/);
+    assert.throws(()=>db.prepare(`INSERT INTO hrm_change_requests(id,person_id,record_id,kind,expected_version,data,state,submitted_by,actor_id,created_at,updated_at)
+      VALUES('structured_change_blocked','reminder_person_test','structured_record_test','identity',1,'{}','submitted','test_employee','test_employee',?,?)`).run(time,time),/structured_disposition_in_progress/);
+    db.prepare("UPDATE hrm_structured_disposition_requests SET state='approved',reviewed_by='record_reviewer',reviewed_at=?,review_reason='TEST separate review',version=version+1,actor_id='record_reviewer',updated_at=? WHERE id='structured_disposition_test'").run(time,time);
+    db.prepare("UPDATE hrm_structured_disposition_requests SET state='executing',version=version+1,actor_id='record_executor',updated_at=? WHERE id='structured_disposition_test'").run(time);
+    db.prepare("INSERT INTO hrm_structured_disposition_guards(request_id,record_id,valid,actor_id,created_at) VALUES('structured_disposition_test','structured_record_test',1,'record_executor',?)").run(time);
+    db.prepare("DELETE FROM hrm_record_history WHERE record_id='structured_record_test'").run();
+    db.prepare("UPDATE hrm_change_requests SET data='{}',effective_from=NULL,effective_to=NULL,review_reason='Redacted by structured-record disposition',version=version+1,actor_id='record_executor',updated_at=? WHERE record_id='structured_record_test'").run(time);
+    db.prepare("UPDATE hrm_records SET data='{}',state='ended',effective_from=NULL,effective_to=NULL,verified_by=NULL,verified_at=NULL,version=version+1,actor_id='record_executor',updated_at=? WHERE id='structured_record_test' AND version=1").run(time);
+    db.prepare("UPDATE hrm_structured_disposition_requests SET state='completed',completed_by='record_executor',completed_at=?,completion_detail='Redacted tombstone retained.',version=version+1,actor_id='record_executor',updated_at=? WHERE id='structured_disposition_test' AND state='executing'").run(time,time);
+    db.prepare("DELETE FROM hrm_structured_disposition_guards WHERE request_id='structured_disposition_test'").run();
+    const structuredTombstone=db.prepare("SELECT data,state FROM hrm_records WHERE id='structured_record_test'").get();assert.equal(structuredTombstone?.data,"{}");assert.equal(structuredTombstone?.state,"ended");
+    const structuredChange=db.prepare("SELECT data,review_reason FROM hrm_change_requests WHERE id='structured_change_test'").get();assert.equal(structuredChange?.data,"{}");assert.equal(structuredChange?.review_reason,"Redacted by structured-record disposition");
+    const structuredHistory=db.prepare("SELECT data,state FROM hrm_record_history WHERE record_id='structured_record_test'").all();assert.equal(structuredHistory.length,1,"only the non-sensitive tombstone history remains");assert.equal(structuredHistory[0].data,"{}");assert.equal(structuredHistory[0].state,"ended");
+    assert.equal(db.prepare("SELECT state FROM hrm_structured_disposition_requests WHERE id='structured_disposition_test'").get()?.state,"completed");
+    assert.equal(db.prepare("SELECT COUNT(*) AS n FROM hrm_structured_disposition_events WHERE request_id='structured_disposition_test'").get()?.n,4,"the disposition event trail records request, approval, execution and completion");
+    assert.throws(()=>db.prepare("UPDATE hrm_records SET data='{}' WHERE id='structured_record_test'").run(),/structured_disposition_in_progress/);
     assert.deepEqual(db.prepare("PRAGMA foreign_key_check").all(), []);
     assert.equal(db.prepare("PRAGMA integrity_check").get()?.integrity_check, "ok");
   } finally {
