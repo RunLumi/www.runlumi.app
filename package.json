@@ -14,6 +14,7 @@
     "test:files:prepare": "node scripts/prepare-crm-upload-test.mjs",
     "test:integration": "node scripts/run-integration.mjs",
     "test:integration:hrm": "RUNLUMI_INTEGRATION_SCOPE=hrm node scripts/run-integration.mjs",
+    "test:integration:hrm:p1": "RUNLUMI_INTEGRATION_SCOPE=hrm-p1 node scripts/run-integration.mjs",
     "test:integration:hrm:p3": "RUNLUMI_INTEGRATION_SCOPE=hrm-p3 node scripts/run-integration.mjs",
     "test:integration:hrm:p4": "RUNLUMI_INTEGRATION_SCOPE=hrm-p4 node scripts/run-integration.mjs",
     "test:integration:hrm:p5": "RUNLUMI_INTEGRATION_SCOPE=hrm-p5 node scripts/run-integration.mjs",

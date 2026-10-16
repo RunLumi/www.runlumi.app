@@ -88,6 +88,11 @@ export async function actOnOffboardingTask(
   if(action==="not_required"&&!(["manager_handover","asset_return"].includes(task.task_key)))throw new HrmError("offboarding_not_waivable",403);
   if(action==="block"&&task.state!=="pending")throw new HrmError("invalid_transition",409);
   if(action==="unblock"&&task.state!=="blocked")throw new HrmError("invalid_transition",409);
+  if(task.task_key==="asset_return"&&(action==="complete"||action==="not_required")){
+    const openAssets=await db.prepare("SELECT 1 FROM hrm_asset_assignments WHERE person_id=? AND employment_id=? AND state IN ('offered','assigned','return_requested') LIMIT 1")
+      .bind(task.person_id,task.employment_id).first();
+    if(openAssets)throw new HrmError("offboarding_assets_pending",409);
+  }
 
   let finalState:"completed"|"not_required"|"blocked"|"pending"=action==="not_required"?"not_required":action==="block"?"blocked":action==="unblock"?"pending":"completed";
   let finalNote=reason.trim(),finalBlock:string|null=action==="block"?reason.trim():null;
