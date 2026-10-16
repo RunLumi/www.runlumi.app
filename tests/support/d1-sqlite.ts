@@ -28,6 +28,10 @@ class Statement {
   runSync(): { meta: { changes: number } } {
     return { meta: { changes: Number(this.db.prepare(this.sql).run(...this.args).changes) } };
   }
+  batchResult(): { results?: Record<string, unknown>[]; meta: { changes: number } } {
+    if (/^\s*SELECT\b/i.test(this.sql)) return { results: this.db.prepare(this.sql).all(...this.args) as Record<string, unknown>[], meta: { changes: 0 } };
+    return this.runSync();
+  }
 }
 
 export function sqliteD1(schema: "jobs" | "content" = "jobs"): D1Database & { raw: DatabaseSync } {
@@ -45,7 +49,7 @@ export function sqliteD1(schema: "jobs" | "content" = "jobs"): D1Database & { ra
     async batch(statements: Statement[]) {
       db.exec("BEGIN");
       try {
-        const results = statements.map((statement) => statement.runSync());
+        const results = statements.map((statement) => statement.batchResult());
         db.exec("COMMIT");
         return results;
       } catch (error) {
