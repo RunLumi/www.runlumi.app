@@ -146,26 +146,42 @@ export async function createReportSchedule(db:D1Database,user:WorkspaceUser,key:
 }
 
 export async function setReportScheduleState(db:D1Database,user:WorkspaceUser,key:string,scheduleRef:string,version:number,state:"active"|"paused"|"retired"):Promise<void>{
-  requirePermission(user,"hrm.reports.manage");live(user);const ref=clean(scheduleRef,100),requestPayload={schedule_ref:ref,version,state};if(await replay(db,user,key,"hrm_report_schedule_state",requestPayload))return;const row=await db.prepare("SELECT id,legal_entity,state,version FROM hrm_report_schedules WHERE schedule_ref=?").bind(ref).first<{id:string;legal_entity:string;state:"active"|"paused"|"retired";version:number}>();
+  requirePermission(user,"hrm.reports.manage");live(user);const ref=clean(scheduleRef,100),requestPayload={schedule_ref:ref,version,state};if(await replay(db,user,key,"hrm_report_schedule_state",requestPayload))return;const row=await db.prepare("SELECT id,legal_entity,department,cadence,state,version FROM hrm_report_schedules WHERE schedule_ref=?").bind(ref).first<{id:string;legal_entity:string;department:string|null;cadence:string;state:"active"|"paused"|"retired";version:number}>();
   if(!row)throw new HrmError("not_found",404);if(row.version!==version)throw new HrmError("conflict",409);if(row.state==="retired"||row.state===state)throw new HrmError("conflict",409);
-  const time=now(),config=await settings(db);
+  const config=await settings(db);
+  if(state==="active"){
+    const duplicate=await db.prepare("SELECT 1 FROM hrm_report_schedules WHERE legal_entity=? AND state='active' AND id!=? AND cadence=? AND department IS ? LIMIT 1").bind(row.legal_entity,row.id,row.cadence,row.department).first();
+    if(duplicate)throw new HrmError("conflict",409);
+    const active=(await db.prepare("SELECT COUNT(*) AS count FROM hrm_report_schedules WHERE legal_entity=? AND state='active'").bind(row.legal_entity).first<{count:number}>())?.count??0;
+    if(active>=MAX_ACTIVE_REPORT_SCHEDULES)throw new HrmError("report_schedule_limit",409);
+  }
+  const time=now(),stateGuard="EXISTS(SELECT 1 FROM hrm_report_schedules WHERE id=? AND schedule_ref=? AND legal_entity=? AND state=? AND version=?) AND EXISTS(SELECT 1 FROM hrm_settings WHERE id=1 AND enabled=1 AND legal_entity=? AND version=?)"+(state==="active"?" AND (SELECT COUNT(*) FROM hrm_report_schedules WHERE legal_entity=? AND state='active')<?":""),stateGuardParams:(string|number|null)[]=[row.id,ref,row.legal_entity,row.state,version,row.legal_entity,config.version];
+  if(state==="active")stateGuardParams.push(row.legal_entity,MAX_ACTIVE_REPORT_SCHEDULES);
   await command(db,user,key,"hrm_report_schedule_state",{schedule_ref:ref,version,state},row.id,[
-    guardBoolean(db,"EXISTS(SELECT 1 FROM hrm_report_schedules WHERE id=? AND schedule_ref=? AND legal_entity=? AND state=? AND version=?) AND EXISTS(SELECT 1 FROM hrm_settings WHERE id=1 AND enabled=1 AND legal_entity=? AND version=?)",[row.id,ref,row.legal_entity,row.state,version,row.legal_entity,config.version]),
+    guardBoolean(db,stateGuard,stateGuardParams),
   ],[
     db.prepare("UPDATE hrm_report_schedules SET state=?,version=version+1,updated_by=?,updated_at=?,actor_id=? WHERE id=? AND version=? AND state=?").bind(state,user.id,time,user.id,row.id,version,row.state),
   ]);
 }
 
 export async function runHrmReportScheduleSweep(db:D1Database,liveFlag:string|undefined,scheduledTime:number):Promise<{created:number;expired:number;skipped:boolean}>{
-  const today=new Date(scheduledTime+7*60*60*1000).toISOString().slice(0,10),expiryTime=new Date(scheduledTime).toISOString();let expired=0,batches=0;
+  const config=await settings(db);if(!enabled(config,liveFlag))return {created:0,expired:0,skipped:true};
+  const today=new Date(scheduledTime+7*60*60*1000).toISOString().slice(0,10),expiryTime=new Date(scheduledTime).toISOString();
+  const schedules=(await db.prepare("SELECT id,schedule_ref,legal_entity,department,cadence,retention_days,retention_basis,created_by FROM hrm_report_schedules WHERE state='active' ORDER BY created_at,id").all<ScheduleRow>()).results;
+  const configuredSchedules=schedules.filter(schedule=>schedule.legal_entity===config.legal_entity);
+  if(configuredSchedules.length>MAX_ACTIVE_REPORT_SCHEDULES){
+    const failures=configuredSchedules.map(schedule=>db.prepare("INSERT OR IGNORE INTO hrm_report_schedule_events(schedule_id,event_type,scheduled_on,detail_json,actor_id,created_at) VALUES(?,'run_failed',?,?,?,?)").bind(schedule.id,today,JSON.stringify({error_code:"report_schedule_limit"}),"system:hrm_report_scheduler",expiryTime));
+    for(let offset=0;offset<failures.length;offset+=100)await db.batch(failures.slice(offset,offset+100));
+    return {created:0,expired:0,skipped:true};
+  }
+  let expired=0,batches=0;
   while(batches<10){
     const result=await db.prepare(`UPDATE hrm_report_snapshots SET state='expired',snapshot_json='{}',snapshot_checksum=NULL,expired_at=?,actor_id='system:hrm_report_retention'
-      WHERE id IN (SELECT id FROM hrm_report_snapshots WHERE state='active' AND expires_on<? ORDER BY expires_on,id LIMIT 100)`).bind(expiryTime,today).run();
+      WHERE id IN (SELECT id FROM hrm_report_snapshots WHERE state='active' AND expires_on<? ORDER BY expires_on,id LIMIT 100)
+        AND EXISTS(SELECT 1 FROM hrm_settings WHERE id=1 AND enabled=1 AND legal_entity=? AND version=? AND reviewed_by=?)`).bind(expiryTime,today,config.legal_entity,config.version,config.reviewed_by).run();
     const changed=Number(result.meta?.changes??0);expired+=changed;batches++;if(changed<100)break;
   }
-  const config=await settings(db);if(!enabled(config,liveFlag))return {created:0,expired,skipped:true};
-  const schedules=(await db.prepare(`SELECT id,schedule_ref,legal_entity,department,cadence,retention_days,retention_basis,created_by
-    FROM hrm_report_schedules WHERE state='active' ORDER BY created_at,id LIMIT ?`).bind(MAX_ACTIVE_REPORT_SCHEDULES).all<ScheduleRow>()).results;
+  const current=await settings(db);if(!enabled(current,liveFlag)||current.version!==config.version)return {created:0,expired,skipped:true};
   let created=0;
   for(const schedule of schedules){
     const cadence=schedule.cadence as HrmReportCadence;if(!reportScheduleIsDue(cadence,today))continue;
@@ -174,8 +190,10 @@ export async function runHrmReportScheduleSweep(db:D1Database,liveFlag:string|un
       const period=reportPeriodForSchedule(cadence,today),generatedAt=new Date(scheduledTime).toISOString();
       const report=await buildHrmReportSnapshotForEntity(db,schedule.legal_entity,{period,department:schedule.department},generatedAt),body=makeStored(report),checksum=await digest(body),snapshotId=id("hrmrpt"),snapshotRef=`report-${crypto.randomUUID()}`,expiresOn=reportExpiryDate(today,schedule.retention_days);
       const inserted=await db.prepare(`INSERT INTO hrm_report_snapshots(id,snapshot_ref,source,schedule_id,schedule_day,legal_entity,period,department,snapshot_json,snapshot_checksum,generated_at,retention_days,retention_basis,expires_on,state,expired_at,created_by,created_at,actor_id)
-        VALUES(?,?,'scheduled',?,?,?,?,?,?,?,?,?,?,?,'active',NULL,'system:hrm_report_scheduler',?,'system:hrm_report_scheduler')
-        ON CONFLICT(schedule_id,schedule_day) DO NOTHING`).bind(snapshotId,snapshotRef,schedule.id,today,schedule.legal_entity,report.period,schedule.department,body,checksum,generatedAt,schedule.retention_days,schedule.retention_basis,expiresOn,generatedAt).run();
+        SELECT ?,?,'scheduled',?,?,?,?,?,?,?,?,?,?,?,'active',NULL,'system:hrm_report_scheduler',?,'system:hrm_report_scheduler'
+        WHERE EXISTS(SELECT 1 FROM hrm_report_schedules WHERE id=? AND legal_entity=? AND state='active')
+          AND EXISTS(SELECT 1 FROM hrm_settings WHERE id=1 AND enabled=1 AND legal_entity=? AND version=? AND reviewed_by=?)
+        ON CONFLICT(schedule_id,schedule_day) DO NOTHING`).bind(snapshotId,snapshotRef,schedule.id,today,schedule.legal_entity,report.period,schedule.department,body,checksum,generatedAt,schedule.retention_days,schedule.retention_basis,expiresOn,generatedAt,schedule.id,schedule.legal_entity,config.legal_entity,config.version,config.reviewed_by).run();
       created+=Number(inserted.meta?.changes??0);
     }catch(error){
       const code=error instanceof HrmError?error.message:"internal_error";
