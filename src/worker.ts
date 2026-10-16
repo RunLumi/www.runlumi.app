@@ -1,9 +1,10 @@
 // Worker entry: Astro serves requests; scheduled handlers run only their
-// explicitly assigned CRM/Lark or HRM asset-reminder/report jobs.
+// explicitly assigned CRM/Lark or HRM reminder/report jobs.
 import { cleanupUploads } from "./lib/crm/direct-uploads";
 import server from "@astrojs/cloudflare/entrypoints/server";
 import { isLarkCron, runScheduled } from "./lib/crm/lark/notify";
 import { HRM_ASSET_REMINDER_CRON, runHrmAssetReminderSweep } from "./lib/hrm/asset-reminders";
+import { runHrmTrainingReminderSweep } from "./lib/hrm/training-reminders";
 import { runHrmReportScheduleSweep } from "./lib/hrm/report-snapshots";
 
 export default {
@@ -18,6 +19,9 @@ export default {
       }));
     }
     if(controller.cron===HRM_ASSET_REMINDER_CRON){
+      ctx.waitUntil(runHrmTrainingReminderSweep(env.DB,env.CONTENT_DB,env.HRM_LIVE_ENABLED,controller.scheduledTime).catch((error:unknown)=>{
+        console.error("hrm_training_reminder_scheduled_failed",error instanceof Error?error.name:"unknown"); // !# policy: console
+      }));
       ctx.waitUntil(runHrmAssetReminderSweep(env.DB,env.CONTENT_DB,env.HRM_LIVE_ENABLED,controller.scheduledTime).catch((error:unknown)=>{
         console.error("hrm_asset_reminder_scheduled_failed",error instanceof Error?error.name:"unknown"); // !# policy: console
       }));
