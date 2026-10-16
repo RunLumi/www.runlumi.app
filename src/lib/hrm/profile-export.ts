@@ -11,15 +11,25 @@ interface RecordRow extends JsonExportRow {id:string}
 interface HistoryRow extends JsonExportRow {record_id:string}
 interface ChangeRow extends JsonExportRow {record_id:string}
 interface FileRow extends ExportRow {record_id:string|null}
+interface LegalIssueRow extends ExportRow {issue_no:number;snapshot_json:string;source_checksum:string;acknowledged_at:string|null}
+interface CoiRow extends ExportRow {declaration_no:number;answers_json:string}
 export interface HrmProfileExportResult {body:string;contentBytes:number;personId:string}
 function parseData<T extends JsonExportRow>(row:T):Omit<T,"data">&{data:unknown}{
  let data:unknown;try{data=JSON.parse(String(row.data))}catch{throw new HrmError("profile_export_invalid_record",409)}
  const metadata={...row};delete metadata.data;return {...metadata,data} as Omit<T,"data">&{data:unknown};
 }
+function safeLegalSnapshot(value:string):Record<string,unknown>{
+ let parsed:unknown;try{parsed=JSON.parse(value)}catch{throw new HrmError("profile_export_invalid_record",409)}
+ if(!parsed||typeof parsed!=="object"||Array.isArray(parsed))throw new HrmError("profile_export_invalid_record",409);
+ const source=parsed as Record<string,unknown>,keys=["document_type","title_en","title_vi","version","language","legal_entity","purpose","effective_on","source_checksum","signing_mode","requires_ack"];
+ return Object.fromEntries(keys.filter(key=>Object.hasOwn(source,key)).map(key=>[key,source[key]]));
+}
 
 /** A bounded, self-only snapshot. File bytes and other HRM modules stay on their existing routes. */
 export async function exportOwnHrmProfile(db:D1Database,user:WorkspaceUser):Promise<HrmProfileExportResult>{
  requirePermission(user,"hrm.profile.self");
+ requirePermission(user,"hrm.legal.self");
+ requirePermission(user,"hrm.coi.self");
  if(user.hrmEnabled!==true)throw new HrmError("hrm_closed",503);
  const person=await personFor(db,user);
  if(!own(person,user))throw new HrmError("not_found",404);
@@ -40,33 +50,64 @@ export async function exportOwnHrmProfile(db:D1Database,user:WorkspaceUser):Prom
       CASE WHEN object_deleted_at IS NULL THEN 1 ELSE 0 END AS object_available
     FROM hrm_files WHERE person_id=? AND kind IN ('avatar','identity','dependent','bank','tax','personal')
     ORDER BY created_at,kind,original_name LIMIT ?`).bind(person.id,ROW_LIMIT+1),
+  db.prepare(`SELECT i.issue_no,i.snapshot_json,i.source_checksum,i.state,i.issued_at,i.due_at,i.created_at,i.updated_at,a.acknowledged_at
+    FROM hrm_legal_issues i
+    LEFT JOIN hrm_policy_acknowledgements a ON a.issue_id=i.id AND a.person_id=i.person_id
+      AND a.template_version_id=i.template_version_id AND a.source_checksum=i.source_checksum
+    WHERE i.person_id=? ORDER BY i.issued_at,i.issue_no LIMIT ?`).bind(person.id,ROW_LIMIT+1),
+  db.prepare(`SELECT i.issue_no,p.party_key,p.state,p.required,p.signed_at,p.declared_signed_on,p.updated_at
+    FROM hrm_legal_parties p JOIN hrm_legal_issues i ON i.id=p.issue_id
+    WHERE i.person_id=? AND p.party_kind='employee' AND p.user_id=? ORDER BY i.issue_no,p.party_key LIMIT ?`).bind(person.id,user.id,ROW_LIMIT+1),
+  db.prepare(`SELECT declaration_no,answers_json,state,submitted_at,reviewed_at,mitigation,followup_due,created_at,updated_at
+    FROM hrm_coi_declarations WHERE person_id=? ORDER BY declaration_no LIMIT ?`).bind(person.id,ROW_LIMIT+1),
+  db.prepare(`SELECT c.declaration_no,e.action,e.created_at
+    FROM hrm_coi_events e JOIN hrm_coi_declarations c ON c.id=e.declaration_id
+    WHERE c.person_id=? ORDER BY c.declaration_no,e.created_at LIMIT ?`).bind(person.id,ROW_LIMIT+1),
+  db.prepare(`SELECT i.issue_no,c.declaration_no,f.kind AS file_kind,f.original_name,f.mime_type,f.size_bytes,f.checksum,f.state,f.created_at,
+      CASE WHEN f.object_deleted_at IS NULL THEN 1 ELSE 0 END AS object_available
+    FROM hrm_legal_files f
+    LEFT JOIN hrm_legal_issues i ON i.id=f.issue_id AND i.person_id=f.person_id
+    LEFT JOIN hrm_coi_declarations c ON c.id=f.coi_declaration_id AND c.person_id=f.person_id
+    WHERE f.person_id=? AND f.kind='pdf_evidence' AND (i.id IS NOT NULL OR c.id IS NOT NULL)
+    ORDER BY f.created_at,f.kind,f.original_name LIMIT ?`).bind(person.id,ROW_LIMIT+1),
   db.prepare("DELETE FROM hrm_write_guards"),
  ])}catch(error){if(error instanceof Error&&/CHECK constraint failed/.test(error.message))throw new HrmError("conflict",409);throw error}
  const employmentPeriods=batch[1]?.results as ExportRow[]??[],records=batch[2]?.results as RecordRow[]??[],recordHistory=batch[3]?.results as HistoryRow[]??[],changeRequests=batch[4]?.results as ChangeRow[]??[],files=batch[5]?.results as FileRow[]??[];
- for(const collection of [employmentPeriods,records,recordHistory,changeRequests,files])if(collection.length>ROW_LIMIT)throw new HrmError("profile_export_too_large",413);
+ const legalIssueRows=batch[6]?.results as LegalIssueRow[]??[],employeeParties=batch[7]?.results as ExportRow[]??[],coiRows=batch[8]?.results as CoiRow[]??[],coiEvents=batch[9]?.results as ExportRow[]??[],legalFiles=batch[10]?.results as ExportRow[]??[];
+ for(const collection of [employmentPeriods,records,recordHistory,changeRequests,files,legalIssueRows,employeeParties,coiRows,coiEvents,legalFiles])if(collection.length>ROW_LIMIT)throw new HrmError("profile_export_too_large",413);
  const recordIds=[...new Set([...records.map(row=>row.id),...recordHistory.map(row=>row.record_id),...changeRequests.map(row=>row.record_id),...files.flatMap(row=>row.record_id?[row.record_id]:[])])];
  const recordRefs=new Map(recordIds.map((recordId,index)=>[recordId,`record-${index+1}`]));
  const recordData=records.map(row=>{const {id:recordId,...value}=row;return {...parseData(value),record_ref:recordRefs.get(recordId)}});
  const historyData=recordHistory.map(row=>{const {record_id:recordId,...value}=row;return {...parseData(value),record_ref:recordRefs.get(recordId)}});
  const changeData=changeRequests.map(row=>{const {record_id:recordId,...value}=row;return {...parseData(value),record_ref:recordRefs.get(recordId)}});
  const fileData=files.map(row=>{const {record_id:recordId,...value}=row;return {...value,record_ref:recordId?recordRefs.get(recordId)??null:null,object_available:Boolean(value.object_available)}});
+ const legalDocuments=legalIssueRows.map(row=>{const {snapshot_json,...value}=row;return {...value,snapshot:safeLegalSnapshot(snapshot_json)}});
+ const acknowledgements=legalIssueRows.filter(row=>typeof row.acknowledged_at==="string").map(row=>({issue_no:row.issue_no,version:safeLegalSnapshot(row.snapshot_json).version,source_checksum:row.source_checksum,acknowledged_at:row.acknowledged_at}));
+ const coiDeclarations=coiRows.map(row=>{const {answers_json,...value}=row;let answers:unknown;try{answers=JSON.parse(answers_json)}catch{throw new HrmError("profile_export_invalid_record",409)}return {...value,answers}});
+ const legalFileData=legalFiles.map(file=>({...file,object_available:Boolean(file.object_available)}));
  const createdAt=now();
  const bundle={
-  schema_version:1,
-  export_scope:"self_profile_snapshot",
+  schema_version:2,
+  export_scope:"self_profile_legal_coi_snapshot",
   exported_at:createdAt,
-  included:["profile_identity","employment_periods","structured_profile_records","record_revision_history","profile_change_requests","profile_file_metadata"],
-  excluded:["file_contents","internal_review_notes","reviewer_identity","legal_documents","coi","onboarding","attendance","leave","payroll","hr_requests","assets","benefits","training","other_people","audit_log"],
+  included:["profile_identity","employment_periods","structured_profile_records","record_revision_history","profile_change_requests","profile_file_metadata","legal_document_issues","employee_party_status","policy_acknowledgements","coi_declarations","coi_event_actions","legal_evidence_file_metadata"],
+  excluded:["file_contents","object_keys","internal_review_notes","reviewer_identity","required_parties","other_legal_parties","onboarding","attendance","leave","payroll","hr_requests","assets","benefits","training","other_people","audit_log"],
   profile:{employee_code:person.employee_code,legal_name:person.legal_name,preferred_name:person.preferred_name},
   employment_periods:employmentPeriods,
   records:recordData,
   record_history:historyData,
   change_requests:changeData,
   profile_files:fileData,
+  legal_documents:legalDocuments,
+  employee_party_status:employeeParties,
+  policy_acknowledgements:acknowledgements,
+  coi_declarations:coiDeclarations,
+  coi_event_actions:coiEvents,
+  legal_evidence_files:legalFileData,
  };
  const body=JSON.stringify(bundle,null,2),contentBytes=new TextEncoder().encode(body).byteLength;
  if(contentBytes>BYTE_LIMIT)throw new HrmError("profile_export_too_large",413);
  const exportId=id("profile_export");
- await audit(db,user,"employee_profile_exported",person.id,exportId,{scope:"self_profile_snapshot",employment_period_count:employmentPeriods.length,record_count:recordData.length,history_count:historyData.length,change_request_count:changeData.length,file_metadata_count:files.length,content_bytes:contentBytes});
+ await audit(db,user,"employee_profile_exported",person.id,exportId,{scope:"self_profile_legal_coi_snapshot",employment_period_count:employmentPeriods.length,record_count:recordData.length,history_count:historyData.length,change_request_count:changeData.length,file_metadata_count:files.length,legal_document_count:legalDocuments.length,acknowledgement_count:acknowledgements.length,coi_declaration_count:coiDeclarations.length,legal_file_metadata_count:legalFileData.length,content_bytes:contentBytes});
  return {body,contentBytes,personId:person.id};
 }
