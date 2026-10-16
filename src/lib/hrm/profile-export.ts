@@ -194,7 +194,7 @@ export async function exportOwnHrmProfile(db:D1Database,user:WorkspaceUser):Prom
     JOIN hrm_people p ON p.id=d.person_id AND p.user_id=?
     WHERE ?=1 ORDER BY event.dispute_id,event.created_at,event.id LIMIT ?`).bind(user.id,exportOwnPayrollDisputes?1:0,ROW_LIMIT+1),
   db.prepare(`SELECT x.id,a.asset_tag,a.asset_type,a.description,a.legal_entity,a.location,a.state AS asset_state,
-      x.state AS assignment_state,x.expected_return_on,x.issued_condition,x.offered_at,x.accepted_at,x.return_requested_at,x.employee_handover_at,x.returned_at,x.return_condition,x.return_note
+      x.state AS assignment_state,x.expected_return_on,x.issued_condition,x.offered_at,x.accepted_at,x.return_requested_at,x.employee_handover_at,x.returned_at,x.return_condition
     FROM hrm_asset_assignments x JOIN hrm_assets a ON a.id=x.asset_id JOIN hrm_people p ON p.id=x.person_id AND p.user_id=?
     WHERE ?=1 AND x.state IN ('offered','assigned','return_requested','returned','cancelled')
     ORDER BY CASE x.state WHEN 'offered' THEN 0 WHEN 'return_requested' THEN 1 WHEN 'assigned' THEN 2 ELSE 3 END,x.updated_at DESC,x.id LIMIT ?`).bind(user.id,exportOwnAssets?1:0,ROW_LIMIT+1),
