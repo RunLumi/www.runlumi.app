@@ -58,7 +58,7 @@ export async function reviewTrainingReminderPolicy(db:D1Database,user:WorkspaceU
   ]);
 }
 export async function activateTrainingReminderPolicy(db:D1Database,user:WorkspaceUser,key:string,policyRef:string,version:number):Promise<void>{
-  requirePermission(user,"hrm.training.reminders.approve");const row=await policyFor(db,policyRef);
+  requirePermission(user,"hrm.training.reminders.approve");live(user);const row=await policyFor(db,policyRef);
   if(row.created_by===user.id)throw new HrmError("training_reminder_policy_self_review",403);
   const time=now(),payload={policyRef,version};
   await command(db,user,key,"hrm_training_reminder_policy_activate",payload,row.id,[
