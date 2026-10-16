@@ -208,17 +208,27 @@ test("partners refer businesses, follow status only, and never record payments",
   assert.equal((await S.partner.post(`/crm/${own}`, { intent: "payment", version: Number(/name="version" value="(\d+)"/.exec(page.html)[1]), amount: "399000", method: "bank_transfer", paid_on: "2026-10-01" })).status, 403);
 });
 
-test("the sales process guide renders the Markdown source for CRM roles only", async () => {
+test("the sales process hub and selected Markdown guide render for CRM roles only", async () => {
   const { readFileSync } = await import("node:fs");
   const source = readFileSync(new URL("../../docs/Lumi_Quy_Trinh_Ban_Hang.md", import.meta.url), "utf8");
   const title = /^# (.+)$/m.exec(source)[1].trim();
   const sections = [...source.matchAll(/^## (.+)$/gm)].map((match) => match[1].trim());
   const escape = (text) => text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
-  const page = await S.exec.get("/vi/crm/process");
-  assert.equal(page.status, 200);
-  assert.ok(page.html.includes(escape(title)), "the page shows the Markdown title");
-  for (const section of sections) assert.ok(page.html.includes(escape(section)), `section "${section}" is rendered`);
-  assert.match(page.html, /<table>/, "Markdown tables render as tables");
-  assert.equal((await S.partner.get("/crm/process")).status, 200, "partners read it too");
+  const hub = await S.exec.get("/vi/crm/process");
+  assert.equal(hub.status, 200);
+  assert.ok(hub.html.includes("Chọn quy trình bán hàng"), "the Vietnamese hub has its localized title");
+  assert.match(hub.html, /data-sales-motion="local"/);
+  assert.match(hub.html, /data-sales-motion="agents-vaults"/);
+  assert.doesNotMatch(hub.html, /data-process-guide=/, "the hub does not choose a guide implicitly");
+
+  const localGuide = await S.exec.get("/vi/crm/process?flow=local");
+  assert.equal(localGuide.status, 200);
+  assert.ok(localGuide.html.includes(escape(title)), "the selected page shows the Local Markdown title");
+  for (const section of sections) assert.ok(localGuide.html.includes(escape(section)), `section "${section}" is rendered`);
+  assert.match(localGuide.html, /<table>/, "Markdown tables render as tables");
+
+  assert.equal((await S.partner.get("/crm/process")).status, 200, "partners read the hub");
+  assert.equal((await S.partner.get("/crm/process?flow=local")).status, 200, "partners read selected guides too");
   assert.equal((await S.hr.get("/crm/process")).status, 403, "HR has no CRM access");
+  assert.equal((await S.hr.get("/crm/process?flow=agents-vaults")).status, 403, "HR cannot open deep links either");
 });
