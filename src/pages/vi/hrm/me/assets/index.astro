@@ -1,0 +1,9 @@
+---
+import HrmMyAssets from "../../../../../components/hrm/HrmMyAssets.astro";
+import { HrmError } from "../../../../../lib/hrm/fields";
+import { myAssetsPage } from "../../../../../lib/hrm/asset-pages";
+export const prerender=false;
+let data;
+try{data=await myAssetsPage(Astro,"vi");if(data instanceof Response)return data}catch(error){const user=Astro.locals.workspace!;data={lang:"vi",vi:true,user,title:"Tài sản của tôi",live:user.hrmEnabled===true,error:error instanceof HrmError?error.message:"internal_error",status:error instanceof HrmError?error.status:500};Astro.response.status=data.status}
+---
+<HrmMyAssets {...data}/>

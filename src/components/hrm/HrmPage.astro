@@ -66,6 +66,13 @@ const messages:Record<string,[string,string]>={
  internal_error:["The request could not be completed. No transfer was confirmed.","Không thể hoàn tất yêu cầu. Chưa xác nhận chuyển dữ liệu."],
  offboarding_case_inactive:["This offboarding case was superseded or already closed.","Hồ sơ offboarding đã được thay thế hoặc đóng."],
  offboarding_payroll_blocked:["Payroll is not enabled; do not mark the final settlement complete.","Phân hệ payroll chưa được bật; không thể đánh dấu đã quyết toán cuối cùng."],
+ offboarding_assets_pending:["Return or resolve the assigned company assets before completing this task.","Hãy thu hồi hoặc xử lý các tài sản công ty đang giao trước khi hoàn tất việc này."],
+ asset_evidence_self_review:["The uploader or asset issuer cannot review this handover evidence.","Người tải lên hoặc người giao tài sản không được tự rà soát biên bản bàn giao này."],
+ asset_evidence_file_required:["Choose a PDF handover record.","Hãy chọn PDF biên bản bàn giao."],
+ asset_evidence_type_invalid:["Choose a valid asset evidence type.","Hãy chọn đúng loại chứng từ tài sản."],
+ asset_evidence_target_invalid:["This assignment cannot receive that evidence in its current state.","Assignment hiện tại không thể nhận loại chứng từ này."],
+ asset_evidence_storage_failed:["The private evidence file could not be stored. Try again.","Không thể lưu tệp chứng từ riêng tư. Hãy thử lại."],
+ asset_evidence_persist_failed:["The evidence record could not be saved. The uploaded bytes were removed; retry after review.","Không thể lưu metadata chứng từ. Tệp vừa tải đã được gỡ; hãy thử lại sau khi kiểm tra."],
  offboarding_system_admin_protected:["A System Super Admin account cannot be disabled through employee offboarding.","Không thể tắt tài khoản System Super Admin qua quy trình offboarding nhân viên."],
  offboarding_access_pending:["Workspace access could not be verified as revoked. Keep this task open and retry after review.","Chưa xác minh được quyền Workspace đã bị thu hồi. Hãy giữ việc mở và thử lại sau khi rà soát."],
  offboarding_not_assigned:["This task is not assigned to your account.","Việc này không được phân công cho tài khoản của bạn."],
@@ -154,6 +161,11 @@ const messages:Record<string,[string,string]>={
  payroll_payment_unreconciled:["The run still has an unpaid balance. Record reviewed payment references before closing it.","Kỳ lương vẫn còn số dư chưa thanh toán. Hãy ghi tham chiếu thanh toán đã đối soát trước khi đóng."],
  payroll_dispute_transition_invalid:["This inquiry has changed state or the requested transition is not allowed.","Thắc mắc đã đổi trạng thái hoặc bước chuyển trạng thái này không được phép."],
  payroll_dispute_self_review:["The person who opened an inquiry cannot answer or resolve it.","Người tạo thắc mắc không được tự trả lời hoặc giải quyết thắc mắc đó."],
+ service_request_type_invalid:["Choose a supported HR request category.","Hãy chọn đúng loại yêu cầu HR được hỗ trợ."],
+ service_request_transition_invalid:["This request has changed state or the requested action is not allowed.","Yêu cầu đã đổi trạng thái hoặc thao tác này không được phép."],
+ service_request_inactive:["This request is closed. Reopen it to add another message.","Yêu cầu đã đóng. Hãy mở lại trước khi gửi thêm nội dung."],
+ service_request_assignee_invalid:["Assign the request to an active HRM Officer or HRM Admin.","Hãy phân công cho HRM Officer hoặc HRM Admin đang hoạt động."],
+ service_request_self_review:["A request owner cannot handle their own sensitive concern.","Người gửi không được tự xử lý phản ánh nhạy cảm của mình."],
 };
 let title=data.title||"HRM";let error="error" in data?data.error:undefined;
 ---

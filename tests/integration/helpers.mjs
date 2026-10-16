@@ -70,8 +70,17 @@ export class Session {
 export const key = () => randomUUID().replaceAll("-", "");
 
 export function sql(database, command) {
-  const out = execFileSync("./node_modules/.bin/wrangler", ["d1", "execute", database, "--local", "--persist-to", PERSIST, "--json", "--command", command], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
-  return JSON.parse(out)[0].results;
+  try {
+    const out = execFileSync("./node_modules/.bin/wrangler", ["d1", "execute", database, "--local", "--persist-to", PERSIST, "--json", "--command", command], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+    return JSON.parse(out)[0].results;
+  } catch (error) {
+    const raw = `${String(error?.stderr ?? "")}\n${String(error?.stdout ?? "")}`;
+    const detail = raw.replace(/[^\s@]+@[^\s@]+\.[A-Z]{2,}/gi, "[redacted-email]")
+      .replace(/([?&]token=)[A-Z0-9_-]+/gi, "$1[redacted-token]")
+      .replace(/\b\d{9,15}\b/g, "[redacted-number]")
+      .trim().slice(-800);
+    throw new Error(`Local D1 command failed for ${database} (exit ${error?.status ?? "unknown"}).${detail ? ` ${detail}` : ""}`);
+  }
 }
 export const jobs = (command) => sql("lumi-jobs", command);
 export const content = (command) => sql("lumi-content", command);

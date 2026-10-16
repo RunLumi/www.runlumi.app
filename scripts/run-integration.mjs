@@ -7,6 +7,10 @@ import { join, resolve } from "node:path";
 import process from "node:process";
 
 const root = process.cwd();
+// HRM phases run serially against one isolated Worker/D1/R2 deployment before
+// the existing module regressions. Give the complete gate enough time to finish
+// on slower hosted runners instead of cutting P5/regressions off at ten minutes.
+const integrationTimeoutMs=20*60*1000;
 for (const file of [".env", ".env.local", ".dev.vars"]) {
   if (existsSync(join(root, file))) {
     throw new Error("Refusing integration tests from a checkout containing " + file + "; use a credential-free clone.");
@@ -91,13 +95,15 @@ try {
   const runSuites = suites => spawnSync(
     process.execPath,
     ["--test", "--test-concurrency=1", ...suites],
-    { cwd: root, env, stdio: "inherit", timeout: 600_000, killSignal: "SIGTERM" },
+    { cwd: root, env, stdio: "inherit", timeout: integrationTimeoutMs, killSignal: "SIGTERM" },
   );
   const regressions=["crm","workspace","directory","api","dashboard","files"].map(name=>`tests/integration/${name}.integration.test.mjs`);
   const isolatedSuites={
     hrm:["tests/integration/hrm.integration.test.mjs"],
+    "hrm-p1":["tests/integration/hrm.integration.test.mjs"],
     "hrm-p3":["tests/integration/hrm.integration.test.mjs"],
     "hrm-p4":["tests/integration/hrm.integration.test.mjs"],
+    "hrm-p5":["tests/integration/hrm.integration.test.mjs"],
     crm:["tests/integration/crm.integration.test.mjs"],
     workspace:["tests/integration/workspace.integration.test.mjs"],
     directory:["tests/integration/directory.integration.test.mjs"],
@@ -106,7 +112,7 @@ try {
     files:["tests/integration/files.integration.test.mjs"],
   };
   const requestedScope=process.env.RUNLUMI_INTEGRATION_SCOPE;
-  if(requestedScope&&!Object.hasOwn(isolatedSuites,requestedScope))throw new Error("Unknown RUNLUMI_INTEGRATION_SCOPE; use hrm, hrm-p3, hrm-p4, crm, workspace, directory, api, dashboard or files.");
+  if(requestedScope&&!Object.hasOwn(isolatedSuites,requestedScope))throw new Error("Unknown RUNLUMI_INTEGRATION_SCOPE; use hrm, hrm-p1, hrm-p3, hrm-p4, hrm-p5, crm, workspace, directory, api, dashboard or files.");
   let result;
   if(requestedScope){
     console.log(`Running isolated ${requestedScope} integration suite.`);
