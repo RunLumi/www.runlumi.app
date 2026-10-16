@@ -165,10 +165,10 @@ test("asset evidence migration preserves existing private files and evidence his
     assert.throws(()=>insertPolicy.run("invalid_duplicate_reminder_policy","TEST entity",1,"TEST invalid","TEST invalid","[3,3]","policy_creator",time,"reviewer",time,"TEST reviewed","approver",time,"approver",time),/asset_reminder_policy_offsets_invalid/);
     insertPolicy.run("asset_reminder_policy_test","TEST entity",1,"TEST reminders","TEST nhắc hạn","[3,0,-2]","policy_creator",time,"policy_reviewer",time,"TEST separately reviewed schedule","policy_approver",time,"policy_approver",time);
 
-    const reminderEmployee="asset_reminder_employee",reminderHr="asset_reminder_hr",reminderManager="asset_reminder_manager";
+    const reminderEmployee="asset_reminder_employee",reminderHr="asset_reminder_hr",otherHr="asset_reminder_other_hr",reminderManager="asset_reminder_manager";
     const insertMember=db.prepare("INSERT INTO workspace_members(user_id,enabled,granted_by,created_at,updated_at) VALUES(?,1,'test_system',?,?)");
     const insertRole=db.prepare("INSERT INTO workspace_roles(user_id,role,granted_by,granted_at) VALUES(?,?,'test_system',?)");
-    for(const [userId,role] of [[reminderEmployee,"employee"],[reminderHr,"hrm_admin"],[reminderManager,"people_manager"]]){
+    for(const [userId,role] of [[reminderEmployee,"employee"],[reminderHr,"hrm_admin"],[otherHr,"hrm_officer"],[reminderManager,"people_manager"]]){
       insertMember.run(userId,time,time);insertRole.run(userId,role,time);
     }
     db.prepare("INSERT INTO hrm_people(id,employee_code,user_id,legal_name,actor_id,created_at,updated_at) VALUES('reminder_person_test','TEST-REM-001',?,'TEST reminder employee','test_hr',?,?)")
@@ -181,7 +181,7 @@ test("asset evidence migration preserves existing private files and evidence his
       id,asset_id,person_id,employment_id,state,expected_return_on,issued_condition,offer_reason,offered_by,offered_at,
       accepted_by,accepted_at,actor_id,created_at,updated_at
     ) VALUES('reminder_assignment_test','reminder_asset_test','reminder_person_test','reminder_employment_test','assigned','2026-10-19',
-      'good','TEST reminder fixture',?,?,?,?,'test_hr_admin',?,?)`).run("test_hr_admin",time,reminderEmployee,time,time,time);
+      'good','TEST reminder fixture',?,?,?,?,'test_hr_admin',?,?)`).run(reminderHr,time,reminderEmployee,time,time,time);
 
     const insertReminder=db.prepare(`INSERT INTO hrm_asset_reminders(
       id,assignment_id,asset_id,person_id,recipient_user_id,policy_version_id,due_on,days_before_due,event_key,state,version,created_by,created_at,updated_at
@@ -194,6 +194,8 @@ test("asset evidence migration preserves existing private files and evidence his
       "asset_reminder_policy_test","2026-10-19",2,"asset:reminder_assignment_test:2026-10-19:2:employee",time,time),/asset_reminder_target_invalid/);
     assert.throws(()=>insertReminder.run("asset_reminder_manager_test","reminder_assignment_test","reminder_asset_test","reminder_person_test",reminderManager,
       "asset_reminder_policy_test","2026-10-19",3,"asset:reminder_assignment_test:2026-10-19:3:manager",time,time),/asset_reminder_target_invalid/);
+    assert.throws(()=>insertReminder.run("asset_reminder_other_hr_test","reminder_assignment_test","reminder_asset_test","reminder_person_test",otherHr,
+      "asset_reminder_policy_test","2026-10-19",3,"asset:reminder_assignment_test:2026-10-19:3:other-hr",time,time),/asset_reminder_target_invalid/);
     db.prepare(`INSERT INTO hrm_asset_reminders(
       id,assignment_id,asset_id,person_id,recipient_user_id,policy_version_id,due_on,days_before_due,event_key,state,version,created_by,created_at,updated_at
     ) VALUES('asset_reminder_duplicate_test','reminder_assignment_test','reminder_asset_test','reminder_person_test',?,'asset_reminder_policy_test',

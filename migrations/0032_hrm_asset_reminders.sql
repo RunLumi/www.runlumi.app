@@ -84,7 +84,8 @@ WHEN NOT EXISTS(
     AND v.state='active' AND EXISTS(SELECT 1 FROM json_each(v.days_before_due_json) day WHERE day.type='integer' AND day.value=NEW.days_before_due)
     AND EXISTS(SELECT 1 FROM workspace_members m JOIN workspace_roles r ON r.user_id=m.user_id
       WHERE m.user_id=NEW.recipient_user_id AND m.enabled=1
-        AND (r.role IN ('hrm_officer','hrm_admin') OR (r.role='employee' AND p.user_id=NEW.recipient_user_id)))
+        AND ((r.role IN ('hrm_officer','hrm_admin') AND x.offered_by=NEW.recipient_user_id)
+          OR (r.role='employee' AND p.user_id=NEW.recipient_user_id)))
 )
 BEGIN SELECT RAISE(ABORT,'asset_reminder_target_invalid'); END;
 CREATE TRIGGER hrm_asset_reminder_identity_immutable BEFORE UPDATE ON hrm_asset_reminders
