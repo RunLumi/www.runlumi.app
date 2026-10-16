@@ -240,14 +240,13 @@ No existing row changes. Back up first with `wrangler d1 export … --output bac
 
 ## 12. Automatic production deploys (Cloudflare Workers Builds)
 
-**Observed 2026-10-15:** the authenticated `runlumi` Worker dashboard currently
-shows “Connect your Git repository to enable continuous deployment.” The setup
-below describes the intended pipeline; it is not proof that this Worker is
-connected. Until that connection is configured and a real main build is verified,
-use the documented manual fallback from the exact tested merged main commit and
-read back its version/tag, migrations and live routes. Do not claim automatic
-production deployment from a green GitHub Actions run alone.
-
+**Connected 2026-10-16:** the authenticated `runlumi` Worker dashboard shows
+`RunLumi/www.runlumi.app`, production branch `main`, build command
+`npm run ci:verify`, deploy command `npm run release`, root `/`, and the dedicated
+`runlumi production builds` token. Preview builds are disabled. This supersedes
+the unconnected state observed on 2026-10-15. Verify releases in Cloudflare's
+build log and read back the deployed version/tag, migrations and live routes;
+a saved connection or green GitHub Actions run alone is not deployment proof.
 
 Every push to `main`, including every merged pull request, builds and deploys on Cloudflare's own build servers. This does not depend on the GitHub Actions budget.
 
@@ -263,9 +262,14 @@ Every push to `main`, including every merged pull request, builds and deploys on
    | Deploy command | `npm run release` |
    | Root directory | *(empty)* |
    | Builds for non-production branches | **Off**. Previews would run against production D1; pull requests are checked by GitHub CI instead. |
-   | Build variables | none. Runtime secrets already live on the Worker, and Node 22 comes from `.node-version`. |
+   | Build variables | none. Runtime secrets already live on the Worker, and Node 26 comes from `.node-version`. |
 
-3. **Set the API token.** Choose **Create new token**. Then, under **My Profile** → **API Tokens**, edit that token and add **Account · D1 · Edit**. The default build token cannot apply D1 migrations.
+3. **Set the API token.** Use the dedicated **runlumi production builds** token.
+   On 2026-10-16, Cloudflare's automatic token form included **Account · D1 Storage · Edit**
+   along with Worker, R2, KV and route permissions. The owner approved the displayed
+   RunLumi-account permissions before creation; Cloudflare stores the credential.
+   Recheck the permission summary when recreating it. A custom token must include
+   D1 Edit for migration checks and application; never put its value in Git or logs.
 4. **Check the first build.** Push or merge a commit to `main`, then open **Deployments** → **Build log**. A healthy log shows:
    - `preflight: ok`
    - `release: no D1 migrations pending`, or a restore point followed by the applied migrations
