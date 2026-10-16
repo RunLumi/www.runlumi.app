@@ -22,10 +22,10 @@
     "binding": "ASSETS",
     "directory": "./dist"
   },
-  // Lark: morning digest at 08:37 Vietnam time Monday–Saturday, and a retry
-  // pass every ten minutes. See src/lib/crm/lark/notify.ts.
+  // Lark digest at 08:37 Vietnam time Monday–Saturday, configurable HRM asset
+  // reminder sweep daily at 08:40, and Lark retry safety pass every ten minutes.
   "triggers": {
-    "crons": ["37 1 * * MON-SAT", "*/10 * * * *"]
+    "crons": ["37 1 * * MON-SAT", "40 1 * * *", "*/10 * * * *"]
   },
   "observability": {
     "enabled": true

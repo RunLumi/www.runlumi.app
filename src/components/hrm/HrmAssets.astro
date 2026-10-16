@@ -5,7 +5,7 @@ import type { AssetRegisterPage } from "../../lib/hrm/asset-pages";
 const d = Astro.props as AssetRegisterPage;
 const vi = d.vi;
 const prefix = vi ? "/vi" : "";
-const selectedAsset = d.assets.find(asset => asset.id === d.selectedAssetId);
+const selectedAsset = d.selectedAsset;
 const assetState = (value: string) => ({
   available: vi ? "Sẵn sàng" : "Available",
   offered: vi ? "Chờ nhân viên xác nhận" : "Awaiting employee",
@@ -30,9 +30,13 @@ const typeLabel = (value: string) => ({
   key: vi ? "Chìa khóa/thẻ" : "Key or badge",
   other: vi ? "Khác" : "Other",
 }[value] ?? value);
-const returnTo = (assetId?: string) => `${prefix}/hrm/assets${assetId ? `?asset=${encodeURIComponent(assetId)}` : ""}`;
+const returnTo = (assetId?: string,reminderPage=d.reminderPage,assetPage=d.assetPage) => {
+  const query=[assetId?`asset=${encodeURIComponent(assetId)}`:"",reminderPage>1?`reminder_page=${reminderPage}`:"",assetPage>1?`asset_page=${assetPage}`:""].filter(Boolean).join("&");
+  return `${prefix}/hrm/assets${query?`?${query}`:""}`;
+};
 const evidenceTypeLabel = (value:string) => ({handover:vi?"Biên bản bàn giao":"Handover record",return:vi?"Biên bản nhận lại":"Return receipt"}[value]??value);
 const evidenceStateLabel = (value:string) => ({quarantined:vi?"Chờ HRM Admin hoặc System Super Admin rà soát":"Awaiting HRM Admin or System Super Admin review",reviewed:vi?"Đã rà soát":"Reviewed",rejected:vi?"Từ chối":"Rejected"}[value]??value);
+const reminderText=(days:number)=>days>0?(vi?`Đến hạn trong ${days} ngày`:`Due in ${days} days`):days===0?(vi?"Đến hạn hôm nay":"Due today"):(vi?`Quá hạn ${Math.abs(days)} ngày`:`Overdue by ${Math.abs(days)} days`);
 const eventLabel = (value: string) => ({
   registered: vi ? "Đã đăng ký" : "Registered",
   offered: vi ? "Đã gửi đề nghị bàn giao" : "Handover offered",
@@ -53,6 +57,9 @@ const eventLabel = (value: string) => ({
     <strong>{vi ? "Sổ tài sản nội bộ" : "Internal asset register"}</strong>
     <p>{vi ? "Đề nghị chỉ hoàn tất sau khi nhân viên xác nhận nhận tài sản. HR xác minh khi nhận lại; mất/hỏng không tự khấu trừ lương và không tự provision thiết bị bên ngoài." : "An offer is not a handover until the employee acknowledges receipt. HR verifies returned items. Lost or damaged assets never trigger automatic payroll deductions or external provisioning."}</p>
   </section>
+  {d.reminders.length>0&&<section class="crm-sheet"><h2 class="crm-h2">{vi?"Nhắc trả tài sản tôi phụ trách":"Asset return reminders assigned to me"}</h2><div class="crm-list">{d.reminders.map(reminder=><article class="crm-row"><div><strong>{reminder.asset_tag} · {reminderText(reminder.days_before_due)}</strong><p class="crm-meta">{reminder.description} · {vi?"Hạn trả":"Due"} {reminder.due_on}</p></div><form method="post" action="/api/hrm/assets/reminders"><input type="hidden" name="intent" value="read_reminder"/><input type="hidden" name="return_to" value={returnTo(d.selectedAssetId,d.reminderPage)}/><input type="hidden" name="request_key" value={crypto.randomUUID()}/><input type="hidden" name="reminder_id" value={reminder.id}/><input type="hidden" name="version" value={reminder.version}/><button class="crm-button secondary small">{vi?"Đã xem":"Mark read"}</button></form></article>)}</div>
+    {(d.reminderPage>1||d.hasMoreReminders)&&<nav class="crm-actions" aria-label={vi?"Trang thông báo tài sản":"Asset reminder pages"}>{d.reminderPage>1&&<a class="crm-button secondary small" href={returnTo(d.selectedAssetId,d.reminderPage-1)}>{vi?"Thông báo trước":"Previous reminders"}</a>}{d.hasMoreReminders&&<a class="crm-button secondary small" href={returnTo(d.selectedAssetId,d.reminderPage+1)}>{vi?"Thông báo tiếp":"Next reminders"}</a>}</nav>}
+  </section>}
 
   <section class="crm-sheet">
     <h2 class="crm-h2">{vi ? "Đăng ký tài sản" : "Register an asset"}</h2>
@@ -134,7 +141,10 @@ const eventLabel = (value: string) => ({
         </div>
       </article>)}
     </div>}
+    {(d.assetPage>1||d.hasMoreAssets)&&<nav class="crm-actions" aria-label={vi?"Trang danh mục tài sản":"Asset register pages"}>{d.assetPage>1&&<a class="crm-button secondary small" href={returnTo(d.selectedAssetId,d.reminderPage,d.assetPage-1)}>{vi?"Tài sản trước":"Previous assets"}</a>}{d.hasMoreAssets&&<a class="crm-button secondary small" href={returnTo(d.selectedAssetId,d.reminderPage,d.assetPage+1)}>{vi?"Tài sản tiếp":"Next assets"}</a>}</nav>}
   </section>
+
+  {selectedAsset&&!d.assets.some(asset=>asset.id===selectedAsset.id)&&<section class="crm-sheet"><h2 class="crm-h2">{vi?"Tài sản đã chọn":"Selected asset"}</h2><strong>{selectedAsset.asset_tag} · {selectedAsset.description}</strong><p class="crm-meta">{typeLabel(selectedAsset.asset_type)} · {assetState(selectedAsset.state)} · {selectedAsset.legal_entity}{selectedAsset.location?` · ${selectedAsset.location}`:""}</p><p class="crm-meta">{selectedAsset.serial_number?(vi?"Số sê-ri: ":"Serial: ")+selectedAsset.serial_number:(vi?"Chưa ghi số sê-ri":"No serial recorded")}</p></section>}
 
   {d.selectedAssetId && <section class="crm-sheet"><h2 class="crm-h2">{vi ? "Lịch sử tài sản" : "Asset history"}</h2>{d.events.length === 0 ? <p class="crm-empty">{vi ? "Chưa có sự kiện." : "No events."}</p> : <ol class="crm-list">{d.events.map(event => <li class="crm-row"><div><strong>{eventLabel(event.action)}</strong><p class="crm-meta">{event.created_at}</p></div></li>)}</ol>}</section>}
   {d.selectedAssetId && <section class="crm-sheet"><h2 class="crm-h2">{vi ? "Biên bản bàn giao" : "Handover evidence"}</h2>

@@ -3,7 +3,8 @@ import { createHmac } from "node:crypto";
 import { test } from "node:test";
 import { type EventFacts, digestCard, eventCard } from "../src/lib/crm/lark/cards.ts";
 import { larkSign, larkWebhook, postToLark } from "../src/lib/crm/lark/client.ts";
-import { MAX_ATTEMPTS, flushLark, sendDigest } from "../src/lib/crm/lark/notify.ts";
+import { DIGEST_CRON, MAX_ATTEMPTS, RETRY_CRON, flushLark, isLarkCron, runScheduled, sendDigest } from "../src/lib/crm/lark/notify.ts";
+import { HRM_ASSET_REMINDER_CRON } from "../src/lib/hrm/asset-reminders.ts";
 import { sqliteD1 } from "./support/d1-sqlite.ts";
 
 const HOOK = "https://open.larksuite.com/open-apis/bot/v2/hook/abcdef12-3456-7890-abcd-ef1234567890";
@@ -113,6 +114,16 @@ test("the digest goes out once a day, Monday to Saturday", async () => {
   assert.equal(await sendDigest(at("2026-10-19T01:37:00Z")), "sent", "Monday 08:37 in Vietnam");
   assert.equal(await sendDigest(at("2026-10-19T01:47:00Z")), "skipped", "once per day");
   assert.equal(calls, 1);
+});
+
+test("the HRM reminder cron cannot enter the CRM/Lark delivery path", async () => {
+  assert.equal(isLarkCron(DIGEST_CRON), true);
+  assert.equal(isLarkCron(RETRY_CRON), true);
+  assert.equal(isLarkCron(HRM_ASSET_REMINDER_CRON), false);
+  let envRead = false;
+  const unavailable = new Proxy({}, { get() { envRead = true; throw new Error("unrelated cron accessed CRM bindings"); } });
+  await runScheduled(HRM_ASSET_REMINDER_CRON, unavailable as Parameters<typeof runScheduled>[1]);
+  assert.equal(envRead, false, "an HRM schedule exits before CRM bindings, outbox or webhook code is touched");
 });
 
 test("free text is excerpted with phone numbers and emails masked, amounts and dates kept", async () => {

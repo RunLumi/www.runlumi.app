@@ -20,6 +20,10 @@ test("admins hold every permission; roles hold only their own", () => {
   assert.ok(user(["sales_executive", "fulfillment"]).can("crm.fulfillment"), "roles combine");
   assert.ok(user(["hrm_admin"]).can("hrm.assets.approve"), "HRM Admin may independently approve asset evidence");
   assert.ok(!user(["hrm_officer"]).can("hrm.assets.approve"), "HRM Officer cannot approve asset evidence");
+  assert.ok(user(["hrm_admin"]).can("hrm.assets.reminders.manage"));
+  assert.ok(user(["hrm_admin"]).can("hrm.assets.reminders.approve"));
+  assert.ok(!user(["hrm_officer"]).can("hrm.assets.reminders.manage"));
+  assert.ok(!user(["employee"]).can("hrm.assets.reminders.approve"));
   assert.equal(permissionsFor(false, []).size, 0);
 });
 

@@ -11,6 +11,7 @@ import { localDateTimeToUtc, parseCalendarSchedule, parseLeaveRules } from "../s
 import { parseAttendanceCsv } from "../src/lib/hrm/time-import.ts";
 import { RETENTION_CATEGORIES, retentionCategoryForHrm } from "../src/lib/hrm/retention.ts";
 import { calculatePayrollTotals, formatPayrollMoney, parseMinorAmount, parsePayrollComponents, renderPayrollSlipHtml } from "../src/lib/hrm/payroll.ts";
+import { parseAssetReminderOffsets } from "../src/lib/hrm/asset-reminders.ts";
 const person=(user_id:string|null):Person=>({id:"person_test",employment_id:"employment_test",profile_version:1,employee_code:"E-001",user_id,legal_name:"Test Employee",preferred_name:"Test",work_email:"work@example.test",work_phone:"",department:"Ops",job_title:"Operator",legal_entity:"Test entity",location:"HCMC",manager_user_id:"manager",status:"active",started_on:"2026-01-01",ended_on:null,version:1,actor_id:"hr",created_at:"2026-01-01T00:00:00.000Z",updated_at:"2026-01-01T00:00:00.000Z"});
 const user=(id:string,granted:Parameters<typeof makeUser>[2])=>makeUser({id,name:id,email:id+"@example.test"},false,granted);
 test("HRM grants are separate from ATS, CRM and user administration",()=>{
@@ -111,6 +112,13 @@ test("leave, HR service, training and asset PDFs have separate configurable rete
  assert.ok((RETENTION_CATEGORIES as readonly string[]).includes("service_evidence"));
  assert.ok((RETENTION_CATEGORIES as readonly string[]).includes("training_evidence"));
  assert.ok((RETENTION_CATEGORIES as readonly string[]).includes("asset_evidence"));
+});
+test("asset reminder offsets require explicit unique bounded integer days",()=>{
+ assert.deepEqual(parseAssetReminderOffsets("30,7,1,0,-1"),[30,7,1,0,-1]);
+ assert.throws(()=>parseAssetReminderOffsets(""),error=>error instanceof HrmError&&error.message==="asset_reminder_days_invalid");
+ assert.throws(()=>parseAssetReminderOffsets("7,7"),error=>error instanceof HrmError&&error.message==="asset_reminder_days_invalid");
+ assert.throws(()=>parseAssetReminderOffsets("1.5"),error=>error instanceof HrmError&&error.message==="asset_reminder_days_invalid");
+ assert.throws(()=>parseAssetReminderOffsets("366"),error=>error instanceof HrmError&&error.message==="asset_reminder_days_invalid");
 });
 test("payroll policy accepts only explicit component definitions and no executable formula fields",()=>{
  const components=[{code:"base",title_en:"Base pay",title_vi:"Lương cơ bản",direction:"earning",required:true,source_kind:"employment_record"},{code:"deduction",title_en:"Deduction",title_vi:"Khấu trừ",direction:"deduction",required:false,source_kind:"manual_evidence"}];

@@ -17,6 +17,8 @@ test("asset evidence migration preserves existing private files and evidence his
     assert.ok(assetEvidenceMigration, "asset evidence migration exists");
     const offboardingAssetMigration = migrations.find((file) => file.startsWith("0031_hrm_offboarding_asset_links"));
     assert.ok(offboardingAssetMigration, "offboarding asset-link migration exists");
+    const assetReminderMigration = migrations.find((file) => file.startsWith("0032_hrm_asset_reminders"));
+    assert.ok(assetReminderMigration, "asset reminder migration exists");
     for (const migration of migrations) {
       if (migration === assetEvidenceMigration) break;
       db.exec(readFileSync(join(root, "migrations", migration), "utf8"));
@@ -149,6 +151,67 @@ test("asset evidence migration preserves existing private files and evidence his
     assert.equal(linked.length,2,"assignments created after an open offboarding case link to its asset task");
     assert.throws(()=>db.prepare("UPDATE hrm_offboarding_asset_links SET created_at='later' WHERE assignment_id='assignment_test_one'").run(),/immutable_offboarding_asset_link/);
     assert.throws(()=>db.prepare("DELETE FROM hrm_offboarding_asset_links WHERE assignment_id='assignment_test_one'").run(),/immutable_offboarding_asset_link/);
+    assert.deepEqual(db.prepare("PRAGMA foreign_key_check").all(), []);
+    assert.equal(db.prepare("PRAGMA integrity_check").get()?.integrity_check, "ok");
+
+    db.exec(readFileSync(join(root, "migrations", assetReminderMigration), "utf8"));
+    assert.equal(db.prepare("SELECT COUNT(*) AS n FROM hrm_asset_reminder_policy_versions").get()?.n, 0, "no reminder schedule is seeded");
+    assert.equal(db.prepare("SELECT COUNT(*) AS n FROM hrm_asset_reminders").get()?.n, 0, "no employee receives a default reminder");
+    const insertPolicy=db.prepare(`INSERT INTO hrm_asset_reminder_policy_versions(
+      id,legal_entity,version_number,title_en,title_vi,days_before_due_json,state,created_by,created_at,
+      reviewed_by,reviewed_at,review_reason,activated_by,activated_at,version,actor_id,updated_at
+    ) VALUES(?,?,?,?,?,?,'active',?,?,?,?,?,?,?,1,?,?)`);
+    assert.throws(()=>insertPolicy.run("invalid_fractional_reminder_policy","TEST entity",1,"TEST invalid","TEST invalid","[3.5]","policy_creator",time,"reviewer",time,"TEST reviewed","approver",time,"approver",time),/asset_reminder_policy_offsets_invalid/);
+    assert.throws(()=>insertPolicy.run("invalid_duplicate_reminder_policy","TEST entity",1,"TEST invalid","TEST invalid","[3,3]","policy_creator",time,"reviewer",time,"TEST reviewed","approver",time,"approver",time),/asset_reminder_policy_offsets_invalid/);
+    insertPolicy.run("asset_reminder_policy_test","TEST entity",1,"TEST reminders","TEST nhắc hạn","[3,0,-2]","policy_creator",time,"policy_reviewer",time,"TEST separately reviewed schedule","policy_approver",time,"policy_approver",time);
+
+    const reminderEmployee="asset_reminder_employee",reminderHr="asset_reminder_hr",reminderManager="asset_reminder_manager";
+    const insertMember=db.prepare("INSERT INTO workspace_members(user_id,enabled,granted_by,created_at,updated_at) VALUES(?,1,'test_system',?,?)");
+    const insertRole=db.prepare("INSERT INTO workspace_roles(user_id,role,granted_by,granted_at) VALUES(?,?,'test_system',?)");
+    for(const [userId,role] of [[reminderEmployee,"employee"],[reminderHr,"hrm_admin"],[reminderManager,"people_manager"]]){
+      insertMember.run(userId,time,time);insertRole.run(userId,role,time);
+    }
+    db.prepare("INSERT INTO hrm_people(id,employee_code,user_id,legal_name,actor_id,created_at,updated_at) VALUES('reminder_person_test','TEST-REM-001',?,'TEST reminder employee','test_hr',?,?)")
+      .run(reminderEmployee,time,time);
+    db.prepare("INSERT INTO hrm_employments(id,person_id,legal_entity,status,actor_id,created_at,updated_at) VALUES('reminder_employment_test','reminder_person_test','TEST entity','active','test_hr',?,?)")
+      .run(time,time);
+    db.prepare(`INSERT INTO hrm_assets(id,asset_tag,asset_type,description,legal_entity,state,created_by,created_at,updated_by,updated_at)
+      VALUES('reminder_asset_test','TEST-REMINDER-001','computer','TEST reminder laptop','TEST entity','assigned','test_hr',?,'test_hr',?)`).run(time,time);
+    db.prepare(`INSERT INTO hrm_asset_assignments(
+      id,asset_id,person_id,employment_id,state,expected_return_on,issued_condition,offer_reason,offered_by,offered_at,
+      accepted_by,accepted_at,actor_id,created_at,updated_at
+    ) VALUES('reminder_assignment_test','reminder_asset_test','reminder_person_test','reminder_employment_test','assigned','2026-10-19',
+      'good','TEST reminder fixture',?,?,?,?,'test_hr_admin',?,?)`).run("test_hr_admin",time,reminderEmployee,time,time,time);
+
+    const insertReminder=db.prepare(`INSERT INTO hrm_asset_reminders(
+      id,assignment_id,asset_id,person_id,recipient_user_id,policy_version_id,due_on,days_before_due,event_key,state,version,created_by,created_at,updated_at
+    ) VALUES(?,?,?,?,?,?,?,?,?,'unread',1,'system:hrm_asset_reminder',?,?)`);
+    insertReminder.run("asset_reminder_employee_test","reminder_assignment_test","reminder_asset_test","reminder_person_test",reminderEmployee,
+      "asset_reminder_policy_test","2026-10-19",3,"asset:reminder_assignment_test:2026-10-19:3:employee",time,time);
+    insertReminder.run("asset_reminder_hr_test","reminder_assignment_test","reminder_asset_test","reminder_person_test",reminderHr,
+      "asset_reminder_policy_test","2026-10-19",3,"asset:reminder_assignment_test:2026-10-19:3:hr",time,time);
+    assert.throws(()=>insertReminder.run("asset_reminder_wrong_offset_test","reminder_assignment_test","reminder_asset_test","reminder_person_test",reminderEmployee,
+      "asset_reminder_policy_test","2026-10-19",2,"asset:reminder_assignment_test:2026-10-19:2:employee",time,time),/asset_reminder_target_invalid/);
+    assert.throws(()=>insertReminder.run("asset_reminder_manager_test","reminder_assignment_test","reminder_asset_test","reminder_person_test",reminderManager,
+      "asset_reminder_policy_test","2026-10-19",3,"asset:reminder_assignment_test:2026-10-19:3:manager",time,time),/asset_reminder_target_invalid/);
+    db.prepare(`INSERT INTO hrm_asset_reminders(
+      id,assignment_id,asset_id,person_id,recipient_user_id,policy_version_id,due_on,days_before_due,event_key,state,version,created_by,created_at,updated_at
+    ) VALUES('asset_reminder_duplicate_test','reminder_assignment_test','reminder_asset_test','reminder_person_test',?,'asset_reminder_policy_test',
+      '2026-10-19',3,'asset:reminder_assignment_test:2026-10-19:3:employee','unread',1,'system:hrm_asset_reminder',?,?)
+      ON CONFLICT(assignment_id,recipient_user_id,due_on,days_before_due) DO NOTHING`).run(reminderEmployee,time,time);
+    assert.equal(db.prepare("SELECT COUNT(*) AS n FROM hrm_asset_reminders WHERE assignment_id='reminder_assignment_test'").get()?.n,2,"recipient/assignment/offset retries do not duplicate notifications");
+    db.prepare("UPDATE hrm_asset_reminders SET state='read',version=version+1,read_by=?,read_at=?,updated_at=? WHERE id='asset_reminder_employee_test'")
+      .run(reminderEmployee,time,time);
+    db.prepare(`UPDATE hrm_asset_assignments SET state='return_requested',version=version+1,return_requested_by=?,return_requested_at=?,actor_id=?,updated_at=? WHERE id='reminder_assignment_test'`)
+      .run(reminderEmployee,time,reminderEmployee,time);
+    db.prepare(`UPDATE hrm_asset_assignments SET state='returned',version=version+1,return_condition='good',returned_by=?,returned_at=?,actor_id=?,updated_at=? WHERE id='reminder_assignment_test'`)
+      .run(reminderHr,time,reminderHr,time);
+    assert.equal(db.prepare("SELECT state FROM hrm_asset_reminders WHERE id='asset_reminder_employee_test'").get()?.state,"read","assignment closure does not rewrite an already-read reminder");
+    const resolvedReminder=db.prepare("SELECT state,read_by,read_at FROM hrm_asset_reminders WHERE id='asset_reminder_hr_test'").get();
+    assert.equal(resolvedReminder?.state,"resolved");assert.equal(resolvedReminder?.read_by,"system:hrm_asset_reminder");assert.equal(resolvedReminder?.read_at,time);
+    assert.equal(db.prepare("SELECT COUNT(*) AS n FROM hrm_asset_reminder_events WHERE reminder_id IN ('asset_reminder_employee_test','asset_reminder_hr_test')").get()?.n,4,"created, read and automatic resolution history is append-only");
+    assert.throws(()=>db.prepare("UPDATE hrm_asset_reminder_events SET detail_json='{}' WHERE reminder_id='asset_reminder_hr_test'").run(),/immutable_history/);
+    assert.throws(()=>db.prepare("UPDATE hrm_asset_reminders SET due_on='2026-10-20' WHERE id='asset_reminder_hr_test'").run(),/immutable_asset_reminder/);
     assert.deepEqual(db.prepare("PRAGMA foreign_key_check").all(), []);
     assert.equal(db.prepare("PRAGMA integrity_check").get()?.integrity_check, "ok");
   } finally {
