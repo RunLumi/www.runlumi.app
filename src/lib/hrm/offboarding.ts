@@ -12,6 +12,11 @@ export interface OffboardingTask {
   id:string; case_id:string; task_key:string; assignee_kind:string; assignee_user_id:string|null; state:string;
   required:number; completion_note:string|null; blocked_reason:string|null; completed_by:string|null; completed_at:string|null;
   version:number; actor_id:string; created_at:string; updated_at:string;
+  asset_items?:OffboardingAssetItem[];
+}
+export interface OffboardingAssetItem {
+  asset_tag:string;asset_type:string;description:string;assignment_state:string;expected_return_on:string|null;
+  return_condition:string|null;evidence_count:number;
 }
 
 const canManage=(user:WorkspaceUser)=>user.can("hrm.offboarding.manage")||user.can("users.manage");
@@ -47,9 +52,17 @@ export async function getOffboardingCase(db:D1Database,contentDb:D1Database,user
   const taskScope=managerScope?" AND assignee_user_id=?":"";
   const taskParams=managerScope?[caseId,user.id]:[caseId];
   const tasks=(await db.prepare(`SELECT * FROM hrm_offboarding_tasks WHERE case_id=?${taskScope} ORDER BY task_key`).bind(...taskParams).all<OffboardingTask>()).results;
+  const detailedTasks=await Promise.all(tasks.map(async task=>{
+    if(task.task_key!=="asset_return")return task;
+    const assetItems=(await db.prepare(`SELECT a.asset_tag,a.asset_type,a.description,x.state AS assignment_state,x.expected_return_on,x.return_condition,
+        (SELECT COUNT(*) FROM hrm_asset_evidence_links l JOIN hrm_files f ON f.id=l.file_id WHERE l.assignment_id=x.id AND f.object_deleted_at IS NULL) AS evidence_count
+      FROM hrm_offboarding_asset_links l JOIN hrm_asset_assignments x ON x.id=l.assignment_id JOIN hrm_assets a ON a.id=x.asset_id
+      WHERE l.task_id=? ORDER BY a.asset_tag,x.id`).bind(task.id).all<OffboardingAssetItem>()).results;
+    return {...task,asset_items:assetItems};
+  }));
   let member:MemberRow|null=null;
   if(user.can("users.manage")&&row.employee_user_id){member=(await workspaceMembers(db,contentDb)).find(item=>item.user_id===row.employee_user_id)??null}
-  return {offboarding:row,tasks,member};
+  return {offboarding:row,tasks:detailedTasks,member};
 }
 
 async function previousCommand(db:D1Database,user:WorkspaceUser,key:string,payload:unknown,operation:string):Promise<string|null>{
@@ -88,6 +101,11 @@ export async function actOnOffboardingTask(
   if(action==="not_required"&&!(["manager_handover","asset_return"].includes(task.task_key)))throw new HrmError("offboarding_not_waivable",403);
   if(action==="block"&&task.state!=="pending")throw new HrmError("invalid_transition",409);
   if(action==="unblock"&&task.state!=="blocked")throw new HrmError("invalid_transition",409);
+  if(task.task_key==="asset_return"&&(action==="complete"||action==="not_required")){
+    const openAssets=await db.prepare("SELECT 1 FROM hrm_asset_assignments WHERE person_id=? AND employment_id=? AND state IN ('offered','assigned','return_requested') LIMIT 1")
+      .bind(task.person_id,task.employment_id).first();
+    if(openAssets)throw new HrmError("offboarding_assets_pending",409);
+  }
 
   let finalState:"completed"|"not_required"|"blocked"|"pending"=action==="not_required"?"not_required":action==="block"?"blocked":action==="unblock"?"pending":"completed";
   let finalNote=reason.trim(),finalBlock:string|null=action==="block"?reason.trim():null;

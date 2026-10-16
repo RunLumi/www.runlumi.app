@@ -18,6 +18,8 @@ test("admins hold every permission; roles hold only their own", () => {
   assert.ok(user(["sales_manager"]).can("crm.team"));
   assert.ok(!user(["sales_executive"]).can("crm.team"));
   assert.ok(user(["sales_executive", "fulfillment"]).can("crm.fulfillment"), "roles combine");
+  assert.ok(user(["hrm_admin"]).can("hrm.assets.approve"), "HRM Admin may independently approve asset evidence");
+  assert.ok(!user(["hrm_officer"]).can("hrm.assets.approve"), "HRM Officer cannot approve asset evidence");
   assert.equal(permissionsFor(false, []).size, 0);
 });
 
@@ -61,4 +63,18 @@ test("CRM navigation is grouped, every page has an icon, and empty groups are hi
   assert.deepEqual(groupsFor(["fulfillment"]), ["sell", "customers", "results", "operations", "help"]);
   const agentLink = visibleGroups(user(["sales_executive"]), crm).find(({ group }) => group.key === "help")!.links.map((link) => link.key);
   assert.deepEqual(agentLink, ["process", "files", "api"], "everyone selling sees files, the sales process and the agent guide");
+  const hrm = modules.find((module) => module.key === "hrm")!;
+  assert.ok(visibleLinks(user(["employee"]), hrm).some((link) => link.key === "my-assets"));
+  assert.ok(visibleLinks(user(["employee"]), hrm).some((link) => link.key === "my-benefits"));
+  assert.ok(visibleLinks(user(["employee"]), hrm).some((link) => link.key === "my-training"));
+  assert.ok(!visibleLinks(user(["people_manager"]), hrm).some((link) => link.key === "my-assets" || link.key === "assets"));
+  assert.ok(!visibleLinks(user(["people_manager"]), hrm).some((link) => link.key === "my-benefits" || link.key === "benefits"));
+  assert.ok(!visibleLinks(user(["people_manager"]), hrm).some((link) => link.key === "my-training" || link.key === "training"));
+  assert.ok(visibleLinks(user(["hrm_officer"]), hrm).some((link) => link.key === "assets"));
+  assert.ok(visibleLinks(user(["hrm_officer"]), hrm).some((link) => link.key === "benefits"));
+  assert.ok(visibleLinks(user(["hrm_officer"]), hrm).some((link) => link.key === "training"));
+  assert.ok(visibleLinks(user(["hrm_officer"]), hrm).some((link) => link.key === "reports"));
+  assert.ok(!visibleLinks(user(["people_manager"]), hrm).some((link) => link.key === "reports"));
+  assert.equal(user(["hrm_officer"]).can("hrm.reports.export"), false);
+  assert.equal(user(["hrm_admin"]).can("hrm.reports.export"), true);
 });

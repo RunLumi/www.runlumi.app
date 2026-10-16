@@ -1,0 +1,22 @@
+---
+import HrmPage from "./HrmPage.astro";
+import type { MyBenefitsPage } from "../../lib/hrm/benefit-pages";
+
+const d=Astro.props as MyBenefitsPage,vi=d.vi,prefix=vi?"/vi":"",returnTo=`${prefix}/hrm/me/benefits`;
+const categoryLabel=(value:string)=>({health:vi?"Sức khỏe":"Health",insurance:vi?"Bảo hiểm":"Insurance",wellness:vi?"Sức khỏe tinh thần":"Wellness",family:vi?"Gia đình":"Family",reimbursement:vi?"Hoàn ứng":"Reimbursement",other:vi?"Khác":"Other"}[value]??value);
+const stateLabel=(value:string)=>({submitted:vi?"Đang chờ HR duyệt":"Pending HR review",approved:vi?"Đã duyệt":"Approved",declined:vi?"Không được duyệt":"Declined",cancelled:vi?"Đã hủy":"Cancelled"}[value]??value);
+---
+<HrmPage data={d}>
+ <section class="crm-notice" role="note"><strong>{vi?"Đăng ký theo phiên bản chính sách":"Enrollment follows a policy version"}</strong><p>{vi?"Điều kiện hiển thị để tham khảo; HR sẽ kiểm tra trước khi duyệt. Gửi đăng ký không xác nhận quyền lợi, không tạo khoản thanh toán và không thay đổi payslip.":"Eligibility text is informational. HR checks each request before approval. Submitting does not confirm coverage, create a payment or change your payslip."}</p></section>
+ {d.error&&<p class="crm-notice error" role="alert">{vi?"Không thể lưu thay đổi: ":"Could not save: "}{d.error}</p>}
+ {d.saved&&<p class="crm-notice success" role="status">{vi?"Đã lưu thay đổi.":"Changes saved."}</p>}
+ <section class="crm-sheet"><h2 class="crm-h2">{vi?"Gói đang áp dụng":"Available benefit plans"}</h2>{d.plans.length===0?<p class="crm-empty">{vi?"Hiện chưa có gói phúc lợi áp dụng cho pháp nhân của bạn.":"No active plan is currently available for your legal entity."}</p>:<div class="crm-list">{d.plans.map(plan=>{
+   const existing=d.enrollments.find(item=>item.plan_code===plan.plan_code&&["submitted","approved"].includes(item.state));
+   return <article class="crm-row"><div><strong>{plan.name} · {plan.plan_code} v{plan.version_no}</strong><p class="crm-meta">{categoryLabel(plan.category)} · {plan.legal_entity} · {plan.effective_from} → {plan.effective_to}</p><p>{plan.description}</p><p><strong>{vi?"Điều kiện mô tả":"Eligibility"}:</strong> {plan.eligibility_text}</p>{existing&&<p class="crm-meta">{vi?"Đăng ký hiện tại":"Current enrollment"}: {stateLabel(existing.state)}</p>}</div>
+   {!existing&&<form class="crm-form" method="post" action="/api/hrm/benefits"><input type="hidden" name="intent" value="submit_enrollment"/><input type="hidden" name="return_to" value={returnTo}/><input type="hidden" name="request_key" value={crypto.randomUUID()}/><input type="hidden" name="plan_id" value={plan.id}/><label class="crm-field"><span>{vi?"Ghi chú tùy chọn cho HR":"Optional note for HR"}</span><textarea class="crm-input" name="employee_note" maxlength="1000" rows="2"></textarea></label><button class="crm-button">{vi?"Gửi đăng ký":"Submit enrollment"}</button></form>}
+   </article>;
+  })}</div>}</section>
+ <section class="crm-sheet"><h2 class="crm-h2">{vi?"Lịch sử đăng ký":"Enrollment history"}</h2>{d.enrollments.length===0?<p class="crm-empty">{vi?"Bạn chưa đăng ký gói nào.":"You have no benefit enrollments."}</p>:<div class="crm-list">{d.enrollments.map(item=><article class="crm-row"><div><strong>{item.plan_name} · {item.plan_code} v{item.plan_version_no}</strong><p class="crm-meta">{categoryLabel(item.category)} · {stateLabel(item.state)} · {item.created_at}</p>{item.employee_note&&<p>{vi?"Ghi chú của bạn: ":"Your note: "}{item.employee_note}</p>}{item.review_reason&&<p>{vi?"Lý do quyết định: ":"Decision reason: "}{item.review_reason}</p>}</div>
+   {["submitted","approved"].includes(item.state)&&<form class="crm-form" method="post" action="/api/hrm/benefits"><input type="hidden" name="intent" value="cancel_enrollment"/><input type="hidden" name="return_to" value={returnTo}/><input type="hidden" name="request_key" value={crypto.randomUUID()}/><input type="hidden" name="enrollment_id" value={item.id}/><input type="hidden" name="enrollment_revision" value={item.revision}/><label class="crm-field"><span>{vi?"Lý do hủy":"Cancellation reason"}</span><input class="crm-input" name="reason" maxlength="1000" required/></label><button class="crm-button secondary">{vi?"Hủy đăng ký":"Cancel enrollment"}</button></form>}
+  </article>)}</div>}</section>
+</HrmPage>

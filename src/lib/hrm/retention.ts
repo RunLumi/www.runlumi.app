@@ -2,7 +2,7 @@ import type { WorkspaceUser } from "../workspace/roles";
 import { command, digest, guard, id, localDate, now, requirePermission } from "./service";
 import { HrmError } from "./fields";
 
-export const RETENTION_CATEGORIES=["profile_photo","identity","dependent","banking","tax","personal","legal_source","legal_evidence","coi_evidence","onboarding_evidence","leave_evidence"] as const;
+export const RETENTION_CATEGORIES=["profile_photo","identity","dependent","banking","tax","personal","legal_source","legal_evidence","coi_evidence","onboarding_evidence","leave_evidence","service_evidence","training_evidence","asset_evidence"] as const;
 export type RetentionCategory=typeof RETENTION_CATEGORIES[number];
 export type RetentionSource="hrm_files"|"hrm_legal_files";
 export interface RetentionRule {category:RetentionCategory;retention_days:number|null;basis:string}
@@ -11,9 +11,9 @@ export interface LegalHold {id:string;scope_kind:"person"|"file";person_id:strin
 export interface RetentionFile {source_table:RetentionSource;file_id:string;person_id:string|null;employee_code:string|null;category:RetentionCategory;kind:string;state:string;original_name:string;object_key:string;size_bytes:number;checksum:string;legal_hold:number;created_at:string;expires_on:string|null;object_deleted_at:string|null;file_version:number;retention_due_on:string|null;policy_configured:boolean;held:boolean;deletion_request_id:string|null;deletion_state:string|null;deletion_requested_at:string|null}
 export interface FileDeletionRequest {id:string;source_table:RetentionSource;source_file_id:string;person_id:string|null;category:string;object_key_snapshot:string;checksum_snapshot:string;file_version:number;policy_version_id:string;policy_version:number;retention_due_on:string;state:string;request_reason:string;requested_by:string;requested_at:string;reviewed_by:string|null;reviewed_at:string|null;review_reason:string|null;completed_by:string|null;completed_at:string|null;completion_detail:string|null;block_reason:string|null;version:number;actor_id:string;created_at:string;updated_at:string;employee_code?:string|null;original_name?:string}
 
-export const retentionCategoryForHrm=(kind:string):RetentionCategory=>({avatar:"profile_photo",identity:"identity",dependent:"dependent",bank:"banking",tax:"tax",personal:"personal",leave_evidence:"leave_evidence"}[kind] as RetentionCategory);
+export const retentionCategoryForHrm=(kind:string):RetentionCategory=>({avatar:"profile_photo",identity:"identity",dependent:"dependent",bank:"banking",tax:"tax",personal:"personal",leave_evidence:"leave_evidence",service_evidence:"service_evidence",training_evidence:"training_evidence",asset_evidence:"asset_evidence"}[kind] as RetentionCategory);
 export const retentionCategoryForLegal=(row:{kind:string;coi_declaration_id:string|null;onboarding_task_id:string|null}):RetentionCategory=>row.kind==="docx_source"?"legal_source":row.coi_declaration_id?"coi_evidence":row.onboarding_task_id?"onboarding_evidence":"legal_evidence";
-function categorySqlForHrm(alias:string):string{return `CASE ${alias}.kind WHEN 'avatar' THEN 'profile_photo' WHEN 'identity' THEN 'identity' WHEN 'dependent' THEN 'dependent' WHEN 'bank' THEN 'banking' WHEN 'tax' THEN 'tax' WHEN 'leave_evidence' THEN 'leave_evidence' ELSE 'personal' END`}
+function categorySqlForHrm(alias:string):string{return `CASE ${alias}.kind WHEN 'avatar' THEN 'profile_photo' WHEN 'identity' THEN 'identity' WHEN 'dependent' THEN 'dependent' WHEN 'bank' THEN 'banking' WHEN 'tax' THEN 'tax' WHEN 'leave_evidence' THEN 'leave_evidence' WHEN 'service_evidence' THEN 'service_evidence' WHEN 'training_evidence' THEN 'training_evidence' WHEN 'asset_evidence' THEN 'asset_evidence' ELSE 'personal' END`}
 function categorySqlForLegal(alias:string):string{return `CASE WHEN ${alias}.kind='docx_source' THEN 'legal_source' WHEN ${alias}.coi_declaration_id IS NOT NULL THEN 'coi_evidence' WHEN ${alias}.onboarding_task_id IS NOT NULL THEN 'onboarding_evidence' ELSE 'legal_evidence' END`}
 function fileScopeSql(source:RetentionSource,scopeKind:"person"|"file"):string{
  if(scopeKind==="file")return "id=?";
@@ -27,15 +27,19 @@ function requireRetention(user:WorkspaceUser,permission:"hrm.retention.manage"|"
 function requireRetentionLive(user:WorkspaceUser):void{if(user.hrmEnabled!==true)throw new HrmError("hrm_closed",503)}
 function parseRules(value:string):RetentionRule[]{
  let parsed:unknown;try{parsed=JSON.parse(value)}catch{throw new HrmError("retention_policy_invalid")}
- const legacyCategories=RETENTION_CATEGORIES.filter(category=>category!=="leave_evidence");
- if(!Array.isArray(parsed)||(parsed.length!==legacyCategories.length&&parsed.length!==RETENTION_CATEGORIES.length))throw new HrmError("retention_policy_invalid");
+ const legacyCategories=RETENTION_CATEGORIES.filter(category=>!["leave_evidence","service_evidence","training_evidence","asset_evidence"].includes(category));
+ const leaveCategories=RETENTION_CATEGORIES.filter(category=>!["service_evidence","training_evidence","asset_evidence"].includes(category));
+ const serviceCategories=RETENTION_CATEGORIES.filter(category=>!["training_evidence","asset_evidence"].includes(category));
+ const trainingCategories=RETENTION_CATEGORIES.filter(category=>category!=="asset_evidence");
+ const supportedCategories:readonly (readonly RetentionCategory[])[]=[legacyCategories,leaveCategories,serviceCategories,trainingCategories,RETENTION_CATEGORIES];
+ if(!Array.isArray(parsed)||!supportedCategories.some(categories=>categories.length===parsed.length))throw new HrmError("retention_policy_invalid");
+ const categories=supportedCategories.find(candidate=>candidate.length===parsed.length)!;
  const rules=parsed.map((entry):RetentionRule=>{
   if(!entry||typeof entry!=="object")throw new HrmError("retention_policy_invalid");
   const row=entry as Record<string,unknown>;
-  if(!RETENTION_CATEGORIES.includes(row.category as RetentionCategory)||!(row.retention_days===null||Number.isInteger(row.retention_days)&&Number(row.retention_days)>=1&&Number(row.retention_days)<=36500)||typeof row.basis!=="string"||!row.basis.trim()||row.basis.trim().length>1000)throw new HrmError("retention_policy_invalid");
+  if(!categories.includes(row.category as RetentionCategory)||!(row.retention_days===null||Number.isInteger(row.retention_days)&&Number(row.retention_days)>=1&&Number(row.retention_days)<=36500)||typeof row.basis!=="string"||!row.basis.trim()||row.basis.trim().length>1000)throw new HrmError("retention_policy_invalid");
   return {category:row.category as RetentionCategory,retention_days:row.retention_days as number|null,basis:row.basis.trim()};
  });
- const categories=parsed.length===legacyCategories.length?legacyCategories:RETENTION_CATEGORIES;
  if(new Set(rules.map(rule=>rule.category)).size!==categories.length||categories.some(category=>!rules.some(rule=>rule.category===category)))throw new HrmError("retention_policy_invalid");
  return rules;
 }
