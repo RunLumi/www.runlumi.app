@@ -87,6 +87,16 @@ The offboarding asset-return task lists each active assignment linked to that em
 
 If the PDF is wrong or attached to another assignment, stop review and download, preserve its audit/checksum record, and follow the wrong-person/file incident procedure above. Do not move or relink the immutable evidence record; request a corrected upload under the right assignment. Do not invent a retention period or release a legal hold to clear the queue.
 
+## Training and certification reminders
+
+Manage deadline offsets under HRM Settings with an HRM Admin or System Super Admin account. Each policy version accepts 1–12 explicit day offsets from -365 through 365: positive is before the due date, zero is the due date, and negative is after. No offset is preconfigured. The creator cannot review or activate their own version; record a meaningful review reason. Activation also requires a configured, enabled HRM entity. Keep production HRM closed until the owner approves the reminder-record retention and legal-hold treatment.
+
+The existing Worker Cron runs at 08:40 Vietnam time. It considers completion dates for assigned/submitted training and renewal dates for approved assignments. Only the linked employee and the currently active Workspace HR account that issued the assignment receive the in-app reminder. It does not send email, Lark or webhook messages. Replaying a Cron event for the same date is safe. An HRM Admin can run the same bounded sweep from Settings while HRM and `HRM_LIVE_ENABLED` are open.
+
+Recipients mark their own inbox items read on `/hrm/me/training` or `/hrm/training`. If a reminder appears stale, check the active entity policy, explicit offsets, assignment state and date, and the recipient's active EmDash account and Workspace membership. Unread completion reminders resolve when the assignment completes, is declined or cancelled. Renewal reminders resolve if the renewal date changes or a new open assignment supersedes the same course. Replacing a policy retires the previous version but preserves reminders it already generated. Do not create another assignment just to replay a reminder; uniqueness is per assignment, recipient, deadline, date and offset.
+
+Reminder retention and legal hold are not yet owner-approved or implemented as a dedicated disposition flow. Do not delete reminder/event rows manually or infer a production retention period.
+
 ## Aggregate report snapshots and schedules
 
 Only HRM Admin/System Super Admin can save snapshots or create, pause and resume schedules; HRM Officer can read saved aggregates, while CSV download still requires `hrm.reports.export`. Saved reports contain only the aggregate report payload and filters, never employee names, identifiers, HR case text or pay data. A save or schedule requires an explicit retention duration and basis; no default is seeded. Expiry redacts the stored report JSON to `{}` and preserves the checksum, filters, actor and event history as a tombstone. An expired snapshot cannot be restored from this interface.
@@ -101,3 +111,4 @@ The existing daily Worker Cron runs at 08:40 Vietnam time. Daily schedules captu
 - Whether restore access reconciliation uses EmDash/Workspace as the authority for revocations made after the restore point.
 - Evidence retention location and required incident/report approvals.
 - Owner-approved retention basis/durations for saved and scheduled aggregate report snapshots; a snapshot hold process is not implemented.
+- Owner-approved training-reminder retention and legal-hold treatment before activating reminder policies in production.

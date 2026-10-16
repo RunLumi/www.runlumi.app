@@ -24,6 +24,11 @@ test("admins hold every permission; roles hold only their own", () => {
   assert.ok(user(["hrm_admin"]).can("hrm.assets.reminders.approve"));
   assert.ok(!user(["hrm_officer"]).can("hrm.assets.reminders.manage"));
   assert.ok(!user(["employee"]).can("hrm.assets.reminders.approve"));
+  assert.ok(user(["hrm_admin"]).can("hrm.training.reminders.manage"));
+  assert.ok(user(["hrm_admin"]).can("hrm.training.reminders.approve"));
+  assert.ok(!user(["hrm_officer"]).can("hrm.training.reminders.manage"));
+  assert.ok(!user(["hrm_officer"]).can("hrm.training.reminders.approve"));
+  assert.ok(!user(["employee"]).can("hrm.training.reminders.approve"));
   assert.equal(permissionsFor(false, []).size, 0);
 });
 

@@ -44,6 +44,25 @@ export async function membersWithRoles(db: D1Database, contentDb: D1Database, wa
   return (await workspaceMembers(db, contentDb)).filter((member) => member.enabled && member.active && member.roles.some((role) => wanted.includes(role)));
 }
 
+/** Resolve only the supplied recipients so scheduled jobs are not capped by the 500-row management-page list. */
+export async function membersWithRolesFor(db:D1Database,contentDb:D1Database,userIds:readonly string[],wanted:readonly Role[]):Promise<MemberRow[]>{
+  const unique=[...new Set(userIds.filter(Boolean))];if(!unique.length||!wanted.length)return [];
+  const granted=new Map<string,Set<Role>>();
+  for(const userPart of chunks(unique)){
+    const rows=(await db.prepare(`SELECT m.user_id,m.enabled,r.role FROM workspace_members m JOIN workspace_roles r ON r.user_id=m.user_id
+      WHERE m.user_id IN (${userPart.map(()=>"?").join(",")}) AND r.role IN (${wanted.map(()=>"?").join(",")})`)
+      .bind(...userPart,...wanted).all<{user_id:string;enabled:number;role:string}>()).results;
+    for(const row of rows){if(row.enabled!==1)continue;const role=wanted.find(value=>value===row.role);if(role){const list=granted.get(row.user_id)??new Set<Role>();list.add(role);granted.set(row.user_id,list);}}
+  }
+  const users=await emdashUsers(contentDb,unique),members:MemberRow[]=[];
+  for(const userId of unique){
+    const user=users.get(userId),memberRoles=granted.get(userId);
+    if(!user||user.disabled!==0||!memberRoles?.size)continue;
+    members.push({user_id:userId,email:user.email,name:user.name??"",enabled:true,active:true,admin:user.role===50,roles:[...memberRoles]});
+  }
+  return members;
+}
+
 export async function hasRole(db: D1Database, userId: string, wanted: readonly Role[]): Promise<boolean> {
   const row = await db.prepare(
     `SELECT 1 FROM workspace_members m JOIN workspace_roles r ON r.user_id = m.user_id WHERE m.user_id = ? AND m.enabled = 1 AND r.role IN (${wanted.map(() => "?").join(", ")}) LIMIT 1`,

@@ -87,6 +87,16 @@ Task thu hồi tài sản trong offboarding liệt kê từng assignment đang m
 
 Nếu PDF sai hoặc gắn nhầm assignment, dừng review và tải xuống, giữ audit/checksum, rồi làm theo quy trình sự cố ghép nhầm người/tệp ở trên. Không sửa hoặc chuyển liên kết chứng từ bất biến; yêu cầu tải lại theo đúng assignment. Không tự đặt thời hạn retention hoặc gỡ legal hold chỉ để dọn hàng chờ.
 
+## Nhắc hạn đào tạo và chứng chỉ
+
+Quản lý offset tại Thiết lập HRM bằng tài khoản HRM Admin hoặc System Super Admin. Mỗi phiên bản policy nhận 1–12 mốc ngày tường minh trong khoảng -365 đến 365: số dương là trước hạn, 0 là đúng hạn và số âm là sau hạn. Không có mốc cài sẵn. Người tạo không thể tự rà soát hoặc kích hoạt; ghi lý do rà soát cụ thể. Kích hoạt còn yêu cầu pháp nhân HRM đã cấu hình và đang bật. Giữ production HRM đóng cho đến khi owner duyệt thời hạn lưu và cách áp dụng legal hold cho dữ liệu nhắc hạn.
+
+Worker Cron hiện có chạy lúc 08:40 giờ Việt Nam. Job xét hạn hoàn thành của assignment đang assigned/submitted và hạn gia hạn của assignment approved. Chỉ nhân viên được liên kết và tài khoản HR Workspace đang hoạt động đã giao assignment mới nhận nhắc trong ứng dụng. Job không gửi email, Lark hay webhook. Chạy lại Cron trong cùng ngày là an toàn. HRM Admin có thể chạy cùng sweep có giới hạn trong Thiết lập khi cả HRM và `HRM_LIVE_ENABLED` đang bật.
+
+Người nhận đánh dấu hộp nhắc của mình đã xem tại `/vi/hrm/me/training` hoặc `/vi/hrm/training`. Nếu nhắc có vẻ cũ, kiểm tra policy đang active đúng pháp nhân, offset tường minh, trạng thái/ngày assignment và tài khoản EmDash cùng membership Workspace của người nhận. Nhắc hoàn thành chưa đọc được resolve khi assignment hoàn tất, bị từ chối hoặc hủy. Nhắc gia hạn resolve nếu ngày gia hạn đổi hoặc assignment mới của cùng khóa học thay thế assignment cũ. Thay policy sẽ retire phiên bản trước nhưng giữ nguyên reminder đã phát sinh từ phiên bản đó. Không tạo thêm assignment chỉ để chạy lại nhắc; khóa duy nhất gồm assignment, người nhận, loại hạn, ngày và offset.
+
+Thời hạn lưu và legal hold cho reminder chưa được owner phê duyệt hoặc có luồng disposition riêng. Không xóa thủ công hàng reminder/event và không tự suy ra thời hạn production.
+
 ## Snapshot và lịch báo cáo tổng hợp
 
 Chỉ HRM Admin/System Super Admin được lưu snapshot hoặc tạo, tạm dừng và tiếp tục lịch; HRM Officer được đọc snapshot aggregate đã lưu, còn tải CSV vẫn cần `hrm.reports.export`. Snapshot chỉ chứa payload aggregate và bộ lọc, không có tên nhân viên, định danh, nội dung vụ việc HR hoặc dữ liệu lương. Mỗi lần lưu/lập lịch phải nhập rõ thời hạn và căn cứ; không có giá trị mặc định. Khi hết hạn, hệ thống thay JSON báo cáo bằng `{}` và giữ checksum, bộ lọc, actor cùng lịch sử event ở dạng tombstone. Không thể khôi phục nội dung snapshot đã hết hạn từ giao diện này.
@@ -101,3 +111,4 @@ Worker Cron hằng ngày hiện có chạy lúc 08:40 giờ Việt Nam. Lịch d
 - Khi đối chiếu quyền sau restore, EmDash/Workspace có phải nguồn chuẩn cho các lần thu hồi phát sinh sau mốc phục hồi hay không.
 - Nơi lưu bằng chứng và các bước phê duyệt bắt buộc cho báo cáo sự cố.
 - Căn cứ/thời hạn được owner duyệt cho snapshot báo cáo aggregate đã lưu/lên lịch; chưa có quy trình legal hold cho snapshot này.
+- Thời hạn lưu và cách áp dụng legal hold cho reminder đào tạo phải được owner phê duyệt trước khi kích hoạt policy production.
