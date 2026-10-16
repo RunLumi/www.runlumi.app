@@ -4,7 +4,7 @@
 
 **Trạng thái: PROPOSED — chưa ghi nhận phê duyệt của chủ sở hữu hoặc phụ trách pháp lý; chưa phải chính sách production.**
 
-Soạn ngày 2026-10-17 (Asia/Ho_Chi_Minh). Đối chiếu [PR #72](https://github.com/RunLumi/www.runlumi.app/pull/72), đã merge tại `ae5a8afe32b810d40e0a02a28d90000520513ac4`, với `main` tại `af903a1142054e5e7b08c27cabaea1a7ee415f8e` sau PR #73. Phần triển khai báo cáo không thay đổi giữa hai revision. Lần quan sát production gần nhất được ghi trong STATUS thuộc PR #72; đợt rà soát này không kiểm tra hoặc thay đổi tài nguyên đang chạy. Kiểm thử dữ liệu giả lập thành công, trường `retention_basis` có nội dung, một vai trò trong ứng dụng hay việc merge tài liệu này đều không thay thế phê duyệt chính sách.
+Soạn ngày 2026-10-17 (Asia/Ho_Chi_Minh). Đối chiếu [PR #72](https://github.com/RunLumi/www.runlumi.app/pull/72), đã merge tại `ae5a8afe32b810d40e0a02a28d90000520513ac4`, với `main` tại `af903a1142054e5e7b08c27cabaea1a7ee415f8e` sau PR #73; kiểm tra lại tại `6dc1ab096adfdb17b787b3919013bd6ec993c23a` sau PR #74/#76. Phần triển khai báo cáo vẫn không thay đổi. STATUS ghi nhận các quan sát production theo từng revision được nêu, bao gồm PR #74; đợt rà soát tài liệu này không kiểm tra hoặc thay đổi tài nguyên đang chạy. Kiểm thử dữ liệu giả lập thành công, trường `retention_basis` có nội dung, một vai trò trong ứng dụng hay việc merge tài liệu này đều không thay thế phê duyệt chính sách.
 
 ## 1. Quyết định cần phê duyệt
 

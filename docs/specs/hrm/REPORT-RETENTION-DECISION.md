@@ -4,7 +4,7 @@
 
 **Status: PROPOSED — no owner or legal approval recorded; not a production policy.**
 
-Prepared 2026-10-17 (Asia/Ho_Chi_Minh). Reviewed [PR #72](https://github.com/RunLumi/www.runlumi.app/pull/72), merged at `ae5a8afe32b810d40e0a02a28d90000520513ac4`, against repository `main` at `af903a1142054e5e7b08c27cabaea1a7ee415f8e` after PR #73. The report implementation is unchanged between those revisions. The last production observation recorded in STATUS belongs to PR #72; this review did not inspect or change live resources. A successful synthetic test, a nonempty `retention_basis`, an application role, or this document's merge is not policy approval.
+Prepared 2026-10-17 (Asia/Ho_Chi_Minh). Reviewed [PR #72](https://github.com/RunLumi/www.runlumi.app/pull/72), merged at `ae5a8afe32b810d40e0a02a28d90000520513ac4`, against repository `main` at `af903a1142054e5e7b08c27cabaea1a7ee415f8e` after PR #73; rechecked against `6dc1ab096adfdb17b787b3919013bd6ec993c23a` after PRs #74/#76. The report implementation remains unchanged. STATUS records production observations for their indicated revisions, including PR #74; this documentation review did not inspect or change live resources. A successful synthetic test, a nonempty `retention_basis`, an application role, or this document's merge is not policy approval.
 
 ## 1. Decision requested
 
