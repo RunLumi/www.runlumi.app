@@ -15,6 +15,8 @@ test("asset evidence migration preserves existing private files and evidence his
       .sort();
     const assetEvidenceMigration = migrations.find((file) => file.startsWith("0030_hrm_asset_evidence"));
     assert.ok(assetEvidenceMigration, "asset evidence migration exists");
+    const offboardingAssetMigration = migrations.find((file) => file.startsWith("0031_hrm_offboarding_asset_links"));
+    assert.ok(offboardingAssetMigration, "offboarding asset-link migration exists");
     for (const migration of migrations) {
       if (migration === assetEvidenceMigration) break;
       db.exec(readFileSync(join(root, "migrations", migration), "utf8"));
@@ -119,6 +121,34 @@ test("asset evidence migration preserves existing private files and evidence his
     assert.equal(deletion?.source_file_id, "training_file_test"); assert.equal(deletion?.category, "training_evidence");
     assert.equal(deletion?.policy_version_id, "retention_policy_test"); assert.equal(deletion?.retention_due_on, "2030-01-01"); assert.equal(deletion?.state, "pending_review");
     assert.equal(db.prepare("SELECT category FROM hrm_file_deletion_requests WHERE id='asset_deletion_test'").get()?.category, "asset_evidence");
+    assert.deepEqual(db.prepare("PRAGMA foreign_key_check").all(), []);
+    assert.equal(db.prepare("PRAGMA integrity_check").get()?.integrity_check, "ok");
+
+    const insertAsset=db.prepare(`INSERT INTO hrm_assets(
+      id,asset_tag,asset_type,description,legal_entity,created_by,created_at,updated_by,updated_at
+    ) VALUES(?,?, 'computer',?,'TEST entity','test_hr',?,'test_hr',?)`);
+    const insertAssignment=db.prepare(`INSERT INTO hrm_asset_assignments(
+      id,asset_id,person_id,employment_id,state,issued_condition,offer_reason,offered_by,offered_at,
+      accepted_by,accepted_at,actor_id,created_at,updated_at
+    ) VALUES(?,?,?,'employment_test','assigned','good','TEST offboarding fixture','test_hr',?,'test_employee',?,'test_hr',?,?)`);
+    insertAsset.run("asset_test_one", "TEST-OFF-001", "TEST laptop", time, time);
+    insertAssignment.run("assignment_test_one", "asset_test_one", "person_test", time, time, time, time);
+    db.prepare(`INSERT INTO hrm_offboarding_cases(
+      id,person_id,employment_id,employee_user_id,ended_on,state,actor_id,created_at,updated_at
+    ) VALUES('offboarding_test','person_test','employment_test','test_employee','2026-10-01','open','test_hr',?,?)`).run(time, time);
+    const assetTask=db.prepare("SELECT id FROM hrm_offboarding_tasks WHERE case_id='offboarding_test' AND task_key='asset_return'").get();
+    assert.ok(assetTask?.id);
+
+    db.exec(readFileSync(join(root, "migrations", offboardingAssetMigration), "utf8"));
+    const firstLink=db.prepare("SELECT task_id,assignment_id FROM hrm_offboarding_asset_links WHERE assignment_id='assignment_test_one'").get();
+    assert.equal(firstLink?.task_id, assetTask.id, "existing open assignments backfill to the matching offboarding asset task");
+
+    insertAsset.run("asset_test_two", "TEST-OFF-002", "TEST badge", time, time);
+    insertAssignment.run("assignment_test_two", "asset_test_two", "person_test", time, time, time, time);
+    const linked=db.prepare("SELECT assignment_id FROM hrm_offboarding_asset_links WHERE task_id=? ORDER BY assignment_id").all(assetTask.id);
+    assert.equal(linked.length,2,"assignments created after an open offboarding case link to its asset task");
+    assert.throws(()=>db.prepare("UPDATE hrm_offboarding_asset_links SET created_at='later' WHERE assignment_id='assignment_test_one'").run(),/immutable_offboarding_asset_link/);
+    assert.throws(()=>db.prepare("DELETE FROM hrm_offboarding_asset_links WHERE assignment_id='assignment_test_one'").run(),/immutable_offboarding_asset_link/);
     assert.deepEqual(db.prepare("PRAGMA foreign_key_check").all(), []);
     assert.equal(db.prepare("PRAGMA integrity_check").get()?.integrity_check, "ok");
   } finally {

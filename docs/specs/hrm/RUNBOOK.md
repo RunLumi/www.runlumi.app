@@ -1,6 +1,6 @@
 # HRM incident, retention and recovery runbook
 
-**Reviewed:** 2026-10-16 against current Cloudflare D1 and R2 documentation. **Status:** operational procedure draft. HRM production remains closed pending owner-approved retention, restore objectives and recovery ownership. No production restore or R2 backup copy has been demonstrated. This document does not prove recoverability.
+**Reviewed:** 2026-10-16 against current Cloudflare D1 and R2 documentation. **Status:** operational procedure draft. Production recovery, backup coverage, owner-approved retention, restore objectives and recovery ownership are not established by this document. It does not prove recoverability.
 
 [Tiếng Việt](RUNBOOK.vi.md)
 
@@ -10,7 +10,7 @@ This runbook covers HRM files and records in the `lumi-jobs` D1 database and the
 
 - HRM Admin coordinates the employee-data incident. System Super Admin controls shared Workspace access. The Cloudflare account owner or authorized infrastructure operator controls D1/R2 recovery. Payroll incidents also require the designated payroll owner and an independent reviewer.
 - Do not restore, delete, change retention, publish or mark payment records confirmed with real data unless the responsible owner has approved that exact action, target and time. Never test with real employee records or a production backup copied into a test environment.
-- Keep `HRM_LIVE_ENABLED` closed until legal entity, purpose, retention, signing, schedules, payroll policy and recovery responsibilities are configured and approved. A feature flag does not prove those decisions or the recovery gate.
+- Require approved legal entity, purpose, retention, signing, schedules, payroll policy and recovery responsibilities before any HRM activation. A feature flag does not prove those decisions or the recovery gate.
 - Preserve actor/audit history and copies of relevant error codes. Store incident evidence in an approved private location; do not paste names, CCCD, payslips, private object keys, tokens or file contents into tickets, chat or logs.
 - If the affected population, restored point, R2 source, backup freshness or access state is uncertain, stop the restore and leave affected HRM actions unavailable. Do not improvise retention periods, RPO/RTO or identity matching.
 
@@ -82,6 +82,8 @@ A passing synthetic drill proves only the local recovery procedure. Production r
 Employees can upload a PDF after reporting that they physically handed an assigned item to HR. HRM staff can upload a return receipt while the assignment is awaiting physical return. The upload is linked to the exact asset assignment and stored in private R2 as `asset_evidence`; the route validates PDF signature and size, records checksum and actor, inherits an applicable person/category legal hold, and leaves retention due dates unset until the owner approves a policy.
 
 New files remain quarantined. The uploader may retrieve their own upload; other access follows the employee/asset scope and review permission. Only an HRM Admin or System Super Admin may approve or reject, and neither the uploader nor the asset issuer may review the file. Verify that the document matches the employee, asset and physical handover before approving. A file's existence alone does not prove the item was returned: HR must record the physical condition and close the asset assignment. Keep the offboarding task open while the assignment is active; do not waive it to bypass a missing return.
+
+The offboarding asset-return task lists each active assignment linked to that employment, including asset tag, type, condition and evidence count, without displaying serial numbers. Each link is immutable and is backfilled for assignments already open when the migration runs. One task can cover multiple assets, but it remains open until every linked assignment has been returned, cancelled or otherwise resolved.
 
 If the PDF is wrong or attached to another assignment, stop review and download, preserve its audit/checksum record, and follow the wrong-person/file incident procedure above. Do not move or relink the immutable evidence record; request a corrected upload under the right assignment. Do not invent a retention period or release a legal hold to clear the queue.
 

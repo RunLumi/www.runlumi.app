@@ -1,6 +1,6 @@
 # HRM — Quy trình sự cố, lưu giữ và phục hồi dữ liệu
 
-**Rà soát:** 2026-10-16 theo tài liệu Cloudflare D1 và R2 hiện hành. **Trạng thái:** bản thảo quy trình vận hành. HRM production vẫn đóng cho đến khi chủ sở hữu phê duyệt thời hạn lưu giữ, mục tiêu phục hồi và người chịu trách nhiệm. Chưa có bằng chứng về một lần phục hồi production hoặc bản sao lưu R2. Tài liệu này không chứng minh dữ liệu có thể phục hồi.
+**Rà soát:** 2026-10-16 theo tài liệu Cloudflare D1 và R2 hiện hành. **Trạng thái:** bản thảo quy trình vận hành. Tài liệu này chưa xác lập backup coverage, thời hạn lưu đã duyệt, mục tiêu phục hồi hoặc người có thẩm quyền phục hồi; không chứng minh dữ liệu production có thể phục hồi.
 
 [English](RUNBOOK.md)
 
@@ -10,7 +10,7 @@ Quy trình này áp dụng cho tệp và hồ sơ HRM trong cơ sở dữ liệu
 
 - HRM Admin điều phối sự cố dữ liệu nhân sự. System Super Admin kiểm soát quyền Workspace dùng chung. Chủ tài khoản Cloudflare hoặc người vận hành hạ tầng được ủy quyền chịu trách nhiệm phục hồi D1/R2. Sự cố payroll cần thêm chủ sở hữu payroll và một người rà soát độc lập.
 - Không phục hồi, xóa, đổi thời hạn lưu, phát hành payslip hay xác nhận khoản thanh toán bằng dữ liệu thật nếu chủ sở hữu chưa phê duyệt chính xác thao tác, đích và thời điểm đó. Không thử quy trình bằng hồ sơ nhân viên thật hoặc bằng bản sao lưu production đưa vào môi trường thử nghiệm.
-- Giữ `HRM_LIVE_ENABLED` ở trạng thái đóng cho đến khi pháp nhân, mục đích, thời hạn lưu, phương thức ký, lịch làm việc, chính sách payroll và trách nhiệm phục hồi đã được cấu hình, phê duyệt. Cờ tính năng không thay thế các quyết định này và cũng không chứng minh khả năng phục hồi.
+- Chỉ kích hoạt HRM sau khi đã duyệt pháp nhân, mục đích, thời hạn lưu, phương thức ký, lịch làm việc, chính sách payroll và trách nhiệm phục hồi. Cờ tính năng không thay thế các quyết định này và cũng không chứng minh khả năng phục hồi.
 - Giữ nguyên lịch sử actor/audit và mã lỗi liên quan. Lưu bằng chứng sự cố ở nơi riêng tư đã được duyệt; không đưa tên, CCCD, payslip, khóa object riêng tư, token hay nội dung tệp vào ticket, chat hoặc log.
 - Nếu chưa rõ phạm vi người bị ảnh hưởng, mốc dữ liệu cần phục hồi, nguồn R2, độ mới của bản sao lưu hoặc trạng thái quyền truy cập, hãy dừng. Giữ các thao tác HRM liên quan ở trạng thái không khả dụng; không tự đặt RPO/RTO, thời hạn lưu hay cách ghép tài khoản.
 
@@ -82,6 +82,8 @@ Một diễn tập tổng hợp đạt yêu cầu chỉ chứng minh quy trình 
 Nhân viên có thể tải PDF sau khi ghi nhận đã bàn giao trực tiếp tài sản được giao cho HR. HRM có thể tải biên nhận nhận lại khi assignment đang chờ thu hồi vật lý. PDF được gắn với đúng assignment và lưu trong R2 riêng tư dưới loại `asset_evidence`; route kiểm tra chữ ký/kích thước PDF, lưu checksum và actor, kế thừa legal hold theo người/danh mục nếu có, và không tự đặt ngày đến hạn xóa khi owner chưa duyệt chính sách retention.
 
 Tệp mới ở trạng thái cách ly. Người tải lên được tải lại tệp của mình; quyền còn lại tuân theo scope nhân viên/tài sản và capability review. Chỉ HRM Admin hoặc System Super Admin được duyệt/từ chối; người tải lên và người giao tài sản không được tự rà soát. Hãy xác minh giấy tờ đúng nhân viên, tài sản và lần bàn giao thực tế trước khi duyệt. Có PDF không tự chứng minh tài sản đã trả: HR phải ghi nhận tình trạng vật lý và đóng assignment. Giữ task offboarding mở khi assignment còn hoạt động; không miễn bước để lách việc thiếu biên nhận.
+
+Task thu hồi tài sản trong offboarding liệt kê từng assignment đang mở của đúng đợt làm việc, gồm mã tài sản, loại, tình trạng và số PDF chứng cứ, không hiển thị serial number. Mỗi liên kết là bất biến và migration gắn bổ sung các assignment đã mở trước đó. Một task có thể bao phủ nhiều tài sản, nhưng chỉ hoàn tất khi mọi assignment liên quan đã trả, hủy hoặc được xử lý hợp lệ.
 
 Nếu PDF sai hoặc gắn nhầm assignment, dừng review và tải xuống, giữ audit/checksum, rồi làm theo quy trình sự cố ghép nhầm người/tệp ở trên. Không sửa hoặc chuyển liên kết chứng từ bất biến; yêu cầu tải lại theo đúng assignment. Không tự đặt thời hạn retention hoặc gỡ legal hold chỉ để dọn hàng chờ.
 
