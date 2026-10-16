@@ -6,6 +6,7 @@ const {data}=Astro.props;const vi=data.vi;
 const messages:Record<string,[string,string]>={
  hrm_closed:["HRM is not activated. The owner’s configuration and deployment gate are still closed.","HRM chưa được kích hoạt. Cấu hình của owner và cổng production hiện vẫn đóng."],
  policy_required:["Complete and review the policy source, purpose and retention configuration first.","Hãy điền và rà soát nguồn chính sách, mục đích xử lý và thời hạn lưu trước."],
+ legal_entity_unconfigured:["Set the employing legal entity before creating an asset reminder policy.","Hãy cấu hình pháp nhân sử dụng lao động trước khi tạo lịch nhắc tài sản."],
  activation_closed:["The deployment kill switch is off. Ask the owner to enable HRM only after the policy gate passes.","Công tắc triển khai HRM đang tắt. Hãy nhờ owner bật sau khi chính sách đã qua cổng rà soát."],
  invalid_origin:["The request origin was rejected.","Nguồn gửi yêu cầu không hợp lệ."],
  invalid_form:["The form could not be read.","Không đọc được biểu mẫu."],
@@ -73,6 +74,10 @@ const messages:Record<string,[string,string]>={
  asset_evidence_target_invalid:["This assignment cannot receive that evidence in its current state.","Assignment hiện tại không thể nhận loại chứng từ này."],
  asset_evidence_storage_failed:["The private evidence file could not be stored. Try again.","Không thể lưu tệp chứng từ riêng tư. Hãy thử lại."],
  asset_evidence_persist_failed:["The evidence record could not be saved. The uploaded bytes were removed; retry after review.","Không thể lưu metadata chứng từ. Tệp vừa tải đã được gỡ; hãy thử lại sau khi kiểm tra."],
+ asset_reminder_days_invalid:["Enter 1–12 unique whole-day offsets between -365 and 365.","Nhập 1–12 mốc ngày nguyên, không trùng, trong khoảng -365 đến 365."],
+ asset_reminder_policy_self_review:["A policy creator cannot review or activate their own reminder policy.","Người tạo không thể tự rà soát hoặc kích hoạt lịch nhắc."],
+ asset_reminder_policy_not_reviewed:["This reminder policy must be independently reviewed before activation.","Lịch nhắc phải được người khác rà soát trước khi kích hoạt."],
+ asset_reminder_decision_invalid:["Choose a valid reminder-policy decision.","Chọn quyết định hợp lệ cho lịch nhắc."],
  offboarding_system_admin_protected:["A System Super Admin account cannot be disabled through employee offboarding.","Không thể tắt tài khoản System Super Admin qua quy trình offboarding nhân viên."],
  offboarding_access_pending:["Workspace access could not be verified as revoked. Keep this task open and retry after review.","Chưa xác minh được quyền Workspace đã bị thu hồi. Hãy giữ việc mở và thử lại sau khi rà soát."],
  offboarding_not_assigned:["This task is not assigned to your account.","Việc này không được phân công cho tài khoản của bạn."],
@@ -168,6 +173,8 @@ const messages:Record<string,[string,string]>={
  service_request_self_review:["A request owner cannot handle their own sensitive concern.","Người gửi không được tự xử lý phản ánh nhạy cảm của mình."],
 };
 let title=data.title||"HRM";let error="error" in data?data.error:undefined;
+const savedMessages:Record<string,[string,string]>={asset_reminder_read:["Reminder marked as read.","Đã đánh dấu nhắc việc là đã xem."]};
+const saved=Astro.url.searchParams.get("saved")??"";
 ---
 <WorkspaceShell title={title} lang={data.lang} user={data.user} module={Astro.props.module??"hrm"} current={Astro.props.current}>
   <div class="crm-head"><div>
@@ -175,6 +182,7 @@ let title=data.title||"HRM";let error="error" in data?data.error:undefined;
     <h1 class="crm-h1">{title}</h1>
   </div></div>
   {error && <div class="crm-notice bad" role="alert"><strong>{vi?"Chưa hoàn tất":"Could not complete"}</strong><p>{messages[error]?.[vi?1:0]??(vi?"Yêu cầu không hợp lệ hoặc hồ sơ không còn khả dụng.":"The request is invalid or the record is no longer available.")}</p></div>}
+  {savedMessages[saved]&&<div class="crm-notice good" role="status">{savedMessages[saved][vi?1:0]}</div>}
   {import.meta.env.DEV&&error?.startsWith("internal_error:")&&<pre class="crm-meta">{error.slice(15)}</pre>}
   {error==="hrm_closed" && data.user.can("hrm.configure") && <div class="crm-sheet"><p>{vi?"Cấu hình chính sách, mục đích sử dụng và retention trước khi mở cổng. Cài đặt ở HRM → Thiết lập.":"Configure the legal entity, purpose and retention policy before opening the module. Use HRM → Settings."}</p><a class="crm-button secondary" href={vi?"/vi/hrm/settings":"/hrm/settings"}>{vi?"Mở thiết lập":"Open settings"}</a></div>}
   <slot />

@@ -19,9 +19,11 @@ export interface MyHrmAssetRow {
 }
 export interface HrmAssetEvent {id:string;asset_id:string;assignment_id:string|null;person_id:string|null;action:string;detail_json:string;actor_id:string;created_at:string}
 export interface HrmAssetPerson {id:string;employee_code:string;display_name:string;legal_entity:string;department:string;job_title:string;user_id:string}
+export interface HrmAssetListPage<T> {rows:T[];page:number;hasMore:boolean}
 
 const live=(user:WorkspaceUser)=>{if(user.hrmEnabled!==true)throw new HrmError("hrm_closed",503)};
 const clean=(value:string,max:number,required=true)=>{const result=value.trim();if(result.length>max||(required&&!result))throw new HrmError("invalid_field");return result};
+const assetPage=(requested:number)=>{const value=Number(requested);return Number.isFinite(value)?Math.max(1,Math.min(1000,Math.floor(value))):1};
 function assetType(value:string):HrmAssetType{if(!(HRM_ASSET_TYPES as readonly string[]).includes(value))throw new HrmError("asset_type_invalid");return value as HrmAssetType}
 function returnCondition(value:string):ReturnCondition{if(value!=="good"&&value!=="damaged"&&value!=="missing")throw new HrmError("asset_return_condition_invalid");return value}
 async function replay(db:D1Database,user:WorkspaceUser,key:string,operation:string,payload:unknown):Promise<string|null>{
@@ -32,16 +34,28 @@ async function replay(db:D1Database,user:WorkspaceUser,key:string,operation:stri
   return row.result_id;
 }
 
-export async function listManagedAssets(db:D1Database,user:WorkspaceUser):Promise<HrmAssetRow[]>{
+const managedAssetSelect=`SELECT a.*,x.id AS assignment_id,x.state AS assignment_state,x.person_id,p.employee_code,
+    COALESCE(NULLIF(p.preferred_name,''),p.legal_name) AS display_name,x.expected_return_on,x.issued_condition,
+    x.version AS assignment_version,x.offered_at,x.accepted_at,x.return_requested_by,x.return_requested_at,x.employee_handover_at,x.returned_at,x.return_condition,x.offer_reason,x.return_note
+  FROM hrm_assets a LEFT JOIN hrm_asset_assignments x ON x.asset_id=a.id AND x.state IN ('offered','assigned','return_requested')
+  LEFT JOIN hrm_people p ON p.id=x.person_id`;
+
+export async function listManagedAssets(db:D1Database,user:WorkspaceUser,page=1):Promise<HrmAssetListPage<HrmAssetRow>>{
   requirePermission(user,"hrm.assets.manage");live(user);
-  const rows=(await db.prepare(`SELECT a.*,x.id AS assignment_id,x.state AS assignment_state,x.person_id,p.employee_code,
-      COALESCE(NULLIF(p.preferred_name,''),p.legal_name) AS display_name,x.expected_return_on,x.issued_condition,
-      x.version AS assignment_version,x.offered_at,x.accepted_at,x.return_requested_by,x.return_requested_at,x.employee_handover_at,x.returned_at,x.return_condition,x.offer_reason,x.return_note
-    FROM hrm_assets a LEFT JOIN hrm_asset_assignments x ON x.asset_id=a.id AND x.state IN ('offered','assigned','return_requested')
-    LEFT JOIN hrm_people p ON p.id=x.person_id
-    ORDER BY CASE a.state WHEN 'offered' THEN 0 WHEN 'return_requested' THEN 1 WHEN 'assigned' THEN 2 ELSE 3 END,a.asset_tag LIMIT 250`)
-    .all<HrmAssetRow>()).results;
-  await audit(db,user,"hrm_assets_listed",null,"assets",{count:rows.length});return rows;
+  const currentPage=assetPage(page),pageSize=100;
+  const rows=(await db.prepare(`${managedAssetSelect}
+    ORDER BY CASE a.state WHEN 'offered' THEN 0 WHEN 'return_requested' THEN 1 WHEN 'assigned' THEN 2 ELSE 3 END,a.asset_tag LIMIT ? OFFSET ?`)
+    .bind(pageSize+1,(currentPage-1)*pageSize).all<HrmAssetRow>()).results;
+  const visible=rows.slice(0,pageSize);
+  await audit(db,user,"hrm_assets_listed",null,"assets",{count:visible.length,page:currentPage});return {rows:visible,page:currentPage,hasMore:rows.length>pageSize};
+}
+
+/** A selected asset may sit beyond the bounded register list; authorize and load it directly. */
+export async function managedAssetById(db:D1Database,user:WorkspaceUser,assetId:string):Promise<HrmAssetRow>{
+  requirePermission(user,"hrm.assets.manage");live(user);
+  const row=await db.prepare(`${managedAssetSelect} WHERE a.id=? LIMIT 1`).bind(assetId).first<HrmAssetRow>();
+  if(!row)throw new HrmError("not_found",404);
+  await audit(db,user,"hrm_asset_detail_viewed",null,row.id,{});return row;
 }
 
 export async function listAssignablePeople(db:D1Database,contentDb:D1Database,user:WorkspaceUser):Promise<HrmAssetPerson[]>{
@@ -56,14 +70,16 @@ export async function listAssignablePeople(db:D1Database,contentDb:D1Database,us
   await audit(db,user,"hrm_asset_assignable_people_listed",null,"assets",{count:people.length});return people;
 }
 
-export async function listMyAssets(db:D1Database,user:WorkspaceUser):Promise<MyHrmAssetRow[]>{
+export async function listMyAssets(db:D1Database,user:WorkspaceUser,page=1):Promise<HrmAssetListPage<MyHrmAssetRow>>{
   requirePermission(user,"hrm.assets.self");live(user);
+  const currentPage=assetPage(page),pageSize=100;
   const rows=(await db.prepare(`SELECT x.id AS assignment_id,x.asset_id,a.asset_tag,a.asset_type,a.description,a.legal_entity,a.location,a.state AS asset_state,
       x.state AS assignment_state,x.expected_return_on,x.issued_condition,x.offer_reason,x.offered_at,x.accepted_at,x.return_requested_by,x.return_requested_at,x.employee_handover_at,x.returned_at,x.return_condition,x.return_note,x.version
     FROM hrm_asset_assignments x JOIN hrm_assets a ON a.id=x.asset_id JOIN hrm_people p ON p.id=x.person_id
-    WHERE p.user_id=? AND x.state IN ('offered','assigned','return_requested','returned','cancelled') ORDER BY CASE x.state WHEN 'offered' THEN 0 WHEN 'return_requested' THEN 1 WHEN 'assigned' THEN 2 ELSE 3 END,x.updated_at DESC LIMIT 100`)
-    .bind(user.id).all<MyHrmAssetRow>()).results;
-  await audit(db,user,"hrm_my_assets_listed",null,user.id,{count:rows.length});return rows;
+    WHERE p.user_id=? AND x.state IN ('offered','assigned','return_requested','returned','cancelled') ORDER BY CASE x.state WHEN 'offered' THEN 0 WHEN 'return_requested' THEN 1 WHEN 'assigned' THEN 2 ELSE 3 END,x.updated_at DESC,x.id LIMIT ? OFFSET ?`)
+    .bind(user.id,pageSize+1,(currentPage-1)*pageSize).all<MyHrmAssetRow>()).results;
+  const visible=rows.slice(0,pageSize);
+  await audit(db,user,"hrm_my_assets_listed",null,user.id,{count:visible.length,page:currentPage});return {rows:visible,page:currentPage,hasMore:rows.length>pageSize};
 }
 
 export async function createAsset(db:D1Database,user:WorkspaceUser,key:string,input:{asset_tag:string;asset_type:string;description:string;serial_number:string;location:string;legal_entity:string}):Promise<string>{

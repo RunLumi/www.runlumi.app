@@ -172,6 +172,7 @@ export async function retryDigest(deps: LarkDeps): Promise<void> {
 
 export const DIGEST_CRON = "37 1 * * MON-SAT";
 export const RETRY_CRON = "*/10 * * * *";
+export function isLarkCron(cron: string): boolean { return cron === DIGEST_CRON || cron === RETRY_CRON; }
 
 export function depsFromEnv(env: Pick<Env, "DB" | "CONTENT_DB" | "LARK_CRM_WEBHOOK_URL" | "LARK_CRM_WEBHOOK_SECRET">): LarkDeps {
   return { db: env.DB, contentDb: env.CONTENT_DB, webhook: env.LARK_CRM_WEBHOOK_URL, secret: env.LARK_CRM_WEBHOOK_SECRET };
@@ -179,6 +180,7 @@ export function depsFromEnv(env: Pick<Env, "DB" | "CONTENT_DB" | "LARK_CRM_WEBHO
 
 /** Cron entry point: the digest at 08:37 Vietnam time, retries every ten minutes. */
 export async function runScheduled(cron: string, env: Pick<Env, "DB" | "CONTENT_DB" | "LARK_CRM_WEBHOOK_URL" | "LARK_CRM_WEBHOOK_SECRET">): Promise<void> {
+  if (!isLarkCron(cron)) return;
   const deps = depsFromEnv(env);
   if (cron === DIGEST_CRON) await sendDigest(deps);
   else { await flushLark(deps); await retryDigest(deps); }

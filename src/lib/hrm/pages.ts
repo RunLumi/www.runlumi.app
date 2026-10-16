@@ -5,6 +5,7 @@ import type { WorkspaceUser } from "../workspace/roles";
 import type { MemberRow } from "../workspace/members";
 import { HrmError, date, kindOf, period, readRecord, revision, text, recordKinds } from "./fields";
 import { settings, enabled, saveSettings, savePerson, startEmploymentPeriod, localDate, personFor, recordsFor, changesFor, submitRecord, reviewChange, listPeople, type Person, type Settings, type HrmRecord, type Change, type PrivateFile } from "./service";
+import { listAssetReminderPolicies, type AssetReminderPolicy } from "./asset-reminders";
 export type Lang = "en" | "vi";
 export interface PageBase { lang:Lang; vi:boolean; user:WorkspaceUser; title:string; live:boolean }
 export interface Failure extends PageBase { error:string; status:number }
@@ -15,11 +16,11 @@ const formOf=async(astro:AstroGlobal)=>{if(!sameOrigin(astro.request))throw new 
 const requireLive=(user:WorkspaceUser)=>{if(user.hrmEnabled!==true)throw new HrmError("hrm_closed",503)};
 const common=(astro:AstroGlobal,lang:Lang)=>({user:astro.locals.workspace!,env:envFromLocals(astro.locals),lang});
 
-export async function settingsPage(astro:AstroGlobal,lang:Lang):Promise<Response| (PageBase & {settings:Settings; saved:boolean; deploymentEnabled:boolean; error?:string})>{
+export async function settingsPage(astro:AstroGlobal,lang:Lang):Promise<Response| (PageBase & {settings:Settings; assetReminderPolicies:AssetReminderPolicy[]; saved:string; deploymentEnabled:boolean; error?:string})>{
   const {user,env}=common(astro,lang);
   if(!user.can("hrm.configure"))return new Response("Forbidden",{status:403});
   try {
-    const current=await settings(env.DB);
+    const current=await settings(env.DB),assetReminderPolicies=user.can("hrm.assets.reminders.manage")?await listAssetReminderPolicies(env.DB,user):[];
     if(astro.request.method==="POST") {
       const form=await formOf(astro);
       const requestKey=text(form,"request_key",100,true);
@@ -28,8 +29,8 @@ export async function settingsPage(astro:AstroGlobal,lang:Lang):Promise<Response
       await saveSettings(env.DB,user,requestKey,{version:revision(form),legal_entity:text(form,"legal_entity",200,true),purpose:text(form,"purpose",1000,true),retention_policy:text(form,"retention_policy",1000,true),policy_reference:text(form,"policy_reference",500,true),reviewed:form.get("reviewed")==="1",enabled:desired});
       return redirect(astro,{saved:"1"});
     }
-    return {...base(lang,user),title:lang==="vi"?"Thiết lập HRM":"HRM settings",settings:current,saved:astro.url.searchParams.has("saved"),deploymentEnabled:env.HRM_LIVE_ENABLED==="true"};
-  } catch(error){if(error instanceof HrmError)astro.response.status=error.status;return {...err(lang,user,error),settings:await settings(env.DB).catch(()=>({enabled:0,legal_entity:"",purpose:"",retention_policy:"",policy_reference:"",reviewed_by:null,reviewed_at:null,version:0})) as Settings,saved:false,deploymentEnabled:env.HRM_LIVE_ENABLED==="true"};}
+    return {...base(lang,user),title:lang==="vi"?"Thiết lập HRM":"HRM settings",settings:current,assetReminderPolicies,saved:astro.url.searchParams.get("saved")??"",deploymentEnabled:env.HRM_LIVE_ENABLED==="true"};
+  } catch(error){if(error instanceof HrmError)astro.response.status=error.status;return {...err(lang,user,error),settings:await settings(env.DB).catch(()=>({enabled:0,legal_entity:"",purpose:"",retention_policy:"",policy_reference:"",reviewed_by:null,reviewed_at:null,version:0})) as Settings,assetReminderPolicies:[],saved:"",deploymentEnabled:env.HRM_LIVE_ENABLED==="true"};}
 }
 export async function overviewPage(astro:AstroGlobal,lang:Lang):Promise<PageBase & {person:Person|null;settings?:Settings; people:number}> {
  const {user,env}=common(astro,lang);const config=await settings(env.DB);const live=enabled(config,env.HRM_LIVE_ENABLED);
