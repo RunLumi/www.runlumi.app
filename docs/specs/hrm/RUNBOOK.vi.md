@@ -1,6 +1,6 @@
 # HRM — Quy trình sự cố, lưu giữ và phục hồi dữ liệu
 
-**Rà soát:** 2026-10-15 theo tài liệu Cloudflare D1 và R2 hiện hành. **Trạng thái:** bản thảo quy trình vận hành. HRM production vẫn đóng cho đến khi chủ sở hữu phê duyệt thời hạn lưu giữ, mục tiêu phục hồi và người chịu trách nhiệm. Chưa có bằng chứng về một lần phục hồi production hoặc bản sao lưu R2. Tài liệu này không chứng minh dữ liệu có thể phục hồi.
+**Rà soát:** 2026-10-16 theo tài liệu Cloudflare D1 và R2 hiện hành. **Trạng thái:** bản thảo quy trình vận hành. HRM production vẫn đóng cho đến khi chủ sở hữu phê duyệt thời hạn lưu giữ, mục tiêu phục hồi và người chịu trách nhiệm. Chưa có bằng chứng về một lần phục hồi production hoặc bản sao lưu R2. Tài liệu này không chứng minh dữ liệu có thể phục hồi.
 
 [English](RUNBOOK.md)
 
@@ -76,6 +76,14 @@ Khi diễn tập thủ công bằng dữ liệu giả, dùng trình tự sau. Tu
 4. Ghi lại output lệnh, commit kiểm thử, tập migration D1, số lượng object/checksum R2, thời gian thực hiện và kết quả dọn dẹp. Không đưa tên nhân viên, định danh thật, object key hay bytes của tệp vào báo cáo được commit.
 
 Một diễn tập tổng hợp đạt yêu cầu chỉ chứng minh quy trình cục bộ. Khả năng phục hồi production vẫn `UNPROVEN` cho đến khi chủ sở hữu phê duyệt RPO/RTO, cơ chế và thời hạn giữ bản sao R2 riêng tư, người có quyền phục hồi production và một lần thử phục hồi được phê duyệt riêng.
+
+## Biên bản bàn giao tài sản
+
+Nhân viên có thể tải PDF sau khi ghi nhận đã bàn giao trực tiếp tài sản được giao cho HR. HRM có thể tải biên nhận nhận lại khi assignment đang chờ thu hồi vật lý. PDF được gắn với đúng assignment và lưu trong R2 riêng tư dưới loại `asset_evidence`; route kiểm tra chữ ký/kích thước PDF, lưu checksum và actor, kế thừa legal hold theo người/danh mục nếu có, và không tự đặt ngày đến hạn xóa khi owner chưa duyệt chính sách retention.
+
+Tệp mới ở trạng thái cách ly. Người tải lên được tải lại tệp của mình; quyền còn lại tuân theo scope nhân viên/tài sản và capability review. Chỉ HRM Admin hoặc System Super Admin được duyệt/từ chối; người tải lên và người giao tài sản không được tự rà soát. Hãy xác minh giấy tờ đúng nhân viên, tài sản và lần bàn giao thực tế trước khi duyệt. Có PDF không tự chứng minh tài sản đã trả: HR phải ghi nhận tình trạng vật lý và đóng assignment. Giữ task offboarding mở khi assignment còn hoạt động; không miễn bước để lách việc thiếu biên nhận.
+
+Nếu PDF sai hoặc gắn nhầm assignment, dừng review và tải xuống, giữ audit/checksum, rồi làm theo quy trình sự cố ghép nhầm người/tệp ở trên. Không sửa hoặc chuyển liên kết chứng từ bất biến; yêu cầu tải lại theo đúng assignment. Không tự đặt thời hạn retention hoặc gỡ legal hold chỉ để dọn hàng chờ.
 
 ## Các quyết định vận hành còn thiếu
 

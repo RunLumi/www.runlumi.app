@@ -1,6 +1,6 @@
 # HRM incident, retention and recovery runbook
 
-**Reviewed:** 2026-10-15 against current Cloudflare D1 and R2 documentation. **Status:** operational procedure draft. HRM production remains closed pending owner-approved retention, restore objectives and recovery ownership. No production restore or R2 backup copy has been demonstrated. This document does not prove recoverability.
+**Reviewed:** 2026-10-16 against current Cloudflare D1 and R2 documentation. **Status:** operational procedure draft. HRM production remains closed pending owner-approved retention, restore objectives and recovery ownership. No production restore or R2 backup copy has been demonstrated. This document does not prove recoverability.
 
 [Tiếng Việt](RUNBOOK.vi.md)
 
@@ -76,6 +76,14 @@ For a manual synthetic rehearsal, use the following sequence. Never use producti
 4. Capture command output, test commit, D1 migration set, R2 object/checksum counts, elapsed time and cleanup result. Do not include employee names, real identifiers, object keys or file bytes in the committed report.
 
 A passing synthetic drill proves only the local recovery procedure. Production restore remains `UNPROVEN` until the owner approves RPO/RTO, the private R2 backup mechanism and retention, a production-specific recovery authority, and a separately authorized recovery test.
+
+## Asset handover evidence
+
+Employees can upload a PDF after reporting that they physically handed an assigned item to HR. HRM staff can upload a return receipt while the assignment is awaiting physical return. The upload is linked to the exact asset assignment and stored in private R2 as `asset_evidence`; the route validates PDF signature and size, records checksum and actor, inherits an applicable person/category legal hold, and leaves retention due dates unset until the owner approves a policy.
+
+New files remain quarantined. The uploader may retrieve their own upload; other access follows the employee/asset scope and review permission. Only an HRM Admin or System Super Admin may approve or reject, and neither the uploader nor the asset issuer may review the file. Verify that the document matches the employee, asset and physical handover before approving. A file's existence alone does not prove the item was returned: HR must record the physical condition and close the asset assignment. Keep the offboarding task open while the assignment is active; do not waive it to bypass a missing return.
+
+If the PDF is wrong or attached to another assignment, stop review and download, preserve its audit/checksum record, and follow the wrong-person/file incident procedure above. Do not move or relink the immutable evidence record; request a corrected upload under the right assignment. Do not invent a retention period or release a legal hold to clear the queue.
 
 ## Open operator decisions
 
