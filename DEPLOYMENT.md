@@ -219,3 +219,10 @@ node scripts/preflight.mjs     # check required secrets exist
 
 Remember: `npx` is blocked on dev machines without `--no-install` — use
 package scripts or `./node_modules/.bin/<tool>` (README explains why).
+
+**Cloudflare build fails while updating repository submodules.**
+The `brand` gitlink must have its matching HTTPS URL in `.gitmodules`.
+The first Workers Build on 2026-10-16 exposed a missing mapping; the pinned
+brand commit belongs to `RunLumi/brand.runlumi`. Verify a recursive checkout
+with `git submodule update --init --recursive`. Keep the Cloudflare GitHub app
+authorised for that repository; runtime images remain in `public/brand/`.
