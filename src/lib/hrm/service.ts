@@ -96,6 +96,8 @@ export async function command(db: D1Database,user: WorkspaceUser,key: string,ope
     if(message.includes("structured_disposition_in_progress"))throw new HrmError("structured_disposition_in_progress",409);
     if(message.includes("structured_disposition_guard_required"))throw new HrmError("structured_record_changed",409);
     if(message.includes("time_period_import_pending")) throw new HrmError("time_period_import_pending",409);
+    if(message.includes("time_period_locked_calendar_change")) throw new HrmError("time_period_locked_calendar_change",409);
+    if(message.includes("time_period_locked")) throw new HrmError("time_period_locked",409);
     if (/CHECK constraint failed|UNIQUE constraint failed|immutable_history/.test(message)) throw new HrmError("conflict",409);
     throw error;
   }
