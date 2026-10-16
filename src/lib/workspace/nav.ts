@@ -60,6 +60,7 @@ export const modules: NavModule[] = [
       { key: "my-onboarding", en: "Onboarding tasks", vi: "Việc cần làm khi gia nhập", path: "/hrm/me/onboarding", icon: "today", anyOf: ["hrm.onboarding.self", "hrm.onboarding.tasks"] },
       { key: "my-time", en: "My attendance", vi: "Công của tôi", path: "/hrm/me/time", icon: "today", anyOf: ["hrm.time.self"] },
       { key: "my-leave", en: "My leave", vi: "Phép của tôi", path: "/hrm/me/leave", icon: "today", anyOf: ["hrm.leave.self"] },
+      { key: "my-payslips", en: "My payslips", vi: "Phiếu lương của tôi", path: "/hrm/me/payslips", icon: "profile", anyOf: ["hrm.payroll.self"] },
       { key: "people", en: "People", vi: "Nhân sự", path: "/hrm/people", icon: "hrm_people", anyOf: ["hrm.records.manage", "hrm.team.read"] },
       { key: "legal-documents", en: "Policies and documents", vi: "Chính sách và tài liệu", path: "/hrm/documents", icon: "profile", anyOf: ["hrm.legal.manage"] },
       { key: "coi-review", en: "COI review", vi: "Rà soát COI", path: "/hrm/coi", icon: "profile", anyOf: ["hrm.coi.review"] },
@@ -68,6 +69,7 @@ export const modules: NavModule[] = [
       { key: "retention", en: "Retention and legal holds", vi: "Lưu trữ và legal hold", path: "/hrm/retention", icon: "hrm_settings", anyOf: ["hrm.retention.manage", "hrm.retention.review", "hrm.legalhold.manage"] },
       { key: "time", en: "Schedules and attendance", vi: "Lịch và chấm công", path: "/hrm/time", icon: "hrm_people", anyOf: ["hrm.time.manage", "hrm.time.review", "hrm.time.configure"] },
       { key: "leave", en: "Leave policies and requests", vi: "Chính sách phép và đơn nghỉ", path: "/hrm/leave", icon: "hrm_people", anyOf: ["hrm.leave.manage", "hrm.leave.review", "hrm.leave.configure"] },
+      { key: "payroll", en: "Payroll and payslips", vi: "Payroll và phiếu lương", path: "/hrm/payroll", icon: "hrm_people", anyOf: ["hrm.payroll.read", "hrm.payroll.prepare", "hrm.payroll.configure"] },
       { key: "settings", en: "Settings", vi: "Thiết lập", path: "/hrm/settings", icon: "hrm_settings", anyOf: ["hrm.configure"] },
     ],
   },
@@ -88,7 +90,7 @@ export function visibleModules(user: WorkspaceUser): NavModule[] {
 
 export function visibleLinks(user: WorkspaceUser, module: NavModule): NavLink[] {
   return module.links.filter((link) => {
-    const allowedWhileClosed=link.key==="settings"||(link.key==="retention"&&(user.can("hrm.retention.manage")||user.can("hrm.retention.review")||user.can("hrm.legalhold.manage")))||(link.key==="legal-documents"&&user.can("hrm.legal.manage"))||(link.key==="onboarding-manage"&&user.can("hrm.onboarding.manage"));
+    const allowedWhileClosed=link.key==="settings"||(link.key==="retention"&&(user.can("hrm.retention.manage")||user.can("hrm.retention.review")||user.can("hrm.legalhold.manage")))||(link.key==="legal-documents"&&user.can("hrm.legal.manage"))||(link.key==="onboarding-manage"&&user.can("hrm.onboarding.manage"))||(link.key==="payroll"&&user.can("hrm.payroll.configure"));
     return (module.key!=="hrm"||!user.hrmEmploymentEnded&&(user.hrmEnabled!==false||allowedWhileClosed))&&(!link.anyOf||link.anyOf.some(permission=>user.can(permission)));
   });
 }

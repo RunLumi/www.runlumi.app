@@ -35,38 +35,48 @@ Remaining gaps, not built:
 
 ## 2. Roles
 
-**System Super Admin is the EmDash admin (role 50).** It holds every permission and is never stored in Workspace tables. HRM Admin is a separate grant for HRM configuration and operations; it cannot manage Workspace accounts or enter ATS/CRM unless separately granted another role. All grantable roles are assigned to existing EmDash accounts on **Admin → Users and roles** (`/workspace/users`) and can be combined. Nobody can edit their own access; the System Super Admin controls grants, while HRM Admin controls the HRM business module.
+**System Super Admin is the EmDash admin (role 50).** It holds every permission and is never stored in Workspace tables. HRM Admin is a separate grant for HRM configuration and operations; it cannot manage Workspace accounts or enter ATS/CRM unless separately granted another role. Payroll Officer can read and prepare payroll runs and handle payroll inquiries, but cannot approve, publish, confirm payment, read identity/bank/tax records, or see another employee's payslip. HRM Admin and System Super Admin may review, approve and publish; the preparer cannot approve their own run. All grantable roles are assigned to existing EmDash accounts on **Admin → Users and roles** (`/workspace/users`) and can be combined. Nobody can edit their own access; the System Super Admin controls grants, while HRM Admin controls the HRM business module.
 
-| Permission | System Super Admin | HR (ATS) | Employee | People Manager | HRM Officer | HRM Admin | Sales Manager | Sales Executive | Partner | Finance | Fulfillment |
-| :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: |
-| `workspace.access` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `users.manage` | ✓ |  |  |  |  |  |  |  |  |  |  |
-| `hiring.access` | ✓ | ✓ |  |  |  |  |  |  |  |  |  |
-| `hiring.jobs.manage` | ✓ | ✓ |  |  |  |  |  |  |  |  |  |
-| `hiring.applications.manage` | ✓ | ✓ |  |  |  |  |  |  |  |  |  |
-| `hiring.applications.delete` | ✓ | ✓ |  |  |  |  |  |  |  |  |  |
-| `hiring.export` | ✓ | ✓ |  |  |  |  |  |  |  |  |  |
-| `crm.access` | ✓ |  |  |  |  |  | ✓ | ✓ | ✓ | ✓ | ✓ |
-| `crm.refer` | ✓ |  |  |  |  |  | ✓ | ✓ | ✓ |  |  |
-| `crm.payments.report` | ✓ |  |  |  |  |  | ✓ | ✓ |  |  |  |
-| `crm.team` | ✓ |  |  |  |  |  | ✓ |  |  |  |  |
-| `crm.configure` | ✓ |  |  |  |  |  |  |  |  |  |  |
-| `crm.finance` | ✓ |  |  |  |  |  |  |  |  | ✓ |  |
-| `crm.fulfillment` | ✓ |  |  |  |  |  |  |  |  |  | ✓ |
-| `hrm.access` | ✓ |  | ✓ | ✓ | ✓ | ✓ |  |  |  |  |  |
-| `hrm.profile.self` | ✓ |  | ✓ | ✓ | ✓ | ✓ |  |  |  |  |  |
-| `hrm.team.read` | ✓ |  |  | ✓ |  | ✓ |  |  |  |  |  |
-| `hrm.records.manage` | ✓ |  |  |  | ✓ | ✓ |  |  |  |  |  |
-| `hrm.identity.read` | ✓ |  |  |  | ✓ | ✓ |  |  |  |  |  |
-| `hrm.bank.read` | ✓ |  |  |  |  | ✓ |  |  |  |  |  |
-| `hrm.tax.read` | ✓ |  |  |  |  | ✓ |  |  |  |  |  |
-| `hrm.files.review` | ✓ |  |  |  | ✓ | ✓ |  |  |  |  |  |
-| `hrm.audit.read` | ✓ |  |  |  | ✓ | ✓ |  |  |  |  |  |
-| `hrm.configure` | ✓ |  |  |  |  | ✓ |  |  |  |  |  |
+| Permission | System Super Admin | HR (ATS) | Employee | People Manager | HRM Officer | HRM Admin | Payroll Officer | Sales Manager | Sales Executive | Partner | Finance | Fulfillment |
+| :-: | :-: | :-: | :-: | :-: | :-: | :-: | :--: | :-: | :-: | :-: | :-: | :-: |
+| `workspace.access` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |  | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `users.manage` | ✓ |  |  |  |  |  |  |  |  |  |  |  |
+| `hiring.access` | ✓ | ✓ |  |  |  |  |  |  |  |  |  |  |
+| `hiring.jobs.manage` | ✓ | ✓ |  |  |  |  |  |  |  |  |  |  |
+| `hiring.applications.manage` | ✓ | ✓ |  |  |  |  |  |  |  |  |  |  |
+| `hiring.applications.delete` | ✓ | ✓ |  |  |  |  |  |  |  |  |  |  |
+| `hiring.export` | ✓ | ✓ |  |  |  |  |  |  |  |  |  |  |
+| `crm.access` | ✓ |  |  |  |  |  |  | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `crm.refer` | ✓ |  |  |  |  |  |  | ✓ | ✓ | ✓ |  |  |
+| `crm.payments.report` | ✓ |  |  |  |  |  |  | ✓ | ✓ |  |  |  |
+| `crm.team` | ✓ |  |  |  |  |  |  | ✓ |  |  |  |  |
+| `crm.configure` | ✓ |  |  |  |  |  |  |  |  |  |  |  |
+| `crm.finance` | ✓ |  |  |  |  |  |  |  |  |  | ✓ |  |
+| `crm.fulfillment` | ✓ |  |  |  |  |  |  |  |  |  |  | ✓ |
+| `hrm.access` | ✓ |  | ✓ | ✓ | ✓ | ✓ |  |  |  |  |  |  |
+| `hrm.profile.self` | ✓ |  | ✓ | ✓ | ✓ | ✓ |  |  |  |  |  |  |
+| `hrm.team.read` | ✓ |  |  | ✓ |  | ✓ |  |  |  |  |  |  |
+| `hrm.records.manage` | ✓ |  |  |  | ✓ | ✓ |  |  |  |  |  |  |
+| `hrm.identity.read` | ✓ |  |  |  | ✓ | ✓ |  |  |  |  |  |  |
+| `hrm.bank.read` | ✓ |  |  |  |  | ✓ |  |  |  |  |  |  |
+| `hrm.tax.read` | ✓ |  |  |  |  | ✓ |  |  |  |  |  |  |
+| `hrm.files.review` | ✓ |  |  |  | ✓ | ✓ |  |  |  |  |  |  |
+| `hrm.audit.read` | ✓ |  |  |  | ✓ | ✓ |  |  |  |  |  |  |
+| `hrm.configure` | ✓ |  |  |  |  | ✓ |  |  |  |  |  |  |
 
+| hrm.payroll.read | ✓ |  |  |  |  | ✓ | ✓ |  |  |  |  |  |
+| hrm.payroll.configure | ✓ |  |  |  |  | ✓ |  |  |  |  |  |  |
+| hrm.payroll.prepare | ✓ |  |  |  |  | ✓ | ✓ |  |  |  |  |  |
+| hrm.payroll.review | ✓ |  |  |  |  | ✓ |  |  |  |  |  |  |
+| hrm.payroll.approve | ✓ |  |  |  |  | ✓ |  |  |  |  |  |  |
+| hrm.payroll.publish | ✓ |  |  |  |  | ✓ |  |  |  |  |  |  |
+| hrm.payroll.payment.confirm | ✓ |  |  |  |  | ✓ |  |  |  |  |  |  |
+| hrm.payroll.self | ✓ |  | ✓ |  |  |  |  |  |  |  |  |  |
+| hrm.payroll.dispute | ✓ |  | ✓ |  |  |  |  |  |  |  |  |  |
+| hrm.payroll.dispute.manage | ✓ |  |  |  |  | ✓ | ✓ |  |  |  |  |  |
 **Invariants**
 - **ATS HR and CRM roles remain separate from HRM.** Granting HR (ATS), Finance, Sales Manager or Partner does not grant HRM. HRM Officers and HRM Admins do not automatically enter Hiring or CRM. The System Super Admin is EmDash role 50.
-- **HRM profile scope is field-specific.** Employees see their own profile; People Managers see current direct reports’ work details; HRM Officer and HRM Admin capabilities determine private identity, banking and tax access. Every query and file endpoint enforces scope. HRM Admin can approve within HRM, but cannot self-approve a request or file. Production remains fail-closed until the owner-reviewed configuration and deployment switch are ready.
+- **HRM profile and payroll scope are field-specific.** Employees see their own profile and issued payslips; People Managers see current direct reports’ work details; HRM Officer and HRM Admin capabilities determine private identity, banking and tax access. Payroll Officer can read/prepare only payroll records and inquiries. Every query and private endpoint enforces scope. HRM Admin can approve within HRM, but cannot self-approve a request, file or payroll run. Production remains fail-closed until owner-reviewed configuration and deployment switch are ready.
 - **Revoking access** — or disabling the EmDash account — takes effect on the next request. The person's records stay, and admins reassign them.
 - **Self-service is blocked.** Nobody can change their own access.
 - **Admins are not grantable.** EmDash admins cannot be granted Workspace roles; they already hold every permission.
@@ -74,7 +84,7 @@ Remaining gaps, not built:
 - **Only Admins lift do-not-contact.**
 - **Partners (Cộng tác viên) are outside staff.** They work their own opportunities and refer businesses on *CRM → Referrals*. A referral starts unassigned, with the partner recorded as referrer; a Sales Manager assigns it on *Operations*. After that the partner sees only the stage and outcome, never notes, contacts or money. Partners cannot report payments: customers pay Lumi directly and staff record it. Their commission needs seller terms (full-cycle or referral) declared on *Commission*; the users page flags partners without them.
 
-Migrations `0007_workspace_partner_role.sql` and `0014_hrm_records.sql` rebuild `workspace_roles` to add the Partner and HRM roles while preserving existing grants. `0014` adds versioned people/employment periods, private record metadata, approvals, checksummed file metadata, idempotency, and immutable history/audit. HRM files use the `hrm/` prefix in the private `FILES` bucket; the production feature gate is off unless `HRM_LIVE_ENABLED=true` and policy configuration is ready.
+Migrations `0007_workspace_partner_role.sql`, `0014_hrm_records.sql` and `0024_hrm_payroll.sql` rebuild `workspace_roles` to add Partner, HRM and Payroll roles while preserving existing grants. `0014` adds versioned people/employment periods, private record metadata, approvals, checksummed file metadata, idempotency, and immutable history/audit. `0024` adds the prepare-only Payroll Officer capability, versioned policy/run snapshots, exact integer line inputs, immutable issued payslips, inquiry history and payment-confirmation references. HRM files use the `hrm/` prefix in the private `FILES` bucket; the production feature gate is off unless `HRM_LIVE_ENABLED=true` and reviewed policy configuration is ready.
 
 Migration `0005_workspace_roles.sql` carries existing access over unchanged:
 - every `crm_members` row becomes a Workspace member with the **Sales Executive** role, keeping its enabled flag;
@@ -94,7 +104,7 @@ CRM                 /crm                       grouped sidebar (Menu disclosure 
   Operations                                   Fulfillment (fulfillment or team) · Assignment and cohorts (team)
   Setup                                        Playbooks · Offers and prices (configure)
   Guides and tools                             Sales process · Connect an AI agent
-HRM                 /hrm                       My overview · My profile · People · Settings (each entry permission-gated)
+HRM                 /hrm                       My overview · My profile · Legal · Onboarding · Time/leave · My payslips · Payroll (each entry permission-gated)
 Admin               /workspace/users           Users and roles
 ```
 

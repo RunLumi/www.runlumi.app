@@ -85,6 +85,9 @@ export async function command(db: D1Database,user: WorkspaceUser,key: string,ope
   try {
     await db.batch([
       ...guards,...writes,
+      // Guard rows exist only to make atomic SQL assertions. Always clear them
+      // in the same batch, even when a caller does not include an explicit delete.
+      db.prepare("DELETE FROM hrm_write_guards"),
       db.prepare("INSERT INTO hrm_commands(actor_id,request_key,operation,payload_hash,result_id,created_at) VALUES(?,?,?,?,?,?)").bind(user.id,key,operation,hash,resultId,now()),
     ]);
   } catch(error) {

@@ -22,28 +22,35 @@ Dùng phiên đăng nhập, trạng thái tài khoản và người dùng EmDash
 
 Nhân viên có `employee_id` nghiệp vụ ổn định, tách khỏi `emdash_user_id`. Hồ sơ có thể được HR tạo trước khi có tài khoản; liên kết tài khoản phải do người có quyền xác minh, có ràng buộc duy nhất và audit. Email trùng nhau không đủ để tự ghép danh tính. Một người có nhiều đợt làm việc nhưng chỉ một hồ sơ con người và lịch sử đợt làm việc riêng.
 
-Các vai trò đang grantable trong Workspace: Employee, People Manager, HRM Officer và HRM Admin. HRM Admin là vai trò riêng cho vận hành HRM, không có `users.manage`; HR hiện có chỉ giữ quyền ATS, Finance chỉ giữ quyền CRM. Payroll Officer là vai trò dự kiến ở P4, chưa có trong allowlist/permission map hiện tại. System Super Admin là EmDash Admin role 50, không lưu thành Workspace role; chỉ role này quản lý users/roles tại `/workspace/users`. HRM Admin và System Super Admin có thể duyệt các thao tác nằm trong capability được cấp; phạm vi duyệt theo nghiệp vụ vẫn áp dụng và không ai tự duyệt yêu cầu của mình.
+Các vai trò grantable trong Workspace gồm Employee, People Manager, HRM Officer, HRM Admin và Payroll Officer. Payroll Officer chỉ được đọc/chuẩn bị dữ liệu payroll và xử lý thắc mắc được cấp; không đọc CCCD, tài khoản ngân hàng, thuế, hồ sơ nhân sự, payslip của người khác hoặc tự duyệt/phát hành. HRM Admin và System Super Admin (EmDash role 50) được rà soát/phê duyệt/phát hành/xác nhận thanh toán trong capability tương ứng, nhưng không thể tự duyệt nội dung do chính mình chuẩn bị. HRM Admin không có `users.manage`; HR hiện có chỉ giữ quyền ATS, Finance chỉ giữ quyền CRM. System Super Admin không lưu thành Workspace role và là vai trò duy nhất quản lý users/roles tại `/workspace/users`. Mọi grant vẫn do System Super Admin quản lý.
 
-| Nhóm quyền | Nhân viên | Quản lý trực tiếp | HRM Officer | HRM Admin | Payroll Officer (P4, dự kiến) | System Super Admin (EmDash 50) |
+| Nhóm quyền | Nhân viên | Quản lý trực tiếp | HRM Officer | HRM Admin | Payroll Officer (P4; production gate đóng) | System Super Admin (EmDash 50) |
 |---|---|---|---|---|---|---|
-| `hrm.access` | Cổng của mình | Cổng và đội | Bàn nhân sự | Capability HRM được cấp; không có `users.manage` | Bàn lương khi P4 mở | Toàn bộ capability; theo feature gate |
-| `hrm.profile.self` | Xem mình; gửi đề nghị sửa | Như nhân viên nếu có hồ sơ | Như nhân viên nếu có hồ sơ | Hồ sơ của mình nếu được liên kết | Hồ sơ của mình nếu được liên kết | Có |
+| `hrm.access` | Cổng của mình | Cổng và đội | Bàn nhân sự | Capability HRM được cấp; không có `users.manage` | Bàn payroll khi feature gate mở | Toàn bộ capability; theo feature gate |
+| `hrm.profile.self` | Xem mình; gửi đề nghị sửa | Như nhân viên nếu có hồ sơ | Như nhân viên nếu có hồ sơ | Hồ sơ của mình nếu được liên kết | Không | Có |
 | `hrm.team.read` | Không | Thông tin công việc của đội | Không tự suy ra từ chức danh | Có | Không | Có |
 | `hrm.records.manage` | Không | Không | Hồ sơ nghiệp vụ | Có | Không | Có |
 | `hrm.identity.read` | Giấy tờ mình | Không | Theo quyền và phạm vi | Có | Không | Có |
 | `hrm.legal.manage` | Không | Không | Phát hành/theo dõi tài liệu | Có | Không | Có |
 | `hrm.legal.activate` | Không | Không | Không | Kích hoạt bản người khác đã rà soát | Không | Kích hoạt; không tự duyệt |
-| `hrm.legal.self` | Đọc, ký/xác nhận tài liệu mình | Chỉ tài liệu mình | Tài liệu mình nếu được liên kết | Tài liệu mình nếu được liên kết | Tài liệu mình nếu được liên kết | Có |
-| `hrm.leave.request` | Phép mình | Phép mình | Chỉ khi có grant nhân viên riêng | Phép mình nếu được liên kết | Theo thiết kế P4 | Có |
+| `hrm.legal.self` | Đọc, ký/xác nhận tài liệu mình | Chỉ tài liệu mình | Tài liệu mình nếu được liên kết | Tài liệu mình nếu được liên kết | Không | Có |
+| `hrm.leave.request` | Phép mình | Phép mình | Chỉ khi có grant nhân viên riêng | Phép mình nếu được liên kết | Không | Có |
 | `hrm.leave.approve` | Không | Đội được giao | Theo phạm vi review | HRM theo capability | Không | Có; không tự duyệt |
 | `hrm.attendance.manage` | Gửi giải trình | Duyệt đội nếu được giao | Kiểm tra/khóa công | Kiểm tra/khóa công | Đọc snapshot công đã chốt ở P4 | Có |
-| `hrm.payroll.prepare` | Không | Không | Không mặc định | Theo phân tách nhiệm vụ P4 | Theo phân tách nhiệm vụ P4 | Theo quy trình; không tự duyệt |
-| `hrm.payroll.approve` | Không | Không | Không mặc định | Có; không tự duyệt | Chỉ khi được tách khỏi người soạn | Có; không tự duyệt |
-| `hrm.payroll.self` | Payslip mình | Payslip mình | Payslip mình nếu được liên kết | Payslip mình nếu được liên kết | Payslip mình nếu được liên kết | Có |
+| `hrm.payroll.read` | Không | Không | Không | Có | Kỳ lương cần xử lý | Có |
+| `hrm.payroll.configure` | Không | Không | Không | Có | Không | Có |
+| `hrm.payroll.prepare` | Không | Không | Không mặc định | Có; không tự duyệt bản của mình | Có; không được duyệt/phát hành | Có; không tự duyệt |
+| `hrm.payroll.review` | Không | Không | Không | Có; không tự rà soát | Không | Có |
+| `hrm.payroll.approve` | Không | Không | Không | Có; không tự duyệt | Không | Có; không tự duyệt |
+| `hrm.payroll.publish` | Không | Không | Không | Có | Không | Có |
+| `hrm.payroll.payment.confirm` | Không | Không | Không | Có; cần tham chiếu đối soát | Không | Có; cần tham chiếu đối soát |
+| `hrm.payroll.self` | Payslip mình | Chỉ khi có grant Employee | Chỉ khi có grant Employee | Chỉ khi có grant Employee | Không | Có |
+| `hrm.payroll.dispute` | Thắc mắc phiếu của mình | Thắc mắc phiếu của mình | Không | Không mặc định | Không | Có |
+| `hrm.payroll.dispute.manage` | Không | Không | Không | Có | Xử lý thắc mắc payroll | Có |
 | `hrm.compensation.read` | Thu nhập mình | Không | Grant riêng | Theo nhu cầu HRM | Dữ liệu cần cho lương | Có |
 | `hrm.export`, `hrm.audit.read`, `hrm.configure` | Không | Không | Grant riêng cho audit/xuất | Theo capability HRM | Grant riêng khi P4 mở | Có |
 
-Các hàng payroll là hợp đồng đích cho P4, chưa phải quyền đang chạy. Mọi thay đổi role/permission phải mở rộng CHECK constraint bằng migration additive, giữ grant hiện có và tiếp tục dùng `src/lib/workspace/roles.ts` làm ánh xạ duy nhất.
+Payroll Officer được thêm bằng migration additive `0024_hrm_payroll.sql`; grant mới không sửa hoặc xóa grant ATS/CRM hiện có. Mọi thay đổi role/permission tiếp tục phải mở rộng CHECK constraint bằng migration additive và dùng `src/lib/workspace/roles.ts` làm ánh xạ duy nhất.
 
 Ma trận là yêu cầu cho permission map, không phải logic kiểm tra tên vai trò. Server kiểm tra capability **và** phạm vi bản ghi **và** loại trường/tệp. Có nhiều vai trò thì kết hợp quyền, nhưng không bỏ kiểm soát tự duyệt, khóa kỳ hoặc giới hạn dữ liệu. Quản lý nhân sự khác quản trị tài khoản.
 
@@ -261,6 +268,8 @@ Cấu hình kỳ, pháp nhân, loại tiền, ngày chốt/phát hành, người
 Mỗi dòng tính truy về hợp đồng/thu nhập có hiệu lực, snapshot công/phép đã khóa, dữ liệu điều chỉnh và phiên bản quy tắc. Tiền dùng đơn vị nhỏ nhất hoặc decimal cố định; lưu quy tắc làm tròn và loại tiền, không dùng float cho quyết toán. Không cộng các loại tiền khác nhau mà thiếu tỷ giá, nguồn và ngày quy đổi được duyệt. Nếu cần quy tắc tính cấu hình, dùng toán tử/dữ liệu khai báo có whitelist và validation; không chạy SQL, mã hay biểu thức tùy ý.
 
 CRM commission đã ghi nhận không tự thành lương. Chỉ nhập khoản được bên phụ trách xác nhận với nguồn, kỳ và mã chống trùng; giữ nguyên điều kiện đã thu tiền, đã bàn giao và giữ khách của chính sách CRM. Không mở dữ liệu khách hàng hoặc ledger CRM cho nhân viên qua payslip.
+
+**Implementation boundary (2026-10-15):** P4 currently stores reviewed component definitions without executable formulas and totals entered integer minor-unit amounts exactly. It does not calculate statutory tax/insurance, overtime, foreign exchange or CRM commission. Each required component must be entered with a source reference; unknown values are not zero. Until a responsible owner approves policy and an independent specialist reconciles a synthetic parallel run, payroll stays closed and no live payslip/payment workflow is available.
 
 ### 10.2. Trạng thái kỳ và phát hành
 

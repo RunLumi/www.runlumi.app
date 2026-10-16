@@ -1,0 +1,23 @@
+---
+import type { PayrollComponent, PayrollPerson, PayrollRun } from "../../lib/hrm/payroll";
+interface Props { run: PayrollRun; person: PayrollPerson; component: PayrollComponent; returnTo: string; vi: boolean }
+const { run, person, component, returnTo, vi } = Astro.props as Props;
+const line = person.lines.find(item => item.component_code === component.code);
+const sourceReference = component.source_kind === "employment_record" ? person.employment_id : component.source_kind === "locked_time" ? run.period_id : line?.source_reference ?? "";
+---
+<form class="crm-form" method="post" action="/api/hrm/payroll">
+  <h3 class="crm-h3">{vi ? component.title_vi : component.title_en}{component.required ? " · *" : ""}</h3>
+  <input type="hidden" name="intent" value="set_line"/>
+  <input type="hidden" name="return_to" value={returnTo}/>
+  <input type="hidden" name="request_key" value={crypto.randomUUID()}/>
+  <input type="hidden" name="run_id" value={run.id}/>
+  <input type="hidden" name="person_id" value={person.person_id}/>
+  <input type="hidden" name="version" value={run.version}/>
+  <input type="hidden" name="component_code" value={component.code}/>
+  <input type="hidden" name="source_kind" value={component.source_kind}/>
+  <label class="crm-field"><span>{vi ? "Số tiền theo đơn vị nhỏ nhất" : "Amount in configured minor units"}</span><input class="crm-input" type="number" inputmode="numeric" min="0" step="1" name="amount_minor" value={line?.amount_minor ?? ""} required/></label>
+  <label class="crm-field"><span>{vi ? "Tham chiếu nguồn" : "Source reference"}</span><input class="crm-input" name="source_reference" value={sourceReference} maxlength="200" required/></label>
+  <label class="crm-field"><span>{vi ? "Lý do nếu bằng 0" : "Reason when zero"}</span><input class="crm-input" name="zero_reason" value={line?.zero_reason ?? ""} maxlength="300"/></label>
+  <p class="crm-meta">{component.source_kind} · {component.direction}</p>
+  <button class="crm-button secondary small">{vi ? "Lưu khoản" : "Save line"}</button>
+</form>
