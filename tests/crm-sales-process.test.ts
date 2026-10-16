@@ -1,5 +1,5 @@
-// Content-contract checks only. Run the full Astro build and authenticated UI
-// review separately; these tests do not claim to exercise the production CRM.
+// Content-contract checks only. Full Astro build and authenticated HTTP/UI
+// checks remain separate; source checks are not production verification.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
@@ -11,7 +11,7 @@ const component = readFileSync(new URL("../src/components/crm/SalesProcessView.a
 const sections = (text: string) => [...text.matchAll(/^## (\d+)\. /gm)].map((match) => Number(match[1]));
 const links = (text: string) => [...text.matchAll(/\]\((https:\/\/[^)]+)\)/g)].map((match) => match[1]).sort();
 
-test("sales guide: both locales have one title and the same twelve sections", () => {
+test("sales guide: both Local locales keep one title and twelve sections", () => {
   for (const guide of guides) {
     assert.equal((guide.match(/^# /gm) ?? []).length, 1);
     assert.deepEqual(sections(guide), Array.from({ length: 12 }, (_, i) => i + 1));
@@ -100,17 +100,19 @@ test("sales guide: Google review integrity, consent and private previews remain 
   assert.match(guides[1], /permission to a demo|consent to a demo/);
 });
 
-test("sales guide: citations match and both Markdown files exist", () => {
+test("sales guide: citations match and both Local Markdown files exist", () => {
   assert.ok(existsSync(viPath) && existsSync(enPath));
   assert.deepEqual(links(guides[0]), links(guides[1]));
   assert.ok(links(guides[1]).length >= 7);
   for (const link of links(guides[1])) assert.equal(new URL(link).protocol, "https:");
 });
 
-test("sales guide renderer: each locale uses its own content and headings", () => {
+test("sales guide renderer: static sources select both correct locale pairs", () => {
   assert.match(component, /import \* as guideVi from "\.\.\/\.\.\/\.\.\/docs\/Lumi_Quy_Trinh_Ban_Hang\.md"/);
   assert.match(component, /import \* as guideEn from "\.\.\/\.\.\/\.\.\/docs\/Lumi_Sales_Process\.en\.md"/);
-  assert.match(component, /const guide = vi \? guideVi : guideEn/);
+  assert.match(component, /import \* as solutionVi from "\.\.\/\.\.\/\.\.\/docs\/Lumi_Agents_Vaults_Sales_Process\.vi\.md"/);
+  assert.match(component, /import \* as solutionEn from "\.\.\/\.\.\/\.\.\/docs\/Lumi_Agents_Vaults_Sales_Process\.en\.md"/);
+  assert.match(component, /selected\?\.id === "agents-vaults" \? \(vi \? solutionVi : solutionEn\) : \(vi \? guideVi : guideEn\)/);
   assert.match(component, /guide\.getHeadings\(\)/);
   assert.match(component, /lang=\{lang\} aria-label=\{title\}/);
   assert.doesNotMatch(component, /This guide is written in Vietnamese/);
@@ -122,4 +124,6 @@ test("sales guide renderer: existing CRM shell and source visibility are retaine
   assert.match(component, /sections\.map/);
   assert.match(component, /<Content \/>/);
   assert.doesNotMatch(component, /<script|set:html|fetch\(|\.prepare\(|\.batch\(/);
+  assert.match(component, /salesMotion\(Astro\.url\.searchParams\.get\("flow"\)\)/);
+  assert.match(component, /aria-current=\{selected\?\.id === motion\.id \? "page" : undefined\}/);
 });

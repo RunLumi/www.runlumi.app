@@ -11,14 +11,9 @@ development) see [README](./README.md); for repo conventions see
 GitHub (main)
    │  git push
    ▼
-ECC pre-push hook (local)          .git/hooks — blocks the push if any fail
-   lint → typecheck → test → build
-   ▼
-GitHub Actions CI (.github/workflows/ci.yml)
-   npm ci → lint → test → db:migrate:local → build
-   ▼
-Deploy (manual): npm run deploy
-   preflight → astro check + build → wrangler deploy
+Cloudflare Workers Builds (GitHub-connected; main only)
+   npm run ci:verify → npm run release
+   lint → unit tests → build → preflight → D1 restore point/migrations → deploy
    ▼
 Cloudflare Worker "runlumi"
    routes: runlumi.app/* · www.runlumi.app/* (primary)
@@ -61,17 +56,33 @@ DNS-edit permission to delete them. A **zone route** is the correct tool:
 it takes over an already-proxied hostname without touching DNS. Do not
 switch back to `custom_domain` unless the DNS records are deleted first.
 
+GitHub Actions runs a separate validation pipeline, including integration tests;
+it does not publish production. Cloudflare does not wait for GitHub Actions.
+The local pre-push hook, when installed, is an additional developer check.
+
 ## Deployment
+
+The `runlumi` Worker was connected to `RunLumi/www.runlumi.app` on 2026-10-16.
+Pushes to `main` trigger Cloudflare Workers Builds. Preview builds are disabled.
+Node 26 comes from `.node-version`. Build and deploy commands are
+`npm run ci:verify` and `npm run release`; the root directory is `/`.
+See [the release runbook](docs/crm/RUNBOOK.md#12-automatic-production-deploys-cloudflare-workers-builds)
+for token permissions, build evidence and recovery. A saved connection alone is
+not a successful release: check the Cloudflare build log and deployed version.
+
+Manual fallback from the tested production commit:
 
 ```bash
 npm run deploy
 ```
 
-Sequence: preflight → `astro check` + `astro build` → `wrangler deploy`.
+Sequence: preflight → `astro check` + `astro build` → release preflight →
+D1 Time Travel restore point and pending migrations → `wrangler deploy`.
 
 - **Preflight** (`scripts/preflight.mjs`) checks that
   `EMDASH_ENCRYPTION_KEY`, `DISCORD_APPLICATION_WEBHOOK_URL` and
-  `CRM_INTAKE_SECRET` exist. The CRM intake secret is shared with the
+  `CRM_INTAKE_SECRET`, `CRM_R2_ACCESS_KEY_ID` and
+  `CRM_R2_SECRET_ACCESS_KEY` exist. The CRM intake secret is shared with the
   `lumi-local` Pages project; see [docs/crm/RUNBOOK.md](docs/crm/RUNBOOK.md).
   EmDash owns admin sign-in and the session cookie; the app stores no admin
   password or second session secret.
@@ -208,3 +219,10 @@ node scripts/preflight.mjs     # check required secrets exist
 
 Remember: `npx` is blocked on dev machines without `--no-install` — use
 package scripts or `./node_modules/.bin/<tool>` (README explains why).
+
+**Cloudflare build fails while updating repository submodules.**
+The `brand` gitlink must have its matching HTTPS URL in `.gitmodules`.
+The first Workers Build on 2026-10-16 exposed a missing mapping; the pinned
+brand commit belongs to `RunLumi/brand.runlumi`. Verify a recursive checkout
+with `git submodule update --init --recursive`. Keep the Cloudflare GitHub app
+authorised for that repository; runtime images remain in `public/brand/`.

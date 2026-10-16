@@ -1,36 +1,72 @@
 ---
-// Both CRM locales render their reviewed Markdown source at build time.
-// This guide is instructional: it never mutates offers, playbooks or records.
+// Read-only, server-rendered guide selector. Authentication remains on the
+// existing EN/VI routes; no query value becomes an import path or write.
 import CrmShell from "../../layouts/CrmShell.astro";
 import * as guideVi from "../../../docs/Lumi_Quy_Trinh_Ban_Hang.md";
 import * as guideEn from "../../../docs/Lumi_Sales_Process.en.md";
+import * as solutionVi from "../../../docs/Lumi_Agents_Vaults_Sales_Process.vi.md";
+import * as solutionEn from "../../../docs/Lumi_Agents_Vaults_Sales_Process.en.md";
+import { salesMotions, salesMotion, salesProcessUrl } from "../../lib/crm/sales-process";
 import type { CrmActor } from "../../lib/crm/access";
 import type { Lang } from "../../lib/crm/i18n";
 
 interface Props { lang: Lang; actor: CrmActor }
 const { lang, actor } = Astro.props;
 const vi = lang === "vi";
-const guide = vi ? guideVi : guideEn;
-const sourcePath = vi ? "docs/Lumi_Quy_Trinh_Ban_Hang.md" : "docs/Lumi_Sales_Process.en.md";
-const headings = guide.getHeadings();
-const title = headings.find((heading) => heading.depth === 1)?.text ?? (vi ? "Quy trình bán hàng" : "Sales process");
+const selected = salesMotion(Astro.url.searchParams.get("flow"));
+const guide = selected?.id === "agents-vaults" ? (vi ? solutionVi : solutionEn) : (vi ? guideVi : guideEn);
+const headings = selected ? guide.getHeadings() : [];
+const title = headings.find((heading) => heading.depth === 1)?.text ?? (vi ? "Chọn quy trình bán hàng" : "Choose a sales process");
 const sections = headings.filter((heading) => heading.depth === 2);
 const { Content } = guide;
+const sourcePath = selected?.source[lang];
 ---
 <CrmShell title={vi ? "Quy trình bán hàng" : "Sales process"} lang={lang} actor={actor} current="process">
   <p class="crm-notice">{vi
-    ? "Hướng dẫn 2.0: Basic miễn phí → gặp chủ → Starter kèm Pro. Báo giá và giao dịch vẫn theo phiên bản được duyệt; hướng dẫn không tự đổi cấu hình CRM."
-    : "Guide 2.0: free Basic → owner visit → Starter with Pro. Quotes and transactions retain their approved versions; this guide does not change CRM configuration."}</p>
-  <div class="guide">
-    <nav class="guide-toc crm-sheet" aria-label={vi ? "Mục lục" : "Contents"}>
-      <p class="crm-eyebrow">{vi ? "Mục lục" : "Contents"}</p>
-      <ol>{sections.map((heading) => <li><a href={`#${heading.slug}`}>{heading.text}</a></li>)}</ol>
-    </nav>
-    <article class="crm-sheet guide-body" lang={lang} aria-label={title}>
-      <Content />
-    </article>
-  </div>
-  {actor.configure && <p class="crm-help">{vi
-    ? `Nguồn: ${sourcePath} trong repository. Cập nhật cả EN/VI, kiểm thử và deploy để áp dụng; lưu phiên bản offer mới riêng trong CRM trước khi chào in/Pro.`
-    : `Source: ${sourcePath} in the repository. Update both EN/VI, test and deploy; separately save an approved offer version in CRM before quoting print/Pro.`}</p>}
+    ? "Hai luồng bán, hai offer mở cửa. Local dùng Basic đã in; Agents/Vaults dùng Workflow Kit. Hướng dẫn không tự đổi playbook, giá, quyền dữ liệu hoặc giao dịch."
+    : "Two sales motions, two entry offers. Local uses printed Basic; Agents/Vaults uses the Workflow Kit. Guidance does not change playbooks, prices, data permissions or transactions."}</p>
+  <nav class="process-choices" aria-label={vi ? "Chọn một trong hai quy trình" : "Choose one of two sales processes"}>
+    {salesMotions.map((motion) => (
+      <a class:list={["crm-sheet", "process-choice", { "is-current": selected?.id === motion.id }]}
+        href={salesProcessUrl(lang, motion.id)} aria-current={selected?.id === motion.id ? "page" : undefined}
+        data-sales-motion={motion.id}>
+        <span class="crm-eyebrow">{vi ? "Quy trình" : "Process"} {motion.number}</span>
+        <strong>{motion[lang].name}</strong>
+        <span class="process-offer">{motion[lang].offer}</span>
+        <span>{motion[lang].summary}</span>
+      </a>
+    ))}
+  </nav>
+  {!selected && <section class="crm-sheet process-intro" aria-label={title}>
+    <h2>{title}</h2>
+    <p>{vi
+      ? "Chọn luồng theo nhu cầu khách, không theo món quà. Hai hướng dẫn đều có điều kiện bắt đầu/dừng, kịch bản, cách ghi CRM và kiểm tra trước bàn giao. BI nằm trong luồng giải pháp; gia hạn theo hồ sơ liên kết hiện có."
+      : "Choose by the customer's need, not the gift. Each guide covers entry/stop conditions, scripts, CRM recording and handover checks. BI sits within the solution motion; renewals use existing linked records."}</p>
+  </section>}
+  {selected && <>
+    <p class="crm-help"><a href={salesProcessUrl(lang)}>{vi ? "Về hai quy trình" : "Back to both processes"}</a></p>
+    <div class="guide" data-process-guide={selected.id}>
+      <nav class="guide-toc crm-sheet" aria-label={vi ? "Mục lục" : "Contents"}>
+        <p class="crm-eyebrow">{vi ? "Mục lục" : "Contents"}</p>
+        <ol>{sections.map((heading) => <li><a href={`#${heading.slug}`}>{heading.text}</a></li>)}</ol>
+      </nav>
+      <article class="crm-sheet guide-body" lang={lang} aria-label={title}>
+        <Content />
+      </article>
+    </div>
+    {actor.configure && <p class="crm-help">{vi
+      ? `Nguồn: ${sourcePath}. Cập nhật cả EN/VI và kiểm thử trước release. Offer/giá mới cần được duyệt và lưu phiên bản riêng; đọc hướng dẫn không cấp quyền triển khai.`
+      : `Source: ${sourcePath}. Update both EN/VI and test before release. New offers/prices require approval and a separate saved version; reading this guide does not authorize deployment.`}</p>}
+  </>}
 </CrmShell>
+<style>
+  .process-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-block: 1.25rem; }
+  .process-choice { display: flex; flex-direction: column; gap: .65rem; min-width: 0; padding: 1.25rem; color: inherit; text-decoration: none; overflow-wrap: anywhere; border: 1px solid #d9dee8; }
+  .process-choice strong { font-size: 1.2rem; line-height: 1.4; color: #102a43; }
+  .process-choice .process-offer { color: #006093; font-weight: 600; }
+  .process-choice:hover, .process-choice.is-current { border-color: #006093; box-shadow: inset 0 3px 0 #006093; }
+  .process-choice:focus-visible { outline: 3px solid #006093; outline-offset: 3px; }
+  .process-intro { padding: 1.25rem; }
+  @media (max-width: 680px) { .process-choices { grid-template-columns: minmax(0, 1fr); } }
+  @media (forced-colors: active) { .process-choice.is-current { border: 3px solid Highlight; } }
+</style>
