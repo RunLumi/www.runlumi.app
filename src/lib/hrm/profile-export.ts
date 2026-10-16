@@ -19,6 +19,10 @@ interface ServiceFileRow extends ExportRow {request_id:string;object_available:n
 interface OnboardingPlanRow extends ExportRow {id:string}
 interface OnboardingTaskRow extends ExportRow {id:string;plan_id:string;assigned_to_me:number;dependencies_ready:number}
 interface OnboardingFileRow extends ExportRow {task_id:string;object_available:number}
+interface TimeEntryRow extends ExportRow {id:string}
+interface TimeAdjustmentRow extends ExportRow {id:string;entry_id:string}
+interface LeaveRequestExportRow extends ExportRow {id:string;evidence_object_available:number;evidence_deleted:number;evidence_superseded:number}
+interface LeaveBalanceExportRow extends ExportRow {leave_type_key:string;balance_minutes:number;pending_minutes:number}
 export interface HrmProfileExportResult {body:string;contentBytes:number;personId:string}
 function parseData<T extends JsonExportRow>(row:T):Omit<T,"data">&{data:unknown}{
  let data:unknown;try{data=JSON.parse(String(row.data))}catch{throw new HrmError("profile_export_invalid_record",409)}
@@ -31,11 +35,13 @@ function safeLegalSnapshot(value:string):Record<string,unknown>{
  return Object.fromEntries(keys.filter(key=>Object.hasOwn(source,key)).map(key=>[key,source[key]]));
 }
 
-/** A bounded, self-only snapshot. File bytes and other HRM modules stay on their existing routes. */
+/** A bounded, self-only snapshot of employee-visible HRM data; private file contents stay on their download routes. */
 export async function exportOwnHrmProfile(db:D1Database,user:WorkspaceUser):Promise<HrmProfileExportResult>{
  requirePermission(user,"hrm.profile.self");
  requirePermission(user,"hrm.legal.self");
  requirePermission(user,"hrm.coi.self");
+ requirePermission(user,"hrm.time.self");
+ requirePermission(user,"hrm.leave.self");
  if(user.hrmEnabled!==true)throw new HrmError("hrm_closed",503);
  const person=await personFor(db,user);
  if(!own(person,user))throw new HrmError("not_found",404);
@@ -107,11 +113,40 @@ export async function exportOwnHrmProfile(db:D1Database,user:WorkspaceUser):Prom
     JOIN hrm_legal_files f ON f.id=s.evidence_file_id AND f.person_id=p.id AND f.onboarding_task_id=t.id
     WHERE p.user_id=? AND t.assignee_user_id=? AND op.state IN ('active','completed','cancelled') AND f.kind='pdf_evidence'
     ORDER BY op.started_on,op.id,t.due_at,t.task_key,f.created_at LIMIT ?`).bind(user.id,user.id,ROW_LIMIT+1),
+  db.prepare(`SELECT t.id,periods.period_key,t.work_date,t.shift_key,t.planned_minutes,t.check_in_utc,t.check_out_utc,t.break_minutes,t.worked_minutes,t.overtime_minutes,t.overtime_state,t.state,t.review_reason,t.submitted_at,c.timezone
+    FROM hrm_time_entries t JOIN hrm_people p ON p.id=t.person_id AND p.user_id=?
+    JOIN hrm_time_periods periods ON periods.id=t.period_id JOIN hrm_work_assignments a ON a.id=t.assignment_id
+    JOIN hrm_work_calendar_versions c ON c.id=a.calendar_version_id
+    WHERE t.person_id=? ORDER BY t.work_date,t.submitted_at,t.id LIMIT ?`).bind(user.id,person.id,ROW_LIMIT+1),
+  db.prepare(`SELECT a.id,a.entry_id,a.old_check_in_utc,a.old_check_out_utc,a.old_break_minutes,a.proposed_check_in_utc,a.proposed_check_out_utc,a.proposed_break_minutes,a.proposed_worked_minutes,a.reason,a.state,a.submitted_at,a.reviewed_at
+    FROM hrm_time_adjustments a JOIN hrm_time_entries t ON t.id=a.entry_id JOIN hrm_people p ON p.id=t.person_id AND p.user_id=?
+    WHERE t.person_id=? ORDER BY a.submitted_at,a.id LIMIT ?`).bind(user.id,person.id,ROW_LIMIT+1),
+  db.prepare(`SELECT r.id,r.leave_type_key,r.starts_on,r.ends_on,r.portion,r.requested_minutes,r.private_reason,r.cancellation_reason,r.handoff_note,r.state,r.review_reason,r.submitted_at,r.reviewed_at,
+      json_extract(rule.value,'$.title_en') AS leave_title_en,json_extract(rule.value,'$.title_vi') AS leave_title_vi,
+      CASE WHEN json_extract(rule.value,'$.paid')=1 THEN 1 ELSE 0 END AS paid,
+      CASE WHEN json_extract(rule.value,'$.evidence_required')=1 THEN 1 ELSE 0 END AS evidence_required,
+      f.original_name AS evidence_name,f.mime_type AS evidence_mime_type,f.size_bytes AS evidence_size_bytes,f.checksum AS evidence_checksum,f.state AS evidence_state,f.created_at AS evidence_created_at,f.reviewed_at AS evidence_reviewed_at,
+      CASE WHEN f.id IS NOT NULL AND f.object_deleted_at IS NULL THEN 1 ELSE 0 END AS evidence_object_available,
+      CASE WHEN f.id IS NOT NULL AND f.object_deleted_at IS NOT NULL THEN 1 ELSE 0 END AS evidence_deleted,
+      CASE WHEN link.id IS NULL AND EXISTS(SELECT 1 FROM hrm_leave_evidence_links older WHERE older.leave_request_id=r.id AND older.revision_no<r.current_revision_no) THEN 1 ELSE 0 END AS evidence_superseded
+    FROM hrm_leave_requests r JOIN hrm_people p ON p.id=r.person_id AND p.user_id=?
+    JOIN hrm_leave_policy_versions policy ON policy.id=r.policy_version_id
+    JOIN json_each(policy.rules_json) rule ON json_extract(rule.value,'$.key')=r.leave_type_key
+    LEFT JOIN hrm_leave_evidence_links link ON link.id=(SELECT current_link.id FROM hrm_leave_evidence_links current_link WHERE current_link.leave_request_id=r.id AND current_link.person_id=r.person_id AND current_link.revision_no=r.current_revision_no ORDER BY current_link.created_at DESC LIMIT 1)
+    LEFT JOIN hrm_files f ON f.id=link.file_id AND f.person_id=r.person_id AND f.kind='leave_evidence'
+    WHERE r.person_id=? ORDER BY r.submitted_at,r.id LIMIT ?`).bind(user.id,person.id,ROW_LIMIT+1),
+  db.prepare(`SELECT json_extract(rule.value,'$.key') AS leave_type_key,
+      COALESCE((SELECT SUM(l.minutes) FROM hrm_leave_ledger l WHERE l.employment_id=a.employment_id AND l.leave_type_key=json_extract(rule.value,'$.key')),0) AS balance_minutes,
+      COALESCE((SELECT SUM(r.requested_minutes) FROM hrm_leave_requests r WHERE r.employment_id=a.employment_id AND r.leave_type_key=json_extract(rule.value,'$.key') AND r.state='pending_approval'),0) AS pending_minutes
+    FROM hrm_leave_policy_assignments a JOIN hrm_leave_policy_versions policy ON policy.id=a.policy_version_id JOIN json_each(policy.rules_json) rule
+    WHERE a.person_id=? AND a.employment_id=? AND a.effective_from<=? AND (a.effective_to IS NULL OR a.effective_to>=?)
+      AND a.effective_from=(SELECT MAX(current_assignment.effective_from) FROM hrm_leave_policy_assignments current_assignment WHERE current_assignment.person_id=? AND current_assignment.employment_id=? AND current_assignment.effective_from<=? AND (current_assignment.effective_to IS NULL OR current_assignment.effective_to>=?))
+    ORDER BY json_extract(rule.value,'$.key') LIMIT ?`).bind(person.id,person.employment_id,localDate(),localDate(),person.id,person.employment_id,localDate(),localDate(),ROW_LIMIT+1),
   db.prepare("DELETE FROM hrm_write_guards"),
  ])}catch(error){if(error instanceof Error&&/CHECK constraint failed/.test(error.message))throw new HrmError("conflict",409);throw error}
  const employmentPeriods=batch[1]?.results as ExportRow[]??[],records=batch[2]?.results as RecordRow[]??[],recordHistory=batch[3]?.results as HistoryRow[]??[],changeRequests=batch[4]?.results as ChangeRow[]??[],files=batch[5]?.results as FileRow[]??[];
- const legalIssueRows=batch[6]?.results as LegalIssueRow[]??[],employeeParties=batch[7]?.results as ExportRow[]??[],coiRows=batch[8]?.results as CoiRow[]??[],coiEvents=batch[9]?.results as ExportRow[]??[],legalFiles=batch[10]?.results as ExportRow[]??[],serviceRequests=batch[11]?.results as ServiceRequestRow[]??[],serviceEvents=batch[12]?.results as ServiceEventRow[]??[],serviceFiles=batch[13]?.results as ServiceFileRow[]??[],onboardingPlans=batch[14]?.results as OnboardingPlanRow[]??[],onboardingTasks=batch[15]?.results as OnboardingTaskRow[]??[],onboardingFiles=batch[16]?.results as OnboardingFileRow[]??[];
- for(const collection of [employmentPeriods,records,recordHistory,changeRequests,files,legalIssueRows,employeeParties,coiRows,coiEvents,legalFiles,serviceRequests,serviceEvents,serviceFiles,onboardingPlans,onboardingTasks,onboardingFiles])if(collection.length>ROW_LIMIT)throw new HrmError("profile_export_too_large",413);
+ const legalIssueRows=batch[6]?.results as LegalIssueRow[]??[],employeeParties=batch[7]?.results as ExportRow[]??[],coiRows=batch[8]?.results as CoiRow[]??[],coiEvents=batch[9]?.results as ExportRow[]??[],legalFiles=batch[10]?.results as ExportRow[]??[],serviceRequests=batch[11]?.results as ServiceRequestRow[]??[],serviceEvents=batch[12]?.results as ServiceEventRow[]??[],serviceFiles=batch[13]?.results as ServiceFileRow[]??[],onboardingPlans=batch[14]?.results as OnboardingPlanRow[]??[],onboardingTasks=batch[15]?.results as OnboardingTaskRow[]??[],onboardingFiles=batch[16]?.results as OnboardingFileRow[]??[],timeEntries=batch[17]?.results as TimeEntryRow[]??[],timeAdjustments=batch[18]?.results as TimeAdjustmentRow[]??[],leaveRequests=batch[19]?.results as LeaveRequestExportRow[]??[],leaveBalances=batch[20]?.results as LeaveBalanceExportRow[]??[];
+ for(const collection of [employmentPeriods,records,recordHistory,changeRequests,files,legalIssueRows,employeeParties,coiRows,coiEvents,legalFiles,serviceRequests,serviceEvents,serviceFiles,onboardingPlans,onboardingTasks,onboardingFiles,timeEntries,timeAdjustments,leaveRequests,leaveBalances])if(collection.length>ROW_LIMIT)throw new HrmError("profile_export_too_large",413);
  const recordIds=[...new Set([...records.map(row=>row.id),...recordHistory.map(row=>row.record_id),...changeRequests.map(row=>row.record_id),...files.flatMap(row=>row.record_id?[row.record_id]:[])])];
  const recordRefs=new Map(recordIds.map((recordId,index)=>[recordId,`record-${index+1}`]));
  const recordData=records.map(row=>{const {id:recordId,...value}=row;return {...parseData(value),record_ref:recordRefs.get(recordId)}});
@@ -132,13 +167,25 @@ export async function exportOwnHrmProfile(db:D1Database,user:WorkspaceUser):Prom
  const onboardingTaskRefs=new Map(onboardingTasks.map((row,index)=>[row.id,`onboarding-task-${index+1}`]));
  const onboardingTaskData=onboardingTasks.map(({id:taskId,plan_id:planId,...value})=>({...value,plan_ref:onboardingPlanRefs.get(planId),task_ref:onboardingTaskRefs.get(taskId),assigned_to_me:Boolean(value.assigned_to_me),dependencies_ready:Boolean(value.dependencies_ready)}));
  const onboardingFileData=onboardingFiles.map(({task_id:taskId,...value})=>({...value,task_ref:onboardingTaskRefs.get(taskId),object_available:Boolean(value.object_available)}));
+ const timeEntryRefs=new Map(timeEntries.map((row,index)=>[row.id,`time-entry-${index+1}`]));
+ const timeEntryData=timeEntries.map(({id:entryId,period_key:periodKey,...value})=>({...value,entry_ref:timeEntryRefs.get(entryId),period_key:periodKey}));
+ const timeAdjustmentRefs=new Map(timeAdjustments.map((row,index)=>[row.id,`time-adjustment-${index+1}`]));
+ const timeAdjustmentData=timeAdjustments.map(({id:adjustmentId,entry_id:entryId,...value})=>({...value,adjustment_ref:timeAdjustmentRefs.get(adjustmentId),entry_ref:timeEntryRefs.get(entryId)??null}));
+ const leaveRequestRefs=new Map(leaveRequests.map((row,index)=>[row.id,`leave-request-${index+1}`]));
+ const leaveRequestData=leaveRequests.map(({id:requestId,evidence_name,evidence_mime_type,evidence_size_bytes,evidence_checksum,evidence_state,evidence_created_at,evidence_reviewed_at,evidence_object_available,evidence_deleted,evidence_superseded,...value})=>{
+  const evidenceStatus=evidence_deleted===1?"deleted":evidence_state??(evidence_superseded===1?"superseded":value.evidence_required===1?"required_not_submitted":"not_required");
+  const evidenceFile=evidence_name?{original_name:evidence_name,mime_type:evidence_mime_type,size_bytes:evidence_size_bytes,checksum:evidence_checksum,created_at:evidence_created_at,object_available:Boolean(evidence_object_available)}:null;
+  return {...value,request_ref:leaveRequestRefs.get(requestId),paid:Boolean(value.paid),evidence_required:Boolean(value.evidence_required),evidence:{status:evidenceStatus,reviewed_at:evidence_state==="reviewed"&&!evidence_deleted?evidence_reviewed_at:null,file:evidenceFile}};
+ });
+ const leaveBalanceData=leaveBalances.map(({leave_type_key,balance_minutes,pending_minutes})=>({leave_type_key,balance_minutes,pending_minutes,available_minutes:balance_minutes-pending_minutes}));
+ const leaveEvidenceMetadataCount=leaveRequestData.filter(row=>Boolean(row.evidence.file)).length;
  const createdAt=now();
  const bundle={
-  schema_version:4,
-  export_scope:"self_profile_legal_coi_requests_onboarding_snapshot",
+  schema_version:5,
+  export_scope:"self_profile_legal_coi_requests_onboarding_time_leave_snapshot",
   exported_at:createdAt,
-  included:["profile_identity","employment_periods","structured_profile_records","record_revision_history","profile_change_requests","profile_file_metadata","legal_document_issues","employee_party_status","policy_acknowledgements","coi_declarations","coi_event_actions","legal_evidence_file_metadata","employee_hr_requests","employee_visible_request_events","service_request_file_metadata","onboarding_plans","onboarding_tasks","onboarding_evidence_file_metadata"],
-  excluded:["file_contents","object_keys","internal_review_notes","reviewer_identity","required_parties","other_legal_parties","hr_only_request_notes","other_people_onboarding","onboarding_internal_owner_ids","onboarding_event_details","attendance","leave","payroll","assets","benefits","training","other_people","audit_log"],
+  included:["profile_identity","employment_periods","structured_profile_records","record_revision_history","profile_change_requests","profile_file_metadata","legal_document_issues","employee_party_status","policy_acknowledgements","coi_declarations","coi_event_actions","legal_evidence_file_metadata","employee_hr_requests","employee_visible_request_events","service_request_file_metadata","onboarding_plans","onboarding_tasks","onboarding_evidence_file_metadata","attendance_entries","attendance_adjustments","leave_requests","leave_balance_summary","leave_evidence_file_metadata"],
+  excluded:["file_contents","object_keys","internal_review_notes","reviewer_identity","required_parties","other_legal_parties","hr_only_request_notes","other_people_onboarding","onboarding_internal_owner_ids","onboarding_event_details","payroll","assets","benefits","training","other_people","audit_log"],
   profile:{employee_code:person.employee_code,legal_name:person.legal_name,preferred_name:person.preferred_name},
   employment_periods:employmentPeriods,
   records:recordData,
@@ -157,10 +204,14 @@ export async function exportOwnHrmProfile(db:D1Database,user:WorkspaceUser):Prom
   onboarding_plans:onboardingPlanData,
   onboarding_tasks:onboardingTaskData,
   onboarding_evidence_files:onboardingFileData,
+  time_entries:timeEntryData,
+  time_adjustments:timeAdjustmentData,
+  leave_requests:leaveRequestData,
+  leave_balances:leaveBalanceData,
  };
  const body=JSON.stringify(bundle,null,2),contentBytes=new TextEncoder().encode(body).byteLength;
  if(contentBytes>BYTE_LIMIT)throw new HrmError("profile_export_too_large",413);
  const exportId=id("profile_export");
- await audit(db,user,"employee_profile_exported",person.id,exportId,{scope:"self_profile_legal_coi_requests_onboarding_snapshot",employment_period_count:employmentPeriods.length,record_count:recordData.length,history_count:historyData.length,change_request_count:changeData.length,file_metadata_count:files.length,legal_document_count:legalDocuments.length,acknowledgement_count:acknowledgements.length,coi_declaration_count:coiDeclarations.length,legal_file_metadata_count:legalFileData.length,service_request_count:serviceRequestData.length,service_event_count:serviceEventData.length,service_file_metadata_count:serviceFileData.length,onboarding_plan_count:onboardingPlanData.length,onboarding_task_count:onboardingTaskData.length,onboarding_file_metadata_count:onboardingFileData.length,content_bytes:contentBytes});
+ await audit(db,user,"employee_profile_exported",person.id,exportId,{scope:"self_profile_legal_coi_requests_onboarding_time_leave_snapshot",employment_period_count:employmentPeriods.length,record_count:recordData.length,history_count:historyData.length,change_request_count:changeData.length,file_metadata_count:files.length,legal_document_count:legalDocuments.length,acknowledgement_count:acknowledgements.length,coi_declaration_count:coiDeclarations.length,legal_file_metadata_count:legalFileData.length,service_request_count:serviceRequestData.length,service_event_count:serviceEventData.length,service_file_metadata_count:serviceFileData.length,onboarding_plan_count:onboardingPlanData.length,onboarding_task_count:onboardingTaskData.length,onboarding_file_metadata_count:onboardingFileData.length,time_entry_count:timeEntryData.length,time_adjustment_count:timeAdjustmentData.length,leave_request_count:leaveRequestData.length,leave_balance_count:leaveBalanceData.length,leave_evidence_metadata_count:leaveEvidenceMetadataCount,content_bytes:contentBytes});
  return {body,contentBytes,personId:person.id};
 }

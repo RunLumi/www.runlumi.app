@@ -10,7 +10,7 @@ const privateHeaders={"Cache-Control":"private, no-store","X-Content-Type-Option
 export const POST:APIRoute=async context=>{
  const user=context.locals.workspace;
  if(!user)return new Response(JSON.stringify({error:"forbidden"}),{status:403,headers:{...privateHeaders,"Content-Type":"application/json; charset=utf-8"}});
- if(!user.can("hrm.profile.self")||!user.can("hrm.legal.self")||!user.can("hrm.coi.self"))return new Response(JSON.stringify({error:"forbidden"}),{status:403,headers:{...privateHeaders,"Content-Type":"application/json; charset=utf-8"}});
+ if(!user.can("hrm.profile.self")||!user.can("hrm.legal.self")||!user.can("hrm.coi.self")||!user.can("hrm.time.self")||!user.can("hrm.leave.self"))return new Response(JSON.stringify({error:"forbidden"}),{status:403,headers:{...privateHeaders,"Content-Type":"application/json; charset=utf-8"}});
  if(!sameOrigin(context.request))return new Response(JSON.stringify({error:"invalid_origin"}),{status:400,headers:{...privateHeaders,"Content-Type":"application/json; charset=utf-8"}});
  if(!user.can("hrm.services.self")&&!user.can("hrm.services.manage"))return new Response(JSON.stringify({error:"forbidden"}),{status:403,headers:{...privateHeaders,"Content-Type":"application/json; charset=utf-8"}});
  if(!user.can("hrm.onboarding.self")&&!user.can("hrm.onboarding.manage"))return new Response(JSON.stringify({error:"forbidden"}),{status:403,headers:{...privateHeaders,"Content-Type":"application/json; charset=utf-8"}});
