@@ -386,7 +386,7 @@ Các kiểm tra dưới đây là yêu cầu cho triển khai, **chưa phải k�
 | HRM-05 | Hai người sửa hồ sơ cùng revision | Lần stale bị conflict; lịch sử và dữ liệu đã duyệt được giữ |
 | HRM-06 | Xin nghỉ nửa ngày, ngày lễ, lịch part-time, ca đêm; lùi ngày kết thúc lịch gán vào kỳ đang rà soát/đã khóa | Tính theo lịch/chính sách đúng, có preview và nguồn tính; chặn sửa ngày hiệu lực ảnh hưởng tới kỳ locked/reviewing cho tới khi kỳ được mở lại có rà soát, rồi đối chiếu/khóa snapshot mới mà vẫn giữ snapshot cũ |
 | HRM-07 | Hai đơn phép gửi/duyệt đồng thời hoặc retry | Không âm sai quy tắc, không giữ/trừ/hoàn phép hai lần |
-| HRM-08 | Tự duyệt, ủy quyền hết hạn hoặc đổi quản lý khi chờ duyệt | Chặn người không hợp lệ; chuyển tuyến có audit, không auto-approve |
+| HRM-08 | Tự duyệt, ủy quyền hết hạn/thu hồi trong lúc duyệt, đổi quản lý khi chờ duyệt | Mỗi thao tác review lặp lại kiểm tra manager hiện tại, membership/role và delegation active trong cùng batch D1 với thao tác ghi; nếu revoke commit trước thì review fail closed, nếu review commit trước thì audit lưu actor/thời điểm; không tự duyệt hoặc auto-approve |
 | HRM-09 | Hủy phép hoặc sửa công sau phát hành lương | Bản cũ không đổi; tạo điều chỉnh có tham chiếu/phê duyệt |
 | HRM-10 | Tài liệu đã xem, đã xác nhận đọc, scan chưa kiểm tra | Trạng thái riêng; không gọi tất cả là “đã ký” |
 | HRM-11 | Sửa mẫu NDA, phát hành lại, callback ký trùng/trễ/giả | Snapshot cũ giữ nguyên; nguồn không hợp lệ bị từ chối; không hoàn tất hai lần |
