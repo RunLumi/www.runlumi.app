@@ -1,6 +1,6 @@
 # CRM sales processes
 
-Updated 2026-10-16. `/crm/process` and `/vi/crm/process` are private, server-rendered choice pages with exactly **two sales motions**. They do not install or alter database playbooks.
+Updated 2026-10-17 (Local guide 2.1). `/crm/process` and `/vi/crm/process` are private, server-rendered choice pages with exactly **two sales motions**. They do not install or alter database playbooks.
 
 | Motion | English | Vietnamese | Governing content |
 |---|---|---|---|
@@ -9,7 +9,7 @@ Updated 2026-10-16. `/crm/process` and `/vi/crm/process` are private, server-ren
 
 ## Ownership and precedence
 
-Local retains the previously approved free printed Basic -> owner visit -> website with Pro guidance and all historical payment/credit rights. The short Agents/BI summary in section 11 of that Local document is historical context; **the dedicated Agents/Vaults guide governs new solution kit work**. Existing customer agreements are never rewritten by new guidance. The two-week/two-person-day free trial is not a default entitlement for new prospects: the new Workflow Kit is bounded to 2 hours with explicit artifacts and no production deployment.
+Local retains the previously approved free printed Basic -> owner visit -> website with Pro guidance and all historical payment/credit rights. Guide 2.1 (2026-10-17) adds, as operating practice only: a private draft of each business's own page before the visit (recorded in the existing `preview_*` fields), walk-in permission at the counter for street-front clusters, a factual `[PRESENCE_GAP]` note, one introduction asked after every positive outcome (`[REFERRAL]`, referral source), and a weekly funnel review. It changes no prices, offers, stages or fields. The short Agents/BI summary in section 11 of that Local document is historical context; **the dedicated Agents/Vaults guide governs new solution kit work**. Existing customer agreements are never rewritten by new guidance. The two-week/two-person-day free trial is not a default entitlement for new prospects: the new Workflow Kit is bounded to 2 hours with explicit artifacts and no production deployment.
 
 Agents/Vaults starts with a free Workflow Kit: one sample output, exceptions/review checklist, source/access/handover map and measurement/decision sheet. Customers keep their files without buying. Default synthetic data; real Agents/BI samples require separately approved handling. No real data in Vaults before G2, and no broad rollout before G3. Gates in the guide are manual operating checks, not new server enforcement.
 
