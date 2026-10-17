@@ -1,7 +1,7 @@
 import type { WorkspaceUser } from "../workspace/roles";
 import { HrmError } from "./fields";
 import { readLegalUpload } from "./legal-files";
-import { parseLeaveRules, reviewerScope } from "./time-leave";
+import { parseLeaveRules, reviewerScope, reviewerScopeGuard } from "./time-leave";
 import { command, digest, guard, id, now, requirePermission } from "./service";
 
 interface LeaveEvidenceTarget {id:string;person_id:string;state:string;version:number;current_revision_no:number;policy_version_id:string;leave_type_key:string;employee_user_id:string|null}
@@ -55,7 +55,7 @@ export async function reviewLeaveEvidence(db:D1Database,user:WorkspaceUser,key:s
   if(!/^[A-Za-z0-9_-]{16,100}$/.test(key))throw new HrmError("invalid_request_key");
   const evidence=await db.prepare(`SELECT l.leave_request_id,l.person_id,l.revision_no,l.uploaded_by,f.state,f.version,r.version AS request_version,r.current_revision_no,r.state AS request_state,r.submitted_by
     FROM hrm_leave_evidence_links l JOIN hrm_files f ON f.id=l.file_id JOIN hrm_leave_requests r ON r.id=l.leave_request_id WHERE f.id=?`).bind(fileId).first<{leave_request_id:string;person_id:string;revision_no:number;uploaded_by:string;state:string;version:number;request_version:number;current_revision_no:number;request_state:string;submitted_by:string}>();
-  if(!evidence)throw new HrmError("not_found",404);await reviewerScope(db,user,evidence.person_id,"leave");
+  if(!evidence)throw new HrmError("not_found",404);const scopeGuard=await reviewerScopeGuard(db,user,evidence.person_id,"leave");
   if(evidence.uploaded_by===user.id)throw new HrmError("self_approval",403);
   const time=now(),state=approve?"reviewed":"rejected",payload={fileId,requestId:evidence.leave_request_id,requestVersion,fileVersion,approve,reason:reason.trim()};
   const prior=await db.prepare("SELECT operation,payload_hash,result_id FROM hrm_commands WHERE actor_id=? AND request_key=?").bind(user.id,key).first<{operation:string;payload_hash:string;result_id:string}>();
@@ -63,6 +63,7 @@ export async function reviewLeaveEvidence(db:D1Database,user:WorkspaceUser,key:s
   if(evidence.state!=="quarantined"||evidence.request_state!=="pending_approval"||evidence.revision_no!==evidence.current_revision_no)throw new HrmError("invalid_transition",409);
   if(evidence.request_version!==requestVersion||evidence.version!==fileVersion)throw new HrmError("conflict",409);
   await command(db,user,key,"leave_evidence_review",payload,fileId,[
+    ...(scopeGuard?[scopeGuard]:[]),
     guard(db,"EXISTS(SELECT 1 FROM hrm_files f JOIN hrm_leave_evidence_links l ON l.file_id=f.id JOIN hrm_leave_requests r ON r.id=l.leave_request_id WHERE f.id=? AND f.version=? AND f.state='quarantined' AND f.uploaded_by!=? AND r.id=? AND r.version=? AND r.current_revision_no=l.revision_no AND r.state='pending_approval')",[fileId,fileVersion,user.id,evidence.leave_request_id,requestVersion]),
   ],[
     db.prepare("UPDATE hrm_files SET state=?,reviewed_by=?,reviewed_at=?,review_reason=?,version=version+1,retention_actor_id=?,updated_at=? WHERE id=? AND version=? AND state='quarantined'").bind(state,user.id,time,reason.trim(),user.id,time,fileId,fileVersion),
