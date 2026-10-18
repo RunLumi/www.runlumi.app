@@ -1,5 +1,6 @@
 import type { WorkspaceUser } from "../workspace/roles";
 import { AccessError, prepareMemberDisableForOffboarding, workspaceMembers, type MemberRow } from "../workspace/members";
+import { prepareCloseoutApplication } from "./closeout-dossiers";
 import { HrmError } from "./fields";
 import { command, digest, guard, now, requirePermission } from "./service";
 
@@ -53,6 +54,7 @@ export async function getOffboardingCase(db:D1Database,contentDb:D1Database,user
   const taskParams=managerScope?[caseId,user.id]:[caseId];
   const tasks=(await db.prepare(`SELECT * FROM hrm_offboarding_tasks WHERE case_id=?${taskScope} ORDER BY task_key`).bind(...taskParams).all<OffboardingTask>()).results;
   const detailedTasks=await Promise.all(tasks.map(async task=>{
+    if(task.task_key==="payroll_closeout"&&!user.can("hrm.payroll.approve"))return {...task,completion_note:null,blocked_reason:null};
     if(task.task_key!=="asset_return")return task;
     const assetItems=(await db.prepare(`SELECT a.asset_tag,a.asset_type,a.description,x.state AS assignment_state,x.expected_return_on,x.return_condition,
         (SELECT COUNT(*) FROM hrm_asset_evidence_links l JOIN hrm_files f ON f.id=l.file_id WHERE l.assignment_id=x.id AND f.object_deleted_at IS NULL) AS evidence_count
@@ -75,11 +77,11 @@ async function previousCommand(db:D1Database,user:WorkspaceUser,key:string,paylo
 
 type OffboardingAction="complete"|"not_required"|"block"|"unblock"|"revoke_access";
 export async function actOnOffboardingTask(
-  db:D1Database,contentDb:D1Database,user:WorkspaceUser,key:string,caseId:string,taskId:string,expectedVersion:number,action:OffboardingAction,reason:string,confirmed:boolean,
+  db:D1Database,contentDb:D1Database,user:WorkspaceUser,key:string,caseId:string,taskId:string,expectedVersion:number,action:OffboardingAction,reason:string,confirmed:boolean,financial?:{dossierId:string;bucket:R2Bucket},
 ):Promise<void>{
   requireOffboarding(user);
   if(!reason.trim()||reason.length>500)throw new HrmError("reason_required");
-  const operation="offboarding_task_action",payload={caseId,taskId,expectedVersion,action,reason:reason.trim(),confirmed};
+  const operation="offboarding_task_action",payload={caseId,taskId,expectedVersion,action,reason:reason.trim(),confirmed,...(financial?{dossierId:financial.dossierId}:{})};
   const prior=await previousCommand(db,user,key,payload,operation);if(prior)return;
   const task=await db.prepare(`SELECT t.*,c.person_id,c.employment_id,c.employee_user_id,c.manager_user_id,c.state AS case_state,c.version AS case_version
     FROM hrm_offboarding_tasks t JOIN hrm_offboarding_cases c ON c.id=t.case_id WHERE t.id=? AND c.id=?`).bind(taskId,caseId)
@@ -87,7 +89,12 @@ export async function actOnOffboardingTask(
   if(!task)throw new HrmError("not_found",404);
   if(task.case_state!=="open")throw new HrmError("offboarding_case_inactive",409);
   if(task.version!==expectedVersion)throw new HrmError("conflict",409);
-  if(task.task_key==="payroll_closeout")throw new HrmError("offboarding_payroll_blocked",409);
+  if(financial&&task.task_key!=="payroll_closeout")throw new HrmError("invalid_action",400);
+  let financialPlan:{guards:D1PreparedStatement[];writes:D1PreparedStatement[]}|null=null;
+  if(task.task_key==="payroll_closeout"){
+    if(action!=="complete"||!financial?.dossierId)throw new HrmError("offboarding_payroll_blocked",409);
+    financialPlan=await prepareCloseoutApplication(db,contentDb,financial.bucket,user,caseId,financial.dossierId,confirmed);
+  }
   if(task.task_key==="workspace_access"&&action!=="revoke_access")throw new HrmError("invalid_action");
   if(task.task_key!=="workspace_access"&&action==="revoke_access")throw new HrmError("invalid_action");
   if(action==="not_required")requirePermission(user,"hrm.offboarding.manage");
@@ -130,8 +137,10 @@ export async function actOnOffboardingTask(
   await command(db,user,key,operation,payload,task.case_id,[
     guard(db,"EXISTS(SELECT 1 FROM hrm_offboarding_cases WHERE id=? AND version=? AND state='open')",[task.case_id,task.case_version]),
     guard(db,"EXISTS(SELECT 1 FROM hrm_offboarding_tasks WHERE id=? AND case_id=? AND version=? AND state IN ('pending','blocked'))",[taskId,caseId,expectedVersion]),
+    ...(financialPlan?.guards??[]),
     ...(memberDisable&&!memberDisable.alreadyDisabled?memberDisable.guards.map(item=>guard(db,item.condition,item.params)):[]),
   ],[
+    ...(financialPlan?.writes??[]),
     ...(memberDisable&&!memberDisable.alreadyDisabled?memberDisable.writes:[]),
     db.prepare("UPDATE hrm_offboarding_tasks SET state=?,completion_note=?,blocked_reason=?,completed_by=?,completed_at=?,version=version+1,actor_id=?,updated_at=? WHERE id=? AND case_id=? AND version=?")
       .bind(finalState,finalState==="blocked"?null:finalNote,finalBlock,finalState==="completed"||finalState==="not_required"?user.id:null,finalState==="completed"||finalState==="not_required"?time:null,user.id,time,taskId,caseId,expectedVersion),

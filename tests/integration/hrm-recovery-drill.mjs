@@ -213,15 +213,17 @@ export async function runHrmRecoveryDrill({
   attachmentId,
   fileId,
   run,
+  expectedMembershipEnabled = 1,
+  closeoutFileId = null,
 }) {
+  assert.ok([0,1].includes(expectedMembershipEnabled), "recovery membership expectation must be explicit");
   assert.ok(PERSIST, "recovery drill requires the integration runner's disposable D1/R2 store");
   const file = jobs(`SELECT id,object_key,checksum,size_bytes,mime_type,legal_hold,object_deleted_at
     FROM hrm_files WHERE id=${q(fileId)}`)[0];
   assert.ok(file && !file.object_deleted_at, "recovery fixture must reference a live synthetic HRM file");
-  const liveFiles = [
-    ...jobs("SELECT object_key,checksum,size_bytes,mime_type FROM hrm_files WHERE object_deleted_at IS NULL"),
-    ...jobs("SELECT object_key,checksum,size_bytes,mime_type FROM hrm_legal_files WHERE object_deleted_at IS NULL"),
-  ].sort((left, right) => left.object_key.localeCompare(right.object_key));
+  const closeoutFile=closeoutFileId?jobs(`SELECT id,case_id,object_key,checksum,size_bytes,legal_hold,object_deleted_at FROM hrm_closeout_files WHERE id=${q(closeoutFileId)}`)[0]:null;
+  if(closeoutFileId){assert.ok(closeoutFile&&!closeoutFile.object_deleted_at);assert.equal(closeoutFile.legal_hold,1,"new financial evidence inherits the explicit person-wide hold")}
+  const liveFiles = jobs("SELECT object_key,checksum,size_bytes,mime_type FROM hrm_files WHERE object_deleted_at IS NULL UNION ALL SELECT object_key,checksum,size_bytes,mime_type FROM hrm_legal_files WHERE object_deleted_at IS NULL UNION ALL SELECT object_key,checksum,size_bytes,'application/pdf' AS mime_type FROM hrm_closeout_files WHERE object_deleted_at IS NULL").sort((left, right) => left.object_key.localeCompare(right.object_key));
   const sourceKeys = await listHrmObjects(BASE);
   assert.deepEqual(sourceKeys, liveFiles.map((row) => row.object_key).sort(), "live HRM metadata and private R2 object listings must match before backup");
 
@@ -250,7 +252,8 @@ export async function runHrmRecoveryDrill({
       assert.equal(digest(bytes), row.checksum, "source R2 bytes must match the D1 checksum before backup");
       const backupPath = join(backupRoot, digest(Buffer.from(row.object_key)));
       await writeFile(backupPath, bytes, { mode: 0o600 });
-      objects.set(row.object_key, { backupPath, checksum: row.checksum, size: row.size_bytes, mimeType: row.mime_type });
+      const metadata=Object.fromEntries([...response.headers.entries()].filter(([name])=>name.startsWith("x-amz-meta-")));
+      objects.set(row.object_key, { backupPath, checksum: row.checksum, size: row.size_bytes, mimeType: row.mime_type,metadata });
     }
 
     const activeAccount = content(`SELECT id,disabled FROM users WHERE id=${q(employeeUserId)}`)[0];
@@ -269,7 +272,7 @@ export async function runHrmRecoveryDrill({
     recoveryWorker = await startRecoveryWorker(recoveryPersist, await listenPort(), tempRoot);
 
     const recoveredMembership = databaseRows(recoveryPersist, "lumi-jobs", `SELECT enabled FROM workspace_members WHERE user_id=${q(employeeUserId)}`)[0];
-    assert.equal(recoveredMembership?.enabled, 1, "the deliberately older D1 snapshot must still contain the prior Workspace grant");
+    assert.equal(recoveredMembership?.enabled, expectedMembershipEnabled, "the recovered D1 snapshot retains the explicitly expected Workspace membership state");
     assert.equal(databaseRows(recoveryPersist, "lumi-content", `SELECT disabled FROM users WHERE id=${q(employeeUserId)}`)[0]?.disabled, 1, "the recovered Worker must use current EmDash revocation state");
 
     for (const key of sourceKeys) {
@@ -280,10 +283,12 @@ export async function runHrmRecoveryDrill({
     for (const [key, object] of objects) {
       const bytes = await readFile(object.backupPath);
       const response = await s3Request(recoveryWorker.base, "PUT", key, {
-        headers: { "content-type": object.mimeType },
+        headers: { "content-type": object.mimeType,...object.metadata },
         body: bytes,
       });
       assert.ok([200, 201, 204].includes(response.status), "the isolated R2 restore should accept a backed-up HRM object");
+      const restoredHead=await s3Request(recoveryWorker.base,"HEAD",key);assert.equal(restoredHead.status,200);
+      for(const [name,value]of Object.entries(object.metadata))assert.equal(restoredHead.headers.get(name),value,"restored R2 custom metadata must match the backup, including DOCX sha256 and confidential PDF case scope");
     }
 
     const recoveredKeys = await listHrmObjects(recoveryWorker.base);
@@ -305,6 +310,14 @@ export async function runHrmRecoveryDrill({
     const revokedEmployee = await fetch(`${recoveryWorker.base}/hrm/me/requests`, { headers: { cookie: employeeCookie }, redirect: "manual" });
     assert.notEqual(revokedEmployee.status, 200, "a later EmDash revocation must prevent the old D1 membership snapshot from restoring access");
 
+    if(closeoutFile){
+      const record=databaseRows(recoveryPersist,"lumi-jobs",`SELECT case_id,checksum,size_bytes,legal_hold,object_deleted_at FROM hrm_closeout_files WHERE id=${q(closeoutFile.id)}`)[0];
+      assert.deepEqual(record,{case_id:closeoutFile.case_id,checksum:closeoutFile.checksum,size_bytes:closeoutFile.size_bytes,legal_hold:1,object_deleted_at:null});
+      const path=`/api/hrm/closeout/files/${closeoutFile.id}?case_id=${closeoutFile.case_id}`;
+      const financial=await fetch(recoveryWorker.base+path,{headers:{cookie:adminCookie},redirect:"manual"});assert.equal(financial.status,200);assert.equal(digest(Buffer.from(await financial.arrayBuffer())),closeoutFile.checksum);assert.ok(financial.headers.get("cache-control")?.includes("no-store"));
+      for(const cookie of [employeeCookie,managerCookie])assert.notEqual((await fetch(recoveryWorker.base+path,{headers:{cookie},redirect:"manual"})).status,200,"restored confidential financial evidence stays inaccessible to employees and managers");
+    }
+
     const lostObject = objects.get(file.object_key);
     const deleted = await s3Request(recoveryWorker.base, "DELETE", file.object_key);
     assert.ok([200, 204].includes(deleted.status), "the missing-object detection step deletes only the disposable restored copy");
@@ -312,7 +325,7 @@ export async function runHrmRecoveryDrill({
     assert.equal(missing.status, 404, "the restore checker must observe a metadata row whose R2 object is missing");
     assert.equal(databaseRows(recoveryPersist, "lumi-jobs", `SELECT object_deleted_at FROM hrm_files WHERE id=${q(fileId)}`)[0]?.object_deleted_at, null, "missing R2 bytes do not erase D1 metadata");
     const repaired = await s3Request(recoveryWorker.base, "PUT", file.object_key, {
-      headers: { "content-type": lostObject.mimeType },
+      headers: { "content-type": lostObject.mimeType,...lostObject.metadata },
       body: await readFile(lostObject.backupPath),
     });
     assert.ok([200, 201, 204].includes(repaired.status));
@@ -325,10 +338,7 @@ export async function runHrmRecoveryDrill({
       body: Buffer.from("%PDF-1.4\n% synthetic orphan\n%%EOF\n"),
     });
     assert.ok([200, 201, 204].includes(orphanWrite.status));
-    const metadataKeys = new Set([
-      ...databaseRows(recoveryPersist, "lumi-jobs", "SELECT object_key FROM hrm_files WHERE object_deleted_at IS NULL"),
-      ...databaseRows(recoveryPersist, "lumi-jobs", "SELECT object_key FROM hrm_legal_files WHERE object_deleted_at IS NULL"),
-    ].map((row) => row.object_key));
+    const metadataKeys = new Set(databaseRows(recoveryPersist, "lumi-jobs", "SELECT object_key FROM hrm_files WHERE object_deleted_at IS NULL UNION ALL SELECT object_key FROM hrm_legal_files WHERE object_deleted_at IS NULL UNION ALL SELECT object_key FROM hrm_closeout_files WHERE object_deleted_at IS NULL").map((row) => row.object_key));
     const orphanKeys = (await listHrmObjects(recoveryWorker.base)).filter((key) => !metadataKeys.has(key));
     assert.deepEqual(orphanKeys, [orphanKey], "an R2 orphan without a live D1 reference is detected and quarantined by the drill");
     const orphanDelete = await s3Request(recoveryWorker.base, "DELETE", orphanKey);

@@ -19,7 +19,7 @@ export const POST:APIRoute=async context=>{const user=context.locals.workspace;i
  else if(intent==="revoke_delegation")await revokeApprovalDelegation(env.DB,user,key,text(form,"delegation_id",100,true),revision(form));
  else if(intent==="review_policy"){const decision=text(form,"decision",10,true);if(decision!=="approve"&&decision!=="reject")throw new HrmError("invalid_decision");await reviewLeavePolicy(env.DB,user,key,text(form,"policy_id",100,true),revision(form),decision==="approve",text(form,"reason",500,true));}
  else if(intent==="activate_policy")await activateLeavePolicy(env.DB,user,key,text(form,"policy_id",100,true),revision(form));
- else if(intent==="assign_policy")await assignLeavePolicy(env.DB,user,key,text(form,"person_id",100,true),text(form,"policy_id",100,true),date(text(form,"effective_from",10,true))!);
+ else if(intent==="assign_policy")await assignLeavePolicy(env.DB,user,key,text(form,"person_id",100,true),text(form,"policy_id",100,true),date(text(form,"effective_from",10,true))!,date(text(form,"effective_to",10)));
  else if(intent==="end_policy_assignment")await endLeavePolicyAssignment(env.DB,user,key,text(form,"assignment_id",100,true),revision(form),date(text(form,"effective_to",10,true))!,text(form,"reason",500,true));
  else if(intent==="run_accrual")await runMonthlyLeaveAccrual(env.DB,user,key,text(form,"through_month",7,true));
  else if(intent==="annual_rollover")await runAnnualLeaveRollover(env.DB,user,key,text(form,"target_year",4,true));
