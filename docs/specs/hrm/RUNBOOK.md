@@ -118,3 +118,7 @@ The daily Worker Cron runs at 08:40 Vietnam time. Daily and Monday-weekly captur
 - Evidence retention location and required incident/report approvals.
 - Owner-approved report purpose, basis/durations/clock, effective snapshot holds, schedule ownership and separate audit/export/backup disposition: [proposed decision and acceptance gates](REPORT-RETENTION-DECISION.md). None is approved by this runbook.
 - Owner-approved training-reminder retention and legal-hold treatment before activating reminder policies in production.
+
+## Synthetic integration verification
+
+Run `npm run test:integration:hrm` for P1/P2, P3, P4 and P5 serially against one disposable local Worker/D1/R2 deployment. The `:p1`, `:p3`, `:p4` and `:p5` commands select one phase only. Set `HRM_BROWSER_BINARY` to an installed Chrome binary and `HRM_BROWSER_ARTIFACT_DIR` to a private temporary directory to include EN/VI browser audits; without the binary, a passing integration run does not prove browser behavior. Keep the final TAP phase results and screenshots together. A combined pass covers the implemented assertions, not every role/state combination or production readiness.

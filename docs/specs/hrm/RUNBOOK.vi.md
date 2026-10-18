@@ -118,3 +118,7 @@ Worker Cron hằng ngày chạy lúc 08:40 giờ Việt Nam. Daily và weekly th
 - Nơi lưu bằng chứng và các bước phê duyệt bắt buộc cho báo cáo sự cố.
 - Mục đích, căn cứ/thời hạn/mốc tính, hold hữu hiệu, chủ sở hữu lịch và vòng đời audit/export/backup riêng của báo cáo: [hồ sơ đề xuất và tiêu chí nghiệm thu](REPORT-RETENTION-DECISION.vi.md). Runbook này không phê duyệt các nội dung đó.
 - Thời hạn lưu và cách áp dụng legal hold cho reminder đào tạo phải được owner phê duyệt trước khi kích hoạt policy production.
+
+## Kiểm chứng tích hợp bằng dữ liệu giả
+
+Chạy `npm run test:integration:hrm` để chạy lần lượt P1/P2, P3, P4 và P5 trên cùng một Worker/D1/R2 cục bộ dùng một lần. Các lệnh `:p1`, `:p3`, `:p4` và `:p5` chỉ chọn một pha. Đặt `HRM_BROWSER_BINARY` tới Chrome đã cài và `HRM_BROWSER_ARTIFACT_DIR` tới thư mục tạm riêng tư để chạy kiểm tra trình duyệt EN/VI; nếu thiếu binary, integration đạt không chứng minh hành vi trên trình duyệt. Giữ kết quả TAP từng pha và ảnh chụp cùng nhau. Một lần chạy kết hợp đạt chỉ chứng minh các assertion đã triển khai, chưa bao phủ mọi tổ hợp vai trò/trạng thái hay tính sẵn sàng production.
