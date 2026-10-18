@@ -59,7 +59,7 @@ export interface PayrollDispute {
   id: string; payslip_id: string; person_id: string; component_code: string | null;
   state: "submitted" | "investigating" | "answered" | "resolved" | "reopened";
   version: number; opened_by: string; created_at: string; updated_at: string;
-  last_event: string; last_event_at: string;
+  last_event: string; last_event_at: string; employee_code?:string|null; display_name_snapshot?:string|null;
 }
 export interface PayrollDisputeEvent { id: string; dispute_id: string; event_type: string; body: string; actor_id: string; created_at: string }
 
@@ -385,7 +385,16 @@ export async function publishPayrollRun(db: D1Database, user: WorkspaceUser, key
   );
   await command(db, user, key, "payroll_run_publish", payload, run.id, [
     guardBoolean(db, "EXISTS(SELECT 1 FROM hrm_payroll_runs r JOIN hrm_time_periods t ON t.id=r.period_id WHERE r.id=? AND r.version=? AND r.state='approved' AND r.approved_by IS NOT NULL AND r.approved_by!=r.created_by AND r.snapshot_checksum=? AND t.state='locked' AND t.snapshot_checksum=json_extract(r.snapshot_json,'$.time_snapshot_checksum'))", [run.id, expectedVersion, run.snapshot_checksum]),
-    guardBoolean(db, "NOT EXISTS(SELECT 1 FROM hrm_payroll_run_people rp JOIN hrm_employments e ON e.id=rp.employment_id WHERE rp.run_id=? AND e.status='ended')", [run.id]),
+    // A historical correction retains the issued source's exact person,
+    // employment, policy and period. It never enrolls ended staff into a
+    // regular run or restores their Workspace/self-service access.
+    previous ? guardBoolean(db, `EXISTS(SELECT 1 FROM hrm_payslips original
+      JOIN hrm_payroll_run_people source ON source.id=original.run_person_id
+      JOIN hrm_payroll_runs source_run ON source_run.id=original.run_id
+      JOIN hrm_payroll_run_people target ON target.run_id=? AND target.person_id=source.person_id AND target.employment_id=source.employment_id
+      WHERE original.id=? AND original.state='published' AND source_run.period_id=? AND source_run.policy_version_id=?
+      AND (SELECT COUNT(*) FROM hrm_payroll_run_people WHERE run_id=?)=1)`,[run.id,previous,run.period_id,run.policy_version_id,run.id])
+      : guardBoolean(db, "NOT EXISTS(SELECT 1 FROM hrm_payroll_run_people rp JOIN hrm_employments e ON e.id=rp.employment_id WHERE rp.run_id=? AND e.status='ended')", [run.id]),
     ...(previous ? [
       guardBoolean(db, "EXISTS(SELECT 1 FROM hrm_payslips WHERE id=? AND state='published')", [previous]),
       // The payment total was read before the publish batch. Assert it is still
@@ -536,7 +545,7 @@ export async function transitionPayrollDispute(db: D1Database, user: WorkspaceUs
 export async function listPayrollDisputes(db: D1Database, user: WorkspaceUser): Promise<PayrollDispute[]> {
   if (user.can("hrm.payroll.dispute.manage")) {
     live(user);
-    const disputes = (await db.prepare("SELECT d.*,(SELECT event_type FROM hrm_payroll_dispute_events e WHERE e.dispute_id=d.id ORDER BY created_at DESC,id DESC LIMIT 1) AS last_event,(SELECT created_at FROM hrm_payroll_dispute_events e WHERE e.dispute_id=d.id ORDER BY created_at DESC,id DESC LIMIT 1) AS last_event_at FROM hrm_payroll_disputes d ORDER BY d.updated_at DESC LIMIT 100").all<PayrollDispute>()).results;
+    const disputes = (await db.prepare("SELECT d.*,CASE WHEN json_type(s.snapshot_json,'$.employee_code')='text' THEN json_extract(s.snapshot_json,'$.employee_code') END AS employee_code,CASE WHEN json_type(s.snapshot_json,'$.display_name')='text' THEN json_extract(s.snapshot_json,'$.display_name') END AS display_name_snapshot,(SELECT event_type FROM hrm_payroll_dispute_events e WHERE e.dispute_id=d.id ORDER BY created_at DESC,id DESC LIMIT 1) AS last_event,(SELECT created_at FROM hrm_payroll_dispute_events e WHERE e.dispute_id=d.id ORDER BY created_at DESC,id DESC LIMIT 1) AS last_event_at FROM hrm_payroll_disputes d JOIN hrm_payslips s ON s.id=d.payslip_id ORDER BY d.updated_at DESC LIMIT 100").all<PayrollDispute>()).results;
     await audit(db, user, "payroll_disputes_listed", null, user.id, { count: disputes.length });
     return disputes;
   }

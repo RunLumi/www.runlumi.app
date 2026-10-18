@@ -1,8 +1,8 @@
 # Final payroll review for offboarding
 
-Status: policy configuration is implemented; the employee dossier and final task remain in progress. This is not an approved business policy. Production remains closed. [Tiếng Việt](PAYROLL-CLOSEOUT.vi.md).
+Status: policy configuration is released; the case-specific dossier implementation is being validated. This is not an approved business policy. Production remains closed. [Tiếng Việt](PAYROLL-CLOSEOUT.vi.md).
 
-The same-employee integration journey now reaches closed, settled original/corrected payroll runs and an ended employment, but `actOnOffboardingTask` rejects every `payroll_closeout` action unconditionally. Removing that rejection and accepting a completion note would not establish final reconciliation. A zero recorded balance does not establish that leave cashout, advances, expenses or statutory/external obligations are settled or inapplicable.
+The final offboarding financial task requires a current independently approved dossier. A completion note alone cannot establish reconciliation. A zero recorded balance does not establish that leave cashout, advances, expenses or statutory/external obligations are settled or inapplicable.
 
 ## Required workflow
 
@@ -24,4 +24,12 @@ The implementation adds policy version configuration and EN/VI forms inside the 
 
 The recorded payroll reconciliation predicate now requires exact integer net/cash matching at the final correction leaf, rejects empty/missing or malformed issued amounts, and is reused by both the UI and atomic close command. SQL tests cover overpayment, underpayment, successive corrections and a receipt arriving between preflight and commit. This proves recorded reconciliation only, not final statutory/external clearance.
 
-The employee dossier, its private financial evidence, source invalidation/follow-up and guarded final-task completion are still unimplemented. The offboarding blocker remains. A failing whole-journey test is not a completed acceptance gate; owner policy and specialist approval remain separate, unproven conditions.
+The working-tree dossier implementation now covers staff-private R2 PDFs, independent review, frozen financial basis, guarded task/case completion and source-triggered follow-up without access resurrection. Full same-employee recovery, all regression gates and release verification are still required. Owner policy, specialist approval, general disposition policy/UI for this file class and first-ever final payroll without an issued correction source remain separate unproven conditions. A partial or failing whole-journey run is not a completed acceptance gate.
+
+
+D1 runtime verification is required in addition to Node SQLite tests. The current local D1 runtime rejects expression trees deeper than 100; the checklist checks are split into flat policy, shape, file-reference and no-payroll-exemption guards without dropping conditions. A real D1 profile-write reproduction caught a failure that ordinary Node SQLite tests did not.
+
+
+Calendar assignment creation accepts an explicit optional ending. A bounded historical employment calendar can end before other locked/reviewed periods; overlap checks still protect every locked window and other assignments. No end date is inferred.
+
+Leave-policy assignments likewise accept an explicit optional ending; protected-period and overlap checks use the complete interval and retry grants remain single entries.

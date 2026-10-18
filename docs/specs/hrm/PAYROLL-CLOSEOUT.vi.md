@@ -1,8 +1,8 @@
 # Rà soát quyết toán khi nghỉ việc
 
-Trạng thái: đã triển khai cấu hình chính sách; hồ sơ theo nhân viên và bước hoàn tất còn đang làm. Đây chưa phải chính sách nghiệp vụ được phê duyệt. Production tiếp tục đóng. [English](PAYROLL-CLOSEOUT.md).
+Trạng thái: cấu hình chính sách đã phát hành; phần hồ sơ theo nhân viên đang được kiểm chứng. Đây chưa phải chính sách nghiệp vụ được phê duyệt. Production tiếp tục đóng. [English](PAYROLL-CLOSEOUT.md).
 
-Ca integration cùng một nhân viên đã đi tới kỳ lương gốc/điều chỉnh đóng, số tiền đã đối soát và đợt làm việc kết thúc, nhưng `actOnOffboardingTask` hiện từ chối mọi thao tác `payroll_closeout` vô điều kiện. Bỏ chặn rồi nhận ghi chú hoàn tất không chứng minh được quyết toán. Số dư đã ghi nhận bằng không không tự chứng minh phép tồn, tạm ứng, chi phí hay nghĩa vụ thuế/bảo hiểm/bên ngoài đã được giải quyết hoặc không áp dụng.
+Bước quyết toán trong offboarding cần hồ sơ hiện hành được duyệt độc lập. Chỉ một ghi chú hoàn tất không chứng minh được việc đối soát. Số dư đã ghi nhận bằng không không tự chứng minh phép tồn, tạm ứng, chi phí hay nghĩa vụ thuế/bảo hiểm/bên ngoài đã được giải quyết hoặc không áp dụng.
 
 ## Luồng bắt buộc
 
@@ -24,4 +24,12 @@ Phần triển khai bổ sung cấu hình chính sách theo phiên bản và for
 
 Phép đối soát payroll đã ghi nhận nay yêu cầu số tiền nguyên khớp chính xác với lương ròng ở phiếu điều chỉnh cuối chuỗi; không coi kỳ rỗng, số liệu thiếu hoặc sai kiểu là đã đối soát. Màn hình và giao dịch đóng kỳ dùng chung điều kiện. Kiểm thử SQL bao gồm trả thừa, trả thiếu, nhiều lần điều chỉnh và khoản thanh toán xuất hiện giữa bước kiểm tra với bước ghi. Đây chỉ là bằng chứng đối soát số liệu đã ghi nhận, chưa xác nhận nghĩa vụ pháp luật hoặc bên ngoài.
 
-Hồ sơ quyết toán theo nhân viên, chứng cứ tài chính riêng tư, vô hiệu hóa/theo dõi khi nguồn đổi và điều kiện hoàn tất tác vụ vẫn chưa triển khai. Bước chặn offboarding giữ nguyên. Kiểm thử toàn hành trình chưa qua không phải acceptance gate đã hoàn tất; chính sách được owner duyệt và rà soát chuyên môn vẫn là điều kiện riêng chưa được chứng minh.
+Phần đang làm đã có PDF riêng tư trên R2 dành cho nhân sự có quyền tài chính, duyệt độc lập, bản nguồn tài chính bất biến, ghi hoàn tất tác vụ/case có guard và mở việc rà soát lại khi nguồn đổi mà không cấp lại quyền. Vẫn cần kiểm chứng phục hồi cùng một nhân viên, mọi gate hồi quy và release. Chính sách owner, rà soát chuyên môn, chính sách/giao diện disposition chung cho loại tệp mới và lần payroll cuối đầu tiên khi chưa có phiếu nguồn để điều chỉnh vẫn là phạm vi chưa được chứng minh riêng. Một lượt toàn hành trình mới qua một phần hoặc còn lỗi không phải acceptance gate đã hoàn tất.
+
+
+Cần kiểm chứng runtime D1 ngoài kiểm thử SQLite của Node. D1 local hiện từ chối cây biểu thức sâu hơn 100; guard checklist được tách phẳng thành kiểm tra chính sách, cấu trúc, tham chiếu tệp và ngoại lệ chưa có payroll, giữ nguyên các điều kiện. Tái hiện thao tác hồ sơ trên D1 thật đã tìm ra lỗi mà kiểm thử SQLite thông thường chưa phát hiện.
+
+
+Khi gán lịch có thể nhập ngày kết thúc tường minh. Lịch lịch sử có giới hạn được phép kết thúc trước các kỳ công khác đã khóa/đang duyệt; kiểm tra chồng lịch và mọi cửa sổ khóa vẫn giữ nguyên. Hệ thống không tự suy ra ngày kết thúc.
+
+Gán chính sách phép cũng nhận ngày kết thúc tùy chọn tường minh; guard kỳ công và chồng chính sách dùng toàn bộ khoảng hiệu lực, retry không cấp phép thêm lần nữa.

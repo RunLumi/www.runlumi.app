@@ -43,12 +43,12 @@ async function account(db:D1Database,content:D1Database,user:WorkspaceUser){
 function authority(db:D1Database,user:WorkspaceUser){
  return [...reportAuthority(db,user,"hrm.payroll.configure"),...reportAuthority(db,user,"hrm.offboarding.manage")];
 }
-const reviewedSource=`EXISTS(SELECT 1 FROM hrm_legal_template_versions v
+export const closeoutPolicySourceSql=`EXISTS(SELECT 1 FROM hrm_legal_template_versions v
  JOIN hrm_legal_templates t ON t.id=v.template_id JOIN hrm_legal_files f ON f.id=v.source_file_id
  WHERE v.id=p.source_version_id AND v.legal_entity=p.legal_entity AND v.source_checksum=p.source_checksum
  AND t.document_type='policy' AND v.state IN ('reviewed','active','retired')
  AND v.reviewed_by IS NOT NULL AND v.reviewed_by!=v.created_by
- AND f.kind='docx_source' AND f.state='reviewed' AND f.checksum=p.source_checksum
+ AND f.template_id=v.template_id AND f.kind='docx_source' AND f.state='reviewed' AND f.checksum=p.source_checksum
  AND f.reviewed_by IS NOT NULL AND f.reviewed_by!=f.uploaded_by AND f.object_deleted_at IS NULL
  AND NOT EXISTS(SELECT 1 FROM hrm_file_deletion_requests d WHERE d.source_table='hrm_legal_files' AND d.source_file_id=f.id AND d.state IN ('pending_review','approved','deleting','retryable','completed')))`;
 function event(db:D1Database,user:WorkspaceUser,policyId:string,action:string,reason:string,time:string){
@@ -90,9 +90,9 @@ export async function actOnCloseoutPolicy(db:D1Database,content:D1Database,user:
  if((activating||input.action==="approve")&&row.effective_until<localDate())throw new HrmError("closeout_policy_expired",409);
  const guards=[...authority(db,user),guardBoolean(db,"EXISTS(SELECT 1 FROM hrm_settings WHERE id=1 AND legal_entity=? AND version=?)",[config.legal_entity,config.version]),guardBoolean(db,"EXISTS(SELECT 1 FROM hrm_closeout_policy_versions WHERE id=? AND version=? AND state=? AND created_by!=?)",[row.id,input.version,expected,user.id])];
  if(activating||input.action==="approve"){
-  const source=await db.prepare(`SELECT 1 FROM hrm_closeout_policy_versions p WHERE p.id=? AND ${reviewedSource}`).bind(row.id).first();
+  const source=await db.prepare(`SELECT 1 FROM hrm_closeout_policy_versions p WHERE p.id=? AND ${closeoutPolicySourceSql}`).bind(row.id).first();
   if(!source)throw new HrmError("closeout_policy_source_invalid",409);
-  guards.push(guardBoolean(db,`EXISTS(SELECT 1 FROM hrm_closeout_policy_versions p WHERE p.id=? AND ${reviewedSource})`,[row.id]));
+  guards.push(guardBoolean(db,`EXISTS(SELECT 1 FROM hrm_closeout_policy_versions p WHERE p.id=? AND ${closeoutPolicySourceSql})`,[row.id]));
  }
  const writes:D1PreparedStatement[]=[];
  if(activating)writes.push(

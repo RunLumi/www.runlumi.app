@@ -24,7 +24,8 @@
     "ci:verify": "npm run lint && npm test && npm run build",
     "cf:types": "wrangler types",
     "db:migrate:local": "wrangler d1 migrations apply lumi-jobs --local",
-    "db:migrate": "wrangler d1 migrations apply lumi-jobs --remote"
+    "db:migrate": "wrangler d1 migrations apply lumi-jobs --remote",
+    "test:integration:hrm:journey": "RUNLUMI_INTEGRATION_SCOPE=hrm-journey node scripts/run-integration.mjs"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^14.3.2",

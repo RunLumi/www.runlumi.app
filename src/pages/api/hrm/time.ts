@@ -21,7 +21,7 @@ export const POST:APIRoute=async context=>{const user=context.locals.workspace;i
  else if(intent==="revoke_delegation")await revokeApprovalDelegation(env.DB,user,key,text(form,"delegation_id",100,true),revision(form));
  else if(intent==="review_calendar"){const decision=text(form,"decision",10,true);if(decision!=="approve"&&decision!=="reject")throw new HrmError("invalid_decision");await reviewCalendarVersion(env.DB,user,key,text(form,"calendar_id",100,true),revision(form),decision==="approve",text(form,"reason",500,true));}
  else if(intent==="activate_calendar")await activateCalendarVersion(env.DB,user,key,text(form,"calendar_id",100,true),revision(form));
- else if(intent==="assign_calendar")await assignWorkCalendar(env.DB,user,key,text(form,"person_id",100,true),text(form,"calendar_version_id",100,true),date(text(form,"effective_from",10,true))!);
+ else if(intent==="assign_calendar")await assignWorkCalendar(env.DB,user,key,text(form,"person_id",100,true),text(form,"calendar_version_id",100,true),date(text(form,"effective_from",10,true))!,date(text(form,"effective_to",10)));
  else if(intent==="end_calendar_assignment")await endWorkAssignment(env.DB,user,key,text(form,"assignment_id",100,true),revision(form),date(text(form,"effective_to",10,true))!,text(form,"reason",500,true));
  else if(intent==="create_period")await createTimePeriod(env.DB,user,key,{period_key:text(form,"period_key",30,true),starts_on:date(text(form,"starts_on",10,true))!,ends_on:date(text(form,"ends_on",10,true))!});
  else if(intent==="review_period")await reviewTimePeriod(env.DB,user,key,text(form,"period_id",100,true),revision(form));

@@ -18,12 +18,14 @@ export const POST:APIRoute=async context=>{
  const user=context.locals.workspace;if(!user)return new Response("Forbidden",{status:403,headers:{"Cache-Control":"private, no-store"}});
  if(!sameOrigin(context.request))return new Response("Invalid request origin",{status:400,headers:{"Cache-Control":"private, no-store"}});
  const caseId=context.params.caseId??"";if(!/^[A-Za-z0-9_-]{1,120}$/.test(caseId))return new Response("Not found",{status:404,headers:{"Cache-Control":"private, no-store"}});
- const vi=new URL(context.request.url).pathname.startsWith("/vi/");
+ let vi=false;
  try{
-  const form=await readFields(context.request),intent=field(form,"intent",30,true);
+  const form=await readFields(context.request),intent=field(form,"intent",30,true),lang=field(form,"lang",2);
+  if(lang&&lang!=="en"&&lang!=="vi")throw new HrmError("invalid_field",400);vi=lang==="vi";
   if(!["complete","not_required","block","unblock","revoke_access"].includes(intent))throw new HrmError("invalid_action");
   const env=envFromLocals(context.locals);
-  await actOnOffboardingTask(env.DB,env.CONTENT_DB,user,field(form,"request_key",100,true),caseId,field(form,"task_id",100,true),Number(field(form,"version",10,true)),intent as "complete"|"not_required"|"block"|"unblock"|"revoke_access",field(form,"reason",500,true),field(form,"confirmed",1)==="1");
+  const dossierId=field(form,"dossier_id",120);
+  await actOnOffboardingTask(env.DB,env.CONTENT_DB,user,field(form,"request_key",100,true),caseId,field(form,"task_id",100,true),Number(field(form,"version",10,true)),intent as "complete"|"not_required"|"block"|"unblock"|"revoke_access",field(form,"reason",500,true),field(form,"confirmed",1)==="1",dossierId?{dossierId,bucket:env.FILES}:undefined);
   return new Response(null,{status:303,headers:{Location:`${vi?"/vi":""}/hrm/offboarding/${encodeURIComponent(caseId)}?saved=1`,"Cache-Control":"private, no-store"}});
  }catch(error){
   const target=new URL(`${vi?"/vi":""}/hrm/offboarding/${encodeURIComponent(caseId)}`,context.request.url);

@@ -4,6 +4,15 @@ import type { Failure, PageBase } from "../../lib/hrm/pages";
 interface Props { data: PageBase|Failure; module?:"hrm"; current?:string }
 const {data}=Astro.props;const vi=data.vi;
 const messages:Record<string,[string,string]>={
+ closeout_pdf_required:["Upload a PDF file for confidential financial evidence.","Chứng cứ tài chính riêng tư phải là tệp PDF."],
+ closeout_invalid:["Complete the required financial review fields.","Hãy điền đủ các trường rà soát tài chính bắt buộc."],
+ closeout_checks_required:["Every policy check needs a permitted outcome, reason and 1–5 reviewed PDFs.","Mỗi mục chính sách cần kết luận được phép, lý do và 1–5 PDF đã được rà soát."],
+ closeout_source_changed:["Financial sources or this review changed. Reload, inspect the current sources and prepare a fresh dossier.","Nguồn tài chính hoặc bản rà soát đã thay đổi. Hãy tải lại, kiểm tra nguồn hiện hành và lập hồ sơ mới."],
+ closeout_approval_required:["Only the independent approver can apply a current approved dossier.","Chỉ người duyệt độc lập mới được dùng hồ sơ hiện hành đã duyệt để ghi hoàn tất."],
+ closeout_evidence_invalid:["Use this case’s independently reviewed, available PDFs; pending disposal and missing objects are blocked.","Cần PDF đúng case, đã rà soát độc lập và còn khả dụng; tệp chờ xử lý lưu trữ hoặc bị thiếu sẽ bị chặn."],
+ closeout_policy_required:["Select an active, reviewed policy covering this employment ending and the current review date.","Hãy chọn chính sách hiện hành đã duyệt, bao phủ ngày kết thúc làm việc và ngày rà soát."],
+ closeout_sources_unreconciled:["Recorded sources remain unresolved. Resolve missing payroll, receipts, time, leave or inquiries before approval.","Nguồn còn vấn đề chưa giải quyết. Cần xử lý payroll, thanh toán, công, phép hoặc khiếu nại còn thiếu trước khi duyệt."],
+ closeout_source_limit:["This case exceeds the safe review size. No truncated snapshot or clearance was created.","Hồ sơ vượt giới hạn rà soát an toàn. Hệ thống chưa tạo snapshot bị cắt hay xác nhận quyết toán."],
  closeout_policy_invalid:["Complete the policy terms, dates and explicit exemption instructions.","Hãy điền đủ điều khoản, ngày hiệu lực và hướng dẫn chứng cứ nếu cho phép miễn payroll."],
  closeout_checklist_invalid:["Provide 1–30 checks with unique uppercase keys, English and Vietnamese titles and instructions, and an explicit exemption choice.","Cần 1–30 mục với mã in hoa không trùng, tên và hướng dẫn bằng cả tiếng Anh lẫn tiếng Việt, cùng lựa chọn có cho phép miễn hay không."],
  closeout_policy_source_invalid:["Choose a policy DOCX version with independently reviewed source and file, matching checksum and legal entity.","Hãy chọn phiên bản DOCX chính sách cùng pháp nhân, có checksum khớp và đã được duyệt độc lập ở cả tệp lẫn phiên bản."],
@@ -79,7 +88,7 @@ const messages:Record<string,[string,string]>={
  invalid_manager:["Choose an active People Manager or HRM Admin as manager.","Hãy chọn People Manager hoặc HRM Admin đang hoạt động làm quản lý."],
  invalid_revision:["Reload the current preview and try again.","Hãy tải lại bản xem trước hiện tại rồi thử lại."],
  invalid_field:["Check the submitted fields and try again.","Hãy kiểm tra các trường vừa gửi rồi thử lại."],
- internal_error:["The request could not be completed. No transfer was confirmed.","Không thể hoàn tất yêu cầu. Chưa xác nhận chuyển dữ liệu."],
+ internal_error:["The request could not be completed. Reload and check the current state before retrying.","Không thể hoàn tất yêu cầu. Hãy tải lại và kiểm tra trạng thái hiện tại trước khi thử lại."],
  offboarding_case_inactive:["This offboarding case was superseded or already closed.","Hồ sơ offboarding đã được thay thế hoặc đóng."],
  offboarding_payroll_blocked:["Final payroll review requires an approved, current employee dossier and independently reviewed evidence. This task remains blocked.","Quyết toán cần hồ sơ nhân viên đã được duyệt còn hiệu lực và chứng cứ được rà soát độc lập. Việc này vẫn đang bị chặn."],
  offboarding_assets_pending:["Return or resolve the assigned company assets before completing this task.","Hãy thu hồi hoặc xử lý các tài sản công ty đang giao trước khi hoàn tất việc này."],

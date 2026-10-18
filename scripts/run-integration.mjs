@@ -105,6 +105,7 @@ try {
     "hrm-p3":["tests/integration/hrm.integration.test.mjs"],
     "hrm-p4":["tests/integration/hrm.integration.test.mjs"],
     "hrm-p5":["tests/integration/hrm.integration.test.mjs"],
+    "hrm-journey":["tests/integration/hrm-journey.integration.test.mjs"],
     crm:["tests/integration/crm.integration.test.mjs"],
     workspace:["tests/integration/workspace.integration.test.mjs"],
     directory:["tests/integration/directory.integration.test.mjs"],
@@ -116,16 +117,21 @@ try {
     finance:["tests/integration/finance.integration.test.mjs"],
   };
   const requestedScope=process.env.RUNLUMI_INTEGRATION_SCOPE;
-  if(requestedScope&&!Object.hasOwn(isolatedSuites,requestedScope))throw new Error("Unknown RUNLUMI_INTEGRATION_SCOPE; use hrm, hrm-p1, hrm-p3, hrm-p4, hrm-p5, crm, workspace, directory, api, dashboard, files, sales-process, business-model or finance.");
+  if(requestedScope&&!Object.hasOwn(isolatedSuites,requestedScope))throw new Error("Unknown RUNLUMI_INTEGRATION_SCOPE; use hrm, hrm-p1, hrm-p3, hrm-p4, hrm-p5, hrm-journey, crm, workspace, directory, api, dashboard, files, sales-process, business-model or finance.");
   let result;
   if(requestedScope){
     console.log(`Running isolated ${requestedScope} integration suite.`);
     result=runSuites(isolatedSuites[requestedScope]);
+    if(requestedScope==="hrm"&&result.status===0)result=runSuites(isolatedSuites["hrm-journey"]);
   }else{
     console.log("Running HRM integration gate first.");
     result=runSuites(isolatedSuites.hrm);
     if(result.status===0){
-      console.log("HRM integration gate passed; running existing module regressions.");
+      console.log("Running same-employee HRM journey gate.");
+      result=runSuites(isolatedSuites["hrm-journey"]);
+    }
+    if(result.status===0){
+      console.log("HRM integration gates passed; running existing module regressions.");
       result=runSuites(regressions);
     }
   }
