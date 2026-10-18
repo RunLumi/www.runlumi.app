@@ -4,6 +4,11 @@ import type { Failure, PageBase } from "../../lib/hrm/pages";
 interface Props { data: PageBase|Failure; module?:"hrm"; current?:string }
 const {data}=Astro.props;const vi=data.vi;
 const messages:Record<string,[string,string]>={
+ performance_review_superseded:["A later correction was published. Open the current publication; this archived record cannot be changed.","Đã có bản điều chỉnh được phát hành. Hãy mở bản hiện hành; bản lưu này không thể thay đổi."],
+ performance_correction_conflict:["The source revision or correction chain changed. Reload and review the latest source before retrying.","Phiên bản nguồn hoặc chuỗi điều chỉnh đã thay đổi. Hãy tải lại và rà soát nguồn mới nhất trước khi thử lại."],
+ performance_correction_source_invalid:["The source history or employment identity cannot be verified. Resolve the linkage before creating or approving a correction.","Chưa xác minh được lịch sử nguồn hoặc liên kết đợt làm việc. Hãy xử lý liên kết trước khi mở hay duyệt bản điều chỉnh."],
+ performance_correction_self_mode_required:["Choose a new employee submission or explicitly carry the original submission as context.","Hãy chọn yêu cầu nhân viên nộp mới hoặc giữ nguyên bản tự đánh giá gốc làm bối cảnh."],
+ performance_correction_source_review_required:["Review the current source and confirm that review before publishing this correction.","Hãy rà soát nguồn hiện hành và xác nhận việc rà soát trước khi phát hành bản điều chỉnh."],
  performance_self_review:["You cannot manage or approve your own review, or approve one you prepared or assessed.","Bạn không thể quản lý/tự duyệt đánh giá của mình, hoặc duyệt bản do chính mình tạo hay đánh giá."],
  performance_cycle_invalid:["Use letters, digits, underscores or hyphens for the cycle code.","Mã kỳ chỉ dùng chữ, số, dấu gạch dưới hoặc gạch ngang."],
 

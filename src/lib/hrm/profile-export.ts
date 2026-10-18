@@ -1,10 +1,36 @@
 import type { WorkspaceUser } from "../workspace/roles";
-import { employeePerformanceView, type PerformanceReview } from "./performance";
+import type { PerformanceReview } from "./performance";
 import { HrmError } from "./fields";
 import { audit, guard, id, localDate, now, own, personFor, requirePermission } from "./service";
 
 const ROW_LIMIT=5000;
 const BYTE_LIMIT=5*1024*1024;
+
+interface PerformanceExportRow extends Pick<PerformanceReview,"id"|"cycle_code"|"title"|"period_start"|"period_end"|"due_on"|"objectives"|"evidence_instructions"|"state"|"revision"|"self_assessment"|"self_evidence"|"assessment"|"assessment_evidence"|"development_plan"|"employee_feedback"|"acknowledged_at"|"published_at"|"closed_at"|"superseded"|"pending_correction"> {correction_id:string|null;root_id:string|null;source_id:string|null;attempt_no:number|null;correction_reason:string|null;self_mode:string|null;source_revision_at_creation:number|null;source_publication_revision:number|null;source_publication_checksum:string|null;reviewed_source_revision:number|null;origin_review_id:string|null;origin_submitted_at:string|null;origin_period_start:string|null;origin_period_end:string|null;origin_objectives:string|null;origin_evidence_instructions:string|null;submitted_at:string|null}
+function performanceExportStatements(db:D1Database,personId:string,userId:string):D1PreparedStatement[]{
+ const performanceQuery=`SELECT r.id,r.cycle_code,r.title,r.period_start,r.period_end,r.due_on,r.objectives,r.evidence_instructions,CASE WHEN r.state='assessed' THEN 'self_submitted' ELSE r.state END AS state,r.revision,r.self_assessment,r.self_evidence,
+   CASE WHEN r.state IN ('published','responded','closed') THEN r.assessment ELSE '' END AS assessment,
+   CASE WHEN r.state IN ('published','responded','closed') THEN r.assessment_evidence ELSE '' END AS assessment_evidence,
+   CASE WHEN r.state IN ('published','responded','closed') THEN r.development_plan ELSE '' END AS development_plan,
+   r.employee_feedback,r.acknowledged_at,r.published_at,r.closed_at,
+   EXISTS(SELECT 1 FROM hrm_performance_corrections next JOIN hrm_performance_reviews n ON n.id=next.replacement_review_id WHERE next.source_review_id=r.id AND n.state IN ('published','responded','closed')) AS superseded,
+   EXISTS(SELECT 1 FROM hrm_performance_corrections next JOIN hrm_performance_reviews n ON n.id=next.replacement_review_id WHERE next.source_review_id=r.id AND n.state IN ('open','self_submitted','assessed')) AS pending_correction,
+   c.id AS correction_id,c.root_review_id AS root_id,c.source_review_id AS source_id,c.attempt_no,c.reason AS correction_reason,c.self_mode,c.source_revision_at_creation,publication.revision AS source_publication_revision,c.source_publication_checksum,basis.source_revision AS reviewed_source_revision,
+   origin.review_id AS origin_review_id,origin.created_at AS origin_submitted_at,json_extract(origin.snapshot_json,'$.after.period_start') AS origin_period_start,json_extract(origin.snapshot_json,'$.after.period_end') AS origin_period_end,json_extract(origin.snapshot_json,'$.after.objectives') AS origin_objectives,json_extract(origin.snapshot_json,'$.after.evidence_instructions') AS origin_evidence_instructions,
+   (SELECT e.created_at FROM hrm_performance_events e WHERE e.review_id=r.id AND e.event_type='submit_self' ORDER BY e.revision DESC LIMIT 1) AS submitted_at
+   FROM hrm_performance_reviews r JOIN hrm_people p ON p.id=r.person_id
+   LEFT JOIN hrm_performance_corrections c ON c.replacement_review_id=r.id LEFT JOIN hrm_performance_correction_publications basis ON basis.correction_id=c.id
+   LEFT JOIN hrm_performance_events publication ON publication.id=c.source_publication_event_id LEFT JOIN hrm_performance_events origin ON origin.id=c.self_origin_event_id
+   WHERE p.id=? AND p.user_id=? AND (c.id IS NULL OR c.subject_user_id=p.user_id) ORDER BY r.period_end DESC,r.id LIMIT ?`;
+ // Count quoted visible text before materializing rows. Draft staff content
+ // is masked in SQL. Statistics and the conditional read join the same atomic
+ // snapshot as the other employee collections; the final bundle checks bytes.
+ const textColumns=["cycle_code","title","period_start","period_end","due_on","objectives","evidence_instructions","self_assessment","self_evidence","assessment","assessment_evidence","development_plan","employee_feedback","correction_reason","origin_objectives","origin_evidence_instructions"];
+ const visibleBytes=textColumns.map(column=>`length(CAST(json_quote(COALESCE(${column},'')) AS BLOB))`).join("+");
+ const statistics=`SELECT COUNT(*) AS row_count,COALESCE(SUM(${visibleBytes}),0) AS visible_bytes FROM (${performanceQuery})`;
+ const params=[personId,userId,ROW_LIMIT+1];
+ return [db.prepare(statistics).bind(...params),db.prepare(`SELECT * FROM (${performanceQuery}) WHERE (SELECT row_count<=${ROW_LIMIT} AND visible_bytes<=${BYTE_LIMIT} FROM (${statistics}))`).bind(...params,...params)];
+}
 
 interface ExportRow { [key:string]:unknown }
 interface JsonExportRow extends ExportRow {data:unknown}
@@ -228,7 +254,14 @@ export async function exportOwnHrmProfile(db:D1Database,user:WorkspaceUser):Prom
     WHERE n.recipient_user_id=? AND n.person_id=p.id AND ?=1
     ORDER BY n.due_on,n.created_at,n.reminder_ref LIMIT ?`).bind(user.id,user.id,exportOwnTraining?1:0,ROW_LIMIT+1),
   db.prepare("DELETE FROM hrm_write_guards"),
+  ...(user.can("hrm.performance.self")?performanceExportStatements(db,person.id,user.id):[]),
  ])}catch(error){if(error instanceof Error&&/CHECK constraint failed/.test(error.message))throw new HrmError("conflict",409);throw error}
+ let performanceRows:PerformanceExportRow[]=[];
+ if(user.can("hrm.performance.self")){
+  const size=(batch.at(-2)?.results as {row_count:number;visible_bytes:number}[])[0];
+  if(!size||size.row_count>ROW_LIMIT||size.visible_bytes>BYTE_LIMIT)throw new HrmError("profile_export_too_large",413);
+  performanceRows=batch.at(-1)?.results as PerformanceExportRow[]??[];
+ }
  const employmentPeriods=batch[1]?.results as ExportRow[]??[],records=batch[2]?.results as RecordRow[]??[],recordHistory=batch[3]?.results as HistoryRow[]??[],changeRequests=batch[4]?.results as ChangeRow[]??[],files=batch[5]?.results as FileRow[]??[];
  const legalIssueRows=batch[6]?.results as LegalIssueRow[]??[],employeeParties=batch[7]?.results as ExportRow[]??[],coiRows=batch[8]?.results as CoiRow[]??[],coiEvents=batch[9]?.results as ExportRow[]??[],legalFiles=batch[10]?.results as ExportRow[]??[],serviceRequests=batch[11]?.results as ServiceRequestRow[]??[],serviceEvents=batch[12]?.results as ServiceEventRow[]??[],serviceFiles=batch[13]?.results as ServiceFileRow[]??[],onboardingPlans=batch[14]?.results as OnboardingPlanRow[]??[],onboardingTasks=batch[15]?.results as OnboardingTaskRow[]??[],onboardingFiles=batch[16]?.results as OnboardingFileRow[]??[],timeEntries=batch[17]?.results as TimeEntryRow[]??[],timeAdjustments=batch[18]?.results as TimeAdjustmentRow[]??[],leaveRequests=batch[19]?.results as LeaveRequestExportRow[]??[],leaveBalances=batch[20]?.results as LeaveBalanceExportRow[]??[],payslips=batch[21]?.results as PayslipExportRow[]??[],payrollDisputes=batch[22]?.results as PayrollDisputeExportRow[]??[],payrollDisputeEvents=batch[23]?.results as PayrollDisputeEventExportRow[]??[],assetAssignments=batch[24]?.results as EmployeeAssetExportRow[]??[],assetEvidence=batch[25]?.results as EmployeeAssetEvidenceExportRow[]??[],assetReminders=batch[26]?.results as EmployeeAssetReminderExportRow[]??[],benefitPlans=batch[27]?.results as EmployeeBenefitPlanExportRow[]??[],benefitEnrollments=batch[28]?.results as EmployeeBenefitEnrollmentExportRow[]??[],trainingAssignments=batch[29]?.results as EmployeeTrainingAssignmentExportRow[]??[],trainingEvidence=batch[30]?.results as EmployeeTrainingEvidenceExportRow[]??[],trainingReminders=batch[31]?.results as ExportRow[]??[];
  for(const collection of [employmentPeriods,records,recordHistory,changeRequests,files,legalIssueRows,employeeParties,coiRows,coiEvents,legalFiles,serviceRequests,serviceEvents,serviceFiles,onboardingPlans,onboardingTasks,onboardingFiles,timeEntries,timeAdjustments,leaveRequests,leaveBalances,payslips,payrollDisputes,payrollDisputeEvents,assetAssignments,assetEvidence,assetReminders,benefitPlans,benefitEnrollments,trainingAssignments,trainingEvidence,trainingReminders])if(collection.length>ROW_LIMIT)throw new HrmError("profile_export_too_large",413);
@@ -285,20 +318,22 @@ export async function exportOwnHrmProfile(db:D1Database,user:WorkspaceUser):Prom
  const trainingAssignmentRefs=new Map(trainingAssignments.map((row,index)=>[row.id,`training-assignment-${index+1}`]));
  const trainingAssignmentData=trainingAssignments.map(({id:assignmentId,...value})=>({...value,assignment_ref:trainingAssignmentRefs.get(assignmentId),evidence_required:Boolean(value.evidence_required)}));
  const trainingEvidenceData=trainingEvidence.map((row,index)=>{const {assignment_id:assignmentId,...value}=row;return {...value,evidence_ref:`training-evidence-${index+1}`,assignment_ref:trainingAssignmentRefs.get(assignmentId)??null,object_available:Boolean(value.object_available)}});
- const performanceRows=user.can("hrm.performance.self")?(await db.prepare("SELECT r.*,p.user_id AS employee_user_id FROM hrm_performance_reviews r JOIN hrm_people p ON p.id=r.person_id WHERE p.id=? AND p.user_id=? ORDER BY r.period_end DESC,r.id LIMIT ?").bind(person.id,user.id,ROW_LIMIT+1).all<PerformanceReview>()).results:[];
- if(performanceRows.length>ROW_LIMIT)throw new HrmError("profile_export_too_large",413);
- const performanceData=performanceRows.map(row=>{const safe=employeePerformanceView(row,user.id);return {cycle_code:safe.cycle_code,title:safe.title,period_start:safe.period_start,period_end:safe.period_end,due_on:safe.due_on,objectives:safe.objectives,evidence_instructions:safe.evidence_instructions,state:safe.state,self_assessment:safe.self_assessment,self_evidence:safe.self_evidence,assessment:safe.assessment,assessment_evidence:safe.assessment_evidence,development_plan:safe.development_plan,employee_feedback:safe.employee_feedback,acknowledged_at:safe.acknowledged_at,published_at:safe.published_at,closed_at:safe.closed_at,revision:safe.revision}});
+ const performanceRefs=new Map(performanceRows.map((row,index)=>[row.id,`performance-review-${index+1}`]));
+ const performanceData=performanceRows.map(row=>{const safe=row;return {review_ref:performanceRefs.get(row.id),cycle_code:safe.cycle_code,title:safe.title,period_start:safe.period_start,period_end:safe.period_end,due_on:safe.due_on,objectives:safe.objectives,evidence_instructions:safe.evidence_instructions,state:safe.state,superseded:Boolean(row.superseded),pending_correction:Boolean(row.pending_correction),self_assessment:safe.self_assessment,self_evidence:safe.self_evidence,assessment:safe.assessment,assessment_evidence:safe.assessment_evidence,development_plan:safe.development_plan,employee_feedback:safe.employee_feedback,acknowledged_at:safe.acknowledged_at,published_at:safe.published_at,closed_at:safe.closed_at,revision:safe.revision,
+  correction:row.correction_id?{root_ref:performanceRefs.get(row.root_id??"")??null,source_ref:performanceRefs.get(row.source_id??"")??null,attempt_no:row.attempt_no,reason:row.correction_reason,self_mode:row.self_mode,source_revision_at_creation:row.source_revision_at_creation,source_publication_revision:row.source_publication_revision,source_publication_checksum:row.source_publication_checksum,reviewed_source_revision:row.reviewed_source_revision}:null,
+  self_submission:row.self_mode==="carry_forward"?{kind:"carried_context",origin_ref:performanceRefs.get(row.origin_review_id??"")??null,submitted_at:row.origin_submitted_at,period_start:row.origin_period_start,period_end:row.origin_period_end,objectives:row.origin_objectives,evidence_instructions:row.origin_evidence_instructions}:row.submitted_at?{kind:"employee_submission",submitted_at:row.submitted_at}:null,
+ }});
  const included=["profile_identity","employment_periods","structured_profile_records","record_revision_history","profile_change_requests","profile_file_metadata","legal_document_issues","employee_party_status","policy_acknowledgements","coi_declarations","coi_event_actions","legal_evidence_file_metadata","employee_hr_requests","employee_visible_request_events","service_request_file_metadata","onboarding_plans","onboarding_tasks","onboarding_evidence_file_metadata","attendance_entries","attendance_adjustments","leave_requests","leave_balance_summary","leave_evidence_file_metadata"];
  const excluded=["file_contents","object_keys","internal_review_notes","reviewer_identity","required_parties","other_legal_parties","hr_only_request_notes","other_people_onboarding","onboarding_internal_owner_ids","onboarding_event_details","other_people","audit_log"];
  if(exportOwnPayroll){included.push("employee_payslips");excluded.push("other_people_payroll","payroll_policy_configuration","payroll_payment_references","payroll_reconciliation_evidence");if(exportOwnPayrollDisputes)included.push("employee_payroll_disputes","employee_visible_payroll_dispute_events");else excluded.push("employee_payroll_disputes")}
  else excluded.push("payroll");
  if(exportOwnAssets)included.push("employee_asset_assignments","employee_asset_evidence_file_metadata","employee_asset_reminders");else excluded.push("assets");
  if(exportOwnBenefits)included.push("available_benefit_plans","employee_benefit_enrollments");else excluded.push("benefits");
- if(user.can("hrm.performance.self"))included.push("employee_performance_reviews");else excluded.push("performance_reviews");
+ if(user.can("hrm.performance.self"))included.push("employee_performance_reviews","employee_performance_review_lineage");else excluded.push("performance_reviews");
  if(exportOwnTraining)included.push("employee_training_assignments","employee_training_evidence_file_metadata","employee_training_reminders");else excluded.push("training");
  const createdAt=now();
  const bundle={
-  schema_version:9,
+  schema_version:10,
   export_scope:"self_profile_legal_coi_requests_onboarding_time_leave_payroll_employee_services_snapshot",
   exported_at:createdAt,
   included,

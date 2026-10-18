@@ -2,6 +2,7 @@ import type { APIRoute } from "astro";
 import { envFromLocals } from "../../../lib/ats";
 import { HrmError, revision, text } from "../../../lib/hrm/fields";
 import { actOnPerformanceReview, createPerformanceReview, type PerformanceAction } from "../../../lib/hrm/performance";
+import { createPerformanceCorrection } from "../../../lib/hrm/performance-corrections";
 import { sameOrigin } from "../../../lib/http";
 export const prerender=false;
 // Three 4,000-character Vietnamese fields can exceed 32 KiB after form encoding.
@@ -28,10 +29,13 @@ export const POST:APIRoute=async context=>{
   if(intent==="create_review"){
    const reviewId=await createPerformanceReview(env.DB,env.CONTENT_DB,user,key,{personId:text(form,"person_id",100,true),cycleCode:text(form,"cycle_code",48,true),title:text(form,"title",160,true),periodStart:text(form,"period_start",10,true),periodEnd:text(form,"period_end",10,true),dueOn:text(form,"due_on",10,true),reviewerId:text(form,"reviewer_user_id",100,true),objectives:text(form,"objectives",4000,true),evidenceInstructions:text(form,"evidence_instructions",2000,true)});
    returnUrl.searchParams.set("review",reviewId);
+  }else if(intent==="create_correction"){
+   const reviewId=await createPerformanceCorrection(env.DB,env.CONTENT_DB,user,key,{sourceId:text(form,"source_review_id",100,true),sourceRevision:revision(form,"source_revision"),cycleCode:text(form,"cycle_code",48,true),title:text(form,"title",160,true),periodStart:text(form,"period_start",10,true),periodEnd:text(form,"period_end",10,true),dueOn:text(form,"due_on",10,true),reviewerId:text(form,"reviewer_user_id",100,true),objectives:text(form,"objectives",4000,true),evidenceInstructions:text(form,"evidence_instructions",2000,true),reason:text(form,"reason",1000,true),selfMode:text(form,"self_mode",24,true)});
+   returnUrl.searchParams.set("review",reviewId);
   }else{
    const actions=["submit_self","assess","request_changes","reassign","publish","respond","close","cancel"] as const;
    if(!actions.includes(intent as PerformanceAction))throw new HrmError("invalid_action",400);
-   await actOnPerformanceReview(env.DB,env.CONTENT_DB,user,key,{action:intent as PerformanceAction,reviewId:text(form,"review_id",100,true),revision:revision(form,"revision"),assessment:text(form,"assessment",4000),evidence:text(form,"evidence",4000),developmentPlan:text(form,"development_plan",4000),feedback:text(form,"feedback",4000),acknowledged:text(form,"acknowledged",1)==="1",reviewerId:text(form,"reviewer_user_id",100),reason:text(form,"reason",1000)});
+   await actOnPerformanceReview(env.DB,env.CONTENT_DB,user,key,{action:intent as PerformanceAction,reviewId:text(form,"review_id",100,true),revision:revision(form,"revision"),assessment:text(form,"assessment",4000),evidence:text(form,"evidence",4000),developmentPlan:text(form,"development_plan",4000),feedback:text(form,"feedback",4000),acknowledged:text(form,"acknowledged",1)==="1",reviewerId:text(form,"reviewer_user_id",100),reason:text(form,"reason",1000),...(form.has("source_revision")||form.has("source_reviewed")?{sourceRevision:revision(form,"source_revision"),sourceReviewed:text(form,"source_reviewed",1)==="1"}:{})});
   }
   return redirect(returnUrl,{saved:intent});
  }catch(error){

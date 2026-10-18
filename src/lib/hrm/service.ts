@@ -93,6 +93,8 @@ export async function command(db: D1Database,user: WorkspaceUser,key: string,ope
   } catch(error) {
     const retry = await previous(); if(retry) return check(retry);
     const message = error instanceof Error ? error.message : "";
+    if(message.includes("hrm_performance_review_superseded"))throw new HrmError("performance_review_superseded",409);
+    if(message.includes("hrm_performance_correction_conflict"))throw new HrmError("performance_correction_conflict",409);
     if(message.includes("structured_disposition_in_progress"))throw new HrmError("structured_disposition_in_progress",409);
     if(message.includes("structured_disposition_guard_required"))throw new HrmError("structured_record_changed",409);
     if(message.includes("time_period_import_pending")) throw new HrmError("time_period_import_pending",409);

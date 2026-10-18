@@ -1,8 +1,10 @@
 import type { Permission, WorkspaceUser } from "../workspace/roles";
-import { ROLE_PERMISSIONS } from "../workspace/roles";
-import { HrmError, date } from "./fields";
+import { HrmError } from "./fields";
 import { audit, command, digest, guardBoolean, id, now, requirePermission } from "./service";
 
+import { activeReviewer, alignedPerformanceIdentity, authority, employeeRoles, live, marks, performanceDates, performanceText, rawReview, reviewerPredicate, reviewerRoles, selectReview, sharedStates, subjectOfPerformance } from "./performance-access";
+import { performanceLineage, prepareCorrectionPublication, type PerformanceLineage } from "./performance-corrections";
+export { performanceDates, performanceText } from "./performance-access";
 export const PERFORMANCE_STATES=["open","self_submitted","assessed","published","responded","closed","cancelled"] as const;
 export type PerformanceState=typeof PERFORMANCE_STATES[number];
 export interface PerformanceReview {
@@ -10,43 +12,25 @@ export interface PerformanceReview {
  reviewer_user_id:string;objectives:string;evidence_instructions:string;state:PerformanceState;revision:number;
  self_assessment:string;self_evidence:string;assessment:string;assessment_evidence:string;development_plan:string;employee_feedback:string;acknowledged_at:string|null;
  assessed_by:string|null;assessed_at:string|null;published_by:string|null;published_at:string|null;closed_by:string|null;closed_at:string|null;
+ correction_subject_user_id?:string|null;superseded?:number;pending_correction?:number;correction_attempt?:number|null;
  created_by:string;created_at:string;actor_id:string;updated_at:string;employee_user_id:string|null;employee_code:string;display_name:string;
 }
 export interface PerformanceEvent {id:number;event_type:string;visibility:"shared"|"staff";revision:number;actor_id:string;created_at:string}
 export interface PerformancePerson {id:string;employee_code:string;display_name:string;user_id:string;legal_entity:string}
 export interface PerformanceReviewer {user_id:string}
-const sharedStates=new Set<PerformanceState>(["published","responded","closed"]);
-const live=(user:WorkspaceUser)=>{if(user.hrmEnabled!==true)throw new HrmError("hrm_closed",503)};
-export function performanceText(value:string,max:number,required=true):string{const result=value.trim();if(result.length>max||(required&&!result))throw new HrmError("invalid_field");return result}
-export function performanceDates(start:string,end:string,due:string):void{if(!date(start)||!date(end)||!date(due)||end<start||due<end)throw new HrmError("invalid_date")}
-const rolesFor=(permission:Permission)=>Object.entries(ROLE_PERMISSIONS).filter(([,permissions])=>permissions.includes(permission)).map(([role])=>role);
-const reviewerRoles=rolesFor("hrm.performance.review"),employeeRoles=rolesFor("hrm.performance.self");
-const marks=(roles:readonly string[])=>roles.map(()=>"?").join(",");
-function authority(db:D1Database,user:WorkspaceUser,permission:Permission):D1PreparedStatement[]{
- requirePermission(user,permission);live(user);const gate=guardBoolean(db,"EXISTS(SELECT 1 FROM hrm_settings WHERE id=1 AND enabled=1 AND reviewed_by IS NOT NULL)",[]);if(user.admin)return [gate];
- const roles=rolesFor(permission);
- return [gate,guardBoolean(db,`EXISTS(SELECT 1 FROM workspace_members m JOIN workspace_roles r ON r.user_id=m.user_id WHERE m.user_id=? AND m.enabled=1 AND r.role IN (${roles.map(()=>"?").join(",")}))`,[user.id,...roles])];
-}
-async function activeReviewer(contentDb:D1Database,userId:string):Promise<void>{if(!await contentDb.prepare("SELECT 1 FROM users WHERE id=? AND disabled=0").bind(userId).first())throw new HrmError("invalid_account",409)}
-const reviewerPredicate=`EXISTS(SELECT 1 FROM workspace_members m JOIN workspace_roles r ON r.user_id=m.user_id WHERE m.user_id=? AND m.enabled=1 AND r.role IN (${marks(reviewerRoles)}))`;
-const selectReview=`SELECT r.*,p.user_id AS employee_user_id,p.employee_code,COALESCE(NULLIF(p.preferred_name,''),p.legal_name) AS display_name FROM hrm_performance_reviews r JOIN hrm_people p ON p.id=r.person_id`;
 export function employeePerformanceView(row:PerformanceReview,userId:string):PerformanceReview{
- if(row.employee_user_id!==userId||sharedStates.has(row.state))return row;
+ if(!subjectOfPerformance(row,userId)||sharedStates.has(row.state))return row;
  return {...row,state:row.state==="assessed"?"self_submitted":row.state,assessment:"",assessment_evidence:"",development_plan:"",assessed_by:null,assessed_at:null,published_by:null,published_at:null,closed_by:null,closed_at:null};
 }
-function allowed(user:WorkspaceUser,row:PerformanceReview):boolean{return user.can("hrm.performance.manage")||(user.can("hrm.performance.self")&&row.employee_user_id===user.id)||(user.can("hrm.performance.review")&&row.reviewer_user_id===user.id)}
-async function rawReview(db:D1Database,user:WorkspaceUser,reviewId:string):Promise<PerformanceReview>{
- live(user);const row=await db.prepare(`${selectReview} WHERE r.id=?`).bind(reviewId).first<PerformanceReview>();if(!row||!allowed(user,row))throw new HrmError("not_found",404);return row;
-}
-export async function getPerformanceReview(db:D1Database,user:WorkspaceUser,reviewId:string):Promise<{review:PerformanceReview;events:PerformanceEvent[]}>{
- const row=await rawReview(db,user,reviewId),isSubject=row.employee_user_id===user.id;
+export async function getPerformanceReview(db:D1Database,user:WorkspaceUser,reviewId:string,correctionPage=1):Promise<{review:PerformanceReview;events:PerformanceEvent[];lineage:PerformanceLineage}>{
+ const row=await rawReview(db,user,reviewId),isSubject=subjectOfPerformance(row,user.id);
  const events=(await db.prepare(`SELECT id,event_type,visibility,revision,actor_id,created_at FROM hrm_performance_events WHERE review_id=? ${isSubject||!user.can("hrm.performance.manage")?"AND visibility='shared'":""} ORDER BY id`).bind(reviewId).all<PerformanceEvent>()).results;
- await audit(db,user,"hrm_performance_opened",row.person_id,row.id,{state:employeePerformanceView(row,user.id).state});return {review:employeePerformanceView(row,user.id),events};
+ await audit(db,user,"hrm_performance_opened",row.person_id,row.id,{state:employeePerformanceView(row,user.id).state});return {review:employeePerformanceView(row,user.id),events,lineage:await performanceLineage(db,user,row,correctionPage)};
 }
 export async function listPerformanceReviews(db:D1Database,user:WorkspaceUser,mode:"self"|"team",page=1):Promise<{reviews:PerformanceReview[];page:number;hasMore:boolean}>{
  requirePermission(user,mode==="self"?"hrm.performance.self":user.can("hrm.performance.manage")?"hrm.performance.manage":"hrm.performance.review");live(user);
- const normalized=Math.max(1,Math.min(1000,Math.floor(Number.isFinite(page)?page:1))),scope=mode==="self"?"p.user_id=?":user.can("hrm.performance.manage")?"1=1":"r.reviewer_user_id=?",params=scope==="1=1"?[]:[user.id];
- const rows=(await db.prepare(`${selectReview} WHERE ${scope} ORDER BY r.period_end DESC,r.id LIMIT 26 OFFSET ?`).bind(...params,(normalized-1)*25).all<PerformanceReview>()).results;
+ const normalized=Math.max(1,Math.min(1000,Math.floor(Number.isFinite(page)?page:1))),scope=mode==="self"?`p.user_id=? AND ${alignedPerformanceIdentity}`:user.can("hrm.performance.manage")?"1=1":`r.reviewer_user_id=? AND ${alignedPerformanceIdentity}`,params=scope==="1=1"?[]:[user.id];
+ const rows=(await db.prepare(`${selectReview} WHERE (${scope}) ORDER BY r.period_end DESC,r.id LIMIT 26 OFFSET ?`).bind(...params,(normalized-1)*25).all<PerformanceReview>()).results;
  await audit(db,user,"hrm_performance_listed",null,"performance",{mode,page:normalized,count:Math.min(rows.length,25)});return {reviews:rows.slice(0,25).map(row=>employeePerformanceView(row,user.id)),page:normalized,hasMore:rows.length>25};
 }
 export async function performanceOptions(db:D1Database,user:WorkspaceUser):Promise<{people:PerformancePerson[];reviewers:PerformanceReviewer[]}>{
@@ -75,12 +59,14 @@ export async function createPerformanceReview(db:D1Database,contentDb:D1Database
  ]);
 }
 export type PerformanceAction="submit_self"|"assess"|"request_changes"|"reassign"|"publish"|"respond"|"close"|"cancel";
-export interface PerformanceActionInput {action:PerformanceAction;reviewId:string;revision:number;assessment?:string;evidence?:string;developmentPlan?:string;feedback?:string;acknowledged?:boolean;reviewerId?:string;reason?:string}
+export interface PerformanceActionInput {action:PerformanceAction;reviewId:string;revision:number;assessment?:string;evidence?:string;developmentPlan?:string;feedback?:string;acknowledged?:boolean;reviewerId?:string;reason?:string;sourceRevision?:number;sourceReviewed?:boolean}
 export async function actOnPerformanceReview(db:D1Database,contentDb:D1Database,user:WorkspaceUser,key:string,input:PerformanceActionInput):Promise<void>{
- const row=await rawReview(db,user,input.reviewId),subject=row.employee_user_id===user.id,time=now(),action=input.action;
+ const row=await rawReview(db,user,input.reviewId),subject=subjectOfPerformance(row,user.id),time=now(),action=input.action;
  const prior=await db.prepare("SELECT operation,payload_hash FROM hrm_commands WHERE actor_id=? AND request_key=?").bind(user.id,key).first<{operation:string;payload_hash:string}>();
  if(prior){if(prior.operation!==`hrm_performance_${action}`||prior.payload_hash!==await digest(JSON.stringify(input)))throw new HrmError("request_key_conflict",409);return}
 
+ if(row.superseded)throw new HrmError("performance_review_superseded",409);
+ if(row.correction_subject_user_id&&row.correction_subject_user_id!==row.employee_user_id)throw new HrmError("performance_correction_source_invalid",409);
  let permission:Permission;let state:PerformanceState;const fields:Record<string,string|number|null>={};let visibility:"shared"|"staff"="shared";
  if(action==="submit_self"){
   permission="hrm.performance.self";if(!subject)throw new HrmError("not_found",404);if(row.state!=="open")throw new HrmError("invalid_transition",409);
@@ -108,11 +94,15 @@ export async function actOnPerformanceReview(db:D1Database,contentDb:D1Database,
   }else throw new HrmError("invalid_action",400);
  }
  const guards=authority(db,user,permission);
+ const correctionPublication=action==="publish"?await prepareCorrectionPublication(db,user,row,input.sourceRevision,input.sourceReviewed===true,time):{guards:[],writes:[]};
+ guards.push(...correctionPublication.guards);
  if(action==="reassign"){await activeReviewer(contentDb,input.reviewerId!);guards.push(guardBoolean(db,reviewerPredicate,[input.reviewerId!,...reviewerRoles]));}
  guards.push(guardBoolean(db,"EXISTS(SELECT 1 FROM hrm_settings WHERE id=1 AND legal_entity=?)",[row.legal_entity]));
+ guards.push(guardBoolean(db,"NOT EXISTS(SELECT 1 FROM hrm_performance_corrections c JOIN hrm_people p ON p.id=? WHERE c.replacement_review_id=? AND c.subject_user_id IS NOT p.user_id)",[row.person_id,row.id]));
  guards.push(guardBoolean(db,"EXISTS(SELECT 1 FROM hrm_performance_reviews r JOIN hrm_people p ON p.id=r.person_id WHERE r.id=? AND r.revision=? AND r.state=? AND r.reviewer_user_id=? AND p.user_id IS ?)",[row.id,input.revision,row.state,row.reviewer_user_id,row.employee_user_id]));
  const patch={...fields,state,revision:input.revision+1,actor_id:user.id,updated_at:time},keys=Object.keys(patch),payload={...input};
  await command(db,user,key,`hrm_performance_${action}`,payload,row.id,guards,[
+  ...correctionPublication.writes,
   db.prepare(`UPDATE hrm_performance_reviews SET ${keys.map(field=>`${field}=?`).join(",")} WHERE id=? AND revision=?`).bind(...Object.values(patch),row.id,input.revision),
   db.prepare("INSERT INTO hrm_performance_events(review_id,event_type,visibility,revision,snapshot_json,actor_id,created_at) VALUES(?,?,?,?,?,?,?)").bind(row.id,action,visibility,input.revision+1,JSON.stringify({before:row,after:{...row,...patch},reason:input.reason??""}),user.id,time),
   db.prepare("INSERT INTO hrm_audit(actor_id,action,person_id,target_id,detail,created_at) VALUES(?,?,?,?,?,?)").bind(user.id,`hrm_performance_${action}`,row.person_id,row.id,JSON.stringify({revision:input.revision+1}),time),

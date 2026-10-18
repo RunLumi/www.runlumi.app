@@ -15,9 +15,9 @@ This implements the performance-review part of §11. Production remains closed. 
 | Response | The employee sees the published revision, may disagree or request support, and must explicitly acknowledge reading. Server UTC time and the exact prior revision remain in immutable history. Acknowledgement means receipt, not agreement or electronic signature. |
 | Close | An independent HRM Admin/System Super Admin closes only after the employee responds. Feedback and acknowledgement time remain unchanged. |
 
-HR may reassign an unpublished cycle with a reason. Reassignment clears the current assessment and requires the new reviewer to assess again; prior content stays in HR-only immutable history. The old reviewer loses access on the next request. HR may cancel an unpublished cycle; a replacement may reuse its cycle code. Published cycles cannot be cancelled or rewritten. A correction after publication currently needs a separately identified cycle; explicit correction linkage remains a follow-up.
+HR may reassign an unpublished cycle with a reason. Reassignment clears the current assessment and requires the new reviewer to assess again; prior content stays in HR-only immutable history. The old reviewer loses access on the next request. HR may cancel an unpublished cycle; a replacement may reuse its cycle code. Published cycles cannot be cancelled or rewritten. Published corrections now use the linked workflow below; each revision remains separately identifiable.
 
-Self-assessment, assessment and development-plan evidence are written records, not PDF upload or external verification claims. File attachments, versioned assessment templates/scales, reminder policies, explicit correction lineage and performance-specific retention/disposition/holds are not implemented by this slice. No retention duration is inferred from payroll, training or another category. Keep production closed while those applicable policy/lifecycle requirements are unresolved.
+Self-assessment, assessment and development-plan evidence are written records, not PDF upload or external verification claims. File attachments, versioned assessment templates/scales, reminder policies, performance-specific retention/disposition/holds are not implemented by this slice. No retention duration is inferred from payroll, training or another category. Keep production closed while those applicable policy/lifecycle requirements are unresolved.
 
 ## Access and persistence
 
@@ -31,3 +31,28 @@ Self-assessment, assessment and development-plan evidence are written records, n
 ## Verification contract
 
 Exercise create/retry, independent publication, return/reassessment, reassignment versus assessment race, old-reviewer denial, combined-role subject privacy on both queues and self-export, employee acknowledgement/feedback, premature close denial, immutable closure and unrelated-record probes. Audit EN/VI native forms at 320/430/1280px without JavaScript, with reduced motion, visible keyboard focus and no horizontal overflow. Results belong in STATUS and the exact-head PR; this contract alone is not a pass.
+
+## Linked corrections after publication
+
+A correction is a new cycle linked to the original root and the latest effective source. It retains the same person, employment and legal entity. HR explicitly supplies a new cycle code, deadline, reviewer and corrected objectives/evidence requirements; the period may be corrected within that employment's dates. Current employment identity/version and legal entity are checked again at commit/publication. An ended employment is supported. This workflow never changes the employee's account or grants.
+
+HR must select one employee-input mode; neither is preselected:
+
+- **New submission:** the linked employee needs an active EmDash account and current self-service access. The correction starts open with empty self-assessment/evidence, and the employee submits a new version.
+- **Carried context:** employee words/evidence are copied verbatim from the latest authentic self-submission in the source chain. The original event, author, time, period and objectives remain traceable. The UI/export mark this as historical context, even if HR corrects the period or objectives; it is not a new employee submission, agreement or receipt. This permits a historical correction when the account is disabled without restoring access. No `submit_self` event is fabricated.
+
+| Situation | Result |
+|---|---|
+| Two pending corrections proposed from one effective source | One transaction wins; the loser leaves no orphan review or command. |
+| An unpublished proposal is cancelled | Its link/history remain. The source stays current and a new numbered attempt is permitted. |
+| Source feedback/receipt changes while a proposal is prepared | The source stays actionable. The independent publisher must review its current revision and feedback, explicitly confirm that review and submit the expected source revision. A stale source rejects publication. |
+| Correction publication races a source receipt | Exactly one wins. If the receipt wins, the publisher reloads/reviews it; if publication wins, no new action/receipt may be written to the superseded source. A retry of a previously successful source receipt remains idempotent. |
+| The correction is published | It becomes current. Source fields, prior feedback, receipt, actor and timestamps remain unchanged; the archive marker is derived from lineage. The new publication needs its own real receipt before closure. |
+
+Migration 0040 adds immutable correction links and publication-basis rows. A basis identifies the exact source event/revision/checksum, employment revision, independent approver and server time. D1 triggers reject correction publication without that basis and reject subsequent mutations to a superseded source. Source checksums identify stored history; they are not electronic signatures.
+
+Each linked page keeps its own permissions. Assignment to a correction grants copied employee context, not automatic access to the source's HR assessment; inaccessible source/root/current links are omitted. Related attempts paginate at 25. Unpublished assessments remain masked from the subject even with HRM Admin privileges. The correction freezes the publication's employee identity; an identity-link mismatch blocks ordinary access/actions until HR resolves it, and both the original and current subject identities retain draft-content masking under privileged roles.
+
+Self-export schema v10 adds bundle-local review/root/source references, correction reason/attempt, source versions/checksum, current/archive markers and actual-versus-carried self-input provenance. It contains no reviewer account IDs or internal event payloads. All employee collections are read in the same D1 batch snapshot. Staff drafts are masked in SQL; a visible-text/row budget gates fetching large results, and the final encoded bundle retains its five-MiB cap.
+
+The correction lineage replaces the earlier requirement to create an unrelated cycle for a published error. It does not add file attachments, performance-specific legal holds/retention/disposition, assessment scales, outside delivery, payroll/access changes or production activation. Those remaining scope items and owner decisions remain open.
