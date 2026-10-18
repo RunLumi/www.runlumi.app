@@ -276,3 +276,10 @@ The status is for the complete acceptance criterion in §14, not only its P1 sub
 1. Do not activate payroll until owner-approved rules and independent calculation/reconciliation are in place; a merge alone does not satisfy that gate.
 2. Continue P3 correction/review race coverage and the full HRM-20 matrix on a fresh branch from main; keep HRM activation closed while owner-approved legal, retention, schedule, payroll and recovery decisions remain incomplete.
 3. Continue P3 correction/effective-date edges and global HRM-20. Obtain owner approval for legal entity, purpose, category retention, signing, schedules, payroll rules and recovery targets before the affected workflows can be considered ready.
+
+## 2026-10-18 combined-phase and inbox-state follow-up
+
+- Started from remote main `a74d4751a70e` after PR #82 and the subsequent CRM, job-description/COO and Finance merges. No open PR existed at entry. Production readback: Worker `62258cd5-d8a5-4647-8512-f8850deebe92`, 100%, runtime tag `main a74d4751a70e`; no pending D1 migrations; `hrm_settings.enabled=0` and no reviewer (read-only query, zero rows written).
+- Corrects `test:integration:hrm`: the `hrm` scope previously skipped P3/P4/P5, while the default full integration command included them. The combined command now selects all HRM phases; individual phase commands retain their selection. Historical P1-only passes must not be reinterpreted as all-phase proof.
+- Adds real-service assertions and optional EN/VI Chrome audits for empty, unread and all-read HR service inbox states. Checks recipient isolation for mark-read, idempotent retries, persisted server read time/version and omission of private request text. New attachment events are delivered separately after the all-read audit.
+- Validation and final all-phase evidence for this follow-up are tracked in its PR. Full HRM-20 role/state coverage, owner policy decisions and production recovery remain incomplete. No production activation, schema change or real employee-data mutation is included.
