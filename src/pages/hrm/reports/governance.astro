@@ -1,0 +1,7 @@
+---
+import HrmReportGovernance from "../../../components/hrm/HrmReportGovernance.astro";
+import { reportGovernancePage } from "../../../lib/hrm/report-governance-pages";
+export const prerender=false;
+const data=await reportGovernancePage(Astro,"en");if(data instanceof Response)return data;
+---
+<HrmReportGovernance {...data}/>

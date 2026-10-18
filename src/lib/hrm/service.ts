@@ -100,6 +100,10 @@ export async function command(db: D1Database,user: WorkspaceUser,key: string,ope
     if(message.includes("time_period_import_pending")) throw new HrmError("time_period_import_pending",409);
     if(message.includes("time_period_locked_calendar_change")) throw new HrmError("time_period_locked_calendar_change",409);
     if(message.includes("time_period_locked")) throw new HrmError("time_period_locked",409);
+    if(message.includes("hrm_report_policy_required"))throw new HrmError("report_policy_required",409);
+    if(message.includes("hrm_report_policy_source_required"))throw new HrmError("report_policy_source_invalid",409);
+    if(message.includes("hrm_report_snapshot_preserved"))throw new HrmError("report_snapshot_preserved",409);
+    if(message.includes("hrm_report_hold_target_unavailable"))throw new HrmError("not_found",404);
     if(message.includes("hrm_report_schedule_limit")) throw new HrmError("report_schedule_limit",409);
     if (/CHECK constraint failed|UNIQUE constraint failed|immutable_history/.test(message)) throw new HrmError("conflict",409);
     throw error;

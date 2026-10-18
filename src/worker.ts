@@ -25,7 +25,7 @@ export default {
       ctx.waitUntil(runHrmAssetReminderSweep(env.DB,env.CONTENT_DB,env.HRM_LIVE_ENABLED,controller.scheduledTime).catch((error:unknown)=>{
         console.error("hrm_asset_reminder_scheduled_failed",error instanceof Error?error.name:"unknown"); // !# policy: console
       }));
-      ctx.waitUntil(runHrmReportScheduleSweep(env.DB,env.HRM_LIVE_ENABLED,controller.scheduledTime).catch((error:unknown)=>{
+      ctx.waitUntil(runHrmReportScheduleSweep(env.DB,env.CONTENT_DB,env.HRM_LIVE_ENABLED,controller.scheduledTime).catch((error:unknown)=>{
         console.error("hrm_report_snapshot_scheduled_failed",error instanceof Error?error.name:"unknown"); // !# policy: console
       }));
     }
