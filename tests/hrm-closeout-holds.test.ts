@@ -59,6 +59,7 @@ test("active file hold cannot be bypassed by clearing a flag, deletion, disposit
   for(const sql of ["UPDATE hrm_closeout_files SET legal_hold=0 WHERE id='proof'","UPDATE hrm_closeout_files SET object_deleted_at='TEST-deleted' WHERE id='proof'","UPDATE hrm_closeout_files SET disposition_state='deleting' WHERE id='proof'"]){assert.throws(()=>f.db.raw.exec(sql),/hrm_closeout_evidence_held/)}
   for(const sql of ["UPDATE hrm_closeout_file_holds SET reason='rewritten'", "DELETE FROM hrm_closeout_file_holds"]){assert.throws(()=>f.db.raw.exec(sql),/immutable_history/)}
   assert.throws(()=>f.db.raw.prepare("UPDATE hrm_closeout_file_holds SET state='released',released_by='TEST-author',released_at=?,release_reason='TEST invalid self release',version=2 WHERE id=?").run(f.time,id),/CHECK constraint/);
+  assert.throws(()=>f.db.raw.prepare("UPDATE hrm_closeout_file_holds SET id=NULL,state='released',released_by='TEST-reviewer',released_at=?,release_reason='TEST invalid null identity',version=2 WHERE id=?").run(f.time,id),/immutable_history/);
   await f.release(id);assert.throws(()=>f.db.raw.prepare("UPDATE hrm_closeout_file_holds SET state='active',version=3 WHERE id=?").run(id),/immutable_history/);
  }finally{f.close()}
 });

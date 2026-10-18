@@ -406,3 +406,6 @@ Seven focused SQLite unit groups pass, including revoked identities, late admin 
 
 
 Initial pre-push checks passed lint/types, all 351 unit tests and production build on `0b6f138`. The local same-person Worker/D1/R2 journey passed financial hold placement, idempotent retry, self-release denial and EN/VI rendering, then failed a new test assertion comparing `released_by` to the System Admin session helper's nonexistent `id` property. The actual nonempty EmDash actor was recorded. The test now resolves the unambiguous synthetic role-50 account separately and asserts both release and subsequent placement against it. A fresh exact-code Chrome journey is running; the failed run remains recorded, not counted as acceptance success. PR #96 remains draft until full hosted checks and review pass.
+
+
+Pre-merge review also made the hold primary key explicitly non-null and its immutable-ID comparison null-safe. The negative SQL test attempts a valid independent release combined with `id=NULL`; it must fail without changing the hold history. The seven focused groups pass with that additional assertion.

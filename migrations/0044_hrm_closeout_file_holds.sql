@@ -1,7 +1,7 @@
 -- Confidential financial evidence has its own file-level hold history. No policy
 -- duration, employee data or production activation is introduced.
 CREATE TABLE hrm_closeout_file_holds (
- id TEXT PRIMARY KEY,
+ id TEXT PRIMARY KEY NOT NULL,
  case_id TEXT NOT NULL REFERENCES hrm_offboarding_cases(id),
  file_id TEXT NOT NULL REFERENCES hrm_closeout_files(id),
  state TEXT NOT NULL DEFAULT 'active' CHECK(state IN ('active','released')),
@@ -24,7 +24,7 @@ WHEN NEW.state!='active' OR NEW.version!=1 OR NOT EXISTS(
  AND f.object_deleted_at IS NULL AND f.disposition_state NOT IN ('deleting','completed')
 ) BEGIN SELECT RAISE(ABORT,'closeout_hold_unavailable'); END;
 CREATE TRIGGER hrm_closeout_file_hold_immutable BEFORE UPDATE ON hrm_closeout_file_holds
-WHEN NEW.id!=OLD.id OR NEW.case_id!=OLD.case_id OR NEW.file_id!=OLD.file_id OR NEW.reason!=OLD.reason
+WHEN NEW.id IS NOT OLD.id OR NEW.case_id!=OLD.case_id OR NEW.file_id!=OLD.file_id OR NEW.reason!=OLD.reason
  OR NEW.placed_by!=OLD.placed_by OR NEW.placed_at!=OLD.placed_at OR OLD.state!='active'
  OR NEW.state!='released' OR NEW.version!=OLD.version+1
  OR EXISTS(SELECT 1 FROM hrm_offboarding_cases c JOIN hrm_people p ON p.id=c.person_id WHERE c.id=NEW.case_id AND (c.employee_user_id=NEW.released_by OR p.user_id=NEW.released_by))
