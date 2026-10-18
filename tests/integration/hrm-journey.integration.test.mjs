@@ -4,7 +4,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {createHash} from "node:crypto";
-import {BASE,adminSession,jobs,localFetch,q,userSession} from "./helpers.mjs";
+import {BASE,adminSession,content,jobs,localFetch,q,userSession} from "./helpers.mjs";
 import {startHrmBrowserQa} from "./hrm-browser-qa.mjs";
 import {exerciseCloseoutPolicy} from "./hrm-closeout-policy.mjs";
 import {runHrmRecoveryDrill} from "./hrm-recovery-drill.mjs";
@@ -22,6 +22,7 @@ const offset=(date,days)=>new Date(Date.parse(date+"T00:00:00Z")+days*86400000).
 
 test("one hired candidate completes the same-employment HRM journey through payroll, offboarding, held evidence and restore",async t=>{
  const system=await adminSession(),users={};
+ const systemAccounts=content("SELECT id FROM users WHERE role=50 AND disabled=0");assert.equal(systemAccounts.length,1,"synthetic System Admin identity must be unambiguous");const systemId=systemAccounts[0].id;
  for(const [name,role]of Object.entries({admin:"hrm_admin",hr:"hrm_officer",manager:"people_manager",payroll:"payroll_officer",employee:"employee",other:"employee",ats:"hr",crm:"finance"})){
   users[name]=await userSession(system,{email:`test-journey-${name}-${run}@example.test`,name:`TEST Journey ${name} ${run}`});
   await post(system,"/workspace/users",{intent:"grant",email:users[name].email,roles:[role]});
@@ -187,9 +188,10 @@ test("one hired candidate completes the same-employment HRM journey through payr
  const selfRelease=await admin.post("/api/hrm/closeout",{intent:"release_file_hold",case_id:exitCase.id,hold_id:specificHold.id,version:specificHold.version,reason,request_key:key()});assert.equal(new URL(selfRelease.location,BASE).searchParams.get("error"),"self_approval");
  await audit("financial-file-hold",system,`/hrm/offboarding/${exitCase.id}`,`/vi/hrm/offboarding/${exitCase.id}`,"Active file legal hold","Legal hold đang áp dụng",true,`#financial-file-${financialProof.id}`);
  await post(system,"/api/hrm/closeout",{intent:"release_file_hold",case_id:exitCase.id,hold_id:specificHold.id,version:specificHold.version,reason:"TEST independent matter closure",lang:"vi"});
- specificHold=byId("hrm_closeout_file_holds",specificHold.id);assert.equal(specificHold.state,"released");assert.equal(specificHold.released_by,system.id);assert.equal(byId("hrm_closeout_files",financialProof.id).legal_hold,1,"person hold survives file hold release");
+ specificHold=byId("hrm_closeout_file_holds",specificHold.id);assert.equal(specificHold.state,"released");assert.equal(specificHold.released_by,systemId);assert.equal(byId("hrm_closeout_files",financialProof.id).legal_hold,1,"person hold survives file hold release");
  financialProof=byId("hrm_closeout_files",financialProof.id);
  await post(system,"/api/hrm/closeout",{intent:"place_file_hold",case_id:exitCase.id,file_id:financialProof.id,version:financialProof.version,reason:"TEST new preservation matter",lang:"en"});
+ assert.equal(row(`SELECT placed_by FROM hrm_closeout_file_holds WHERE file_id=${q(financialProof.id)} AND state='active'`).placed_by,systemId);
  assert.equal(row(`SELECT revision FROM hrm_closeout_sources WHERE case_id=${q(exitCase.id)}`).revision,heldRevision);
  assert.equal(byId("hrm_closeout_dossiers",replacement.id).state,"applied");assert.equal(byId("hrm_offboarding_cases",exitCase.id).state,"completed");
  console.log("HRM journey stage passed: case-specific hold, independent release, overlapping person hold and immutable history after closure");
