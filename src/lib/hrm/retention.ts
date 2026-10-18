@@ -234,7 +234,9 @@ export async function executeFileDeletion(db:D1Database,bucket:R2Bucket,user:Wor
  const request=await db.prepare("SELECT * FROM hrm_file_deletion_requests WHERE id=?").bind(requestId).first<FileDeletionRequest>();if(!request)throw new HrmError("not_found",404);
  const retry=request.state==="deleting"||request.state==="retryable";
  if(!retry&&(request.state!=="approved"||request.version!==version))throw new HrmError("invalid_transition",409);
- if(!request.reviewed_by||request.reviewed_by===user.id)throw new HrmError("retention_executor_must_differ",403);
+ // A later promotion to System Admin must not let either prior actor erase
+ // the object. The completion CHECK runs too late to protect R2 bytes.
+ if(!request.reviewed_by||request.reviewed_by===user.id||request.requested_by===user.id)throw new HrmError("retention_executor_must_differ",403);
  const policy=await currentPolicy(db);if(!policy||policy.id!==request.policy_version_id||policy.version_number!==request.policy_version)throw new HrmError("retention_policy_changed",409);
  const file=await sourceFile(db,request.source_table,request.source_file_id);if(!file||file.object_deleted_at||file.object_key!==request.object_key_snapshot||file.checksum!==request.checksum_snapshot||file.version!==request.file_version)throw new HrmError("retention_file_changed",409);
  if(await activeHoldsForFile(db,request.source_table,file,request.category as RetentionCategory))throw new HrmError("legal_hold_active",409);
@@ -243,7 +245,7 @@ export async function executeFileDeletion(db:D1Database,bucket:R2Bucket,user:Wor
  if(!retry){
   const prior=await previous(db,user,key,"file_deletion_start",payload);if(prior&&prior!==requestId)throw new HrmError("request_key_conflict",409);
   const time=now();await command(db,user,key,"file_deletion_start",payload,requestId,[
-   guard(db,"EXISTS(SELECT 1 FROM hrm_file_deletion_requests WHERE id=? AND version=? AND state='approved')",[requestId,version]),
+   guard(db,"EXISTS(SELECT 1 FROM hrm_file_deletion_requests WHERE id=? AND version=? AND state='approved' AND requested_by!=? AND reviewed_by IS NOT NULL AND reviewed_by!=?)",[requestId,version,user.id,user.id]),
    guard(db,"NOT EXISTS(SELECT 1 FROM hrm_legal_holds WHERE state='active' AND ((scope_kind='file' AND source_table=? AND target_file_id=?) OR (scope_kind='person' AND person_id IS ? AND category IN (?, '*'))))",[request.source_table,request.source_file_id,file.person_id,request.category]),
   ],[db.prepare("UPDATE hrm_file_deletion_requests SET state='deleting',version=version+1,actor_id=?,updated_at=? WHERE id=? AND version=? AND state='approved'").bind(user.id,time,requestId,version),db.prepare("DELETE FROM hrm_write_guards")]);
  }

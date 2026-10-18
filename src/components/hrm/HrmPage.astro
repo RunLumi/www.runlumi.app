@@ -125,7 +125,7 @@ const messages:Record<string,[string,string]>={
  retention_policy_changed:["The active retention policy changed after this request. Create a new reviewed request.","Chính sách retention active đã đổi sau yêu cầu này. Hãy tạo yêu cầu mới đã rà soát."],
  retention_file_changed:["The file changed after the request was created. Review its current revision.","Tệp đã đổi sau khi tạo yêu cầu. Hãy rà soát phiên bản hiện tại."],
  retention_execution_system_admin_only:["Only System Super Admin can execute physical object deletion.","Chỉ System Super Admin mới được thực hiện xóa object vật lý."],
- retention_executor_must_differ:["The System Super Admin executing deletion must differ from the reviewer.","System Super Admin thực hiện xóa phải khác người rà soát."],
+ retention_executor_must_differ:["The System Super Admin executing deletion must differ from both the requester and reviewer.","System Super Admin thực hiện xóa phải khác cả người tạo yêu cầu và người rà soát."],
  retention_delete_failed:["Object deletion or metadata finalization failed. The request remains retryable; review before retrying.","Xóa object hoặc chốt metadata thất bại. Yêu cầu còn trạng thái có thể thử lại; hãy rà soát trước khi thử."],
  retention_request_system_admin_not_needed:["Create the retention request through an HRM operator account; System Super Admin is reserved for final execution.","Hãy tạo yêu cầu bằng tài khoản HRM; System Super Admin dành cho bước thực hiện cuối."],
  retention_hold_deletion_in_progress:["A physical deletion is already in progress or needs recovery. Resolve it before placing a new hold.","Đang xóa vật lý hoặc đang cần khôi phục. Hãy xử lý trước khi đặt hold mới."],

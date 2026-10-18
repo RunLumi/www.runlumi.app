@@ -20,9 +20,11 @@ function int(form:URLSearchParams,name:string):number{const value=field(form,nam
 export const POST:APIRoute=async context=>{
  const user=context.locals.workspace;if(!user)return new Response("Forbidden",{status:403,headers:{"Cache-Control":"private, no-store"}});
  if(!sameOrigin(context.request))return new Response("Invalid request origin",{status:400,headers:{"Cache-Control":"private, no-store"}});
- const vi=new URL(context.request.url).pathname.startsWith("/vi/");
+ let vi=false;
+ try{const referer=new URL(context.request.headers.get("referer")??"");vi=referer.origin===new URL(context.request.url).origin&&referer.pathname==="/vi/hrm/retention"}catch{/* An invalid referrer cannot choose a return locale. */}
  try{
   const form=await readFields(context.request),intent=field(form,"intent",40,true),key=field(form,"request_key",100,true),env=envFromLocals(context.locals);
+  const lang=field(form,"lang",2);if(lang&&lang!=="en"&&lang!=="vi")throw new HrmError("invalid_field");if(lang)vi=lang==="vi";
   if(intent==="create_policy")await createRetentionPolicy(env.DB,user,key,field(form,"rules_json",20000,true));
   else if(intent==="create_structured_policy")await createStructuredRetentionPolicy(env.DB,user,key,field(form,"structured_rules_json",20000,true));
   else if(intent==="review_structured_policy"){

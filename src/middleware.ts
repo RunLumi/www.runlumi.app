@@ -50,14 +50,14 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   if (area) {
     if (!activeUser(context.locals)) {
-      if (area.api) return new Response("Unauthorized", { status: 401 });
+      if (area.api) return new Response("Unauthorized", { status: 401, headers: { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff", "Referrer-Policy": "same-origin" } });
       return new Response(null, { status: 303, headers: { Location: emdashLoginUrl(path + context.url.search), "Cache-Control": "private, no-store" } });
     }
     const environment = envFromLocals(context.locals);
     const { DB } = environment;
     const user = await workspaceUser(context.locals, DB);
     if (!user) {
-      if (area.api) return new Response("Forbidden", { status: 403 });
+      if (area.api) return new Response("Forbidden", { status: 403, headers: { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff", "Referrer-Policy": "same-origin" } });
       return forbidden(vi);
     }
     if(!user.can(area.permission)){
