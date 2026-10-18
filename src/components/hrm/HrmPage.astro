@@ -4,6 +4,11 @@ import type { Failure, PageBase } from "../../lib/hrm/pages";
 interface Props { data: PageBase|Failure; module?:"hrm"; current?:string }
 const {data}=Astro.props;const vi=data.vi;
 const messages:Record<string,[string,string]>={
+ closeout_policy_invalid:["Complete the policy terms, dates and explicit exemption instructions.","Hãy điền đủ điều khoản, ngày hiệu lực và hướng dẫn chứng cứ nếu cho phép miễn payroll."],
+ closeout_checklist_invalid:["Provide 1–30 checks with unique uppercase keys, English and Vietnamese titles and instructions, and an explicit exemption choice.","Cần 1–30 mục với mã in hoa không trùng, tên và hướng dẫn bằng cả tiếng Anh lẫn tiếng Việt, cùng lựa chọn có cho phép miễn hay không."],
+ closeout_policy_source_invalid:["Choose a policy DOCX version with independently reviewed source and file, matching checksum and legal entity.","Hãy chọn phiên bản DOCX chính sách cùng pháp nhân, có checksum khớp và đã được duyệt độc lập ở cả tệp lẫn phiên bản."],
+ closeout_policy_expired:["This policy’s review window has ended. Create and review a new version with explicit dates.","Thời hạn rà soát của chính sách đã hết. Hãy tạo và duyệt phiên bản mới với ngày hiệu lực cụ thể."],
+ closeout_account_unavailable:["The account no longer has active EmDash and Workspace authority for financial closeout configuration.","Tài khoản không còn quyền EmDash và Workspace đang hoạt động để cấu hình quyết toán."],
  performance_review_superseded:["A later correction was published. Open the current publication; this archived record cannot be changed.","Đã có bản điều chỉnh được phát hành. Hãy mở bản hiện hành; bản lưu này không thể thay đổi."],
  performance_correction_conflict:["The source revision or correction chain changed. Reload and review the latest source before retrying.","Phiên bản nguồn hoặc chuỗi điều chỉnh đã thay đổi. Hãy tải lại và rà soát nguồn mới nhất trước khi thử lại."],
  performance_correction_source_invalid:["The source history or employment identity cannot be verified. Resolve the linkage before creating or approving a correction.","Chưa xác minh được lịch sử nguồn hoặc liên kết đợt làm việc. Hãy xử lý liên kết trước khi mở hay duyệt bản điều chỉnh."],
@@ -76,7 +81,7 @@ const messages:Record<string,[string,string]>={
  invalid_field:["Check the submitted fields and try again.","Hãy kiểm tra các trường vừa gửi rồi thử lại."],
  internal_error:["The request could not be completed. No transfer was confirmed.","Không thể hoàn tất yêu cầu. Chưa xác nhận chuyển dữ liệu."],
  offboarding_case_inactive:["This offboarding case was superseded or already closed.","Hồ sơ offboarding đã được thay thế hoặc đóng."],
- offboarding_payroll_blocked:["Payroll is not enabled; do not mark the final settlement complete.","Phân hệ payroll chưa được bật; không thể đánh dấu đã quyết toán cuối cùng."],
+ offboarding_payroll_blocked:["Final payroll review requires an approved, current employee dossier and independently reviewed evidence. This task remains blocked.","Quyết toán cần hồ sơ nhân viên đã được duyệt còn hiệu lực và chứng cứ được rà soát độc lập. Việc này vẫn đang bị chặn."],
  offboarding_assets_pending:["Return or resolve the assigned company assets before completing this task.","Hãy thu hồi hoặc xử lý các tài sản công ty đang giao trước khi hoàn tất việc này."],
  asset_evidence_self_review:["The uploader or asset issuer cannot review this handover evidence.","Người tải lên hoặc người giao tài sản không được tự rà soát biên bản bàn giao này."],
  asset_evidence_file_required:["Choose a PDF handover record.","Hãy chọn PDF biên bản bàn giao."],
@@ -186,7 +191,7 @@ const messages:Record<string,[string,string]>={
  payroll_payment_exceeds_balance:["The confirmation exceeds the unpaid net amount. Check previous partial payments.","Số xác nhận vượt số thực nhận còn lại. Hãy kiểm tra các lần thanh toán một phần trước."],
  payroll_payment_date_future:["A payment can be confirmed only after its transaction date.","Chỉ xác nhận thanh toán khi ngày giao dịch đã xảy ra."],
  payroll_correction_paid_exceeds_net:["Previously confirmed payments exceed the corrected net amount. A separately reviewed recovery adjustment is required.","Các khoản đã xác nhận trả lớn hơn thực nhận sau điều chỉnh. Cần quy trình thu hồi/điều chỉnh riêng được rà soát."],
- payroll_payment_unreconciled:["The run still has an unpaid balance. Record reviewed payment references before closing it.","Kỳ lương vẫn còn số dư chưa thanh toán. Hãy ghi tham chiếu thanh toán đã đối soát trước khi đóng."],
+ payroll_payment_unreconciled:["Issued payslips and recorded payments must reconcile exactly, including correction carryover. Review missing amounts, underpayments or overpayments before closing.","Phiếu lương đã phát hành và các khoản thanh toán phải khớp chính xác, kể cả số đã trả chuyển sang phiếu điều chỉnh. Hãy kiểm tra số liệu thiếu, khoản trả thiếu hoặc trả thừa trước khi đóng kỳ."],
  payroll_dispute_transition_invalid:["This inquiry has changed state or the requested transition is not allowed.","Thắc mắc đã đổi trạng thái hoặc bước chuyển trạng thái này không được phép."],
  payroll_dispute_self_review:["The person who opened an inquiry cannot answer or resolve it.","Người tạo thắc mắc không được tự trả lời hoặc giải quyết thắc mắc đó."],
  service_request_type_invalid:["Choose a supported HR request category.","Hãy chọn đúng loại yêu cầu HR được hỗ trợ."],

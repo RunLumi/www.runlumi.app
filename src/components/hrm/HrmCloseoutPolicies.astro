@@ -1,0 +1,54 @@
+---
+import type { PayrollDeskPage } from "../../lib/hrm/payroll-pages";
+import type { CloseoutCheck } from "../../lib/hrm/closeout-policies";
+const d=Astro.props.data as PayrollDeskPage,vi=d.vi;
+const path=`${vi?"/vi":""}/hrm/payroll`;
+const state=(value:string)=>({draft:vi?"Nháp":"Draft",reviewed:vi?"Đã duyệt":"Reviewed",active:vi?"Đang áp dụng":"Active",retired:vi?"Ngừng áp dụng":"Retired",rejected:vi?"Bị từ chối":"Rejected"}[value]??value);
+---
+<section class="crm-sheet" id="closeout-policies">
+ <h2 class="crm-h2">{vi?"Chính sách quyết toán khi nghỉ việc":"Offboarding financial review policies"}</h2>
+ <p class="crm-help">{vi?"Owner xác định phạm vi và chứng cứ cần rà soát. Lưu hoặc duyệt chính sách không xác nhận nghĩa vụ của nhân viên đã hoàn tất, không thanh toán và không mở HRM production.":"The owner defines the scope and required evidence. Saving or approving terms does not clear an employee’s obligations, make payments or activate production HRM."}</p>
+ {d.closeoutPolicies.length===0&&<p class="crm-empty">{vi?"Chưa có chính sách quyết toán.":"No financial review policy exists."}</p>}
+ {d.closeoutPolicies.map(p=><article class="crm-sheet">
+  <h3 class="crm-h3">{vi?p.title_vi:p.title_en} · v{p.revision} · {state(p.state)}</h3>
+  <p class="crm-meta">{p.policy_key} · {p.legal_entity} · {p.effective_from}–{p.effective_until}</p><p>{p.purpose}</p><p>{p.jurisdiction}</p>
+  <p class="crm-meta closeout-break">{vi?"Phiên bản DOCX / checksum":"DOCX version / checksum"}: {p.source_version_id??"—"} / {p.source_checksum??"—"}</p>
+  {d.closeoutSources.find(s=>s.id===p.source_version_id)&&<p><a class="crm-link" href={`/api/hrm/legal/files/${encodeURIComponent(d.closeoutSources.find(s=>s.id===p.source_version_id)!.source_file_id)}`}>{vi?"Mở nguồn DOCX để rà soát":"Open DOCX source for review"}</a></p>}
+  <ul>{(JSON.parse(p.checklist_json) as CloseoutCheck[]).map(c=><li><strong>{vi?c.title_vi:c.title_en}</strong><p>{vi?c.instructions_vi:c.instructions_en}</p><p class="crm-help">{c.allow_not_applicable?(vi?"Có thể đề nghị không áp dụng khi có chứng cứ và người duyệt độc lập.":"An evidenced, independently reviewed not-applicable outcome may be proposed."):(vi?"Phải có kết quả rà soát; không được miễn.":"A review outcome is required; no exemption is allowed.")}</p></li>)}</ul>
+  <p>{p.allow_no_payroll?(vi?"Không có payroll: phải có chứng cứ để duyệt miễn theo hướng dẫn sau.":"No recorded payroll: exemption requires evidence under these instructions."):(vi?"Không có payroll là thiếu thông tin, không được coi là đã quyết toán.":"Missing payroll remains unknown and cannot establish clearance.")}</p>{p.no_payroll_instructions&&<p>{p.no_payroll_instructions}</p>}
+  <p class="crm-meta closeout-break">{vi?"Người duyệt / UTC":"Reviewer / UTC"}: {p.reviewed_by??"—"} / {p.reviewed_at??"—"} · {vi?"Áp dụng bởi / UTC":"Activated by / UTC"}: {p.activated_by??"—"} / {p.activated_at??"—"}</p>
+  {p.review_reason&&<p>{p.review_reason}</p>}
+  {p.created_by!==d.user.id&&["draft","reviewed","active"].includes(p.state)&&<form class="crm-form" method="post" action="/api/hrm/payroll">
+   <input type="hidden" name="intent" value="closeout_policy_action"/><input type="hidden" name="return_to" value={path}/><input type="hidden" name="request_key" value={crypto.randomUUID()}/><input type="hidden" name="policy_id" value={p.id}/><input type="hidden" name="version" value={p.version}/>
+   <label class="crm-field"><span>{vi?"Lý do quyết định":"Decision reason"}</span><input class="crm-input" name="reason" maxlength="500" required/></label>
+   <div class="crm-actions">{p.state==="draft"?<><button class="crm-button" name="action" value="approve">{vi?"Duyệt độc lập":"Approve independently"}</button><button class="crm-button secondary" name="action" value="reject">{vi?"Từ chối":"Reject"}</button></>:<button class="crm-button secondary" name="action" value={p.state==="reviewed"?"activate":"retire"}>{p.state==="reviewed"?(vi?"Áp dụng phiên bản":"Activate version"):(vi?"Ngừng áp dụng":"Retire version")}</button>}</div>
+  </form>}
+ </article>)}
+ <details class="crm-disclosure"><summary>{vi?"Tạo phiên bản chính sách quyết toán":"Create a financial review policy version"}</summary>
+ <form class="crm-form" method="post" action="/api/hrm/payroll">
+  <input type="hidden" name="intent" value="create_closeout_policy"/><input type="hidden" name="return_to" value={path}/><input type="hidden" name="request_key" value={crypto.randomUUID()}/>
+  <div class="crm-form-grid">
+   <label class="crm-field"><span>{vi?"Mã chính sách":"Policy key"}</span><input class="crm-input" name="policy_key" pattern="[A-Z][A-Z0-9_-]*" maxlength="48" required/></label>
+   <label class="crm-field"><span>{vi?"Tên tiếng Anh":"English title"}</span><input class="crm-input" name="title_en" maxlength="120" required/></label>
+   <label class="crm-field"><span>{vi?"Tên tiếng Việt":"Vietnamese title"}</span><input class="crm-input" name="title_vi" maxlength="120" required/></label>
+   <label class="crm-field"><span>{vi?"Phạm vi pháp luật áp dụng":"Jurisdiction"}</span><input class="crm-input" name="jurisdiction" maxlength="300" required/></label>
+   <label class="crm-field"><span>{vi?"Hiệu lực từ":"Effective from"}</span><input class="crm-input" type="date" name="effective_from" required/></label>
+   <label class="crm-field"><span>{vi?"Hiệu lực đến":"Valid through"}</span><input class="crm-input" type="date" name="effective_until" required/></label>
+  </div>
+  <label class="crm-field"><span>{vi?"Mục đích":"Purpose"}</span><input class="crm-input" name="purpose" maxlength="1000" required/></label>
+  <label class="crm-field"><span>{vi?"Nguồn DOCX (có thể để trống khi lưu nháp)":"DOCX source (optional for a draft)"}</span><select class="crm-input" name="source_version_id"><option value="">{vi?"Chưa có nguồn; chỉ lưu nháp":"No source; draft only"}</option>{d.closeoutSources.map(s=><option value={s.id}>{vi?s.title_vi:s.title_en} · v{s.version_number}</option>)}</select></label>
+  <p class="crm-help">{vi?"Mở và điền ít nhất một mục; tối đa 30 mục. Chỉ điền các mục mà owner yêu cầu; không có quy tắc pháp luật mặc định. Nội dung đã lưu không sửa trực tiếp; hãy tạo phiên bản mới.":"Open and complete at least one check, up to 30. Include the checks the owner requires; no statutory rules are supplied. Saved definitions are frozen; create a new version to change them."}</p>
+  {Array.from({length:30},(_,i)=><details class="crm-disclosure" open={i===0}><summary>{vi?`Mục rà soát ${i+1}`:`Review check ${i+1}`}</summary><div class="crm-form-grid">
+   <label class="crm-field"><span>{vi?"Mã mục (chữ in hoa, số, _ hoặc -)":"Check key (uppercase letters, digits, _ or -)"}</span><input class="crm-input" name={`check_${i}_key`} pattern="[A-Z][A-Z0-9_-]*" maxlength="48"/></label>
+   <label class="crm-field"><span>{vi?"Tên tiếng Anh":"English title"}</span><input class="crm-input" name={`check_${i}_title_en`} maxlength="120"/></label>
+   <label class="crm-field"><span>{vi?"Tên tiếng Việt":"Vietnamese title"}</span><input class="crm-input" name={`check_${i}_title_vi`} maxlength="120"/></label>
+   <label class="crm-field"><span>{vi?"Hướng dẫn tiếng Anh":"English instructions"}</span><textarea class="crm-textarea" name={`check_${i}_instructions_en`} maxlength="1000" rows="2"></textarea></label>
+   <label class="crm-field"><span>{vi?"Hướng dẫn tiếng Việt":"Vietnamese instructions"}</span><textarea class="crm-textarea" name={`check_${i}_instructions_vi`} maxlength="1000" rows="2"></textarea></label>
+   <label class="crm-check"><input type="checkbox" name={`check_${i}_allow_na`} value="1"/><span>{vi?"Cho phép đề nghị không áp dụng khi có chứng cứ và duyệt độc lập":"Allow an evidenced, independently reviewed not-applicable outcome"}</span></label>
+  </div></details>)}
+  <label class="crm-check"><input type="checkbox" name="allow_no_payroll" value="1"/><span>{vi?"Cho phép đề nghị miễn payroll khi không có kỳ lương được ghi nhận; vẫn phải có chứng cứ và duyệt độc lập":"Allow an evidenced, independently reviewed exemption when no payroll is recorded"}</span></label>
+  <label class="crm-field"><span>{vi?"Hướng dẫn chứng cứ khi cho phép miễn payroll":"Evidence instructions if a no-payroll exemption is allowed"}</span><input class="crm-input" name="no_payroll_instructions" maxlength="1000"/></label>
+  <button class="crm-button secondary">{vi?"Lưu bản nháp quyết toán":"Save financial review draft"}</button>
+ </form></details>
+</section>
+<style>.closeout-break{overflow-wrap:anywhere}</style>

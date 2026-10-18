@@ -422,36 +422,43 @@ export async function confirmPayrollPayment(db: D1Database, user: WorkspaceUser,
   ]);
 }
 
+/** One predicate serves the UI and the atomic close command. Missing issued
+ * amounts are unknown; correction carryover counts once, on the latest leaf. */
+const reconciledRunSql = `WITH RECURSIVE target AS (
+  SELECT id FROM hrm_payroll_runs WHERE id=? AND state IN ('published','closed')
+), chain(root_id,slip_id) AS (
+  SELECT s.id,s.id FROM hrm_payslips s JOIN target ON target.id=s.run_id
+  UNION ALL
+  SELECT chain.root_id,child.id FROM hrm_payslips child JOIN chain ON child.supersedes_payslip_id=chain.slip_id
+), leaf AS (
+  SELECT chain.slip_id FROM chain WHERE NOT EXISTS(SELECT 1 FROM hrm_payslips child WHERE child.supersedes_payslip_id=chain.slip_id)
+)
+SELECT CASE WHEN EXISTS(SELECT 1 FROM target)
+  AND EXISTS(SELECT 1 FROM chain)
+  AND NOT EXISTS(SELECT 1 FROM hrm_payroll_run_people rp JOIN target ON target.id=rp.run_id
+    WHERE NOT EXISTS(SELECT 1 FROM hrm_payslips s WHERE s.run_person_id=rp.id AND s.run_id=rp.run_id AND s.person_id=rp.person_id))
+  AND NOT EXISTS(SELECT 1 FROM leaf JOIN hrm_payslips s ON s.id=leaf.slip_id
+    WHERE s.state!='published'
+    OR json_type(s.snapshot_json,'$.net_minor') IS NOT 'integer'
+    OR json_extract(s.snapshot_json,'$.net_minor') NOT BETWEEN 0 AND 9007199254740991
+    OR (json_type(s.snapshot_json,'$.paid_carryover_minor') IS NOT NULL AND (
+      json_type(s.snapshot_json,'$.paid_carryover_minor') IS NOT 'integer'
+      OR json_extract(s.snapshot_json,'$.paid_carryover_minor') NOT BETWEEN 0 AND 9007199254740991))
+    OR COALESCE((SELECT SUM(amount_minor) FROM hrm_payroll_payments p WHERE p.payslip_id=s.id),0)
+      +COALESCE(json_extract(s.snapshot_json,'$.paid_carryover_minor'),0)!=json_extract(s.snapshot_json,'$.net_minor'))
+  THEN 1 ELSE 0 END AS ready`;
+
 export async function closePayrollRun(db: D1Database, user: WorkspaceUser, key: string, runId: string, expectedVersion: number, reason: string): Promise<void> {
   requirePermission(user, "hrm.payroll.approve"); live(user);
   const cleanReason = safeText(reason, 500), { run } = await loadRun(db, runId);
   const payload = { runId, expectedVersion, reason: cleanReason };
   if (await replayCommand(db, user, key, "payroll_run_close", payload)) return;
   if (run.state !== "published" || run.version !== expectedVersion) throw new HrmError("conflict", 409);
-  const unsettled = await db.prepare(`WITH RECURSIVE chain(root_id,slip_id) AS (
-    SELECT id,id FROM hrm_payslips WHERE run_id=?
-    UNION ALL
-    SELECT chain.root_id,child.id FROM hrm_payslips child JOIN chain ON child.supersedes_payslip_id=chain.slip_id
-  ), leaf(root_id,slip_id) AS (
-    SELECT chain.root_id,chain.slip_id FROM chain WHERE NOT EXISTS(SELECT 1 FROM hrm_payslips child WHERE child.supersedes_payslip_id=chain.slip_id)
-  )
-  SELECT COUNT(*) AS n FROM leaf JOIN hrm_payslips s ON s.id=leaf.slip_id
-  WHERE COALESCE((SELECT SUM(amount_minor) FROM hrm_payroll_payments p WHERE p.payslip_id=s.id),0)+COALESCE(CAST(json_extract(s.snapshot_json,'$.paid_carryover_minor') AS INTEGER),0)<CAST(json_extract(s.snapshot_json,'$.net_minor') AS INTEGER)`).bind(run.id).first<{ n: number }>();
-  if ((unsettled?.n ?? 0) > 0) throw new HrmError("payroll_payment_unreconciled", 409);
+  if (!await payrollRunSettled(db, user, run.id)) throw new HrmError("payroll_payment_unreconciled", 409);
   const time = now();
   await command(db, user, key, "payroll_run_close", payload, run.id, [
     guardBoolean(db, "EXISTS(SELECT 1 FROM hrm_payroll_runs WHERE id=? AND version=? AND state='published')", [run.id, expectedVersion]),
-    guardBoolean(db, `NOT EXISTS(
-      WITH RECURSIVE chain(root_id,slip_id) AS (
-        SELECT id,id FROM hrm_payslips WHERE run_id=?
-        UNION ALL
-        SELECT chain.root_id,child.id FROM hrm_payslips child JOIN chain ON child.supersedes_payslip_id=chain.slip_id
-      ), leaf(root_id,slip_id) AS (
-        SELECT chain.root_id,chain.slip_id FROM chain WHERE NOT EXISTS(SELECT 1 FROM hrm_payslips child WHERE child.supersedes_payslip_id=chain.slip_id)
-      )
-      SELECT 1 FROM leaf JOIN hrm_payslips s ON s.id=leaf.slip_id
-      WHERE COALESCE((SELECT SUM(amount_minor) FROM hrm_payroll_payments p WHERE p.payslip_id=s.id),0)+COALESCE(CAST(json_extract(s.snapshot_json,'$.paid_carryover_minor') AS INTEGER),0)<CAST(json_extract(s.snapshot_json,'$.net_minor') AS INTEGER)
-    )`, [run.id]),
+    guardBoolean(db, `(${reconciledRunSql})=1`, [run.id]),
   ], [
     db.prepare("UPDATE hrm_payroll_runs SET state='closed',closed_by=?,closed_at=?,version=version+1,actor_id=?,updated_at=? WHERE id=? AND version=?").bind(user.id, time, user.id, time, run.id, expectedVersion),
     db.prepare("INSERT INTO hrm_audit(actor_id,action,target_id,detail,created_at) VALUES(?,'payroll_run_closed',?,?,?)").bind(user.id, run.id, JSON.stringify({ reason_recorded: true }), time),
@@ -460,16 +467,8 @@ export async function closePayrollRun(db: D1Database, user: WorkspaceUser, key: 
 
 export async function payrollRunSettled(db: D1Database, user: WorkspaceUser, runId: string): Promise<boolean> {
   requirePermission(user, "hrm.payroll.read"); live(user);
-  const pending = await db.prepare(`WITH RECURSIVE chain(root_id,slip_id) AS (
-    SELECT id,id FROM hrm_payslips WHERE run_id=?
-    UNION ALL
-    SELECT chain.root_id,child.id FROM hrm_payslips child JOIN chain ON child.supersedes_payslip_id=chain.slip_id
-  ), leaf(root_id,slip_id) AS (
-    SELECT chain.root_id,chain.slip_id FROM chain WHERE NOT EXISTS(SELECT 1 FROM hrm_payslips child WHERE child.supersedes_payslip_id=chain.slip_id)
-  )
-  SELECT COUNT(*) AS n FROM leaf JOIN hrm_payslips s ON s.id=leaf.slip_id
-  WHERE COALESCE((SELECT SUM(amount_minor) FROM hrm_payroll_payments p WHERE p.payslip_id=s.id),0)+COALESCE(CAST(json_extract(s.snapshot_json,'$.paid_carryover_minor') AS INTEGER),0)<CAST(json_extract(s.snapshot_json,'$.net_minor') AS INTEGER)`).bind(runId).first<{ n: number }>();
-  return (pending?.n ?? 0) === 0;
+  const result = await db.prepare(reconciledRunSql).bind(runId).first<{ ready: number }>();
+  return result?.ready === 1;
 }
 
 export async function listMyPayslips(db: D1Database, user: WorkspaceUser): Promise<PayrollSlip[]> {
