@@ -6,8 +6,9 @@ import { createHash } from "node:crypto";
 import { mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { backup, DatabaseSync } from "node:sqlite";
+import { backup } from "node:sqlite";
 import { adminSession, userSession, Session, BASE, PERSIST, content, jobs, q, key, localFetch } from "./helpers.mjs";
+import { withSqliteReadSnapshot } from "../support/sqlite-read-snapshot.ts";
 import { startHrmBrowserQa } from "./hrm-browser-qa.mjs";
 
 const pages = ["", "/plans", "/actuals", "/pnl", "/cash-flow", "/revenue", "/costs", "/working-capital", "/position", "/settings", "/audit"];
@@ -186,7 +187,7 @@ test("Finance v1 complete HTTP and D1 journey", { timeout: 8 * 60 * 1000 }, asyn
     const snapshot = join(directory, "synthetic.sqlite"), restored = join(directory, "restored");
     const cli = args => execFileSync("./node_modules/.bin/wrangler", args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
     const restoreQuery = sql => JSON.parse(cli(["d1", "execute", "lumi-jobs", "--local", "--persist-to", restored, "--json", "--command", sql]))[0].results;
-    const findDatabase = (persist, table) => {
+    const findDatabase = async (persist, table) => {
       const pending = [persist], matches = [];
       while (pending.length) {
         const parent = pending.pop();
@@ -194,9 +195,8 @@ test("Finance v1 complete HTTP and D1 journey", { timeout: 8 * 60 * 1000 }, asyn
           const path = join(parent, entry.name);
           if (entry.isDirectory()) pending.push(path);
           else if (entry.isFile() && entry.name.endsWith(".sqlite")) {
-            const database = new DatabaseSync(path, { readOnly: true });
-            try { if (database.prepare("SELECT 1 FROM sqlite_schema WHERE type='table' AND name=?").get(table)) matches.push(path); }
-            finally { database.close(); }
+            const found = await withSqliteReadSnapshot(path, database => Boolean(database.prepare("SELECT 1 FROM sqlite_schema WHERE type='table' AND name=?").get(table)));
+            if (found) matches.push(path);
           }
         }
       }
@@ -216,17 +216,15 @@ test("Finance v1 complete HTTP and D1 journey", { timeout: 8 * 60 * 1000 }, asyn
     const closedFactsSql = `SELECT line_code,segment_code,value_state,amount,note,evidence_ref,source_operation_id FROM finance_actual_values WHERE actual_revision_id=${q(closedId)} ORDER BY line_code,segment_code`;
     const hasSqlError = code => error => `${String(error?.stderr ?? "")}\n${String(error?.stdout ?? "")}`.includes(code);
     try {
-      const originalFile = findDatabase(PERSIST, "finance_books"), original = new DatabaseSync(originalFile, { readOnly: true });
-      let before, closedFacts;
-      try {
-        // Pin one read snapshot. SQLite's online backup includes committed WAL data;
-        // do not copy a live .sqlite file or its WAL/SHM files independently.
-        original.exec("BEGIN");
-        before = manifest(original);
-        closedFacts = original.prepare(closedFactsSql).all().map(row => ({ ...row }));
+      const originalFile = await findDatabase(PERSIST, "finance_books");
+      const { before, closedFacts } = await withSqliteReadSnapshot(originalFile, async original => {
+        // Hash and back up one committed snapshot, including WAL data. Never
+        // copy a live .sqlite file or its WAL/SHM files independently.
+        const before = manifest(original), closedFacts = original.prepare(closedFactsSql).all().map(row => ({ ...row }));
         assert.ok(closedFacts.length > 0, "the recovery fixture has real synthetic closed input rows");
         await backup(original, snapshot);
-      } finally { original.exec("ROLLBACK"); original.close(); }
+        return { before, closedFacts };
+      });
 
       // Wrangler export has no --persist-to option in the installed version.
       // Initialize only the disposable target through D1, close that CLI process,
@@ -234,10 +232,12 @@ test("Finance v1 complete HTTP and D1 journey", { timeout: 8 * 60 * 1000 }, asyn
       // This copies schema/constraints/triggers together without replaying inserts
       // through immutable-row triggers or disabling foreign keys.
       restoreQuery("CREATE TABLE finance_recovery_probe (id INTEGER PRIMARY KEY)");
-      const restoredFile = findDatabase(restored, "finance_recovery_probe"), saved = new DatabaseSync(snapshot, { readOnly: true });
+      const restoredFile = await findDatabase(restored, "finance_recovery_probe");
       assert.notEqual(restoredFile, originalFile);
-      try { assert.deepEqual(manifest(saved), before); await backup(saved, restoredFile); }
-      finally { saved.close(); }
+      await withSqliteReadSnapshot(snapshot, async saved => {
+        assert.deepEqual(manifest(saved), before);
+        await backup(saved, restoredFile);
+      });
 
       assert.equal(restoreQuery("SELECT entity_name FROM finance_books WHERE id='main'")[0].entity_name, book.legal_entity);
       assert.equal(restoreQuery(`SELECT state FROM finance_actual_revisions WHERE id=${q(closedId)}`)[0].state, "closed");
@@ -247,11 +247,10 @@ test("Finance v1 complete HTTP and D1 journey", { timeout: 8 * 60 * 1000 }, asyn
       assert.throws(() => restoreQuery(`UPDATE finance_actual_revisions SET reason='invalid rewrite' WHERE id=${q(closedId)}`), hasSqlError("finance_actual_immutable"));
       assert.throws(() => restoreQuery("DELETE FROM finance_audit_events"), hasSqlError("finance_history_immutable"));
       assert.deepEqual(restoreQuery("SELECT name FROM sqlite_schema WHERE name='finance_recovery_probe'"), [], "the target probe is replaced, not merged with the backup");
-      const recovered = new DatabaseSync(restoredFile, { readOnly: true }), unchanged = new DatabaseSync(originalFile, { readOnly: true });
-      try {
-        assert.deepEqual(manifest(recovered), before, "every Finance and Workspace table count and content hash survives restore and rejected writes");
-        assert.deepEqual(manifest(unchanged), before, "the original database is not modified by the rehearsal");
-      } finally { recovered.close(); unchanged.close(); }
+      assert.deepEqual(await withSqliteReadSnapshot(restoredFile, manifest), before, "every Finance and Workspace table count and content hash survives restore and rejected writes");
+      // Start a NEW read transaction after the rehearsal. Reusing the initial
+      // pinned view would hide source changes and weaken the unchanged check.
+      assert.deepEqual(await withSqliteReadSnapshot(originalFile, manifest), before, "the original database is not modified by the rehearsal");
       t.diagnostic("Recovery evidence is native SQLite backup/restore of disposable local D1 only; production D1 export and Time Travel restore remain separate rehearsal gates.");
     } finally { rmSync(directory, { recursive: true, force: true }); }
   });
