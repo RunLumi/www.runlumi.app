@@ -5,6 +5,8 @@ import { reportAccount, reportAuthority } from "./report-governance";
 import { closeoutPolicySourceSql, parseCloseoutChecks, type CloseoutPolicy } from "./closeout-policies";
 import { readCloseoutBasis, requireCloseout, type CloseoutBasisResult } from "./closeout-basis";
 
+import type { CloseoutFileHold } from "./closeout-holds";
+
 export interface CloseoutOutcome {key:string;outcome:"verified"|"not_applicable";reason:string;file_ids:string[]}
 export interface CloseoutDossier {
  id:string;case_id:string;person_id:string;employment_id:string;employee_user_id:string|null;policy_id:string;source_revision:number;
@@ -165,16 +167,17 @@ export type CloseoutDossierSummary=Omit<CloseoutDossier,"basis_json">;
 export type CloseoutFileSummary=Omit<CloseoutFile,"object_key">;
 export async function closeoutDesk(db:D1Database,content:D1Database,user:WorkspaceUser,caseId:string,policyId:string|null){
  requireCloseout(user);const basis=await currentCase(db,user,caseId);
- const [policyRows,dossierRows,fileRows,events]=await Promise.all([
+ const [policyRows,dossierRows,fileRows,events,holds]=await Promise.all([
   db.prepare(`SELECT p.*,v.source_file_id FROM hrm_closeout_policy_versions p LEFT JOIN hrm_legal_template_versions v ON v.id=p.source_version_id WHERE p.legal_entity=? AND (p.state='active' OR EXISTS(SELECT 1 FROM hrm_closeout_dossiers d WHERE d.case_id=? AND d.policy_id=p.id)) ORDER BY p.created_at DESC,p.id LIMIT 101`).bind(String(basis.basis.employment.legal_entity),caseId).all<CloseoutPolicy&{source_file_id:string|null}>(),
   db.prepare("SELECT id,case_id,person_id,employment_id,employee_user_id,policy_id,source_revision,basis_checksum,checks_json,no_payroll_evidence_json,state,prepared_by,prepared_at,reviewed_by,reviewed_at,review_reason,applied_by,applied_at,version,actor_id,updated_at FROM hrm_closeout_dossiers WHERE case_id=? ORDER BY prepared_at DESC,id DESC LIMIT 101").bind(caseId).all<CloseoutDossierSummary>(),
   db.prepare("SELECT id,case_id,original_name,size_bytes,checksum,state,uploaded_by,created_at,reviewed_by,reviewed_at,review_reason,object_deleted_at,disposition_state,legal_hold,version,actor_id,updated_at FROM hrm_closeout_files WHERE case_id=? ORDER BY created_at DESC,id DESC LIMIT 201").bind(caseId).all<CloseoutFileSummary>(),
   db.prepare("SELECT id,dossier_id,event_type,detail_json,actor_id,created_at FROM hrm_closeout_events WHERE case_id=? ORDER BY id DESC LIMIT 100").bind(caseId).all<{id:number;dossier_id:string|null;event_type:string;detail_json:string;actor_id:string|null;created_at:string}>(),
+  db.prepare("SELECT * FROM hrm_closeout_file_holds WHERE case_id=? ORDER BY placed_at DESC,id DESC LIMIT 501").bind(caseId).all<CloseoutFileHold>(),
  ]);
- if(policyRows.results.length>100||dossierRows.results.length>100||fileRows.results.length>200)throw new HrmError("closeout_source_limit",409);
- const actorIds=[...new Set([...dossierRows.results.flatMap(d=>[d.prepared_by,d.reviewed_by,d.applied_by]),...fileRows.results.flatMap(f=>[f.uploaded_by,f.reviewed_by]),...events.results.map(e=>e.actor_id)].filter((id):id is string=>!!id))];
+ if(policyRows.results.length>100||dossierRows.results.length>100||fileRows.results.length>200||holds.results.length>500)throw new HrmError("closeout_source_limit",409);
+ const actorIds=[...new Set([...dossierRows.results.flatMap(d=>[d.prepared_by,d.reviewed_by,d.applied_by]),...fileRows.results.flatMap(f=>[f.uploaded_by,f.reviewed_by]),...events.results.map(e=>e.actor_id),...holds.results.flatMap(h=>[h.placed_by,h.released_by])].filter((id):id is string=>!!id))];
  const actors=actorIds.length?(await content.prepare("SELECT id,COALESCE(NULLIF(name,''),'Account') AS name FROM users WHERE id IN (SELECT value FROM json_each(?))").bind(JSON.stringify(actorIds)).all<{id:string;name:string}>()).results:[];
  const actorLabels=Object.fromEntries(actors.map(a=>[a.id,a.name]));
  const selectedPolicy=policyId?policyRows.results.find(p=>p.id===policyId&&p.state==='active')??null:null;
- return {basis,policies:policyRows.results,selectedPolicy,actorLabels,dossiers:dossierRows.results,files:fileRows.results,events:events.results};
+ return {basis,policies:policyRows.results,selectedPolicy,actorLabels,dossiers:dossierRows.results,files:fileRows.results,events:events.results,fileHolds:holds.results};
 }

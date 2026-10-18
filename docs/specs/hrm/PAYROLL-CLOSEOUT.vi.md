@@ -33,3 +33,9 @@ Cần kiểm chứng runtime D1 ngoài kiểm thử SQLite của Node. D1 local 
 Khi gán lịch có thể nhập ngày kết thúc tường minh. Lịch lịch sử có giới hạn được phép kết thúc trước các kỳ công khác đã khóa/đang duyệt; kiểm tra chồng lịch và mọi cửa sổ khóa vẫn giữ nguyên. Hệ thống không tự suy ra ngày kết thúc.
 
 Gán chính sách phép cũng nhận ngày kết thúc tùy chọn tường minh; guard kỳ công và chồng chính sách dùng toàn bộ khoảng hiệu lực, retry không cấp phép thêm lần nữa.
+
+## Legal hold riêng cho từng tệp
+
+Nhân sự có quyền tài chính có thể đặt hold theo vụ việc cho từng PDF quyết toán ngay trong case, kể cả sau khi case đã hoàn tất. Đặt hold cần cả quyền của bàn quyết toán và `hrm.legalhold.manage`; gỡ hold còn cần `hrm.retention.review` và phải do người khác thực hiện. HRM Officer, Payroll Officer, quản lý và nhân viên không được xem hoặc gỡ lịch sử hold tài chính bằng các quyền ngoài tài chính. Mỗi lần ghi phải kiểm tra lại tài khoản EmDash hiện tại, membership/quyền D1, pháp nhân, revision tệp và HRM gate. Người được tuyển lại vẫn không được đặt hoặc gỡ hold trên case cũ của chính mình.
+
+Lịch sử bất biến giữ người đặt/gỡ, thời gian UTC máy chủ và tham chiếu vụ việc ngắn. Hold toàn nhân viên và hold riêng tệp có hiệu lực chồng nhau; gỡ một phạm vi không gỡ phạm vi còn lại. Không thể đánh dấu đã xóa, đưa vào disposition hoặc bỏ cờ giữ khi tệp còn hold. Không đặt hold mới cho tệp đã xóa hoặc đang xử lý xóa. Việc bảo toàn chứng cứ không tự thay nguồn tài chính, mở lại case đã đóng hoặc cấp lại membership. Phần này chỉ triển khai bảo toàn: chính sách retention được owner duyệt, xóa có phê duyệt cho payload tệp/hồ sơ quyết toán, backup và bản sao dẫn xuất vẫn là công việc riêng. Không có thời hạn hay tác vụ xóa tự động được thêm.

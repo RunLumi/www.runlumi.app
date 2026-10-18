@@ -4,6 +4,7 @@ import { sameOrigin } from "../../../lib/http";
 import { HrmError, revision } from "../../../lib/hrm/fields";
 import { readLegalForm } from "../../../lib/hrm/legal-files";
 import { prepareCloseoutDossier, reviewCloseoutDossier, reopenCloseoutReview, uploadCloseoutFile, reviewCloseoutFile } from "../../../lib/hrm/closeout-dossiers";
+import { placeCloseoutFileHold, releaseCloseoutFileHold } from "../../../lib/hrm/closeout-holds";
 export const prerender=false;
 function field(form:FormData,name:string,max=120,required=false){const values=form.getAll(name);if(values.length>1||values.some(v=>typeof v!=="string"))throw new HrmError("invalid_field",400);const value=String(values[0]??"").trim();if(value.length>max||required&&!value)throw new HrmError("invalid_field",400);return value}
 function files(form:FormData,name:string){const values=form.getAll(name);if(values.length>5||values.some(v=>typeof v!=="string"||!(/^[A-Za-z0-9_-]{1,120}$/).test(v)))throw new HrmError("closeout_evidence_invalid",400);return values as string[]}
@@ -25,6 +26,10 @@ export const POST:APIRoute=async context=>{
   }else if(intent==="review_file"){
    const decision=field(form,"decision",10,true);if(decision!=="reviewed"&&decision!=="rejected")throw new HrmError("invalid_action",400);
    await reviewCloseoutFile(env.DB,env.CONTENT_DB,env.FILES,user,key,{caseId,fileId:field(form,"file_id",120,true),version:revision(form),decision,reason:field(form,"reason",1000,true)});
+  }else if(intent==="place_file_hold"){
+   await placeCloseoutFileHold(env.DB,env.CONTENT_DB,user,key,{caseId,fileId:field(form,"file_id",120,true),version:revision(form),reason:field(form,"reason",1000,true)});
+  }else if(intent==="release_file_hold"){
+   await releaseCloseoutFileHold(env.DB,env.CONTENT_DB,user,key,{caseId,holdId:field(form,"hold_id",120,true),version:revision(form),reason:field(form,"reason",1000,true)});
   }else if(intent==="prepare"){
    const checks=[];for(const name of form.keys())if(name.startsWith("check_")&&!/^check_(?:[0-9]|[12][0-9])_(?:key|outcome|reason|files)$/.test(name))throw new HrmError("closeout_checks_required",400);
    for(let i=0;i<30;i++){const id=field(form,`check_${i}_key`,48),outcome=field(form,`check_${i}_outcome`,20),reason=field(form,`check_${i}_reason`,1000),proof=files(form,`check_${i}_files`);if(id||outcome||reason||proof.length)checks.push({key:id,outcome,reason,file_ids:proof})}

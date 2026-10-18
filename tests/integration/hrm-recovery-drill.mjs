@@ -223,6 +223,7 @@ export async function runHrmRecoveryDrill({
   assert.ok(file && !file.object_deleted_at, "recovery fixture must reference a live synthetic HRM file");
   const closeoutFile=closeoutFileId?jobs(`SELECT id,case_id,object_key,checksum,size_bytes,legal_hold,object_deleted_at FROM hrm_closeout_files WHERE id=${q(closeoutFileId)}`)[0]:null;
   if(closeoutFileId){assert.ok(closeoutFile&&!closeoutFile.object_deleted_at);assert.equal(closeoutFile.legal_hold,1,"new financial evidence inherits the explicit person-wide hold")}
+  const closeoutHolds=closeoutFile?jobs(`SELECT * FROM hrm_closeout_file_holds WHERE file_id=${q(closeoutFile.id)} ORDER BY id`):[];
   const liveFiles = jobs("SELECT object_key,checksum,size_bytes,mime_type FROM hrm_files WHERE object_deleted_at IS NULL UNION ALL SELECT object_key,checksum,size_bytes,mime_type FROM hrm_legal_files WHERE object_deleted_at IS NULL UNION ALL SELECT object_key,checksum,size_bytes,'application/pdf' AS mime_type FROM hrm_closeout_files WHERE object_deleted_at IS NULL").sort((left, right) => left.object_key.localeCompare(right.object_key));
   const sourceKeys = await listHrmObjects(BASE);
   assert.deepEqual(sourceKeys, liveFiles.map((row) => row.object_key).sort(), "live HRM metadata and private R2 object listings must match before backup");
@@ -313,6 +314,7 @@ export async function runHrmRecoveryDrill({
     if(closeoutFile){
       const record=databaseRows(recoveryPersist,"lumi-jobs",`SELECT case_id,checksum,size_bytes,legal_hold,object_deleted_at FROM hrm_closeout_files WHERE id=${q(closeoutFile.id)}`)[0];
       assert.deepEqual(record,{case_id:closeoutFile.case_id,checksum:closeoutFile.checksum,size_bytes:closeoutFile.size_bytes,legal_hold:1,object_deleted_at:null});
+      assert.deepEqual(databaseRows(recoveryPersist,"lumi-jobs",`SELECT * FROM hrm_closeout_file_holds WHERE file_id=${q(closeoutFile.id)} ORDER BY id`),closeoutHolds,"restored financial hold placement/release history stays exact");
       const path=`/api/hrm/closeout/files/${closeoutFile.id}?case_id=${closeoutFile.case_id}`;
       const financial=await fetch(recoveryWorker.base+path,{headers:{cookie:adminCookie},redirect:"manual"});assert.equal(financial.status,200);assert.equal(digest(Buffer.from(await financial.arrayBuffer())),closeoutFile.checksum);assert.ok(financial.headers.get("cache-control")?.includes("no-store"));
       for(const cookie of [employeeCookie,managerCookie])assert.notEqual((await fetch(recoveryWorker.base+path,{headers:{cookie},redirect:"manual"})).status,200,"restored confidential financial evidence stays inaccessible to employees and managers");

@@ -93,6 +93,7 @@ export async function command(db: D1Database,user: WorkspaceUser,key: string,ope
   } catch(error) {
     const retry = await previous(); if(retry) return check(retry);
     const message = error instanceof Error ? error.message : "";
+    if(message.includes("closeout_hold_unavailable"))throw new HrmError("closeout_hold_unavailable",409);
     if(message.includes("hrm_closeout_evidence_held"))throw new HrmError("legal_hold_active",409);
     if(message.includes("hrm_closeout_source_changed"))throw new HrmError("closeout_source_changed",409);
     if(message.includes("hrm_closeout_evidence_invalid"))throw new HrmError("closeout_evidence_invalid",409);
