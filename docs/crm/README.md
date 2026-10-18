@@ -134,6 +134,10 @@ Production verification is recorded in RUNBOOK §6.
 - **30-day boundary.** The inclusive day-30 rule is an assumption awaiting confirmation (§3).
 - **Duplicate detection.** Admins see duplicate hints and can move an opportunity to another account. There is no automatic merge.
 
+## Business model
+
+The private [business model canvas](BUSINESS-MODEL.md) grades every statement about Lumi's two business models and shows Finance-confirmed evidence from the ledger.
+
 ## Files
 
 The bilingual [Files library](FILES.md) supports folders, uploads, owner-managed

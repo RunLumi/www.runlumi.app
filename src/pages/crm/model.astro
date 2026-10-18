@@ -1,0 +1,9 @@
+---
+import BusinessModelView from "../../components/crm/BusinessModelView.astro";
+import { businessModelRoute } from "../../lib/crm/routes/business-model";
+
+export const prerender = false;
+const result = await businessModelRoute(Astro, "en");
+if (result instanceof Response) return result;
+---
+<BusinessModelView {...result} />

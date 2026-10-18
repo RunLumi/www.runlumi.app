@@ -6,7 +6,7 @@
 
 **Thanh điều hướng.**
 - Hàng trên cùng chuyển giữa các phân hệ: Tổng quan, Tuyển dụng, CRM, Quản trị.
-- Trong CRM, menu bên trái chia nhóm: *Bán hàng* (Hôm nay, Cơ hội, Tạo cơ hội, Giới thiệu khách), *Khách hàng* (Công ty, Liên hệ), *Kết quả* (Báo cáo, Hoa hồng), *Vận hành* (Bàn giao, Phân công và cohort), *Cấu hình* (Playbook, Gói và giá), *Hướng dẫn và công cụ* (Quy trình bán hàng, Kết nối AI agent).
+- Trong CRM, menu bên trái chia nhóm: *Bán hàng* (Hôm nay, Cơ hội, Tạo cơ hội, Giới thiệu khách), *Khách hàng* (Công ty, Liên hệ), *Kết quả* (Báo cáo, Hoa hồng, Mô hình kinh doanh), *Vận hành* (Bàn giao, Phân công và cohort), *Cấu hình* (Playbook, Gói và giá), *Hướng dẫn và công cụ* (Quy trình bán hàng, Kết nối AI agent).
 - Trên điện thoại, bấm *Menu* để mở danh sách này.
 - Bạn chỉ thấy những mục vai trò của mình được phép mở.
 
@@ -158,6 +158,14 @@ Hoa hồng của bạn hiện ở trang *Hoa hồng* sau khi admin khai báo lo�
 - **Cách tính:** hoa hồng chỉ tính trên khách đã thu đủ, đã bàn giao và còn ở lại sau thời gian giữ. Hoàn tiền làm mất khoản tương ứng.
 - **Chi trả:** tài chính chi ngoài CRM, rồi ghi nhận lại theo bảng kê.
 - **Chi tiết:** xem [COMMISSION.md](COMMISSION.md).
+
+## Mô hình kinh doanh (Admin, Quản lý bán hàng, Tài chính)
+
+- Mở *Kết quả → Mô hình kinh doanh* (`/vi/crm/model`). Có hai mô hình theo đúng hai quy trình bán: Lumi Local, và Lumi Agents, BI, Vaults.
+- **Mỗi ý có nhãn căn cứ:** Đã quan sát, Đã quyết, Có giá, Giả thuyết hoặc Chưa biết, kèm liên kết tới đúng dòng trong tài liệu gốc.
+- **Số liệu sống lấy từ sổ thương mại.** Tiền chỉ được tính khi Tài chính đã xác nhận; trang chỉ hiện số tổng, không hiện tên công ty hay cơ hội. Việc đã làm mà chưa ghi vào CRM thì trang không thấy.
+- Cuối trang là các giả định gánh cả mô hình và các **quyết định đang chờ người sáng lập**, những chỗ tài liệu đang nói khác nhau.
+- Chi tiết và cách cập nhật: [BUSINESS-MODEL.md](BUSINESS-MODEL.md).
 
 ## Quản lý bán hàng (Sales Manager)
 
