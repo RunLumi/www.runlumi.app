@@ -24,9 +24,8 @@ export const POST:APIRoute=async context=>{
   try{
     const form=await readLegalForm(context.locals.hrmFormRequest??context.request),env=envFromLocals(context.locals);
     back=returnUrl(context.request,text(form,"return_to",400,true));
-    const daysText=text(form,"retention_days",8,true);if(!/^\d{1,5}$/.test(daysText))throw new HrmError("report_retention_invalid",400);
     const rawDepartment=form.get("department"),department=typeof rawDepartment==="string"?rawDepartment:null;
-    const snapshotRef=await saveReportSnapshot(env.DB,user,text(form,"request_key",100,true),{period:text(form,"period",7,true),department},{retention_days:Number(daysText),retention_basis:text(form,"retention_basis",1000,true)});
+    const snapshotRef=await saveReportSnapshot(env.DB,env.CONTENT_DB,user,text(form,"request_key",100,true),{period:text(form,"period",7,true),department},{policyRef:text(form,"policy_ref",120,true)});
     return redirect(back,{saved:"report_snapshot_saved",snapshot:snapshotRef});
   }catch(error){
     if(!(error instanceof HrmError))console.error("hrm_report_snapshot_save_failed",error instanceof Error?error.name:"unknown");

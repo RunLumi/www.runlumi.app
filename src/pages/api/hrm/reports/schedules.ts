@@ -26,15 +26,14 @@ export const POST:APIRoute=async context=>{
     back=returnUrl(context.request,text(form,"return_to",400,true));
     const intent=text(form,"intent",32,true),key=text(form,"request_key",100,true);
     if(intent==="create_schedule"){
-      const daysText=text(form,"retention_days",8,true);if(!/^\d{1,5}$/.test(daysText))throw new HrmError("report_retention_invalid",400);
-      const rawDepartment=form.get("department"),department=typeof rawDepartment==="string"?rawDepartment:null;
-      await createReportSchedule(env.DB,user,key,{cadence:text(form,"cadence",12,true),department,retention_days:Number(daysText),retention_basis:text(form,"retention_basis",1000,true)});
+        const rawDepartment=form.get("department"),department=typeof rawDepartment==="string"?rawDepartment:null;
+      await createReportSchedule(env.DB,env.CONTENT_DB,user,key,{cadence:text(form,"cadence",12,true),department,policyRef:text(form,"policy_ref",120,true)});
       return redirect(back,{saved:"report_schedule_created"});
     }
     if(intent==="set_schedule_state"){
       const action=text(form,"action",16,true);if(action!=="pause"&&action!=="resume"&&action!=="retire")throw new HrmError("report_schedule_action_invalid",400);
       const state=action==="pause"?"paused":action==="retire"?"retired":"active";
-      await setReportScheduleState(env.DB,user,key,text(form,"schedule_ref",100,true),revision(form),state);
+      await setReportScheduleState(env.DB,env.CONTENT_DB,user,key,text(form,"schedule_ref",100,true),revision(form),state);
       return redirect(back,{saved:action==="pause"?"report_schedule_paused":action==="retire"?"report_schedule_retired":"report_schedule_resumed"});
     }
     throw new HrmError("invalid_action",400);

@@ -48,15 +48,15 @@ test("report schedule sweep gates destructive work and records an over-cap failu
   const scheduledTime=Date.parse("2026-10-18T01:40:00.000Z");
 
   config.enabled=0;
-  assert.deepEqual(await runHrmReportScheduleSweep(db as never,"true",scheduledTime),{created:0,expired:0,skipped:true});
+  assert.deepEqual(await runHrmReportScheduleSweep(db as never,db as never,"true",scheduledTime),{created:0,expired:0,skipped:true});
   assert.equal(queries.length,1,"disabled HRM stops before expiry or schedule queries");
   config.enabled=1;queries.length=0;
-  assert.deepEqual(await runHrmReportScheduleSweep(db as never,undefined,scheduledTime),{created:0,expired:0,skipped:true});
+  assert.deepEqual(await runHrmReportScheduleSweep(db as never,db as never,undefined,scheduledTime),{created:0,expired:0,skipped:true});
   assert.equal(queries.length,1,"a closed deployment switch stops before expiry or schedule queries");
 
   schedules=Array.from({length:21},(_,index)=>({id:`schedule-${index}`,schedule_ref:`schedule-ref-${index}`,legal_entity:config.legal_entity,department:`Department ${index}`,cadence:"daily",retention_days:1,retention_basis:"TEST basis",created_by:"TEST actor"}));
   queries.length=0;
-  assert.deepEqual(await runHrmReportScheduleSweep(db as never,"true",scheduledTime),{created:0,expired:0,skipped:true});
+  assert.deepEqual(await runHrmReportScheduleSweep(db as never,db as never,"true",scheduledTime),{created:0,expired:0,skipped:true});
   assert.equal(batches.flat().length,21,"every over-cap active schedule receives one deduplicated failure event");
   assert.ok(!queries.some(sql=>sql.includes("UPDATE hrm_report_snapshots")),"an over-cap schedule set stops before expiry deletion");
 });

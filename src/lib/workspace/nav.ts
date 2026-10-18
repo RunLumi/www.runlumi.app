@@ -84,6 +84,7 @@ export const modules: NavModule[] = [
       { key: "benefits", en: "Benefits", vi: "Quản lý phúc lợi", path: "/hrm/benefits", icon: "hrm_people", anyOf: ["hrm.benefits.manage"] },
       { key: "performance", en: "Performance reviews", vi: "Đánh giá hiệu suất", path: "/hrm/performance", icon: "hrm_people", anyOf: ["hrm.performance.manage", "hrm.performance.review"] },
       { key: "training", en: "Training and certificates", vi: "Đào tạo và chứng chỉ", path: "/hrm/training", icon: "hrm_people", anyOf: ["hrm.training.manage"] },
+      { key: "report-governance", en: "Report policies and holds", vi: "Chính sách và hold báo cáo", path: "/hrm/reports/governance", icon: "hrm_settings", anyOf: ["hrm.reports.manage"] },
       { key: "reports", en: "Reports", vi: "Báo cáo", path: "/hrm/reports", icon: "hrm_settings", anyOf: ["hrm.reports.read"] },
       { key: "settings", en: "Settings", vi: "Thiết lập", path: "/hrm/settings", icon: "hrm_settings", anyOf: ["hrm.configure"] },
     ],
@@ -130,7 +131,7 @@ export function visibleModules(user: WorkspaceUser): NavModule[] {
 export function visibleLinks(user: WorkspaceUser, module: NavModule): NavLink[] {
   return module.links.filter((link) => {
     if (module.key === "finance" && (!user.admin || !user.can("finance.access") || user.financeEnabled !== true && link.key !== "settings")) return false;
-    const allowedWhileClosed=link.key==="settings"||(link.key==="job-descriptions"&&user.can("hrm.configure"))||(link.key==="retention"&&(user.can("hrm.retention.manage")||user.can("hrm.retention.review")||user.can("hrm.legalhold.manage")))||(link.key==="legal-documents"&&user.can("hrm.legal.manage"))||(link.key==="onboarding-manage"&&user.can("hrm.onboarding.manage"))||(link.key==="payroll"&&user.can("hrm.payroll.configure"));
+    const allowedWhileClosed=(link.key==="report-governance"&&user.can("hrm.reports.manage"))||link.key==="settings"||(link.key==="job-descriptions"&&user.can("hrm.configure"))||(link.key==="retention"&&(user.can("hrm.retention.manage")||user.can("hrm.retention.review")||user.can("hrm.legalhold.manage")))||(link.key==="legal-documents"&&user.can("hrm.legal.manage"))||(link.key==="onboarding-manage"&&user.can("hrm.onboarding.manage"))||(link.key==="payroll"&&user.can("hrm.payroll.configure"));
     return (module.key!=="hrm"||!user.hrmEmploymentEnded&&(user.hrmEnabled!==false||allowedWhileClosed))&&(!link.anyOf||link.anyOf.some(permission=>user.can(permission)));
   });
 }
