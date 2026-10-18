@@ -7,6 +7,7 @@ import {
   publishPayrollRun, reviewPayrollPolicy, reviewPayrollRun, setPayrollLine,
   transitionPayrollDispute, type PayrollSourceKind, PAYROLL_SOURCE_KINDS,
 } from "../../../lib/hrm/payroll";
+import { actOnCloseoutPolicy, createCloseoutPolicy } from "../../../lib/hrm/closeout-policies";
 import { sameOrigin } from "../../../lib/http";
 
 export const prerender = false;
@@ -54,7 +55,22 @@ export const POST: APIRoute = async context => {
     const form = await formBody(context.request);
     target = returnTarget(context.request, text(form, "return_to", 400, true));
     const env = envFromLocals(context.locals), key = text(form, "request_key", 100, true), intent = text(form, "intent", 40, true);
-    if (intent === "create_policy") await createPayrollPolicy(env.DB, user, key, {
+    if(intent === "create_closeout_policy"){
+      const names=[...form.keys()];if(new Set(names).size!==names.length)throw new HrmError("invalid_field",400);
+      for(const name of names)if(name.startsWith("check_")&&!/^check_(?:[0-9]|[12][0-9])_(?:key|title_en|title_vi|instructions_en|instructions_vi|allow_na)$/.test(name))throw new HrmError("closeout_checklist_invalid",400);
+      const checks=[];
+      for(let i=0;i<30;i++){
+        const fields={key:text(form,`check_${i}_key`,48),title_en:text(form,`check_${i}_title_en`,120),title_vi:text(form,`check_${i}_title_vi`,120),instructions_en:text(form,`check_${i}_instructions_en`,1000),instructions_vi:text(form,`check_${i}_instructions_vi`,1000)};
+        const allow=text(form,`check_${i}_allow_na`,1);
+        if(Object.values(fields).some(Boolean)||allow){if(allow&&allow!=="1")throw new HrmError("closeout_checklist_invalid",400);checks.push({...fields,allow_not_applicable:allow==="1"})}
+      }
+      const exemption=text(form,"allow_no_payroll",1);if(exemption&&exemption!=="1")throw new HrmError("closeout_policy_invalid",400);
+      await createCloseoutPolicy(env.DB,env.CONTENT_DB,user,key,{policyKey:text(form,"policy_key",48,true),titleEn:text(form,"title_en",120,true),titleVi:text(form,"title_vi",120,true),purpose:text(form,"purpose",1000,true),jurisdiction:text(form,"jurisdiction",300,true),sourceVersionId:text(form,"source_version_id",120)||null,checks,allowNoPayroll:exemption==="1",noPayrollInstructions:text(form,"no_payroll_instructions",1000)||null,effectiveFrom:text(form,"effective_from",10,true),effectiveUntil:text(form,"effective_until",10,true)});
+    }else if(intent === "closeout_policy_action"){
+      const names=[...form.keys()];if(new Set(names).size!==names.length)throw new HrmError("invalid_field",400);
+      const action=text(form,"action",12,true);if(!["approve","reject","activate","retire"].includes(action))throw new HrmError("invalid_action",400);
+      await actOnCloseoutPolicy(env.DB,env.CONTENT_DB,user,key,{policyId:text(form,"policy_id",120,true),version:revision(form),action:action as "approve"|"reject"|"activate"|"retire",reason:text(form,"reason",500,true)});
+    }else if (intent === "create_policy") await createPayrollPolicy(env.DB, user, key, {
       policy_key: text(form, "policy_key", 60, true), title_en: text(form, "title_en", 100, true), title_vi: text(form, "title_vi", 100, true),
       legal_entity: text(form, "legal_entity", 200, true), currency: text(form, "currency", 3, true), minor_unit_scale: Number(text(form, "minor_unit_scale", 1, true)),
       components_json: text(form, "components_json", 48000, true),

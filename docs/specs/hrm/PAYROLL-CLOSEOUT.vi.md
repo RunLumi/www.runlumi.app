@@ -1,0 +1,27 @@
+# Rà soát quyết toán khi nghỉ việc
+
+Trạng thái: đã triển khai cấu hình chính sách; hồ sơ theo nhân viên và bước hoàn tất còn đang làm. Đây chưa phải chính sách nghiệp vụ được phê duyệt. Production tiếp tục đóng. [English](PAYROLL-CLOSEOUT.md).
+
+Ca integration cùng một nhân viên đã đi tới kỳ lương gốc/điều chỉnh đóng, số tiền đã đối soát và đợt làm việc kết thúc, nhưng `actOnOffboardingTask` hiện từ chối mọi thao tác `payroll_closeout` vô điều kiện. Bỏ chặn rồi nhận ghi chú hoàn tất không chứng minh được quyết toán. Số dư đã ghi nhận bằng không không tự chứng minh phép tồn, tạm ứng, chi phí hay nghĩa vụ thuế/bảo hiểm/bên ngoài đã được giải quyết hoặc không áp dụng.
+
+## Luồng bắt buộc
+
+1. Người có quyền cấu hình HRM chuẩn bị phiên bản chính sách closeout theo pháp nhân, tham chiếu phiên bản/checksum nguồn DOCX riêng tư đã được rà soát độc lập. Owner cung cấp mục đích, phạm vi pháp luật, khoảng hiệu lực hữu hạn và checklist EN/VI có giới hạn. Không tạo sẵn nhóm nghĩa vụ pháp lý, số tiền, tỷ lệ, thời hạn, miễn trừ hay chính sách production. Mỗi mục có mã, tên/hướng dẫn và lựa chọn rõ có cho phép kết luận không áp dụng với bằng chứng độc lập hay không. Không có payroll được ghi nhận là chưa biết: chỉ chính sách cho phép tường minh và bằng chứng được duyệt độc lập mới xác lập được miễn trừ.
+2. Quản trị HRM có quyền tài chính lập hồ sơ đối soát cho đúng người/đợt làm việc/ngày kết thúc. Hồ sơ đóng băng phiên bản chính sách, dữ liệu công/kỳ lương/khiếu nại/thanh toán đã ghi nhận và revision/fingerprint nguồn, cùng kết luận, căn cứ và tham chiếu PDF đã kiểm tra cho mọi mục bắt buộc. Tệp phải còn, đã được người khác uploader kiểm tra, khớp checksum và thuộc quyền đọc của actor; không nhận public media CMS hay tệp của người khác. Rà soát PDF ghi nhận việc con người kiểm tra, không xác thực giao dịch ngân hàng hay tính tuân thủ pháp luật.
+3. HRM Admin/System Super Admin khác người lập rà soát hồ sơ. Nhân viên là chủ thể, người lập và tài khoản đã mất quyền không được duyệt. Thiếu/tệp cũ, cách ly, đã xóa hoặc chờ disposition; sai danh tính/pháp nhân/employment; khiếu nại chưa giải quyết; kỳ thiếu/chưa đóng; thiếu hoặc thừa tiền; nguồn công cũ/chưa khóa; và thiếu kỳ cuối cần có đều chặn duyệt. Nguồn tài chính đã ghi nhận phải khớp chính xác. Việc áp dụng nghĩa vụ bên ngoài vẫn là quyết định tường minh của con người, có căn cứ theo chính sách được duyệt.
+4. Người duyệt độc lập ghi hoàn tất tác vụ offboarding chỉ từ hồ sơ hiện hành đã duyệt, có xác nhận rõ, actor và thời gian UTC phía server. Kiểm tra lại capability/membership, chính sách/revision hồ sơ, case/employment và nguồn trong cùng batch ghi D1. Không có miễn trừ bằng ghi chú tự do, không ngầm coi unknown là không, không tự trả tiền, nộp thuế, provision hay cấp quyền. Không tạo xác nhận thay nhân viên.
+5. Giữ bất biến lịch sử hồ sơ, checklist, tệp và căn cứ. Payroll correction, thanh toán, mở lại khiếu nại hoặc đổi nguồn công/danh tính liên quan phải làm mất hiệu lực phê duyệt đang chờ. Nếu đã hoàn tất, cần công việc theo dõi/mở lại rà soát tài chính rõ ràng, không viết lại bằng chứng cũ và không khôi phục quyền nhân viên. Race chỉ cho hoàn tất hợp lệ trước rồi vô hiệu hóa, hoặc từ chối hoàn tất trên nguồn cũ; không để phê duyệt hiện hành trỏ tới dữ liệu cũ.
+
+## Giao diện và phạm vi
+
+Chuẩn bị/rà soát chính sách có EN/VI và tách khỏi mở cổng toàn HRM. Người có quyền tài chính thấy chính sách/hồ sơ còn thiếu hoặc blocker nguồn cụ thể cùng bản duyệt độc lập; manager/buddy/HR không có quyền payroll chỉ thấy tác vụ/trạng thái được phép. Liên kết chứng cứ giữ quyền riêng, private/no-store và audit. Không suy ra chuyên môn từ vai trò EmDash.
+
+Ca integration dùng chính sách, DOCX/PDF, số tiền và actor giả. Phải giữ đúng một candidate/person/employment, chặn người khác đọc, giữ snapshot đã phát hành và kết thúc bằng thu hồi membership cùng kiểm tra hold/restore. Giữ các hồi quy phase và kiểm soát tài chính hiện có. Chính sách owner duyệt, đối chiếu kỳ song song đúng chuyên môn, mục tiêu phục hồi production và các gate HRM còn lại là điều kiện riêng chưa chứng minh; hồ sơ giả qua test không phê duyệt thay các điều kiện đó.
+
+## Phần đã triển khai và công việc còn lại
+
+Phần triển khai bổ sung cấu hình chính sách theo phiên bản và form EN/VI trong trang payroll, cùng migration bổ sung `0042_hrm_closeout_policies.sql`. Lưu nháp, duyệt, áp dụng và ngừng áp dụng dùng quyền EmDash/Workspace hiện có. Nguồn DOCX được kiểm tra pháp nhân, checksum, người duyệt độc lập ở tệp/phiên bản, dấu xóa object và yêu cầu disposition đang chờ. Định nghĩa và lịch sử quyết định bất biến; thay phiên bản có sự kiện ngừng áp dụng bản cũ. Cấu hình này không hoàn tất tác vụ của nhân viên.
+
+Phép đối soát payroll đã ghi nhận nay yêu cầu số tiền nguyên khớp chính xác với lương ròng ở phiếu điều chỉnh cuối chuỗi; không coi kỳ rỗng, số liệu thiếu hoặc sai kiểu là đã đối soát. Màn hình và giao dịch đóng kỳ dùng chung điều kiện. Kiểm thử SQL bao gồm trả thừa, trả thiếu, nhiều lần điều chỉnh và khoản thanh toán xuất hiện giữa bước kiểm tra với bước ghi. Đây chỉ là bằng chứng đối soát số liệu đã ghi nhận, chưa xác nhận nghĩa vụ pháp luật hoặc bên ngoài.
+
+Hồ sơ quyết toán theo nhân viên, chứng cứ tài chính riêng tư, vô hiệu hóa/theo dõi khi nguồn đổi và điều kiện hoàn tất tác vụ vẫn chưa triển khai. Bước chặn offboarding giữ nguyên. Kiểm thử toàn hành trình chưa qua không phải acceptance gate đã hoàn tất; chính sách được owner duyệt và rà soát chuyên môn vẫn là điều kiện riêng chưa được chứng minh.

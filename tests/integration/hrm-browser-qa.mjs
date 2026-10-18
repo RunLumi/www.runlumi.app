@@ -119,7 +119,7 @@ export async function startHrmBrowserQa({ baseUrl, binary, artifactDir = join(tm
   }
 
   return {
-    async auditPage(userSession, path, { expectedText, artifactName, formsRequired = true, widths = [320, 430, 1280], downloadedHtml }) {
+    async auditPage(userSession, path, { expectedText, artifactName, formsRequired = true, widths = [320, 430, 1280], downloadedHtml, revealSelector }) {
       assert.ok(downloadedHtml!==undefined||userSession?.cookies,"page audits require the intended synthetic actor session");
       const cookies = downloadedHtml===undefined ? [...userSession.cookies.entries()] : [];
       await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] }, sessionId);
@@ -127,6 +127,10 @@ export async function startHrmBrowserQa({ baseUrl, binary, artifactDir = join(tm
       for (const width of widths) {
         await send("Emulation.setDeviceMetricsOverride", { width, height: 900, screenWidth: width, screenHeight: 900, deviceScaleFactor: 1, mobile: false }, sessionId);
         await navigate(path, cookies, downloadedHtml);
+        if(revealSelector){
+          const revealed=await evaluate(`(() => { const element=document.querySelector(${JSON.stringify(revealSelector)}); if(!element)return false; for(let node=element;node;node=node.parentElement)if(node instanceof HTMLDetailsElement)node.open=true; element.scrollIntoView({block:'start'}); return true; })()`);
+          assert.equal(revealed,true,`browser audit target exists: ${revealSelector}`);
+        }
         const state = await evaluate(`(() => ({ width: innerWidth, outer: outerWidth, screen: screen.width, visual: visualViewport.width, client: document.documentElement.clientWidth, documentWidth: document.documentElement.scrollWidth, bodyWidth: document.body.scrollWidth, text: document.body.innerText, foreground: getComputedStyle(document.body).color, background: getComputedStyle(document.body).backgroundColor, editorToolbar: !!document.getElementById("emdash-toolbar"), reduce: matchMedia('(prefers-reduced-motion: reduce)').matches, forms: [...document.forms].map(form => form.method) }))()`);
         const screenshot = await send("Page.captureScreenshot", { format: "png", fromSurface: true }, sessionId);
         await writeFile(join(artifactDir, `${artifactName}-${width}.png`), Buffer.from(screenshot.data, "base64"));

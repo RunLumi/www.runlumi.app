@@ -5,6 +5,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { BASE, adminSession, content, jobs, localFetch, q, userSession } from "./helpers.mjs";
 import { startHrmBrowserQa } from "./hrm-browser-qa.mjs";
+import { exerciseCloseoutPolicy } from "./hrm-closeout-policy.mjs";
 import { runHrmRecoveryDrill } from "./hrm-recovery-drill.mjs";
 
 const run=Date.now().toString(36);const S={};const P={};
@@ -686,6 +687,7 @@ test("HRM P4 builds payroll from locked periods, exact inputs, separated review,
  const currentSettings=jobs("SELECT version FROM hrm_settings WHERE id=1")[0];
  const configure=await S.hrm.post("/hrm/settings",{request_key:`p4_settings_${run}`,version:currentSettings.version,legal_entity:"TEST Local entity",purpose:"Synthetic payroll test only",retention_policy:"Synthetic records only; no production retention rule",policy_reference:"TEST P4 only",reviewed:"1",enabled:"1"});assert.equal(configure.status,303,configure.html);
  const todayP4=new Date(Date.now()+7*60*60_000).toISOString().slice(0,10),start=new Date(Date.parse(`${todayP4}T00:00:00Z`)-14*86_400_000).toISOString().slice(0,10),end=start;
+ await exerciseCloseoutPolicy({author:S.hrm,approver:S.system,unauthorized:S.payroll,entity:"TEST Local entity",start,today:todayP4,browser:browserQa});
  const personId=await createPerson({user:S.employeeP4,code:`TEST-P4-${run}`,name:"TEST P4 Employee",startedOn:start});
  const payslipOutsider=await userSession(S.system,{email:`test-p4-payslip-outsider-${run}@example.test`,name:`TEST P4 Payslip Outsider ${run}`});assert.equal((await grant(payslipOutsider,"employee")).status,303);const payslipOutsiderPersonId=await createPerson({user:payslipOutsider,code:`TEST-P4-OUT-${run}`,name:"TEST Other Payslip Employee",startedOn:todayP4});
 
