@@ -1,0 +1,43 @@
+---
+import HrmPage from "./HrmPage.astro";
+import type { PageBase } from "../../lib/hrm/pages";
+import type { JobDescription } from "../../lib/hrm/job-description-catalog";
+import "../../styles/hrm-job-descriptions.css";
+
+interface Props extends PageBase { descriptions: readonly JobDescription[] }
+const d = Astro.props;
+const prefix = d.vi ? "/vi" : "";
+---
+<HrmPage data={d} current="job-descriptions">
+  <p class="jd-intro">{d.vi
+    ? "Thống nhất mục tiêu của từng vị trí, trách nhiệm, quyền quyết định và kết quả cần đạt trước khi tuyển người."
+    : "Agree on each role's purpose, responsibilities, decision authority and expected results before hiring."}</p>
+  <div class="jd-catalog" data-job-description-catalog>
+    {d.descriptions.map((description) => {
+      const content = description.locales[d.lang];
+      return <article class="crm-sheet jd-card" aria-labelledby={`role-${description.slug}`}>
+        <div class="jd-meta-line">
+          <span class="crm-meta crm-num">{description.code} · v{description.version}</span>
+          <span class="crm-badge amber">{d.vi ? "Bản nháp nội bộ" : "Internal draft"}</span>
+        </div>
+        <h2 id={`role-${description.slug}`} class="jd-card-title">
+          <a href={`${prefix}/hrm/job-descriptions/${description.slug}`}>{content.title}</a>
+        </h2>
+        <p class="jd-subtitle">{content.subtitle}</p>
+        <p class="jd-summary">{content.summary}</p>
+        <dl class="jd-card-facts">
+          <div><dt>{d.vi ? "Bộ phận" : "Department"}</dt><dd>{content.department}</dd></div>
+          <div><dt>{d.vi ? "Báo cáo cho" : "Reports to"}</dt><dd>{content.reportsTo}</dd></div>
+        </dl>
+        <a class="crm-button secondary" href={`${prefix}/hrm/job-descriptions/${description.slug}`}>
+          {d.vi ? "Đọc mô tả công việc" : "Read job description"}
+          <span class="jd-sr-only"> — {content.title}</span>
+        </a>
+      </article>;
+    })}
+    {d.descriptions.length === 0 && <p class="crm-empty">{d.vi ? "Chưa có mô tả công việc." : "No job descriptions yet."}</p>}
+  </div>
+  <p class="jd-review-note">{d.vi
+    ? "Bản nháp dùng để rà soát nội bộ. Chỉ tiêu, thẩm quyền và điều khoản tuyển dụng cần được thống nhất trước khi dùng cho tuyển dụng hoặc đánh giá nhân sự."
+    : "Drafts are for internal review. Targets, authority and employment terms need agreement before use in recruitment or employee evaluation."}</p>
+</HrmPage>

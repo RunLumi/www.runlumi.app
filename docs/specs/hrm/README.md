@@ -1,6 +1,8 @@
 # HRM — Quản trị nhân sự và cổng nhân viên
 
-**Trạng thái:** hợp đồng phạm vi và tiêu chí nghiệm thu; tình trạng triển khai được theo dõi tại [STATUS.md](STATUS.md). **Ngày cập nhật:** 2026-10-17.
+**Trạng thái:** hợp đồng phạm vi và tiêu chí nghiệm thu; tình trạng triển khai được theo dõi tại [STATUS.md](STATUS.md). **Ngày cập nhật:** 2026-10-18.
+
+**Job Description / Mô tả công việc:** [phạm vi và phân quyền](JOB-DESCRIPTIONS.vi.md) ([English](JOB-DESCRIPTIONS.md)). Danh mục nội bộ có bản nháp **COO – Head of Sales & Operations**, gồm trách nhiệm, quyền hạn, kế hoạch 30/60/90 ngày và thước đo kết quả. Bản nháp không tự tạo tin tuyển dụng, quota hay quyền hệ thống.
 
 **Snapshot báo cáo:** [hồ sơ lưu trữ trình phê duyệt](REPORT-RETENTION-DECISION.vi.md) ([English](REPORT-RETENTION-DECISION.md)) đối chiếu PR #72, nêu lựa chọn, thẩm quyền và tiêu chí bổ sung RPT-01–10. Hồ sơ đang **PROPOSED**, chưa phê duyệt thời hạn, legal hold hoặc kích hoạt production.
 

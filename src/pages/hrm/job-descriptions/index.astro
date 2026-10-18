@@ -1,0 +1,8 @@
+---
+import HrmJobDescriptions from "../../../components/hrm/HrmJobDescriptions.astro";
+import { jobDescriptionsPage } from "../../../lib/hrm/job-description-pages";
+export const prerender = false;
+const data = jobDescriptionsPage(Astro, "en");
+if (data instanceof Response) return data;
+---
+<HrmJobDescriptions {...data} />

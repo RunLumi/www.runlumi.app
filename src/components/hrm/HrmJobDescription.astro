@@ -1,0 +1,65 @@
+---
+import HrmPage from "./HrmPage.astro";
+import type { PageBase } from "../../lib/hrm/pages";
+import type { JobDescription } from "../../lib/hrm/job-description-catalog";
+import "../../styles/hrm-job-descriptions.css";
+
+interface Props extends PageBase { description: JobDescription }
+const d = Astro.props;
+const content = d.description.locales[d.lang];
+const dateLabel = new Intl.DateTimeFormat(d.vi ? "vi-VN" : "en-GB", {
+  day: "numeric", month: "long", year: "numeric", timeZone: "UTC",
+}).format(new Date(`${d.description.updatedAt}T00:00:00Z`));
+const facts = [
+  [d.vi ? "Bộ phận" : "Department", content.department],
+  [d.vi ? "Báo cáo cho" : "Reports to", content.reportsTo],
+  [d.vi ? "Hình thức làm việc" : "Employment", content.employment],
+  [d.vi ? "Địa điểm" : "Location", content.location],
+];
+---
+<HrmPage data={d} current="job-descriptions">
+  <nav class="jd-back" aria-label={d.vi ? "Điều hướng mô tả công việc" : "Job description navigation"}>
+    <a href={d.vi ? "/vi/hrm/job-descriptions" : "/hrm/job-descriptions"}>
+      {d.vi ? "Về danh mục mô tả công việc" : "Back to job descriptions"}
+    </a>
+  </nav>
+  <header class="crm-sheet jd-role-summary">
+    <div class="jd-meta-line">
+      <span class="crm-badge amber">{d.vi ? "Bản nháp nội bộ" : "Internal draft"}</span>
+      <span class="crm-meta crm-num">{d.description.code} · v{d.description.version}</span>
+      <span class="crm-meta">{d.vi ? "Cập nhật" : "Updated"} <time datetime={d.description.updatedAt}>{dateLabel}</time></span>
+    </div>
+    <p class="jd-subtitle">{content.subtitle}</p>
+    <p class="jd-summary">{content.summary}</p>
+    <dl class="jd-facts">
+      {facts.map(([label, value]) => <div><dt>{label}</dt><dd>{value}</dd></div>)}
+    </dl>
+  </header>
+  <div class="jd-layout" data-job-description={d.description.slug}>
+    <nav class="crm-sheet jd-toc" aria-label={d.vi ? "Mục lục mô tả công việc" : "Job description contents"}>
+      <p class="crm-eyebrow">{d.vi ? "Trong bản JD này" : "In this description"}</p>
+      <ol>
+        {content.sections.map((section) => <li><a href={`#${section.id}`}>{section.title}</a></li>)}
+      </ol>
+    </nav>
+    <article class="crm-sheet jd-body" lang={d.lang} aria-label={content.title}>
+      {content.sections.map((section) => <section class="jd-section" aria-labelledby={section.id}>
+        <h2 id={section.id}>{section.title}</h2>
+        {section.paragraphs?.map((paragraph) => <p>{paragraph}</p>)}
+        {section.bullets && <ul>{section.bullets.map((bullet) => <li>{bullet}</li>)}</ul>}
+        {section.table && <>
+          <p class="jd-table-hint">{d.vi ? "Cuộn ngang trong bảng để đọc đủ các cột." : "Scroll within the table to read all columns."}</p>
+          <div class="jd-table-wrap" role="region" aria-labelledby={section.id} tabindex="0">
+            <table>
+              <caption class="jd-sr-only">{section.title}</caption>
+              <thead><tr>{section.table.headers.map((heading) => <th scope="col">{heading}</th>)}</tr></thead>
+              <tbody>{section.table.rows.map((row) => <tr>
+                {row.map((cell, index) => index === 0 ? <th scope="row">{cell}</th> : <td>{cell}</td>)}
+              </tr>)}</tbody>
+            </table>
+          </div>
+        </>}
+      </section>)}
+    </article>
+  </div>
+</HrmPage>
