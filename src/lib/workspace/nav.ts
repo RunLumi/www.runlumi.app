@@ -43,7 +43,7 @@ export const modules: NavModule[] = [
       { key: "contacts", en: "Contacts", vi: "Liên hệ", path: "/crm/contacts", icon: "contacts", group: "customers" },
       { key: "reports", en: "Reports", vi: "Báo cáo", path: "/crm/reports", icon: "reports", group: "results" },
       { key: "commission", en: "Commission", vi: "Hoa hồng", path: "/crm/commission", icon: "commission", group: "results" },
-      { key: "model", en: "Business model", vi: "Mô hình kinh doanh", path: "/crm/model", icon: "model", group: "results", anyOf: ["crm.team", "crm.finance"] },
+      { key: "model", en: "Business model", vi: "Mô hình kinh doanh", path: "/crm/model", icon: "model", group: "results", anyOf: ["crm.team"] },
       { key: "fulfillment", en: "Fulfillment", vi: "Bàn giao", path: "/crm/fulfillment", icon: "fulfillment", group: "operations", anyOf: ["crm.fulfillment", "crm.team"] },
       { key: "operations", en: "Assignment and cohorts", vi: "Phân công và cohort", path: "/crm/admin", icon: "assignment", group: "operations", anyOf: ["crm.team"] },
       { key: "playbooks", en: "Playbooks", vi: "Playbook", path: "/crm/admin/playbooks", icon: "playbooks", group: "setup", anyOf: ["crm.configure"] },

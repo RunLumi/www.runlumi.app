@@ -90,12 +90,11 @@ test("CRM navigation is grouped, every page has an icon, and empty groups are hi
   assert.equal(user(["hrm_admin"]).can("hrm.reports.manage"), true);
 });
 
-test("the business model page is listed only for team-wide CRM roles and Finance", () => {
+test("the business model page is listed only for the Sales Manager and System Super Admin", () => {
   const crm = modules.find((module) => module.key === "crm")!;
   const sees = (roles: Parameters<typeof user>[0], admin = false) => visibleLinks(user(roles, admin), crm).some((link) => link.key === "model");
   assert.ok(sees([], true), "admins");
   assert.ok(sees(["sales_manager"]));
-  assert.ok(sees(["finance"]));
-  for (const role of ["sales_executive", "partner", "fulfillment"] as const) assert.ok(!sees([role]), `${role} does not see company economics`);
+  for (const role of ["finance", "sales_executive", "partner", "fulfillment"] as const) assert.ok(!sees([role]), `${role} does not see company economics`);
   assert.ok(!visibleModules(user(["hr"])).some((module) => module.key === "crm"), "HR has no CRM");
 });
