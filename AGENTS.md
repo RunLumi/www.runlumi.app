@@ -70,6 +70,7 @@ including CMS-only changes through EmDash API/MCP.
 - HRM requirements and gates live in [docs/specs/hrm/README.md](docs/specs/hrm/README.md); track implementation evidence in `docs/specs/hrm/STATUS.md`. Production HRM stays fail-closed unless policy review, the HRM settings record and the `HRM_LIVE_ENABLED` deployment switch all agree. HRM Admin never self-approves or gains Workspace user/role administration.
 - Only Admins manage users and roles (`/workspace/users`); every access change is written to `workspace_audit`. Nobody changes their own access.
 - Navigation comes from `src/lib/workspace/nav.ts` and shows only entries the person may open; every private page renders inside `WorkspaceShell` and has a `/vi` peer.
+- Finance requirements are in [docs/specs/finance/README.md](docs/specs/finance/README.md) ([Tiếng Việt](docs/specs/finance/README.vi.md)); implementation and release evidence belong in [STATUS.md](docs/specs/finance/STATUS.md). Only an active EmDash System Super Admin session may enter Finance; the existing CRM Finance role and `crm.finance` grant no access. Enforce the server boundary, the `FINANCE_LIVE_ENABLED` deployment switch and book readiness on every financial read/write, including exports and replay. Protected setup remains available to Super Admin. Preserve published plans, closed actual revisions and audit history; real entity settings and opening balances must come from the owner.
 
 ## Jobs / ATS contract
 

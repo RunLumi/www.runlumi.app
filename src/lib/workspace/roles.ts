@@ -9,6 +9,7 @@ export const roles = ["hr", "sales_manager", "sales_executive", "partner", "fina
 export type Role = typeof roles[number];
 
 export const permissions = [
+  "finance.access", "finance.plan.manage", "finance.actuals.manage", "finance.period.close", "finance.period.reopen", "finance.export", "finance.configure", "finance.audit.read",
   "hrm.access", "hrm.profile.self", "hrm.team.read", "hrm.records.manage", "hrm.identity.read", "hrm.bank.read", "hrm.tax.read", "hrm.files.review", "hrm.audit.read", "hrm.configure",
   "hrm.legal.self", "hrm.legal.manage", "hrm.legal.review", "hrm.legal.activate", "hrm.coi.self", "hrm.coi.review", "hrm.onboarding.self", "hrm.onboarding.tasks", "hrm.onboarding.manage", "hrm.offboarding.tasks", "hrm.offboarding.manage", "hrm.retention.manage", "hrm.retention.review", "hrm.retention.activate", "hrm.legalhold.manage",
   "hrm.time.self", "hrm.time.manage", "hrm.time.review", "hrm.time.configure", "hrm.leave.self", "hrm.leave.manage", "hrm.leave.review", "hrm.leave.configure", "hrm.approval.delegate",
@@ -73,6 +74,9 @@ export const roleDescriptions: Record<Role | "admin", [string, string]> = {
 };
 
 export interface WorkspaceUser {
+  /** Finance always requires System Super Admin; readiness is independent of HRM. */
+  financeEnabled?: boolean;
+  financeDeploymentEnabled?: boolean;
   /** Runtime kill switch; false suppresses self-service navigation while admins can configure readiness. */
   hrmEnabled?: boolean;
   /** Linked employment ended; HRM access is denied until an authorized rehire creates a current period. */

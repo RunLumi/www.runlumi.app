@@ -4,6 +4,7 @@ import { envFromLocals } from "./lib/ats";
 import type { Permission } from "./lib/workspace/roles";
 import { workspaceUser } from "./lib/workspace/roles";
 import { sameOrigin } from "./lib/http";
+import { financeArea, financeBoundary, setFinanceReadiness } from "./lib/finance/access";
 
 /** Private areas and the permission each needs. The first match wins. */
 const areas: { test: (path: string) => boolean; permission: Permission; api?: boolean }[] = [
@@ -31,6 +32,7 @@ function forbidden(vi: boolean): Response {
 
 export const onRequest = defineMiddleware(async (context, next) => {
   const path = context.url.pathname;
+  if (financeArea(path)) return financeBoundary(context, next);
   const vi = path.startsWith("/vi/");
   const area = path === "/admin/jobs/login" ? undefined : areas.find((item) => item.test(path));
   const isPrivate = !!area || path.startsWith("/api/intake/") || path.startsWith("/api/crm/");
@@ -85,6 +87,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     const currentEmployment=employmentState==="active";
     user.hrmEnabled = hrmReady&&(!selfServiceOnly||currentEmployment)&&!user.hrmEmploymentEnded;
     context.locals.workspace = user;
+    await setFinanceReadiness(DB, user, environment.FINANCE_LIVE_ENABLED === "true");
     if(hrmRoute&&employmentState==="ended")return forbidden(vi);
     if(hrmRoute&&employmentState==="unknown"&&!user.admin)return new Response("HRM employment status could not be verified.",{status:503,headers:{"Cache-Control":"private, no-store"}});
     if(hrmRoute&&!hrmReady&&!user.can("hrm.configure")){

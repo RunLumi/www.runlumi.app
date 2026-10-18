@@ -1,0 +1,34 @@
+---
+import type { FinanceFact, FinanceVersionKind } from "../../lib/finance/model";
+import { formatMoneyInput } from "../../lib/finance/calculations";
+import type { FinancePageData } from "./types";
+import { groupLabel, inputValue, lineLabel, selectedContext, segmentLabel } from "./ui";
+interface Props { data: FinancePageData; values: FinanceFact[]; kind: FinanceVersionKind }
+const { data, values, kind } = Astro.props;
+const vi = data.lang === "vi", context = selectedContext(data, kind === "actual" ? "actual" : "plan");
+const expected = context.expectedInputs.filter(item => item.period === data.period && (!item.kinds || item.kinds.includes(kind)));
+const precision = data.state.book?.precision ?? 0;
+const bases = ["pnl", "cash", "position", "aging", "control"];
+---
+<p class="fn-help">{vi ? "Nhập theo đơn vị tiền tệ của sổ, dùng dấu chấm cho phần thập phân, không có dấu phân tách hàng nghìn. Ô số tiền trống vẫn là chưa nhập; nhập 0 nếu số thực tế bằng không. Không áp dụng và số âm cần giải thích." : "Use the book’s currency, a decimal point and no thousands separators. An empty amount stays missing; enter 0 for an explicit zero. Not-applicable and negative values require an explanation."}</p>
+{bases.map(basis => {
+  const coordinates = expected.filter(item => context.lines.find(line => line.code === item.lineCode)?.basis === basis);
+  return coordinates.length > 0 && <details class="fn-disclosure" open={basis === "pnl"}>
+    <summary><span>{groupLabel(basis, vi)}</span><span class="fn-badge">{coordinates.length} {vi ? "ô nhập" : "inputs"}</span></summary>
+    <div class="fn-disclosure-body">
+      {coordinates.map(coordinate => {
+        const line = context.lines.find(item => item.code === coordinate.lineCode)!;
+        const value = values.find(item => item.lineCode === coordinate.lineCode && item.segmentCode === coordinate.segmentCode);
+        const prefix = `value.${line.code}.${coordinate.segmentCode}`, id = `fact-${line.code}-${coordinate.segmentCode}`;
+        const enteredState = inputValue(data, `${prefix}.state`, value?.state === "not_applicable" ? "not_applicable" : "entered");
+        return <div class="fn-input-row" id={id}>
+          <div class="fn-input-row-title"><strong>{lineLabel(line, vi)}</strong><small>{segmentLabel(coordinate.segmentCode, data, vi)} · {coordinate.required ? (vi ? "Bắt buộc khi chốt" : "Required to finalize") : (vi ? "Tùy chọn" : "Optional")}</small>{line.requireNote && <small>{vi ? "Luôn cần giải thích cho khoản mục này." : "An explanation is required for this line."}</small>}{kind === "actual" && line.code.startsWith("equity.") && <small>{vi ? "Khi chốt cần nguồn cho vốn đầu kỳ (kể cả 0) và biến động vốn phi tiền tệ khác 0." : "Closing requires evidence for opening equity (including zero) and nonzero noncash equity movements."}</small>}</div>
+          <div class="fn-field"><label for={`${id}-state`}>{vi ? "Trạng thái" : "State"}</label><select class="fn-select" id={`${id}-state`} name={`${prefix}.state`}><option value="entered" selected={enteredState === "entered"}>{vi ? "Số tiền" : "Amount"}</option><option value="missing" selected={enteredState === "missing"}>{vi ? "Chưa nhập / Xóa" : "Missing / Clear"}</option>{coordinate.allowNa && <option value="not_applicable" selected={enteredState === "not_applicable"}>{vi ? "Không áp dụng" : "Not applicable"}</option>}</select></div>
+          <div class="fn-field"><label for={`${id}-amount`}>{data.state.book?.currency}</label><input class="fn-input fn-money-input" id={`${id}-amount`} name={`${prefix}.amount`} inputmode="decimal" autocomplete="off" value={inputValue(data, `${prefix}.amount`, value?.amount == null ? "" : formatMoneyInput(value.amount, precision))} aria-describedby={`${id}-help`} /><span class="fn-help" id={`${id}-help`}>{line.aggregation === "stock" ? (vi ? "Số dư tại thời điểm" : "Point-in-time balance") : (vi ? "Tổng phát sinh trong tháng" : "Monthly movement")}</span></div>
+          <details class="fn-input-detail" open={Boolean(value?.note || value?.evidenceRef || line.requireNote || enteredState === "not_applicable")}><summary>{vi ? "Giải thích và nguồn đối chiếu" : "Explanation and evidence"}</summary><div class="fn-form-grid"><div class="fn-field"><label for={`${id}-note`}>{vi ? "Giải thích" : "Explanation"}</label><textarea class="fn-textarea" id={`${id}-note`} name={`${prefix}.note`} maxlength="1000" rows="2">{inputValue(data, `${prefix}.note`, value?.note ?? "")}</textarea></div><div class="fn-field"><label for={`${id}-evidence`}>{vi ? "Mã hoặc tham chiếu nguồn" : "Source reference"}</label><input class="fn-input" id={`${id}-evidence`} name={`${prefix}.evidence`} value={inputValue(data, `${prefix}.evidence`, value?.evidenceRef ?? "")} maxlength="300" /><small>{vi ? "Ví dụ: tên bảng tính hoặc mã tài liệu nội bộ." : "For example, a worksheet name or internal document reference."}</small></div></div></details>
+        </div>;
+      })}
+    </div>
+  </details>;
+})}
+{expected.length === 0 && <div class="fn-notice warn"><strong>{vi ? "Chưa có danh sách ô nhập cho tháng này" : "No input scope has been configured for this month"}</strong><p>{vi ? "Kiểm tra định nghĩa của năm tài chính trong Thiết lập trước khi nhập số liệu." : "Review this fiscal year’s definitions in Settings before entering figures."}</p></div>}

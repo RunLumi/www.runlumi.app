@@ -23,6 +23,7 @@ for (const bucket of config.r2_buckets ?? []) {
   if (bucket.binding === 'FILES') bucket.local_dev = { experimental_s3_credentials:{ accessKeyId:'test-crm-s3',secretAccessKey:'synthetic-local-only-not-for-production' } };
 }
 config.vars = {
+  FINANCE_LIVE_ENABLED:'true',
   HRM_LIVE_ENABLED:'true',
   CRM_INTAKE_SECRET:'local-test-secret-not-for-production-0123456789',
   CRM_R2_ACCESS_KEY_ID:'test-crm-s3',CRM_R2_SECRET_ACCESS_KEY:'synthetic-local-only-not-for-production',

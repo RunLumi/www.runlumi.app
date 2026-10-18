@@ -1,0 +1,18 @@
+---
+import type { FinanceReport } from "../../lib/finance/model";
+import type { FinancePageData } from "./types";
+import { financeErrorText, lineLabel, selectedContext } from "./ui";
+interface Props { data: FinancePageData; report?: FinanceReport }
+const { data, report = data.report } = Astro.props, vi = data.lang === "vi";
+const complete = report?.completeness, done = (complete?.entered ?? 0) + (complete?.notApplicable ?? 0), progress = complete?.expected ? Math.min(100, 100 * done / complete.expected) : 0;
+const context = selectedContext(data, report?.kind === "actual" ? "actual" : "plan");
+---
+<section class="fn-sheet">
+  <div class="fn-sheet-head"><div><h2>{vi ? "Kiểm tra bản đã lưu" : "Saved revision checks"}</h2><p>{vi ? "Lưu thay đổi để cập nhật kết quả kiểm tra." : "Save your changes to refresh these checks."}</p></div></div>
+  <div class="fn-progress"><span>{vi ? "Đã nhập hoặc không áp dụng" : "Entered or not applicable"}</span><strong class="fn-num">{done} / {complete?.expected ?? "—"}</strong></div><div class="fn-progress-track" aria-hidden="true"><span style={`width:${progress}%`}></span></div>
+  <dl class="fn-dl"><div><dt>{vi ? "Đủ đầu vào" : "Input coverage"}</dt><dd><span class:list={["fn-badge", complete?.complete ? "good" : "warn"]}>{complete?.complete ? (vi ? "Đầy đủ" : "Complete") : (vi ? "Còn thiếu" : "Incomplete")}</span></dd></div><div><dt>{vi ? "Đối chiếu" : "Reconciliation"}</dt><dd><span class:list={["fn-badge", report?.reconciled ? "good" : "warn"]}>{report?.reconciled ? (vi ? "Khớp" : "Reconciled") : (vi ? "Cần kiểm tra" : "Needs review")}</span></dd></div><div><dt>{vi ? "Nguồn kỳ trước" : "Prior-period source"}</dt><dd><span class:list={["fn-badge", report?.stale ? "bad" : ""]}>{report?.stale ? (vi ? "Đã có thay đổi" : "Superseded") : (vi ? "Theo phiên bản đã chọn" : "Selected revision")}</span></dd></div></dl>
+  {report && report.issues.length > 0 && <details class="fn-input-detail" open><summary>{report.issues.length} {vi ? "vấn đề cần xem" : "items to review"}</summary><ul class="fn-list">{report.issues.slice(0, 12).map(issue => {
+    const line = context.lines.find(item => item.code === issue.lineCode);
+    return <li><span class="fn-list-title">{line ? lineLabel(line, vi) : issue.accountCode ?? (vi ? "Kiểm tra kỳ báo cáo" : "Period check")}</span><p>{vi ? financeErrorText(issue.code, true) : issue.message}</p></li>;
+  })}</ul>{report.issues.length > 12 && <p class="fn-help">{vi ? "Và" : "And"} {report.issues.length - 12} {vi ? "mục khác; bổ sung các ô còn thiếu rồi lưu để kiểm tra lại." : "more; fill the missing inputs and save to refresh the check."}</p>}</details>}
+</section>

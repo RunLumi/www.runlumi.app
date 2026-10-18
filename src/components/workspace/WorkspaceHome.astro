@@ -11,6 +11,7 @@ const intro: Record<string, [string, string]> = {
   hiring: ["Roles, application tests and candidates.", "Vị trí, bài test và ứng viên."],
   crm: ["Opportunities, quotes, payments, delivery and commission.", "Cơ hội, báo giá, thanh toán, bàn giao và hoa hồng."],
   hrm: ["Employee records and requests in your permitted scope.", "Hồ sơ và yêu cầu nhân sự trong phạm vi quyền của bạn."],
+  finance: ["Monthly plans, actuals, cash and financial statements.", "Kế hoạch, thực tế tháng, dòng tiền và báo cáo tài chính."],
   admin: ["Who can sign in, and with which roles.", "Ai được đăng nhập và với vai trò nào."],
 };
 ---
@@ -27,6 +28,11 @@ const intro: Record<string, [string, string]> = {
       <dl class="crm-facts">{card.figures.map((figure) => <div><dt>{figure.label[vi ? 1 : 0]}</dt><dd class="crm-figure"><a class="crm-link" href={localized(figure.href, vi)}>{figure.value}</a></dd></div>)}</dl>
     </section>; })}
   </div>
+  {user.admin && user.can("finance.configure") && user.financeEnabled !== true && <section class="crm-sheet" style="margin-top:18px">
+    <h2 class="crm-h2">{vi ? "Thiết lập Tài chính" : "Set up Finance"}</h2>
+    <p class="crm-help">{vi ? "Xác nhận phạm vi báo cáo, tiền tệ và kỳ bắt đầu trước khi nhập số liệu." : "Confirm the reporting entity, currency and opening period before entering figures."}</p>
+    <a class="crm-button secondary" href={localized("/finance/settings", vi)}>{vi ? "Mở thiết lập" : "Open settings"}</a>
+  </section>}
   <section class="crm-sheet" style="margin-top:18px" aria-labelledby="roles-h">
     <h2 class="crm-h2" id="roles-h">{vi ? "Vai trò của bạn" : "Your roles"}</h2>
     <ul class="crm-list">{held.map((role) => <li class="crm-row"><strong>{roleLabel(role, vi)}</strong><span class="crm-row-meta"><span>{roleDescriptions[role][vi ? 1 : 0]}</span></span></li>)}</ul>

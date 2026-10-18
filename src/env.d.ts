@@ -2,6 +2,8 @@
 /// <reference types="@cloudflare/workers-types" />
 
 interface Env {
+  /** Finance deployment switch; book setup and System Super Admin remain mandatory. */
+  FINANCE_LIVE_ENABLED?: string;
   /** HRM deployment kill switch; absent/off keeps production closed. */
   HRM_LIVE_ENABLED?: string;
   DB: D1Database;
@@ -27,5 +29,7 @@ declare namespace App {
     workspace?: import("./lib/workspace/roles").WorkspaceUser;
     /** Bounded form-body clone retained before request adapters consume the original stream. */
     hrmFormRequest?: Request;
+    /** Preserve native Finance form bodies across the SSR adapter. */
+    financeFormRequest?: Request;
   }
 }

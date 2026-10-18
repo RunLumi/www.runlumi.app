@@ -13,6 +13,7 @@
     "test": "node --experimental-strip-types --test --import ./scripts/test-setup.mjs \"tests/**/*.test.ts\"",
     "test:files:prepare": "node scripts/prepare-crm-upload-test.mjs",
     "test:integration": "node scripts/run-integration.mjs",
+    "test:integration:finance": "RUNLUMI_INTEGRATION_SCOPE=finance node scripts/run-integration.mjs",
     "test:integration:hrm": "RUNLUMI_INTEGRATION_SCOPE=hrm node scripts/run-integration.mjs",
     "test:integration:hrm:p1": "RUNLUMI_INTEGRATION_SCOPE=hrm-p1 node scripts/run-integration.mjs",
     "test:integration:hrm:p3": "RUNLUMI_INTEGRATION_SCOPE=hrm-p3 node scripts/run-integration.mjs",
