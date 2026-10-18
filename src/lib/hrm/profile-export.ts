@@ -1,4 +1,5 @@
 import type { WorkspaceUser } from "../workspace/roles";
+import { employeePerformanceView, type PerformanceReview } from "./performance";
 import { HrmError } from "./fields";
 import { audit, guard, id, localDate, now, own, personFor, requirePermission } from "./service";
 
@@ -284,16 +285,20 @@ export async function exportOwnHrmProfile(db:D1Database,user:WorkspaceUser):Prom
  const trainingAssignmentRefs=new Map(trainingAssignments.map((row,index)=>[row.id,`training-assignment-${index+1}`]));
  const trainingAssignmentData=trainingAssignments.map(({id:assignmentId,...value})=>({...value,assignment_ref:trainingAssignmentRefs.get(assignmentId),evidence_required:Boolean(value.evidence_required)}));
  const trainingEvidenceData=trainingEvidence.map((row,index)=>{const {assignment_id:assignmentId,...value}=row;return {...value,evidence_ref:`training-evidence-${index+1}`,assignment_ref:trainingAssignmentRefs.get(assignmentId)??null,object_available:Boolean(value.object_available)}});
+ const performanceRows=user.can("hrm.performance.self")?(await db.prepare("SELECT r.*,p.user_id AS employee_user_id FROM hrm_performance_reviews r JOIN hrm_people p ON p.id=r.person_id WHERE p.id=? AND p.user_id=? ORDER BY r.period_end DESC,r.id LIMIT ?").bind(person.id,user.id,ROW_LIMIT+1).all<PerformanceReview>()).results:[];
+ if(performanceRows.length>ROW_LIMIT)throw new HrmError("profile_export_too_large",413);
+ const performanceData=performanceRows.map(row=>{const safe=employeePerformanceView(row,user.id);return {cycle_code:safe.cycle_code,title:safe.title,period_start:safe.period_start,period_end:safe.period_end,due_on:safe.due_on,objectives:safe.objectives,evidence_instructions:safe.evidence_instructions,state:safe.state,self_assessment:safe.self_assessment,self_evidence:safe.self_evidence,assessment:safe.assessment,assessment_evidence:safe.assessment_evidence,development_plan:safe.development_plan,employee_feedback:safe.employee_feedback,acknowledged_at:safe.acknowledged_at,published_at:safe.published_at,closed_at:safe.closed_at,revision:safe.revision}});
  const included=["profile_identity","employment_periods","structured_profile_records","record_revision_history","profile_change_requests","profile_file_metadata","legal_document_issues","employee_party_status","policy_acknowledgements","coi_declarations","coi_event_actions","legal_evidence_file_metadata","employee_hr_requests","employee_visible_request_events","service_request_file_metadata","onboarding_plans","onboarding_tasks","onboarding_evidence_file_metadata","attendance_entries","attendance_adjustments","leave_requests","leave_balance_summary","leave_evidence_file_metadata"];
  const excluded=["file_contents","object_keys","internal_review_notes","reviewer_identity","required_parties","other_legal_parties","hr_only_request_notes","other_people_onboarding","onboarding_internal_owner_ids","onboarding_event_details","other_people","audit_log"];
  if(exportOwnPayroll){included.push("employee_payslips");excluded.push("other_people_payroll","payroll_policy_configuration","payroll_payment_references","payroll_reconciliation_evidence");if(exportOwnPayrollDisputes)included.push("employee_payroll_disputes","employee_visible_payroll_dispute_events");else excluded.push("employee_payroll_disputes")}
  else excluded.push("payroll");
  if(exportOwnAssets)included.push("employee_asset_assignments","employee_asset_evidence_file_metadata","employee_asset_reminders");else excluded.push("assets");
  if(exportOwnBenefits)included.push("available_benefit_plans","employee_benefit_enrollments");else excluded.push("benefits");
+ if(user.can("hrm.performance.self"))included.push("employee_performance_reviews");else excluded.push("performance_reviews");
  if(exportOwnTraining)included.push("employee_training_assignments","employee_training_evidence_file_metadata","employee_training_reminders");else excluded.push("training");
  const createdAt=now();
  const bundle={
-  schema_version:8,
+  schema_version:9,
   export_scope:"self_profile_legal_coi_requests_onboarding_time_leave_payroll_employee_services_snapshot",
   exported_at:createdAt,
   included,
@@ -331,10 +336,11 @@ export async function exportOwnHrmProfile(db:D1Database,user:WorkspaceUser):Prom
   training_assignments:trainingAssignmentData,
   training_evidence_files:trainingEvidenceData,
   training_reminders:trainingReminders,
+  performance_reviews:performanceData,
  };
  const body=JSON.stringify(bundle,null,2),contentBytes=new TextEncoder().encode(body).byteLength;
  if(contentBytes>BYTE_LIMIT)throw new HrmError("profile_export_too_large",413);
  const exportId=id("profile_export");
- await audit(db,user,"employee_profile_exported",person.id,exportId,{scope:"self_profile_legal_coi_requests_onboarding_time_leave_payroll_employee_services_snapshot",employment_period_count:employmentPeriods.length,record_count:recordData.length,history_count:recordHistory.length,change_request_count:changeData.length,file_metadata_count:files.length,legal_document_count:legalDocuments.length,acknowledgement_count:acknowledgements.length,coi_declaration_count:coiDeclarations.length,legal_file_metadata_count:legalFileData.length,service_request_count:serviceRequestData.length,service_event_count:serviceEventData.length,service_file_metadata_count:serviceFileData.length,onboarding_plan_count:onboardingPlanData.length,onboarding_task_count:onboardingTaskData.length,onboarding_file_metadata_count:onboardingFileData.length,time_entry_count:timeEntryData.length,time_adjustment_count:timeAdjustmentData.length,leave_request_count:leaveRequestData.length,leave_balance_count:leaveBalanceData.length,leave_evidence_metadata_count:leaveEvidenceMetadataCount,payslip_count:payslipData.length,payroll_dispute_count:payrollDisputeData.length,payroll_dispute_event_count:payrollDisputeEventData.length,asset_assignment_count:assetData.length,asset_evidence_metadata_count:assetEvidenceData.length,asset_reminder_count:assetReminderData.length,benefit_plan_count:benefitPlanData.length,benefit_enrollment_count:benefitEnrollmentData.length,training_assignment_count:trainingAssignmentData.length,training_evidence_metadata_count:trainingEvidenceData.length,training_reminder_count:trainingReminders.length,content_bytes:contentBytes});
+ await audit(db,user,"employee_profile_exported",person.id,exportId,{scope:"self_profile_legal_coi_requests_onboarding_time_leave_payroll_employee_services_snapshot",employment_period_count:employmentPeriods.length,record_count:recordData.length,history_count:recordHistory.length,change_request_count:changeData.length,file_metadata_count:files.length,legal_document_count:legalDocuments.length,acknowledgement_count:acknowledgements.length,coi_declaration_count:coiDeclarations.length,legal_file_metadata_count:legalFileData.length,service_request_count:serviceRequestData.length,service_event_count:serviceEventData.length,service_file_metadata_count:serviceFileData.length,onboarding_plan_count:onboardingPlanData.length,onboarding_task_count:onboardingTaskData.length,onboarding_file_metadata_count:onboardingFileData.length,time_entry_count:timeEntryData.length,time_adjustment_count:timeAdjustmentData.length,leave_request_count:leaveRequestData.length,leave_balance_count:leaveBalanceData.length,leave_evidence_metadata_count:leaveEvidenceMetadataCount,payslip_count:payslipData.length,payroll_dispute_count:payrollDisputeData.length,payroll_dispute_event_count:payrollDisputeEventData.length,asset_assignment_count:assetData.length,asset_evidence_metadata_count:assetEvidenceData.length,asset_reminder_count:assetReminderData.length,benefit_plan_count:benefitPlanData.length,benefit_enrollment_count:benefitEnrollmentData.length,training_assignment_count:trainingAssignmentData.length,training_evidence_metadata_count:trainingEvidenceData.length,training_reminder_count:trainingReminders.length,performance_review_count:performanceData.length,content_bytes:contentBytes});
  return {body,contentBytes,personId:person.id};
 }

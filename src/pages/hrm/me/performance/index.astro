@@ -1,0 +1,9 @@
+---
+import HrmPerformance from "../../../../components/hrm/HrmPerformance.astro";
+import { performancePage } from "../../../../lib/hrm/performance-pages";
+import { HrmError } from "../../../../lib/hrm/fields";
+export const prerender=false;
+let data;
+try{data=await performancePage(Astro,"en","self");if(data instanceof Response)return data}catch(error){const user=Astro.locals.workspace!;data={lang:"en",vi:false,user,title:"Performance reviews",live:user.hrmEnabled===true,mode:"self",reviews:[],page:1,hasMore:false,people:[],reviewers:[],events:[],saved:"",error:error instanceof HrmError?error.message:"internal_error",status:error instanceof HrmError?error.status:500};Astro.response.status=data.status}
+---
+<HrmPerformance {...data}/>
