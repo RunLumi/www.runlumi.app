@@ -4,6 +4,9 @@ import type { Failure, PageBase } from "../../lib/hrm/pages";
 interface Props { data: PageBase|Failure; module?:"hrm"; current?:string }
 const {data}=Astro.props;const vi=data.vi;
 const messages:Record<string,[string,string]>={
+ performance_self_review:["You cannot manage or approve your own review, or approve one you prepared or assessed.","Bạn không thể quản lý/tự duyệt đánh giá của mình, hoặc duyệt bản do chính mình tạo hay đánh giá."],
+ performance_cycle_invalid:["Use letters, digits, underscores or hyphens for the cycle code.","Mã kỳ chỉ dùng chữ, số, dấu gạch dưới hoặc gạch ngang."],
+
  hrm_closed:["HRM is not activated. The owner’s configuration and deployment gate are still closed.","HRM chưa được kích hoạt. Cấu hình của owner và cổng production hiện vẫn đóng."],
  policy_required:["Complete and review the policy source, purpose and retention configuration first.","Hãy điền và rà soát nguồn chính sách, mục đích xử lý và thời hạn lưu trước."],
  legal_entity_unconfigured:["Set the employing legal entity before creating an asset reminder policy.","Hãy cấu hình pháp nhân sử dụng lao động trước khi tạo lịch nhắc tài sản."],

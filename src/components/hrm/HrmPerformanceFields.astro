@@ -1,0 +1,6 @@
+---
+interface Props {intent:string;returnTo:string;reviewId?:string;revision?:number}
+const {intent,returnTo,reviewId,revision}=Astro.props;
+---
+<input type="hidden" name="intent" value={intent}/><input type="hidden" name="return_to" value={returnTo}/><input type="hidden" name="request_key" value={crypto.randomUUID()}/>
+{reviewId&&<input type="hidden" name="review_id" value={reviewId}/>}{revision!==undefined&&<input type="hidden" name="revision" value={revision}/>}
