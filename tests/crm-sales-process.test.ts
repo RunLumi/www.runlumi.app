@@ -16,7 +16,7 @@ test("sales guide: both Local locales keep one title and twelve sections", () =>
     assert.equal((guide.match(/^# /gm) ?? []).length, 1);
     assert.deepEqual(sections(guide), Array.from({ length: 12 }, (_, i) => i + 1));
     assert.equal((guide.match(/^```/gm) ?? []).length, 2);
-    assert.ok(guide.includes("2.0"));
+    assert.ok(guide.includes("2.1"));
   }
 });
 

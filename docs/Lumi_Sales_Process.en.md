@@ -1,6 +1,6 @@
 # Lumi sales process — free Basic → owner visit → website + Pro
 
-**Version 2.0 · 15 October 2026.** For the Founder, Sales Manager, Sales Executive, Lumi Partner, Finance and Fulfillment, within their Workspace permissions.
+**Version 2.1 · 17 October 2026 (supersedes 2.0 of 15 October).** Changes in 2.1: a private draft of the business's own page before the visit, walk-in permission for street-front clusters, a factual presence-gap note, one introduction asked after every positive outcome, and a weekly funnel review. No prices, offers, stages or fields change. For the Founder, Sales Manager, Sales Executive, Lumi Partner, Finance and Fulfillment, within their Workspace permissions.
 
 > **Lumi Local:** give a printed Trust Kit Basic, obtain permission to meet the owner, deliver the gift and scan-test it, discover the need, show a website preview, agree Starter with Trust Kit Pro, confirm payment, fulfill and follow up on renewal. **Basic requires no purchase; the website is the main product; Pro is an included deliverable.**
 
@@ -22,7 +22,7 @@ The review QR goes directly to Google, without screening for happy customers. Th
 
 ## 2. Preconditions for a field-sales batch
 
-The Sales Manager selects **one industry, one geographic cluster and up to 10 confirmed initial visits**. This is a test cap, not permission to expand sales headcount. Do not mass-print personalized kits before confirming business identity and appointments.
+The Sales Manager selects **one industry, one geographic cluster and up to 10 confirmed initial visits**. This is a test cap, not permission to expand sales headcount. A cohort is 30 businesses in that cluster: the first 10 prove the drafts and the script; the other 20 run only if the first batch passes the §9 review. Do not spread 30 visits over three districts or three industries — the cluster is what makes neighbours' word-of-mouth and travel cost work. Do not mass-print personalized kits before confirming business identity and appointments.
 
 Before ordering print, confirm:
 
@@ -30,7 +30,7 @@ Before ordering print, confirm:
 - A sales owner, a website/Pro delivery owner and a payment-confirmation owner; realistic capacity and dates.
 - An Admin saves a **new version** of the Starter offer in CRM, retaining the approved price and explicitly including print/Pro. Price changes require authorized approval before pitching. Old snapshots are never edited.
 - Tax treatment, first-year address/domain, ownership/transfer, delivery, revisions and cancellation/refund terms in the written scope. Finance confirms invoicing; this guide does not establish tax or refund rules.
-- One industry preview, private and labelled draft, with real enquiry collection disabled. A completed website is not required before a need exists.
+- One industry preview, private and labelled draft, with real enquiry collection disabled, **plus one private draft of each confirmed business's own page**, built from information the business already published (Maps listing, page, photos it posted), at most five minutes of human time each (the cohort gate requires an average of at most five) and reviewed before the visit. Before the visit, put the draft's link, version and sources in the `[DRAFT_READY]` note: the `local-preview` playbook shows `preview_url`, `preview_version`, `preview_sources` and `asset_rights` only from `owner_talked`, so copy them into those fields once the opportunity reaches that stage. `asset_rights` stays `placeholder` until the owner supplies or approves assets. A completed website is not required before a need exists; a draft the owner recognizes as their own business is what gets a reaction at the counter.
 
 **Unknown costs or no approved print/Pro offer means the bundle is not ready to quote.** Older Local pages/decks may still exclude printing and stands. Use the approved new scope; do not present conflicting promises. Updating this CRM guide does not update those channels automatically.
 
@@ -45,6 +45,12 @@ Create or reuse the company, its contact and **one Local opportunity** in CRM. D
 > I’m [Name] from Lumi Local; we build websites for local businesses. We’re offering a printed Google review QR card with your business name and can bring it over and scan-test it with you. You do not need to buy anything. If convenient, may I also show you a relevant website preview for three minutes? You keep the gift even if you decline the demo. When would the owner be available?
 
 Record the decision maker, availability, entrance/location, route cluster and permission. Accepting a gift is not consent to a demo, a purchase or unlimited follow-up. Do not pressure a busy owner into a visit or switch channels after a stop-contact request.
+
+**Walk-in for street-front clusters.** Where businesses sit along one street or market (cafés, salons, spas, small shops), permission may be asked at the counter with the Basic in hand instead of by phone first; use the same words, and a "not now" ends the attempt. Phone or Zalo first remains the rule for garages, HVAC and any business whose owner is rarely at the counter. Record the actual channel in `owner_contact_basis`.
+
+**Introductions outrank cold prospects.** An introduction from a current customer or a neighbouring owner is worked before any cold prospect in the batch. Create the opportunity with the source channel set to referral and the referrer recorded; it still needs `presence_checked` before `qualified`.
+
+**Presence gap, stated as fact.** Before the visit, write a `[PRESENCE_GAP]` note with what is publicly checkable: review count compared with comparable businesses nearby, missing prices, hours or photos, a contact route that does not work. Say what you saw. Never turn it into lost customers, lost revenue or a ranking claim.
 
 ## 4. Prepare Basic and check the QR before printing
 
@@ -74,15 +80,17 @@ Existing channels may already be sufficient. Wanting an attractive QR card does 
 
 ### 5.3 Ask to show the preview
 
-> This QR card serves people who have already visited. The website helps someone exploring your business see services, opening hours and directions, then call or open Zalo. Here is a draft we can look at on a phone.
+> This QR card serves people who have already visited. For someone still choosing, I prepared a draft page for [business name] from what is already public: services, hours, directions, then Call or Zalo. Thirty seconds on your phone — tell me what is wrong.
 
-Use one relevant mobile preview and one scope/price page, not the entire deck at the counter. Use confirmed details or labelled placeholders. No live enquiry capture, domain purchase or official publication without approval.
+Show the business's own draft whenever one exists; the industry sample is the fallback, not the default. After the first paid sites in a cluster, a live customer site may be shown as the example only with that customer's recorded permission. Corrections the owner makes at the counter are the first content round: note them in `owner_feedback`. Use one relevant mobile preview and one scope/price page, not the entire deck at the counter. Use confirmed details or labelled placeholders. No live enquiry capture, domain purchase or official publication without approval.
 
 ### 5.4 Agree the next step; do not sell through obligation
 
 For a fit, explain Starter, exact Pro deliverables, first-year and renewal prices, and delivery terms. Ask whether they are ready to confirm scope or what remains unclear. No fake deadlines or assumption that receiving a gift means buying.
 
 For undecided customers, record the objection and **agreed** next step. For a decline or poor fit, record the truth and respect the stop request. Do not increase gift value to compensate for absent website value.
+
+**Ask for one introduction** after any positive outcome — a gift accepted, a draft corrected or a purchase — and never as a condition of either. Record it as a `[REFERRAL]` note with the name and whether the owner allows being mentioned; the new opportunity carries the referral source. No payment, discount or gift for introductions unless an approved offer version says so.
 
 ## 6. Use the existing CRM, not a parallel pipeline
 
@@ -94,6 +102,8 @@ Run the Basic/Pro actions using the **existing `local-preview` playbook**, tasks
 | Qualified to approach | `qualified`; satisfy that playbook version’s fields/checklist | No owner contact has occurred merely because the prospect is qualified. |
 | Owner agrees to a visit | `visit` task, date/time/contact, appointment confirmation; note gift and demo consent separately | Booking is not a completed owner conversation. |
 | Prepare/print Basic | `internal` task; `[BASIC_READY]` note with file, QR target and checker; log cost | No Basic quote, payment or commission. |
+| Prepare the business's own draft | `internal` task; `[DRAFT_READY]` note with the draft's link, version and sources; minutes under `preview`; copied into `preview_url`, `preview_version`, `preview_sources` at `owner_talked` | A draft is not a conversation and never becomes a public site without the owner's approval. |
+| Introduction received | New opportunity on the referred account with the referral source and referrer; `[REFERRAL]` note on the referring opportunity | An introduction is not a qualified lead until `presence_checked`. |
 | Meet owner and give Basic | Complete `visit` with its true outcome; `[BASIC_DELIVERED]` or `[BASIC_DECLINED]` note | Move to `owner_talked` only after talking to the decision maker and meeting the playbook requirements. |
 | Owner absent / reschedule | `owner_absent`, `rescheduled`, `no_show` or `declined`, as observed | An employee receiving the gift is not an owner conversation or a new lead. |
 | Show website | `preview_shown`; version, sources, asset permissions and feedback | Optional steps can be skipped with a recorded reason; a demo is not required to keep the gift. |
@@ -103,7 +113,7 @@ Run the Basic/Pro actions using the **existing `local-preview` playbook**, tasks
 | Deliver website and Pro | Handoff + Fulfillment; Pro scope, artwork version, QR checks and receipt evidence | `[PRO_DELIVERED]` is a note, not an automatic fulfillment transition or commission trigger. |
 | Renew | New `local-renewal` opportunity linked by `parent_id` to the same account | Do not duplicate the customer or book renewal revenue early. |
 
-`[BASIC_READY]`, `[BASIC_DELIVERED]`, `[BASIC_DECLINED]` and `[PRO_DELIVERED]` are **manual note conventions**, not automation. Do not claim automated Basic/Pro counts. Reconcile through history; contact details and customer imagery stay in private CRM/files, never in Git.
+`[BASIC_READY]`, `[BASIC_DELIVERED]`, `[BASIC_DECLINED]`, `[PRO_DELIVERED]`, `[DRAFT_READY]`, `[PRESENCE_GAP]` and `[REFERRAL]` are **manual note conventions**, not automation. Do not claim automated Basic/Pro counts. Reconcile through history; contact details and customer imagery stay in private CRM/files, never in Git.
 
 ## 7. Quotes, money and existing customer rights
 
@@ -170,7 +180,9 @@ Illustration, not Lumi actuals: if reaching 30 businesses costs 2,700,000 VND, t
 
 Internal hypotheses for another bounded cohort: average human preview work at most five minutes, CAC aiming at no more than 600,000 VND/Starter, standardized fulfillment and positive contribution after reserve. These are not achieved results. Existing cohort/commission gates remain governed by their stored policy versions; this guide does not mutate them.
 
-Pause increased printing/visits when the owner is unreachable, QR use is wrong, costs are unknown, gifts are welcomed but websites are not needed, or delivery loses money. Do not fix poor fit by making the gift more expensive. If 20 qualified owner conversations produce no paid Starter, revisit the need/segment/pitch. After the first cohort, compare a preview-only visit with Basic-assisted visits; small samples provide directional evidence only.
+**Weekly funnel review** on one line of figures: own drafts prepared → owners attempted → owners met → Basic delivered → own draft shown → paid Starter → introductions received. For a cluster of 30 the working target is 30 drafts and 30 owner attempts inside two weeks; a batch that cannot reach owners is a targeting or timing problem, not a pitch problem, and gets a different cluster or visiting hour, not more gift. Compare own-draft visits with industry-sample visits on paid Starters per owner met.
+
+Pause increased printing/visits when the owner is unreachable, QR use is wrong, costs are unknown, gifts are welcomed but websites are not needed, or delivery loses money. Do not fix poor fit by making the gift more expensive. If 20 qualified owner conversations produce no paid Starter, revisit the need/segment/pitch: the first thing to try is leading with the presence gap and the review card, with the website as the attached deliverable, before changing price or gift. After the first cohort, compare a preview-only visit with Basic-assisted visits; small samples provide directional evidence only.
 
 ## 10. Short counter-side scripts
 
@@ -178,9 +190,21 @@ Pause increased printing/visits when the owner is unreachable, QR use is wrong, 
 
 > This card is yours. Let’s check that the scan opens the right business. You do not have to buy a website or review Lumi to keep it.
 
+**Walk-in opener (street-front cluster):**
+
+> Hello, I'm [Name] from Lumi Local. We're giving businesses on this street a Google review card with their own name — this one is yours; let's scan it to check it opens the right place. You don't need to buy anything. Is the owner here, or when is a good time?
+
 **Invite a preview:**
 
 > Do you already have one link for customers to see your services and contact you? If you are sending several pictures instead, may I show a draft on a phone?
+
+**Show the business's own draft:**
+
+> I made a draft for [business name] from what's already on Maps. It's private, nothing is published. What's wrong on it — prices, hours, anything missing?
+
+**Ask for one introduction:**
+
+> Do you know one other owner nearby who would want the same card? May I say you spoke well of it? No obligation either way.
 
 **Explain the approved bundle:**
 

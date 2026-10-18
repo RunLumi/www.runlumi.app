@@ -1,6 +1,6 @@
 # Quy trình bán hàng Lumi — Basic miễn phí → gặp chủ → website + Pro
 
-**Phiên bản 2.0 · 15/10/2026.** Áp dụng cho Founder, Sales Manager, Sales Executive, Lumi Partner, Finance và Fulfillment theo quyền trong Workspace.
+**Phiên bản 2.1 · 17/10/2026 (thay thế bản 2.0 ngày 15/10).** Thay đổi ở 2.1: bản nháp riêng của chính cơ sở trước khi ghé, cho phép xin phép tại quầy ở cụm mặt phố, ghi chú khoảng trống hiện diện dựa trên sự thật, xin một lời giới thiệu sau mỗi kết quả tích cực, và rà soát phễu hằng tuần. Không đổi giá, offer, stage hay trường dữ liệu. Áp dụng cho Founder, Sales Manager, Sales Executive, Lumi Partner, Finance và Fulfillment theo quyền trong Workspace.
 
 > **Lumi Local:** tặng Trust Kit Basic đã in, xin phép gặp chủ, giao quà và quét thử, tìm hiểu nhu cầu, cho xem website, chốt Starter kèm Trust Kit Pro, xác nhận tiền, bàn giao và theo dõi gia hạn. **Basic không cần mua hàng; website là sản phẩm chính; Pro là phần bàn giao kèm gói.**
 
@@ -22,7 +22,7 @@ QR đánh giá dẫn trực tiếp tới Google, không qua trang lọc người
 
 ## 2. Điều kiện mở đợt đi thị trường
 
-Sales Manager chọn **một ngành, một cụm địa lý, tối đa 10 lịch gặp đầu tiên**; đây là giới hạn thử nghiệm, không phải kế hoạch tuyển thêm sales. Không in cá nhân hóa hàng loạt trước khi xác nhận cơ sở và lịch.
+Sales Manager chọn **một ngành, một cụm địa lý, tối đa 10 lịch gặp đầu tiên**; đây là giới hạn thử nghiệm, không phải kế hoạch tuyển thêm sales. Một cohort là 30 cơ sở trong cụm đó: 10 lịch đầu để kiểm chứng bản nháp và kịch bản; 20 cơ sở còn lại chỉ chạy khi đợt đầu qua được rà soát ở mục 9. Không rải 30 lượt ghé sang ba quận hay ba ngành — chính cụm mới làm truyền miệng giữa hàng xóm và chi phí đi lại có ý nghĩa. Không in cá nhân hóa hàng loạt trước khi xác nhận cơ sở và lịch.
 
 Trước khi đặt in, phải có đủ:
 
@@ -30,7 +30,7 @@ Trước khi đặt in, phải có đủ:
 - Một người phụ trách bán, một người làm website/Pro, một người xác nhận tiền; công suất và ngày hẹn phù hợp thực tế.
 - Admin tạo **phiên bản mới** của offer Starter trong CRM, giữ giá đã duyệt và ghi rõ phần in/Pro; mọi thay đổi giá do người có thẩm quyền duyệt trước. Không sửa snapshot cũ.
 - Giá trị thuế, tên miền năm đầu, điều kiện sở hữu/chuyển, nơi giao, thời hạn, sửa đổi và hủy/hoàn đã rõ trong phiếu xác nhận. Kế toán xác nhận cách lập hóa đơn; hướng dẫn này không tự đặt chính sách thuế/hoàn tiền.
-- Một bản xem thử theo ngành, riêng tư và ghi “bản nháp”; chưa bật form thật. Không cần làm website hoàn chỉnh trước khi có nhu cầu.
+- Một bản xem thử theo ngành, riêng tư và ghi “bản nháp”; chưa bật form thật; **cộng thêm một bản nháp riêng cho trang của chính từng cơ sở đã xác nhận**, dựng từ thông tin cơ sở đã công khai (Maps, trang, ảnh họ tự đăng), tối đa 5 phút công người cho mỗi bản (cổng cohort yêu cầu trung bình không quá 5 phút) và được xem lại trước khi ghé. Trước khi ghé, ghi link, phiên bản và nguồn của bản nháp vào note `[DRAFT_READY]`: playbook `local-preview` chỉ hiện `preview_url`, `preview_version`, `preview_sources` và `asset_rights` từ `owner_talked`, nên chép vào các trường đó khi cơ hội tới giai đoạn này. `asset_rights` giữ `placeholder` cho tới khi chủ cung cấp hoặc duyệt hình ảnh. Không cần website hoàn chỉnh trước khi có nhu cầu; nhưng một bản nháp mà chủ nhận ra là tiệm của mình mới tạo phản ứng tại quầy.
 
 **Chưa rõ chi phí hoặc chưa có scope Pro trong offer thì chưa chào gói như đã sẵn sàng.** Tài liệu website Local và deck cũ có thể vẫn ghi “không in/giá đỡ”; dùng phiếu mới đã duyệt, không để sales đưa hai cam kết trái nhau. Việc cập nhật hướng dẫn CRM không tự cập nhật các kênh đó.
 
@@ -45,6 +45,12 @@ Tạo hoặc dùng lại công ty, người liên hệ và **một cơ hội Loc
 > Em [Tên] bên Lumi Local, bên em làm website cho cơ sở kinh doanh. Bên em đang tặng một bảng QR đánh giá Google có tên riêng của tiệm, mang qua đặt và quét thử giúp mình. Anh/chị không cần mua gì. Nếu tiện, em xin thêm ba phút cho mình xem một mẫu website phù hợp; không muốn xem vẫn nhận quà bình thường. Em ghé lúc nào có anh/chị ở tiệm thì tiện ạ?
 
 Ghi rõ người quyết định, giờ họ có mặt, địa chỉ/lối vào, cụm tuyến và sự đồng ý. “Đồng ý nhận quà” không đồng nghĩa với đồng ý nghe demo, đặt hàng hoặc nhận liên hệ vô hạn. Không tự đến rồi ép chủ đang bận tiếp; không tiếp tục trên kênh khác khi khách yêu cầu ngừng liên hệ.
+
+**Ghé trực tiếp ở cụm mặt phố.** Với cơ sở nằm dọc một con đường hoặc chợ (cà phê, salon, spa, tiệm nhỏ), có thể xin phép ngay tại quầy với bảng Basic cầm sẵn thay vì gọi trước; dùng đúng những lời trên, và khách nói “chưa tiện” là dừng. Gọi hoặc nhắn Zalo trước vẫn là quy tắc với gara, điện lạnh và mọi cơ sở mà chủ ít có mặt ở quầy. Ghi đúng kênh thực tế vào `owner_contact_basis`.
+
+**Lời giới thiệu ưu tiên hơn khách lạ.** Khách được khách hiện tại hoặc chủ tiệm lân cận giới thiệu được làm trước mọi khách lạ trong đợt. Tạo cơ hội với kênh nguồn là giới thiệu và ghi người giới thiệu; vẫn phải xong `presence_checked` trước khi lên `qualified`.
+
+**Khoảng trống hiện diện, ghi theo sự thật.** Trước khi ghé, viết note `[PRESENCE_GAP]` với những gì kiểm tra công khai được: số đánh giá so với cơ sở tương tự gần đó, thiếu giá, giờ hoặc ảnh, đường liên hệ không hoạt động. Ghi điều đã thấy. Không suy ra mất khách, mất doanh thu hay thứ hạng.
 
 ## 4. Chuẩn bị Basic và kiểm tra QR trước khi in
 
@@ -74,15 +80,17 @@ Nếu các kênh sẵn có đã đáp ứng tốt, có thể chưa cần website
 
 ### 5.3 Xin phép mở bản xem thử
 
-> Bảng QR này dành cho khách đã ghé. Còn trang này để người đang tìm hiểu xem dịch vụ, giờ, đường đi rồi bấm gọi hoặc nhắn Zalo. Em có một bản nháp để mình xem thử.
+> Bảng QR này dành cho khách đã ghé. Còn người đang chọn tiệm thì em đã dựng thử một trang nháp cho [tên cơ sở] từ thông tin đang công khai: dịch vụ, giờ, đường đi, rồi bấm Gọi hoặc Zalo. Mình xem 30 giây trên điện thoại, chỗ nào sai anh/chị chỉ giúp em.
 
-Dùng một bản xem thử trên điện thoại và một trang giá/phạm vi, không đọc cả deck tại quầy. Chỉ trình bày dịch vụ đã xác nhận hoặc ghi rõ placeholder. Không kích hoạt thu thông tin, mua tên miền hay xuất bản dưới tên cơ sở khi chưa được duyệt.
+Có bản nháp của chính cơ sở thì cho xem bản đó; mẫu theo ngành là phương án dự phòng, không phải mặc định. Sau những website đầu tiên đã trả tiền trong cụm, chỉ cho xem website thật của khách làm ví dụ khi khách đó đã đồng ý và được ghi lại. Chủ sửa gì tại quầy thì đó là vòng nội dung đầu tiên: ghi vào `owner_feedback`. Dùng một bản xem thử trên điện thoại và một trang giá/phạm vi, không đọc cả deck tại quầy. Chỉ trình bày dịch vụ đã xác nhận hoặc ghi rõ placeholder. Không kích hoạt thu thông tin, mua tên miền hay xuất bản dưới tên cơ sở khi chưa được duyệt.
 
 ### 5.4 Chốt bước tiếp theo, không chốt bằng món quà
 
 Nếu khách phù hợp: trình bày Starter, Pro gồm những gì, giá năm đầu và gia hạn, điều kiện bàn giao. Hỏi khách muốn xác nhận phạm vi hay còn điều gì cần làm rõ. Không dùng ưu đãi hết hạn giả hoặc giả định nhận quà là đồng ý mua.
 
 Nếu khách chưa quyết: ghi lý do và bước tiếp theo **được đồng ý**. Nếu không phù hợp hoặc từ chối: ghi kết quả đúng, ngừng theo yêu cầu. Không cho đội tăng giá trị quà để bù việc website không giải quyết nhu cầu.
+
+**Xin một lời giới thiệu** sau mỗi kết quả tích cực — nhận quà, sửa bản nháp hay mua hàng — và không bao giờ là điều kiện của hai việc đó. Ghi note `[REFERRAL]` với tên người được giới thiệu và việc chủ có cho phép nhắc tên mình hay không; cơ hội mới mang kênh nguồn giới thiệu. Không trả tiền, giảm giá hay tặng quà cho lời giới thiệu trừ khi có phiên bản offer đã duyệt ghi rõ.
 
 ## 6. Ghi trong CRM hiện tại — không tự tạo một pipeline khác
 
@@ -94,6 +102,8 @@ Luồng hành động Basic/Pro được chạy bằng **playbook `local-preview
 | Đủ điều kiện tiếp cận | `qualified`, điền field/checklist của phiên bản playbook | Chủ chưa phản hồi vẫn chưa được coi là đã gặp. |
 | Chủ đồng ý lịch | Task `visit`, ngày/giờ, contact, xác nhận lịch; note nêu đồng ý nhận quà/demo riêng | Hẹn gặp không phải giai đoạn “đã trao đổi”. |
 | Chuẩn bị/in Basic | Task `internal`; note `[BASIC_READY]` kèm file, đích QR, người kiểm tra; cost tương ứng | Không quote, payment hoặc commission cho Basic. |
+| Dựng bản nháp riêng của cơ sở | Task `internal`; note `[DRAFT_READY]` kèm link, phiên bản và nguồn của bản nháp; minutes ghi dưới `preview`; chép vào `preview_url`, `preview_version`, `preview_sources` khi tới `owner_talked` | Bản nháp không phải một cuộc trao đổi và không bao giờ thành trang công khai khi chủ chưa duyệt. |
+| Nhận lời giới thiệu | Cơ hội mới trên cơ sở được giới thiệu, ghi kênh nguồn giới thiệu và người giới thiệu; note `[REFERRAL]` trên cơ hội của người giới thiệu | Lời giới thiệu chưa phải lead đủ điều kiện cho tới khi xong `presence_checked`. |
 | Gặp chủ và bàn giao Basic | Hoàn thành `visit` với kết quả thật; note `[BASIC_DELIVERED]` hoặc `[BASIC_DECLINED]` | Chỉ chuyển `owner_talked` khi đã nói với người quyết định và đủ yêu cầu playbook. |
 | Chủ vắng hoặc hẹn lại | `owner_absent`, `rescheduled`, `no_show` hoặc `declined` theo thực tế | Giao cho nhân viên không phải gặp chủ; không đếm lại cùng doanh nghiệp như lead mới. |
 | Xem website | `preview_shown`; ghi phiên bản, nguồn, quyền hình ảnh, phản hồi | Bước có thể bỏ qua với lý do theo playbook; không ép xem để giữ quà. |
@@ -103,7 +113,7 @@ Luồng hành động Basic/Pro được chạy bằng **playbook `local-preview
 | Website và Pro | Handoff + Fulfillment; ghi scope Pro, phiên bản in, kiểm tra QR và bằng chứng nhận vào hồ sơ bàn giao | Note `[PRO_DELIVERED]` chỉ là ghi chú; không tự chuyển trạng thái bàn giao hoặc tạo hoa hồng. |
 | Gia hạn | Cơ hội mới theo `local-renewal`, liên kết `parent_id` cùng công ty | Không tạo lại khách hàng hoặc tính trước doanh thu gia hạn. |
 
-Các nhãn `[BASIC_READY]`, `[BASIC_DELIVERED]`, `[BASIC_DECLINED]`, `[PRO_DELIVERED]` là **quy ước ghi chú thủ công**, không phải tính năng tự động. Không tuyên bố CRM đã tự đếm Basic/Pro. Dùng audit/history để đối chiếu; dữ liệu liên hệ và hình ảnh khách ở CRM/tài liệu riêng tư, không đưa lên Git.
+Các nhãn `[BASIC_READY]`, `[BASIC_DELIVERED]`, `[BASIC_DECLINED]`, `[PRO_DELIVERED]`, `[DRAFT_READY]`, `[PRESENCE_GAP]`, `[REFERRAL]` là **quy ước ghi chú thủ công**, không phải tính năng tự động. Không tuyên bố CRM đã tự đếm Basic/Pro. Dùng audit/history để đối chiếu; dữ liệu liên hệ và hình ảnh khách ở CRM/tài liệu riêng tư, không đưa lên Git.
 
 ## 7. Báo giá, tiền và quyền lợi khách cũ
 
@@ -170,7 +180,9 @@ Ví dụ giả định, không phải chi phí Lumi: tổng tiếp cận 30 cơ 
 
 Mục tiêu nội bộ để xem xét nhóm kế tiếp: công preview trung bình không quá 5 phút; CAC hướng tới không quá 600.000đ/Starter; delivery chuẩn hóa và đóng góp dương sau dự phòng. Đây là giả thuyết kiểm chứng, không phải kết quả đã đạt. Cổng cohort/commission đang lưu trong CRM vẫn theo phiên bản policy; hướng dẫn này không tự sửa chúng.
 
-Dừng tăng in/đi thị trường khi không gặp đúng chủ, QR bị dùng sai, chi phí chưa biết, quà được nhận nhiều nhưng không có nhu cầu website, hoặc đơn giao lỗ. Không nâng giá trị quà để chữa sai tệp. Nếu 20 cuộc nói chuyện đủ điều kiện chưa có Starter trả tiền, xem lại vấn đề/tệp/cách bán trước khi tăng số lượt. Sau nhóm đầu, đối chiếu cách đến chỉ có preview với cách mang Basic; mẫu nhỏ chỉ cho tín hiệu định hướng.
+**Rà soát phễu hằng tuần** trên một dòng số: bản nháp riêng đã dựng → chủ đã tiếp cận → chủ đã gặp → Basic đã giao → đã xem bản nháp riêng → Starter trả tiền → lời giới thiệu nhận được. Với cụm 30 cơ sở, mục tiêu làm việc là 30 bản nháp và 30 lượt tiếp cận chủ trong hai tuần; đợt nào không gặp được chủ là vấn đề chọn tệp hoặc chọn giờ, không phải vấn đề cách nói, và cần đổi cụm hoặc đổi giờ ghé chứ không thêm quà. So sánh lượt ghé có bản nháp riêng với lượt ghé dùng mẫu theo ngành theo số Starter trả tiền trên mỗi chủ đã gặp.
+
+Dừng tăng in/đi thị trường khi không gặp đúng chủ, QR bị dùng sai, chi phí chưa biết, quà được nhận nhiều nhưng không có nhu cầu website, hoặc đơn giao lỗ. Không nâng giá trị quà để chữa sai tệp. Nếu 20 cuộc nói chuyện đủ điều kiện chưa có Starter trả tiền, xem lại vấn đề/tệp/cách bán trước khi tăng số lượt: việc thử đầu tiên là dẫn bằng khoảng trống hiện diện và bảng đánh giá, website là phần bàn giao kèm theo, trước khi đổi giá hay đổi quà. Sau nhóm đầu, đối chiếu cách đến chỉ có preview với cách mang Basic; mẫu nhỏ chỉ cho tín hiệu định hướng.
 
 ## 10. Kịch bản ngắn để dùng tại quầy
 
@@ -178,9 +190,21 @@ Dừng tăng in/đi thị trường khi không gặp đúng chủ, QR bị dùng
 
 > Em gửi bảng tặng mình. Mình quét thử xem đúng cơ sở chưa nhé. Bảng này anh/chị giữ dùng, không cần mua website hay đánh giá Lumi.
 
+**Mở lời khi ghé trực tiếp (cụm mặt phố):**
+
+> Chào anh/chị, em là [Tên] bên Lumi Local. Bên em đang tặng các tiệm trên đường này bảng QR đánh giá Google có tên riêng — bảng này của mình đây, mình quét thử xem có ra đúng tiệm không. Anh/chị không cần mua gì. Chủ tiệm có ở đây không, hay khi nào thì tiện ạ?
+
 **Mời xem website:**
 
 > Bên mình đã có chỗ gửi một link để khách xem dịch vụ và liên hệ chưa? Nếu đang phải gửi nhiều ảnh, em xin phép cho mình xem bản nháp trên điện thoại.
+
+**Cho xem bản nháp của chính cơ sở:**
+
+> Em dựng thử một trang cho [tên cơ sở] từ thông tin đang có trên Maps. Trang này riêng tư, chưa đăng gì cả. Anh/chị xem giúp chỗ nào sai — giá, giờ, còn thiếu gì?
+
+**Xin một lời giới thiệu:**
+
+> Anh/chị có biết chủ tiệm nào gần đây cũng muốn có bảng như vậy không? Em có được nói là anh/chị khen bảng này không ạ? Không có cũng không sao.
 
 **Báo gói đã được duyệt:**
 
