@@ -1,0 +1,173 @@
+---
+// Business model canvas: one canvas per sales motion. Every statement carries
+// how we know it; live figures come only from the CRM ledger and records.
+// Server-rendered, no client JavaScript, no names or deal titles.
+import CrmShell from "../../layouts/CrmShell.astro";
+import { blockOrder, blocks, canvases, grades, modelUrl, reviewedOn, sourceLabel, sourceUrl, type BlockKey, type Text } from "../../lib/crm/business-model";
+import { label, formatDate, formatDateTime } from "../../lib/crm/i18n";
+import { formatVnd } from "../../lib/crm/money";
+import type { BusinessModelProps } from "../../lib/crm/routes/business-model";
+
+const { ctx, canvas, evidence, offers, generatedAt } = Astro.props as BusinessModelProps;
+const { lang, vi, actor } = ctx;
+const tx = (text: Text) => (vi ? text.vi : text.en);
+const live = evidence.byMotion[canvas.id];
+const vnd = (amount: number) => formatVnd(amount, vi);
+const counts = Object.fromEntries(grades.map((grade) => [grade.key, blockOrder.reduce((sum, key) => sum + canvas.blocks[key].filter((item) => item.grade === grade.key).length, 0)]));
+const total = Object.values(counts).reduce((sum, n) => sum + n, 0);
+const gradeOf = (key: string) => grades.find((grade) => grade.key === key)!;
+const costsKnown = live.costs.uncostedEntries === 0;
+
+// Live lines appended to the blocks they evidence.
+const liveLines: Partial<Record<BlockKey, string[]>> = {
+  segments: [vi
+    ? `${live.payingCustomers} doanh nghiệp có tiền đã được Tài chính xác nhận; ${live.deals.total} cơ hội đã ghi.`
+    : `${live.payingCustomers} businesses with Finance-confirmed cash; ${live.deals.total} opportunities recorded.`],
+  channels: live.channels.length
+    ? [`${vi ? "Kênh của khách trả tiền" : "Channels of paying businesses"}: ${live.channels.map((row) => `${label(lang, "channel", row.channel)} ${row.customers}`).join(" · ")}`]
+    : [vi ? "Chưa có khách trả tiền nên chưa có kênh nào được chứng minh." : "No paying business yet, so no channel is proven."],
+  relationships: [vi
+    ? `${live.delivered} lần bàn giao đã tới khách; ${live.renewedCustomers} doanh nghiệp đã gia hạn có tiền.`
+    : `${live.delivered} deliveries reached the customer; ${live.renewedCustomers} businesses renewed with cash.`],
+  revenue: [vi
+    ? `Tiền giữ lại đã xác nhận: ${vnd(live.netCash)}. Đã chấp thuận nhưng chưa thu đủ: ${live.acceptedUnpaid.deals} cơ hội, còn ${vnd(live.acceptedUnpaid.outstanding)}.`
+    : `Confirmed cash kept: ${vnd(live.netCash)}. Accepted but not fully paid: ${live.acceptedUnpaid.deals} deals, ${vnd(live.acceptedUnpaid.outstanding)} outstanding.`],
+  costs: [vi
+    ? `Chi phí đã ghi: tìm khách ${vnd(live.costs.acquisition)}, thực hiện ${vnd(live.costs.delivery)}.${costsKnown ? "" : ` ${live.costs.uncostedEntries} dòng có phút nhưng chưa có số tiền.`}`
+    : `Recorded costs: acquisition ${vnd(live.costs.acquisition)}, delivery ${vnd(live.costs.delivery)}.${costsKnown ? "" : ` ${live.costs.uncostedEntries} entries have minutes but no amount.`}`],
+};
+---
+<CrmShell title={vi ? "Mô hình kinh doanh" : "Business model"} lang={lang} actor={actor} current="model">
+  <div class="crm-head"><div>
+    <p class="crm-eyebrow">{vi ? "Mô hình kinh doanh" : "Business model"}</p>
+    <h1 class="crm-h1">{vi ? "Lumi kiếm tiền thế nào, và điều gì đã được chứng minh." : "How Lumi makes money, and what is proven."}</h1>
+    <p class="crm-lede">{vi
+      ? "Hai mô hình, theo đúng hai quy trình bán. Mỗi ý ghi rõ căn cứ. Số liệu sống lấy từ sổ thương mại của CRM; tiền chỉ được tính khi Tài chính đã xác nhận."
+      : "Two models, matching the two sales motions. Every statement says how we know it. Live figures come from the CRM ledger; money counts only once Finance confirms it."}</p>
+  </div></div>
+
+  <nav class="bm-switch" aria-label={vi ? "Chọn mô hình" : "Choose a model"}>
+    {canvases.map((item) => <a class:list={["crm-sheet", "bm-choice", { "is-current": item.id === canvas.id }]} href={modelUrl(lang, item.id)} aria-current={item.id === canvas.id ? "page" : undefined} data-model={item.id}>
+      <strong>{tx(item.name)}</strong><span>{tx(item.summary)}</span>
+    </a>)}
+  </nav>
+
+  <section class="crm-sheet" aria-labelledby="bm-now-h" data-live-evidence>
+    <h2 class="crm-h2" id="bm-now-h">{vi ? "Bằng chứng trong CRM lúc này" : "Evidence in the CRM now"}</h2>
+    <dl class="crm-facts">
+      <div><dt>{vi ? "Doanh nghiệp trả tiền" : "Paying businesses"}</dt><dd class="crm-figure" data-figure="paying" data-value={live.payingCustomers}>{live.payingCustomers}</dd></div>
+      <div><dt>{vi ? "Tiền giữ lại đã xác nhận" : "Confirmed cash kept"}</dt><dd class="crm-figure" data-figure="cash" data-value={live.netCash}>{vnd(live.netCash)}</dd></div>
+      <div><dt>{vi ? "Chờ Tài chính xác nhận" : "Awaiting Finance"}</dt><dd class="crm-figure">{vnd(live.awaitingConfirmation)}</dd></div>
+      <div><dt>{vi ? "Đã bàn giao tới khách" : "Delivered"}</dt><dd class="crm-figure">{live.delivered}</dd></div>
+      <div><dt>{vi ? "Đã gia hạn" : "Renewed"}</dt><dd class="crm-figure">{live.renewedCustomers}</dd></div>
+      <div><dt>{vi ? "Tiền trừ chi phí đã ghi" : "Cash after recorded costs"}</dt><dd class="crm-figure">{vnd(live.cashAfterRecordedCosts)}</dd></div>
+    </dl>
+    <p class="crm-help">
+      {vi ? "Thanh toán gần nhất đã xác nhận" : "Latest confirmed payment"}: {live.latestPayment ? formatDate(live.latestPayment, lang) : (vi ? "chưa có" : "none")}
+      · {vi ? "Cơ hội" : "Opportunities"}: {live.deals.total} ({vi ? "đang mở" : "open"} {live.deals.open}, {vi ? "thành công" : "won"} {live.deals.won}, {vi ? "không thành" : "lost"} {live.deals.lost})
+      · {vi ? "Tính lúc" : "As of"} {formatDateTime(generatedAt, lang)}
+    </p>
+    <p class="crm-help">{vi
+      ? `"Tiền trừ chi phí đã ghi" là mức trần: chi phí chưa ghi không được tính là 0đ.${costsKnown ? "" : " Hiện có chi phí mới ghi phút, chưa ghi tiền."} Việc đã làm nhưng chưa ghi vào CRM thì trang này không thấy.`
+      : `"Cash after recorded costs" is an upper bound: costs nobody recorded are not 0 VND.${costsKnown ? "" : " Some costs have minutes but no amount yet."} Work that happened but is not in the CRM is invisible here.`}</p>
+    {evidence.unclassified.deals > 0 && <p class="crm-help" data-unclassified>{vi
+      ? `${evidence.unclassified.deals} cơ hội không thuộc mô hình nào (hồ sơ cũ chưa có gói đã chấp thuận), tiền giữ lại ${vnd(evidence.unclassified.netCash)}.`
+      : `${evidence.unclassified.deals} opportunities belong to neither model (legacy records without an accepted offer), cash kept ${vnd(evidence.unclassified.netCash)}.`}</p>}
+  </section>
+
+  <section class="crm-sheet" aria-labelledby="bm-grades-h">
+    <h2 class="crm-h2" id="bm-grades-h">{vi ? "Mỗi ý dựa vào đâu" : "How each statement is known"}</h2>
+    <ul class="bm-legend">
+      {grades.map((grade) => <li><span class:list={["crm-badge", grade.tone]}>{tx(grade.name)}</span> <span>{tx(grade.meaning)}</span> <strong class="crm-num">{counts[grade.key]}/{total}</strong></li>)}
+    </ul>
+  </section>
+
+  <section class="bm-canvas" aria-labelledby="bm-canvas-h" data-canvas={canvas.id}>
+    <h2 class="crm-h2 bm-canvas-title" id="bm-canvas-h">{tx(canvas.name)}: {vi ? "chín khối" : "nine blocks"}</h2>
+    {blockOrder.map((key) => <section class:list={["crm-sheet", "bm-block", `bm-${key}`]} aria-labelledby={`bm-${key}-h`} data-block={key}>
+      <h3 class="bm-block-title" id={`bm-${key}-h`}>{tx(blocks[key])}</h3>
+      <ul class="bm-items">
+        {canvas.blocks[key].map((item) => <li data-grade={item.grade}>
+          <span class:list={["crm-badge", gradeOf(item.grade).tone]}>{tx(gradeOf(item.grade).name)}</span>
+          <p>{tx(item)}</p>
+          <p class="bm-sources">{item.sources.map((source, index) => <>{index > 0 && " · "}<a class="crm-link" href={sourceUrl(source)} rel="noreferrer">{sourceLabel(source)}</a></>)}</p>
+        </li>)}
+      </ul>
+      {key === "revenue" && offers.length > 0 && <div class="crm-table-wrap"><table class="crm-table bm-offers">
+        <caption>{vi ? "Gói đang cấu hình trong CRM" : "Offers configured in the CRM"}</caption>
+        <thead><tr><th scope="col">{vi ? "Gói" : "Offer"}</th><th scope="col">{vi ? "Cách tính" : "Charge"}</th><th scope="col" class="num">{vi ? "Giá niêm yết" : "List price"}</th></tr></thead>
+        <tbody>{offers.map((offer) => <tr><td>{vi ? offer.name_vi : offer.name_en}{!offer.active && <> <span class="crm-badge">{vi ? "Ngừng" : "Inactive"}</span></>}</td><td>{label(lang, "charge", offer.charge_type)}</td><td class="num">{offer.list_price_vnd === null ? (vi ? "Theo phạm vi" : "Per scope") : vnd(offer.list_price_vnd)}</td></tr>)}</tbody>
+      </table></div>}
+      {key === "revenue" && live.offers.length > 0 && <p class="bm-live">{vi ? "Tiền giữ lại theo gói" : "Cash kept by offer"}: {live.offers.map((row) => `${offers.find((offer) => offer.offer_key === row.offer_key)?.[vi ? "name_vi" : "name_en"] ?? (row.offer_key || (vi ? "chưa có gói" : "no offer"))} ${vnd(row.net)} (${row.customers})`).join(" · ")}</p>}
+      {(liveLines[key] ?? []).map((line) => <p class="bm-live">{line}</p>)}
+    </section>)}
+  </section>
+
+  <section class="crm-sheet" aria-labelledby="bm-risks-h">
+    <h2 class="crm-h2" id="bm-risks-h">{vi ? "Giả định gánh cả mô hình" : "Load-bearing assumptions"}</h2>
+    <p class="crm-help">{vi ? "Nếu một giả định dưới đây sai, mô hình không đứng được. Mỗi giả định có phép thử rẻ nhất, ngưỡng đạt và điểm dừng đã ghi trong tài liệu." : "If one of these is false, the model does not stand. Each has the cheapest test, a pass threshold and a stop rule already written down."}</p>
+    <div class="crm-table-wrap"><table class="crm-table bm-risks">
+      <thead><tr><th scope="col">{vi ? "Giả định" : "Assumption"}</th><th scope="col">{vi ? "Phép thử rẻ nhất" : "Cheapest test"}</th><th scope="col">{vi ? "Đạt khi" : "Passes when"}</th><th scope="col">{vi ? "Dừng hoặc xem lại khi" : "Stop or review when"}</th></tr></thead>
+      <tbody>{canvas.assumptions.map((row) => <tr>
+        <th scope="row">{tx(row.belief)}<p class="bm-sources">{row.sources.map((source, index) => <>{index > 0 && " · "}<a class="crm-link" href={sourceUrl(source)} rel="noreferrer">{sourceLabel(source)}</a></>)}</p></th>
+        <td>{tx(row.test)}</td><td>{tx(row.pass)}</td><td>{tx(row.stop)}</td>
+      </tr>)}</tbody>
+    </table></div>
+  </section>
+
+  <section class="crm-sheet" aria-labelledby="bm-decisions-h">
+    <h2 class="crm-h2" id="bm-decisions-h">{vi ? "Quyết định đang chờ người sáng lập" : "Decisions waiting on the founder"}</h2>
+    <p class="crm-help">{vi ? "Các tài liệu đang nói khác nhau ở những điểm này. Khi chưa chốt, đội bán có thể hứa hai điều trái nhau." : "The sources disagree on these points. Until they are settled, the team can promise two different things."}</p>
+    <ol class="bm-decisions">{canvas.decisions.map((item) => <li>
+      <p>{tx(item)}</p>
+      <p class="bm-sources">{item.sources.map((source, index) => <>{index > 0 && " · "}<a class="crm-link" href={sourceUrl(source)} rel="noreferrer">{sourceLabel(source)}</a></>)}</p>
+    </li>)}</ol>
+  </section>
+
+  <p class="crm-help">{vi
+    ? `Nội dung đã đối chiếu với nguồn ngày ${formatDate(reviewedOn, lang)}; liên kết tới kho khác trỏ đúng commit đã đọc. Số liệu khách, tên và doanh thu không nằm trong mã nguồn; chúng chỉ hiển thị từ CRM. Sửa nội dung ở src/lib/crm/business-model.ts, cập nhật cả EN/VI.`
+    : `Statements checked against sources on ${formatDate(reviewedOn, lang)}; links to other repositories point at the exact commit read. Customer counts, names and revenue are not in source code; they are shown only from the CRM. Edit src/lib/crm/business-model.ts and update both EN and VI.`}</p>
+</CrmShell>
+<style>
+  .bm-switch { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-bottom: 18px; }
+  .bm-choice { display: flex; flex-direction: column; gap: .4rem; color: inherit; text-decoration: none; overflow-wrap: anywhere; }
+  .bm-choice strong { color: var(--crm-navy); font-size: 1.15rem; }
+  .bm-choice:hover, .bm-choice.is-current { border-color: var(--crm-blue); box-shadow: inset 0 3px 0 var(--crm-blue); }
+  .bm-choice:focus-visible { outline: 3px solid var(--crm-blue); outline-offset: 3px; }
+  .bm-legend { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  .bm-legend li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
+  .bm-legend strong { margin-left: auto; color: var(--crm-navy); }
+  /* Standard canvas layout on wide screens; DOM order is the reading order
+     (segments → value → channels → relationships → revenue → resources →
+     activities → partners → costs), which is also the mobile order. */
+  .bm-canvas { display: grid; gap: 12px; margin-top: 18px; grid-template-columns: minmax(0, 1fr); }
+  .bm-canvas > .crm-sheet + .crm-sheet { margin-top: 0; }
+  @media (min-width: 1100px) {
+    .bm-canvas {
+      grid-template-columns: repeat(10, minmax(0, 1fr));
+      grid-template-areas:
+        "title title title title title title title title title title"
+        "partners partners activities activities value value relationships relationships segments segments"
+        "partners partners resources resources value value channels channels segments segments"
+        "costs costs costs costs costs revenue revenue revenue revenue revenue";
+    }
+    .bm-canvas-title { grid-area: title; }
+    .bm-partners { grid-area: partners; } .bm-activities { grid-area: activities; } .bm-resources { grid-area: resources; }
+    .bm-value { grid-area: value; } .bm-relationships { grid-area: relationships; } .bm-channels { grid-area: channels; }
+    .bm-segments { grid-area: segments; } .bm-costs { grid-area: costs; } .bm-revenue { grid-area: revenue; }
+  }
+  .bm-block { padding: 16px; }
+  .bm-block-title { margin: 0 0 10px; color: var(--crm-navy); font-size: 17px; line-height: 1.3; }
+  .bm-items { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+  .bm-items li { min-width: 0; overflow-wrap: anywhere; }
+  .bm-items p { margin: 4px 0 0; }
+  .bm-sources { color: var(--crm-slate); font-size: var(--crm-meta); overflow-wrap: anywhere; }
+  .bm-live { margin: 12px 0 0; padding-top: 10px; border-top: 1px solid var(--crm-line-soft); color: var(--crm-navy); font-weight: 600; }
+  .bm-offers { margin-top: 12px; }
+  .bm-offers caption { text-align: left; color: var(--crm-slate); font-size: var(--crm-meta); padding-bottom: 4px; }
+  .bm-risks th[scope="row"] { font-weight: 600; color: var(--crm-navy); text-align: left; min-width: 14rem; }
+  .bm-decisions { margin: 0; padding-left: 1.25rem; display: grid; gap: 12px; }
+  .bm-decisions p { margin: 0; }
+  @media (max-width: 680px) { .bm-switch { grid-template-columns: minmax(0, 1fr); } }
+  @media (forced-colors: active) { .bm-choice.is-current { border: 3px solid Highlight; } }
+</style>
