@@ -19,13 +19,16 @@ const sharedStates=new Set<PerformanceState>(["published","responded","closed"])
 const live=(user:WorkspaceUser)=>{if(user.hrmEnabled!==true)throw new HrmError("hrm_closed",503)};
 export function performanceText(value:string,max:number,required=true):string{const result=value.trim();if(result.length>max||(required&&!result))throw new HrmError("invalid_field");return result}
 export function performanceDates(start:string,end:string,due:string):void{if(!date(start)||!date(end)||!date(due)||end<start||due<end)throw new HrmError("invalid_date")}
+const rolesFor=(permission:Permission)=>Object.entries(ROLE_PERMISSIONS).filter(([,permissions])=>permissions.includes(permission)).map(([role])=>role);
+const reviewerRoles=rolesFor("hrm.performance.review"),employeeRoles=rolesFor("hrm.performance.self");
+const marks=(roles:readonly string[])=>roles.map(()=>"?").join(",");
 function authority(db:D1Database,user:WorkspaceUser,permission:Permission):D1PreparedStatement[]{
  requirePermission(user,permission);live(user);const gate=guardBoolean(db,"EXISTS(SELECT 1 FROM hrm_settings WHERE id=1 AND enabled=1 AND reviewed_by IS NOT NULL)",[]);if(user.admin)return [gate];
- const roles=Object.entries(ROLE_PERMISSIONS).filter(([,permissions])=>permissions.includes(permission)).map(([role])=>role);
+ const roles=rolesFor(permission);
  return [gate,guardBoolean(db,`EXISTS(SELECT 1 FROM workspace_members m JOIN workspace_roles r ON r.user_id=m.user_id WHERE m.user_id=? AND m.enabled=1 AND r.role IN (${roles.map(()=>"?").join(",")}))`,[user.id,...roles])];
 }
 async function activeReviewer(contentDb:D1Database,userId:string):Promise<void>{if(!await contentDb.prepare("SELECT 1 FROM users WHERE id=? AND disabled=0").bind(userId).first())throw new HrmError("invalid_account",409)}
-const reviewerPredicate="EXISTS(SELECT 1 FROM workspace_members m JOIN workspace_roles r ON r.user_id=m.user_id WHERE m.user_id=? AND m.enabled=1 AND r.role IN ('people_manager','hrm_officer','hrm_admin'))";
+const reviewerPredicate=`EXISTS(SELECT 1 FROM workspace_members m JOIN workspace_roles r ON r.user_id=m.user_id WHERE m.user_id=? AND m.enabled=1 AND r.role IN (${marks(reviewerRoles)}))`;
 const selectReview=`SELECT r.*,p.user_id AS employee_user_id,p.employee_code,COALESCE(NULLIF(p.preferred_name,''),p.legal_name) AS display_name FROM hrm_performance_reviews r JOIN hrm_people p ON p.id=r.person_id`;
 export function employeePerformanceView(row:PerformanceReview,userId:string):PerformanceReview{
  if(row.employee_user_id!==userId||sharedStates.has(row.state))return row;
@@ -49,8 +52,8 @@ export async function listPerformanceReviews(db:D1Database,user:WorkspaceUser,mo
 export async function performanceOptions(db:D1Database,user:WorkspaceUser):Promise<{people:PerformancePerson[];reviewers:PerformanceReviewer[]}>{
  requirePermission(user,"hrm.performance.manage");live(user);
  const [people,reviewers]=await Promise.all([
-  db.prepare(`SELECT p.id,p.employee_code,COALESCE(NULLIF(p.preferred_name,''),p.legal_name) AS display_name,p.user_id,e.legal_entity FROM hrm_people p JOIN hrm_employments e ON e.person_id=p.id JOIN workspace_members m ON m.user_id=p.user_id AND m.enabled=1 JOIN workspace_roles role ON role.user_id=m.user_id AND role.role='employee' WHERE e.id=(SELECT e2.id FROM hrm_employments e2 WHERE e2.person_id=p.id ORDER BY CASE WHEN e2.status!='ended' THEN 0 ELSE 1 END,e2.started_on DESC,e2.created_at DESC LIMIT 1) AND e.status IN ('probation','active','notice') AND (e.started_on IS NULL OR e.started_on<=date('now','+7 hours')) AND (e.ended_on IS NULL OR e.ended_on>date('now','+7 hours')) ORDER BY p.employee_code LIMIT 500`).all<PerformancePerson>(),
-  db.prepare("SELECT DISTINCT m.user_id FROM workspace_members m JOIN workspace_roles r ON r.user_id=m.user_id WHERE m.enabled=1 AND r.role IN ('people_manager','hrm_officer','hrm_admin') ORDER BY m.user_id LIMIT 500").all<PerformanceReviewer>(),
+  db.prepare(`SELECT DISTINCT p.id,p.employee_code,COALESCE(NULLIF(p.preferred_name,''),p.legal_name) AS display_name,p.user_id,e.legal_entity FROM hrm_people p JOIN hrm_employments e ON e.person_id=p.id JOIN workspace_members m ON m.user_id=p.user_id AND m.enabled=1 JOIN workspace_roles role ON role.user_id=m.user_id AND role.role IN (${marks(employeeRoles)}) WHERE e.id=(SELECT e2.id FROM hrm_employments e2 WHERE e2.person_id=p.id ORDER BY CASE WHEN e2.status!='ended' THEN 0 ELSE 1 END,e2.started_on DESC,e2.created_at DESC LIMIT 1) AND e.status IN ('probation','active','notice') AND (e.started_on IS NULL OR e.started_on<=date('now','+7 hours')) AND (e.ended_on IS NULL OR e.ended_on>date('now','+7 hours')) ORDER BY p.employee_code LIMIT 500`).bind(...employeeRoles).all<PerformancePerson>(),
+  db.prepare(`SELECT DISTINCT m.user_id FROM workspace_members m JOIN workspace_roles r ON r.user_id=m.user_id WHERE m.enabled=1 AND r.role IN (${marks(reviewerRoles)}) ORDER BY m.user_id LIMIT 500`).bind(...reviewerRoles).all<PerformanceReviewer>(),
  ]);return {people:people.results,reviewers:reviewers.results};
 }
 export interface PerformanceInput {personId:string;cycleCode:string;title:string;periodStart:string;periodEnd:string;dueOn:string;reviewerId:string;objectives:string;evidenceInstructions:string}
@@ -62,9 +65,9 @@ export async function createPerformanceReview(db:D1Database,contentDb:D1Database
  if(!employee?.user_id)throw new HrmError("not_found",404);if((employee.started_on&&input.periodStart<employee.started_on)||(employee.ended_on&&input.periodEnd>=employee.ended_on))throw new HrmError("invalid_date");if(employee.user_id===user.id||employee.user_id===input.reviewerId)throw new HrmError("performance_self_review",403);
  const reviewId=id("hrmperf"),time=now();
  return command(db,user,key,"hrm_performance_create",payload,reviewId,[...guards,
-  guardBoolean(db,reviewerPredicate,[input.reviewerId]),
+  guardBoolean(db,reviewerPredicate,[input.reviewerId,...reviewerRoles]),
   guardBoolean(db,"EXISTS(SELECT 1 FROM hrm_settings WHERE id=1 AND legal_entity=?)",[employee.legal_entity]),
-  guardBoolean(db,"EXISTS(SELECT 1 FROM hrm_employments e JOIN hrm_people p ON p.id=e.person_id JOIN workspace_members m ON m.user_id=p.user_id AND m.enabled=1 JOIN workspace_roles r ON r.user_id=m.user_id AND r.role='employee' WHERE e.id=? AND e.version=? AND p.id=? AND p.user_id=? AND e.status IN ('probation','active','notice') AND (e.started_on IS NULL OR e.started_on<=date('now','+7 hours')) AND (e.ended_on IS NULL OR e.ended_on>date('now','+7 hours')))",[employee.id,employee.version,input.personId,employee.user_id]),
+  guardBoolean(db,`EXISTS(SELECT 1 FROM hrm_employments e JOIN hrm_people p ON p.id=e.person_id JOIN workspace_members m ON m.user_id=p.user_id AND m.enabled=1 JOIN workspace_roles r ON r.user_id=m.user_id AND r.role IN (${marks(employeeRoles)}) WHERE e.id=? AND e.version=? AND p.id=? AND p.user_id=? AND e.status IN ('probation','active','notice') AND (e.started_on IS NULL OR e.started_on<=date('now','+7 hours')) AND (e.ended_on IS NULL OR e.ended_on>date('now','+7 hours')))`,[...employeeRoles,employee.id,employee.version,input.personId,employee.user_id]),
  ],[
   db.prepare(`INSERT INTO hrm_performance_reviews(id,person_id,employment_id,legal_entity,cycle_code,title,period_start,period_end,due_on,reviewer_user_id,objectives,evidence_instructions,created_by,created_at,actor_id,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(reviewId,input.personId,employee.id,employee.legal_entity,payload.cycleCode,payload.title,input.periodStart,input.periodEnd,input.dueOn,input.reviewerId,payload.objectives,payload.evidenceInstructions,user.id,time,user.id,time),
   db.prepare("INSERT INTO hrm_performance_events(review_id,event_type,visibility,revision,snapshot_json,actor_id,created_at) VALUES(?,'created','shared',1,?, ?,?)").bind(reviewId,JSON.stringify(payload),user.id,time),
@@ -105,7 +108,7 @@ export async function actOnPerformanceReview(db:D1Database,contentDb:D1Database,
   }else throw new HrmError("invalid_action",400);
  }
  const guards=authority(db,user,permission);
- if(action==="reassign"){await activeReviewer(contentDb,input.reviewerId!);guards.push(guardBoolean(db,reviewerPredicate,[input.reviewerId!]));}
+ if(action==="reassign"){await activeReviewer(contentDb,input.reviewerId!);guards.push(guardBoolean(db,reviewerPredicate,[input.reviewerId!,...reviewerRoles]));}
  guards.push(guardBoolean(db,"EXISTS(SELECT 1 FROM hrm_settings WHERE id=1 AND legal_entity=?)",[row.legal_entity]));
  guards.push(guardBoolean(db,"EXISTS(SELECT 1 FROM hrm_performance_reviews r JOIN hrm_people p ON p.id=r.person_id WHERE r.id=? AND r.revision=? AND r.state=? AND r.reviewer_user_id=? AND p.user_id IS ?)",[row.id,input.revision,row.state,row.reviewer_user_id,row.employee_user_id]));
  const patch={...fields,state,revision:input.revision+1,actor_id:user.id,updated_at:time},keys=Object.keys(patch),payload={...input};
