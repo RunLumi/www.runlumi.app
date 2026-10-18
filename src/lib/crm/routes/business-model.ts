@@ -15,8 +15,9 @@ export interface BusinessModelProps {
 export async function businessModelRoute(astro: AstroGlobal, lang: Lang): Promise<BusinessModelProps | Response> {
   const ctx = await context(astro, lang);
   if (ctx instanceof Response) return ctx;
-  // Company economics: the same audience as cohort economics on Reports.
-  if (!ctx.actor.manager && !ctx.actor.finance) return forbidden(lang);
+  // Owner decision 2026-10-18: only the Sales Manager and System Super Admin
+  // may read the business model; Finance and sellers may not.
+  if (!ctx.actor.manager) return forbidden(lang);
   const canvas = canvasFor(astro.url.searchParams.get("model"));
   const [evidence, offers, playbooks] = await Promise.all([loadEvidence(ctx.db), latestOffers(ctx.db), latestPlaybooks(ctx.db)]);
   const sold = new Set(playbooks.filter((playbook) => canvas.playbooks.includes(playbook.playbook_key)).flatMap((playbook) => playbook.def.offers));

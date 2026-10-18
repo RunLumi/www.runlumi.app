@@ -2,9 +2,10 @@
 
 `/crm/model` and `/vi/crm/model` show one business model canvas per sales
 motion: **Lumi Local** and **Lumi Agents, BI and Vaults**. They are private,
-server-rendered and read-only. Admins, Sales Managers and Finance can open
-them; the same audience sees cohort economics on Reports. Sales Executives,
-Partners, Fulfillment and HR get 403, and the menu hides the link from them.
+server-rendered and read-only. Only the Sales Manager and the System Super
+Admin can open them (owner decision, 18 October 2026). Finance, Sales
+Executives, Partners, Fulfillment and HR get 403, and the menu hides the link
+from them.
 
 ## What the page is for
 

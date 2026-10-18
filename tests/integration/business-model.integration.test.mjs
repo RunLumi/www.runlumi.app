@@ -6,7 +6,7 @@ import { adminSession, userSession, Session, jobs, q } from "./helpers.mjs";
 const run = Date.now().toString(36);
 const figure = (html, name) => Number(new RegExp(`data-figure="${name}" data-value="(-?\\d+)"`).exec(html)?.[1]);
 
-test("business model: company economics only for team-wide roles and Finance, with ledger-backed figures", async (t) => {
+test("business model: only the Sales Manager and Super Admin, with ledger-backed figures", async (t) => {
   const admin = await adminSession();
   const make = async (slug, roles) => {
     const session = await userSession(admin, { email: `bm-${slug}-${run}@example.test`, name: `TEST BM ${slug} ${run}` });
@@ -25,12 +25,12 @@ test("business model: company economics only for team-wide roles and Finance, wi
       const unauth = await anonymous.get(root);
       assert.ok([302, 303, 401, 403].includes(unauth.status), `anonymous status ${unauth.status}`);
       assert.doesNotMatch(unauth.html, /data-canvas=/);
-      for (const session of [outsider, seller, partner]) {
+      for (const session of [outsider, seller, partner, finance]) {
         const page = await session.get(root);
         assert.equal(page.status, 403, `${session.email} must not read company economics`);
         assert.doesNotMatch(page.html, /data-canvas=/);
       }
-      for (const session of [manager, finance]) {
+      for (const session of [manager, admin]) {
         const page = await session.get(root);
         assert.equal(page.status, 200);
         assert.match(page.headers.get("cache-control") ?? "", /no-store/);
@@ -45,7 +45,8 @@ test("business model: company economics only for team-wide roles and Finance, wi
 
   await t.test("menus list the page only for people who may open it", async () => {
     assert.match((await manager.get("/crm")).html, /href="\/crm\/model"/);
-    assert.match((await finance.get("/vi/crm")).html, /href="\/vi\/crm\/model"/);
+    assert.match((await admin.get("/vi/crm")).html, /href="\/vi\/crm\/model"/);
+    assert.doesNotMatch((await finance.get("/crm")).html, /href="\/crm\/model"/);
     assert.doesNotMatch((await seller.get("/crm")).html, /href="\/crm\/model"/);
   });
 
@@ -70,7 +71,7 @@ test("business model: company economics only for team-wide roles and Finance, wi
     assert.equal(figure(pending.html, "paying"), paying, "a reported payment is not cash");
     assert.equal(figure(pending.html, "cash"), cash);
     ledger("confirmed", "payment", "confirmed");
-    const after = await finance.get("/crm/model");
+    const after = await admin.get("/crm/model");
     assert.equal(figure(after.html, "paying"), paying + 1);
     assert.equal(figure(after.html, "cash"), cash + 1990000);
     assert.ok(!after.html.includes(secret), "aggregates only: no company or deal names");

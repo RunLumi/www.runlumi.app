@@ -159,7 +159,7 @@ Hoa hồng của bạn hiện ở trang *Hoa hồng* sau khi admin khai báo lo�
 - **Chi trả:** tài chính chi ngoài CRM, rồi ghi nhận lại theo bảng kê.
 - **Chi tiết:** xem [COMMISSION.md](COMMISSION.md).
 
-## Mô hình kinh doanh (Admin, Quản lý bán hàng, Tài chính)
+## Mô hình kinh doanh (chỉ Quản lý bán hàng và Siêu quản trị)
 
 - Mở *Kết quả → Mô hình kinh doanh* (`/vi/crm/model`). Có hai mô hình theo đúng hai quy trình bán: Lumi Local, và Lumi Agents, BI, Vaults.
 - **Mỗi ý có nhãn căn cứ:** Đã quan sát, Đã quyết, Có giá, Giả thuyết hoặc Chưa biết, kèm liên kết tới đúng dòng trong tài liệu gốc.
