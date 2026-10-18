@@ -122,3 +122,11 @@ Worker Cron hằng ngày chạy lúc 08:40 giờ Việt Nam. Daily và weekly th
 ## Kiểm chứng tích hợp bằng dữ liệu giả
 
 Chạy `npm run test:integration:hrm` để chạy lần lượt P1/P2, P3, P4 và P5 trên cùng một Worker/D1/R2 cục bộ dùng một lần. Các lệnh `:p1`, `:p3`, `:p4` và `:p5` chỉ chọn một pha. Đặt `HRM_BROWSER_BINARY` tới Chrome đã cài và `HRM_BROWSER_ARTIFACT_DIR` tới thư mục tạm riêng tư để chạy kiểm tra trình duyệt EN/VI; nếu thiếu binary, integration đạt không chứng minh hành vi trên trình duyệt. Giữ kết quả TAP từng pha và ảnh chụp cùng nhau. Một lần chạy kết hợp đạt chỉ chứng minh các assertion đã triển khai, chưa bao phủ mọi tổ hợp vai trò/trạng thái hay tính sẵn sàng production.
+
+## Phiếu lương và bản tải riêng tư
+
+Khi owner mở HRM, vào **HRM → Phiếu lương của tôi** (`/vi/hrm/me/payslips`, hoặc `/hrm/me/payslips`). Liên kết tải dùng ngôn ngữ của trang; người phụ trách payroll có liên kết tương ứng trên bàn làm việc payroll. Hai bản đều lấy dữ liệu từ snapshot đã phát hành, gồm tên từng khoản, loại tiền và số chữ số thập phân đã lưu. Trang và bản tải tiếng Việt dùng dấu phân cách số tiếng Việt, không tính lại hay làm tròn số tiền đã ghi nhận.
+
+Snapshot cũ có thể chưa lưu tên tiếng Việt. Bản tải giữ nguyên tên gốc và hiện thông báo; sửa chính sách hiện tại không viết lại phiếu đã phát hành. Bản điều chỉnh vẫn là lần phát hành riêng có liên kết. Xem hoặc tải phiếu không đồng nghĩa đồng ý số tiền hay xác nhận đã trả lương. Nhân viên chỉ tải được phiếu của mình; nhân sự xử lý payroll vẫn cần quyền payroll tương ứng.
+
+Tệp đính kèm là bản HTML được trả như dữ liệu tải xuống, có header ngôn ngữ, header riêng tư/no-store và không kèm giao diện biên tập CMS. Tệp cũng có chính sách nội dung hạn chế và nền sáng rõ ràng để đọc khi mở bản đã lưu. Bản tải chứa thông tin lương: lưu trong nơi riêng tư được phê duyệt và tuân theo chính sách lưu trữ đã được tổ chức rà soát; không công khai. Hướng dẫn này không mở payroll hay xác nhận chính sách tính lương đã được duyệt.

@@ -100,30 +100,34 @@ export async function startHrmBrowserQa({ baseUrl, binary, artifactDir = join(tm
     return response.result?.value;
   }
 
-  async function navigate(path, cookies) {
+  async function navigate(path, cookies, downloadedHtml) {
     for (const [name, value] of cookies) {
       const result = await send("Network.setCookie", { name, value, url: baseUrl, sameSite: "Lax" }, sessionId);
       assert.equal(result.success, true, "synthetic EmDash session cookie is installed in the isolated browser");
     }
-    const expectedUrl = new URL(path, baseUrl).href;
+    const expectedUrl = downloadedHtml === undefined ? new URL(path, baseUrl).href : "about:blank";
     await send("Page.navigate", { url: expectedUrl }, sessionId);
     for (let attempt = 0; attempt < 100; attempt++) {
       const state = await evaluate("({ ready: document.readyState, url: location.href })");
-      if (state.ready === "complete" && state.url === expectedUrl) return;
+      if (state.ready === "complete" && state.url === expectedUrl) {
+        if(downloadedHtml!==undefined){const {frameTree}=await send("Page.getFrameTree",{},sessionId);await send("Page.setDocumentContent",{frameId:frameTree.frame.id,html:downloadedHtml},sessionId)}
+        return;
+      }
       await new Promise(resolve => setTimeout(resolve, 100));
     }
     throw new Error(`Browser navigation did not finish: ${path}`);
   }
 
   return {
-    async auditPage(userSession, path, { expectedText, artifactName, formsRequired = true, widths = [320, 430, 1280] }) {
-      const cookies = [...userSession.cookies.entries()];
+    async auditPage(userSession, path, { expectedText, artifactName, formsRequired = true, widths = [320, 430, 1280], downloadedHtml }) {
+      assert.ok(downloadedHtml!==undefined||userSession?.cookies,"page audits require the intended synthetic actor session");
+      const cookies = downloadedHtml===undefined ? [...userSession.cookies.entries()] : [];
       await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] }, sessionId);
       await send("Emulation.setScriptExecutionDisabled", { value: true }, sessionId);
       for (const width of widths) {
         await send("Emulation.setDeviceMetricsOverride", { width, height: 900, screenWidth: width, screenHeight: 900, deviceScaleFactor: 1, mobile: false }, sessionId);
-        await navigate(path, cookies);
-        const state = await evaluate(`(() => ({ width: innerWidth, outer: outerWidth, screen: screen.width, visual: visualViewport.width, client: document.documentElement.clientWidth, documentWidth: document.documentElement.scrollWidth, bodyWidth: document.body.scrollWidth, text: document.body.innerText, reduce: matchMedia('(prefers-reduced-motion: reduce)').matches, forms: [...document.forms].map(form => form.method) }))()`);
+        await navigate(path, cookies, downloadedHtml);
+        const state = await evaluate(`(() => ({ width: innerWidth, outer: outerWidth, screen: screen.width, visual: visualViewport.width, client: document.documentElement.clientWidth, documentWidth: document.documentElement.scrollWidth, bodyWidth: document.body.scrollWidth, text: document.body.innerText, foreground: getComputedStyle(document.body).color, background: getComputedStyle(document.body).backgroundColor, editorToolbar: !!document.getElementById("emdash-toolbar"), reduce: matchMedia('(prefers-reduced-motion: reduce)').matches, forms: [...document.forms].map(form => form.method) }))()`);
         const screenshot = await send("Page.captureScreenshot", { format: "png", fromSurface: true }, sessionId);
         await writeFile(join(artifactDir, `${artifactName}-${width}.png`), Buffer.from(screenshot.data, "base64"));
         console.log("HRM browser viewport:",JSON.stringify({requested:width,width:state.width,outer:state.outer,screen:state.screen,visual:state.visual,client:state.client,documentWidth:state.documentWidth,bodyWidth:state.bodyWidth,reduce:state.reduce,formCount:state.forms.length}));
@@ -132,12 +136,18 @@ export async function startHrmBrowserQa({ baseUrl, binary, artifactDir = join(tm
         assert.ok(state.documentWidth <= width && state.bodyWidth <= width, `no horizontal page overflow at ${width}px (document=${state.documentWidth}, body=${state.bodyWidth}, diagnosis=${JSON.stringify(overflowNodes)})`);
         assert.ok(state.text.includes(expectedText), `server-rendered content remains available with page JavaScript disabled at ${width}px`);
         assert.equal(state.reduce, true, "reduced-motion preference is emulated");
+        if(downloadedHtml!==undefined){
+          const rgb=value=>{const values=value.match(/[\d.]+/g).map(Number);assert.ok(values.length===3||values.length===4);assert.equal(values[3]??1,1,"download text and background are opaque");return values.slice(0,3)};
+          const luminance=value=>rgb(value).map(c=>{const x=c/255;return x<=0.04045?x/12.92:((x+0.055)/1.055)**2.4}).reduce((sum,c,i)=>sum+c*[0.2126,0.7152,0.0722][i],0);
+          const a=luminance(state.foreground),b=luminance(state.background),ratio=(Math.max(a,b)+0.05)/(Math.min(a,b)+0.05);assert.ok(ratio>=4.5,`download body contrast is at least 4.5:1, actual ${ratio}`);assert.equal(state.editorToolbar,false,"downloaded payslips contain no CMS editor UI");
+        }
+
         if (width === 320 && formsRequired) assert.ok(state.forms.length > 0, "native forms are present without client JavaScript");
       }
 
-      await send("Emulation.setScriptExecutionDisabled", { value: false }, sessionId);
+      await send("Emulation.setScriptExecutionDisabled", { value: downloadedHtml !== undefined }, sessionId);
       await send("Emulation.setDeviceMetricsOverride", { width: 1280, height: 900, screenWidth: 1280, screenHeight: 900, deviceScaleFactor: 1, mobile: false }, sessionId);
-      await navigate(path, cookies);
+      await navigate(path, cookies, downloadedHtml);
       await send("Input.dispatchKeyEvent", { type: "keyDown", key: "Tab", code: "Tab", windowsVirtualKeyCode: 9 }, sessionId);
       await send("Input.dispatchKeyEvent", { type: "keyUp", key: "Tab", code: "Tab", windowsVirtualKeyCode: 9 }, sessionId);
       const focus = await evaluate("(() => { const e = document.activeElement; const s = getComputedStyle(e); return { tag: e?.tagName, visible: e?.matches(':focus-visible'), outline: s.outlineStyle, outlineWidth: s.outlineWidth }; })()");
@@ -146,7 +156,7 @@ export async function startHrmBrowserQa({ baseUrl, binary, artifactDir = join(tm
       assert.notEqual(focus.outlineWidth, "0px", "keyboard focus has a non-zero outline");
       const accessibility = await send("Accessibility.getFullAXTree", {}, sessionId);
       assert.ok(accessibility.nodes.some(node => node.role?.value === "RootWebArea"), "Chrome exposes an accessibility document tree");
-      return { widths, noJavaScript: true, reducedMotion: true, keyboardFocus: focus.tag, screenshots: artifactDir };
+      return { widths, noJavaScript: true, reducedMotion: true, keyboardFocus: focus.tag, screenshots: artifactDir, ...(downloadedHtml !== undefined ? {documentSource:"actual-http-download"} : {}) };
     },
     async close() {
       cdp?.close();
