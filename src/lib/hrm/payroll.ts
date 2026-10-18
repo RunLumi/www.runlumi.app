@@ -575,23 +575,29 @@ export async function listPayrollPaymentsForRun(db: D1Database, user: WorkspaceU
   return payments;
 }
 
-export function renderPayrollSlipHtml(snapshotJson: string): string {
-  const snapshot = JSON.parse(snapshotJson) as { policy: { title_en: string; legal_entity: string; currency: string; minor_unit_scale: number }; period_key: string; starts_on: string; ends_on: string; employee_code: string; display_name: string; correction_of_payslip_id: string | null; lines: Array<{ title_en: string; direction: string; amount_minor: number; source_reference: string }>; gross_minor: number; deductions_minor: number; net_minor: number };
+export type PayrollSlipLanguage = "en" | "vi";
+export function payrollSlipLanguage(value: string | null): PayrollSlipLanguage {
+  if (value === null || value === "en") return "en";
+  if (value === "vi") return "vi";
+  throw new HrmError("payroll_language_invalid", 400);
+}
+
+export function renderPayrollSlipHtml(snapshotJson: string, language: PayrollSlipLanguage = "en"): string {
+  const snapshot = JSON.parse(snapshotJson) as { policy: { title_en: string; title_vi?: string; legal_entity: string; currency: string; minor_unit_scale: number }; period_key: string; starts_on: string; ends_on: string; employee_code: string; display_name: string; correction_of_payslip_id: string | null; lines: Array<{ title_en: string; title_vi?: string; direction: string; amount_minor: number }>; gross_minor: number; deductions_minor: number; net_minor: number };
+  const vi = language === "vi", label = (en: string, translated: string) => vi ? translated : en;
   const esc = (value: unknown) => String(value ?? "").replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]!));
-  const amount = (minor: number) => {
-    const value = BigInt(minor), divisor = 10n ** BigInt(snapshot.policy.minor_unit_scale), whole = value / divisor;
-    const fraction = value % divisor;
-    return `${esc(snapshot.policy.currency)} ${whole.toLocaleString("en-US")}${snapshot.policy.minor_unit_scale ? `.${fraction.toString().padStart(snapshot.policy.minor_unit_scale, "0")}` : ""}`;
-  };
-  const rows = snapshot.lines.map(line => `<tr><td>${esc(line.title_en)}</td><td>${line.direction === "deduction" ? "Deduction" : "Earning"}</td><td>${amount(line.amount_minor)}</td></tr>`).join("");
-  return `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Payslip ${esc(snapshot.period_key)}</title><style>body{font:16px/1.5 system-ui,sans-serif;max-width:760px;margin:3rem auto;padding:0 1rem;color:#182126}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:.65rem;border-bottom:1px solid #d9e0e2}.total{font-weight:700}</style><main><h1>Payslip</h1><p>${esc(snapshot.policy.title_en)} · ${esc(snapshot.policy.legal_entity)}</p><dl><dt>Employee</dt><dd>${esc(snapshot.display_name)} · ${esc(snapshot.employee_code)}</dd><dt>Pay period</dt><dd>${esc(snapshot.period_key)} (${esc(snapshot.starts_on)} – ${esc(snapshot.ends_on)})</dd><dt>Currency</dt><dd>${esc(snapshot.policy.currency)}</dd>${snapshot.correction_of_payslip_id ? `<dt>Correction of</dt><dd>${esc(snapshot.correction_of_payslip_id)}</dd>` : ""}</dl><table><thead><tr><th>Component</th><th>Type</th><th>Amount</th></tr></thead><tbody>${rows}</tbody></table><p>Gross: ${amount(snapshot.gross_minor)}</p><p>Deductions: ${amount(snapshot.deductions_minor)}</p><p class="total">Net: ${amount(snapshot.net_minor)}</p><p>This payslip records an issued statement. It does not confirm payment or acceptance.</p></main></html>`;
+  const title = (value: { title_en: string; title_vi?: string }) => esc(vi && value.title_vi?.trim() ? value.title_vi : value.title_en);
+  const amount = (minor: number) => formatPayrollMoney(minor, snapshot.policy.currency, snapshot.policy.minor_unit_scale, language);
+  const fallback = vi && [snapshot.policy, ...snapshot.lines].some(value => !value.title_vi?.trim());
+  const rows = snapshot.lines.map(line => `<tr><td>${title(line)}</td><td>${line.direction === "deduction" ? label("Deduction", "Khấu trừ") : label("Earning", "Thu nhập")}</td><td class="amount">${amount(line.amount_minor)}</td></tr>`).join("");
+  return `<!doctype html><html lang="${language}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><meta name="color-scheme" content="light"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"><title>${label("Payslip", "Phiếu lương")} ${esc(snapshot.period_key)}</title><style>html{color-scheme:light;background:#fff}body{background:#fff;font:16px/1.5 system-ui,sans-serif;max-width:760px;margin:3rem auto;padding:0 1rem;color:#182126;overflow-wrap:anywhere}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:.65rem;border-bottom:1px solid #d9e0e2}.amount{white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums}.table-scroll{max-width:100%;overflow-x:auto}.table-scroll:focus-visible{outline:2px solid #0068a0;outline-offset:3px}.total{font-weight:700}@media(max-width:480px){body{margin:1rem auto}}@media print{.table-scroll{overflow:visible}}</style></head><body><main><h1>${label("Payslip", "Phiếu lương")}</h1><p>${title(snapshot.policy)} · ${esc(snapshot.policy.legal_entity)}</p>${fallback ? '<p role="note">Một số mục trong snapshot đã phát hành chưa có tiếng Việt; nội dung gốc được giữ nguyên.</p>' : ""}<dl><dt>${label("Employee", "Nhân viên")}</dt><dd>${esc(snapshot.display_name)} · ${esc(snapshot.employee_code)}</dd><dt>${label("Pay period", "Kỳ lương")}</dt><dd>${esc(snapshot.period_key)} (${esc(snapshot.starts_on)} – ${esc(snapshot.ends_on)})</dd><dt>${label("Currency", "Loại tiền")}</dt><dd>${esc(snapshot.policy.currency)}</dd>${snapshot.correction_of_payslip_id ? `<dt>${label("Correction of", "Điều chỉnh cho phiếu")}</dt><dd>${esc(snapshot.correction_of_payslip_id)}</dd>` : ""}</dl><div class="table-scroll" tabindex="0" role="region" aria-label="${label("Payroll components", "Các khoản trên phiếu lương")}"><table><thead><tr><th scope="col">${label("Component", "Khoản lương")}</th><th scope="col">${label("Type", "Loại")}</th><th scope="col" class="amount">${label("Amount", "Số tiền")}</th></tr></thead><tbody>${rows}</tbody></table></div><p>${label("Gross", "Tổng thu nhập")}: ${amount(snapshot.gross_minor)}</p><p>${label("Deductions", "Tổng khấu trừ")}: ${amount(snapshot.deductions_minor)}</p><p class="total">${label("Net", "Thực nhận")}: ${amount(snapshot.net_minor)}</p><p>${label("This payslip records an issued statement. It does not confirm payment or acceptance.", "Phiếu lương này ghi nhận bản đã phát hành. Phiếu không xác nhận đã trả lương hoặc nhân viên đồng ý số tiền.")}</p></main></body></html>`;
 }
 
 /** Format integer minor units without converting financial values to binary floating point. */
-export function formatPayrollMoney(amount: number, currency: string, scale: number): string {
+export function formatPayrollMoney(amount: number, currency: string, scale: number, language: PayrollSlipLanguage = "en"): string {
   if (!Number.isSafeInteger(amount) || amount < 0 || !/^[A-Z]{3}$/.test(currency) || !Number.isInteger(scale) || scale < 0 || scale > 3) throw new HrmError("payroll_amount_invalid");
   const value = BigInt(amount), divisor = 10n ** BigInt(scale), whole = value / divisor, fraction = value % divisor;
-  return `${currency} ${whole.toLocaleString("en-US")}${scale ? `.${fraction.toString().padStart(scale, "0")}` : ""}`;
+  return `${currency} ${whole.toLocaleString(language === "vi" ? "vi-VN" : "en-US")}${scale ? `${language === "vi" ? "," : "."}${fraction.toString().padStart(scale, "0")}` : ""}`;
 }
 
 export function payrollFeatureStatus(user: WorkspaceUser) {

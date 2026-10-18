@@ -122,3 +122,11 @@ The daily Worker Cron runs at 08:40 Vietnam time. Daily and Monday-weekly captur
 ## Synthetic integration verification
 
 Run `npm run test:integration:hrm` for P1/P2, P3, P4 and P5 serially against one disposable local Worker/D1/R2 deployment. The `:p1`, `:p3`, `:p4` and `:p5` commands select one phase only. Set `HRM_BROWSER_BINARY` to an installed Chrome binary and `HRM_BROWSER_ARTIFACT_DIR` to a private temporary directory to include EN/VI browser audits; without the binary, a passing integration run does not prove browser behavior. Keep the final TAP phase results and screenshots together. A combined pass covers the implemented assertions, not every role/state combination or production readiness.
+
+## Employee payslip copies
+
+When the owner enables HRM, open **HRM → My payslips** (`/hrm/me/payslips`, or `/vi/hrm/me/payslips`). The download link uses the page language; payroll staff use the equivalent link on the payroll desk. Both copies use the issued snapshot, including its saved component titles, currency and minor-unit scale. Vietnamese copies and the Vietnamese pages use Vietnamese number separators without recalculating or rounding the stored amounts.
+
+An older snapshot may lack Vietnamese titles. Its copy retains the original titles and displays a notice; changing the current policy does not rewrite an issued statement. A correction remains a separate, linked publication. Opening or downloading a copy does not acknowledge its amounts or confirm payment. Employees can download only their own statements; staff still need the payroll capability.
+
+The attachment is an HTML file delivered as downloadable bytes, with a language header, private/no-store headers and no CMS editor UI. The file also carries its own restrictive content policy and explicit light palette for offline viewing. It contains salary data: keep downloaded copies in approved private storage and follow the organization's reviewed retention policy; do not publish them. This does not activate payroll or establish payroll-policy approval.
