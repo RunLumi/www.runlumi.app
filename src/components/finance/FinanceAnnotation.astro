@@ -1,0 +1,17 @@
+---
+import type { FinancePageData } from "./types";
+import CommandFields from "./CommandFields.astro";
+import { financeLink, inputValue, lineLabel, selectedContext, selectedPlan, selectedRevision } from "./ui";
+interface Props { data: FinancePageData }
+const { data } = Astro.props, vi = data.lang === "vi", revision = selectedRevision(data), plan = selectedPlan(data), context = selectedContext(data, "actual");
+const baseline = plan?.baseline && plan.state === "published" ? plan : undefined;
+---
+<details class="fn-disclosure fn-no-print" open={data.submitted?.intent === "annotation.add"}>
+  <summary>{vi ? "Thêm giải trình cho kỳ này" : "Add a period explanation"}</summary>
+  <div class="fn-disclosure-body"><p class="fn-help">{vi ? "Giải trình được lưu nối tiếp trong lịch sử, gắn với kỳ và phiên bản đang xem. Số liệu đã chốt không thay đổi." : "Explanations are appended to the audit trail and pinned to this period and revision. Closed figures stay unchanged."}</p>
+    {revision || baseline ? <form method="post"><CommandFields intent="annotation.add" fields={{ period: data.period, actual_revision_id: revision?.id, baseline_id: baseline?.id }} />
+      <div class="fn-form-grid"><div class="fn-field"><label for="annotation-line">{vi ? "Khoản mục liên quan" : "Related line"}</label><select class="fn-select" id="annotation-line" name="line_code"><option value="">{vi ? "Toàn kỳ báo cáo" : "Whole reporting period"}</option>{context.lines.map(line => <option value={line.code} selected={inputValue(data, "line_code") === line.code}>{lineLabel(line, vi)}</option>)}</select></div><div class="fn-field"><label for="annotation-segment">{vi ? "Phân khúc liên quan" : "Related segment"}</label><select class="fn-select" id="annotation-segment" name="segment_code"><option value="">{vi ? "Toàn bộ" : "All"}</option>{context.segments.map(segment => <option value={segment.code} selected={inputValue(data, "segment_code") === segment.code}>{vi ? segment.labelVi : segment.labelEn}</option>)}</select></div><div class="fn-field wide"><label for="annotation-cause">{vi ? "Nguyên nhân / nội dung giải trình" : "Cause / explanation"}</label><textarea class="fn-textarea" id="annotation-cause" name="cause" maxlength="2000" required>{inputValue(data, "cause")}</textarea></div><div class="fn-field"><label for="annotation-action">{vi ? "Hành động tiếp theo" : "Next action"}</label><textarea class="fn-textarea" id="annotation-action" name="next_action" maxlength="2000" rows="2">{inputValue(data, "next_action")}</textarea></div><div class="fn-field"><label for="annotation-review">{vi ? "Ghi chú xem xét" : "Review note"}</label><textarea class="fn-textarea" id="annotation-review" name="review" maxlength="2000" rows="2">{inputValue(data, "review")}</textarea></div></div>
+      <div class="fn-form-actions"><button class="fn-button secondary" type="submit">{vi ? "Lưu giải trình" : "Save explanation"}</button></div>
+    </form> : <p class="fn-help">{vi ? "Chọn phiên bản thực tế hoặc kế hoạch gốc đã công bố trước khi thêm giải trình." : "Choose an actual revision or a published baseline before adding an explanation."} <a class="fn-link" href={financeLink(data, "actuals")}>{vi ? "Mở số thực tế tháng" : "Open monthly actuals"}</a></p>}
+  </div>
+</details>

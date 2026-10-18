@@ -116,11 +116,11 @@ export async function startHrmBrowserQa({ baseUrl, binary, artifactDir = join(tm
   }
 
   return {
-    async auditPage(userSession, path, { expectedText, artifactName, formsRequired = true }) {
+    async auditPage(userSession, path, { expectedText, artifactName, formsRequired = true, widths = [320, 430, 1280] }) {
       const cookies = [...userSession.cookies.entries()];
       await send("Emulation.setEmulatedMedia", { features: [{ name: "prefers-reduced-motion", value: "reduce" }] }, sessionId);
       await send("Emulation.setScriptExecutionDisabled", { value: true }, sessionId);
-      for (const width of [320, 430, 1280]) {
+      for (const width of widths) {
         await send("Emulation.setDeviceMetricsOverride", { width, height: 900, screenWidth: width, screenHeight: 900, deviceScaleFactor: 1, mobile: false }, sessionId);
         await navigate(path, cookies);
         const state = await evaluate(`(() => ({ width: innerWidth, outer: outerWidth, screen: screen.width, visual: visualViewport.width, client: document.documentElement.clientWidth, documentWidth: document.documentElement.scrollWidth, bodyWidth: document.body.scrollWidth, text: document.body.innerText, reduce: matchMedia('(prefers-reduced-motion: reduce)').matches, forms: [...document.forms].map(form => form.method) }))()`);
@@ -146,7 +146,7 @@ export async function startHrmBrowserQa({ baseUrl, binary, artifactDir = join(tm
       assert.notEqual(focus.outlineWidth, "0px", "keyboard focus has a non-zero outline");
       const accessibility = await send("Accessibility.getFullAXTree", {}, sessionId);
       assert.ok(accessibility.nodes.some(node => node.role?.value === "RootWebArea"), "Chrome exposes an accessibility document tree");
-      return { widths: [320, 430, 1280], noJavaScript: true, reducedMotion: true, keyboardFocus: focus.tag, screenshots: artifactDir };
+      return { widths, noJavaScript: true, reducedMotion: true, keyboardFocus: focus.tag, screenshots: artifactDir };
     },
     async close() {
       cdp?.close();

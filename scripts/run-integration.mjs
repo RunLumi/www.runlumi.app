@@ -35,6 +35,7 @@ const env = {
   LUMI_PERSIST_TO: persist,
   CRM_BASE_URL: base,
   HRM_LIVE_ENABLED: "true",
+  FINANCE_LIVE_ENABLED: "true",
   ASTRO_DEV_BACKGROUND: "0",
   CRM_INTAKE_SECRET: "local-test-secret-not-for-production-0123456789",
   WRANGLER_SEND_METRICS: "false",
@@ -58,7 +59,7 @@ try {
 
   await writeFile(
     devVarsPath,
-    "HRM_LIVE_ENABLED=true\nCRM_INTAKE_SECRET=local-test-secret-not-for-production-0123456789\n",
+    "HRM_LIVE_ENABLED=true\nFINANCE_LIVE_ENABLED=true\nCRM_INTAKE_SECRET=local-test-secret-not-for-production-0123456789\n",
     { flag: "wx", mode: 0o600 },
   );
   localVars = true;
@@ -97,7 +98,7 @@ try {
     ["--test", "--test-concurrency=1", ...suites],
     { cwd: root, env, stdio: "inherit", timeout: integrationTimeoutMs, killSignal: "SIGTERM" },
   );
-  const regressions=["crm","workspace","directory","api","dashboard","files","sales-process","business-model"].map(name=>`tests/integration/${name}.integration.test.mjs`);
+  const regressions=["crm","workspace","directory","api","dashboard","files","sales-process","business-model","finance"].map(name=>`tests/integration/${name}.integration.test.mjs`);
   const isolatedSuites={
     hrm:["tests/integration/hrm.integration.test.mjs"],
     "hrm-p1":["tests/integration/hrm.integration.test.mjs"],
@@ -112,9 +113,10 @@ try {
     files:["tests/integration/files.integration.test.mjs"],
     "sales-process":["tests/integration/sales-process.integration.test.mjs"],
     "business-model":["tests/integration/business-model.integration.test.mjs"],
+    finance:["tests/integration/finance.integration.test.mjs"],
   };
   const requestedScope=process.env.RUNLUMI_INTEGRATION_SCOPE;
-  if(requestedScope&&!Object.hasOwn(isolatedSuites,requestedScope))throw new Error("Unknown RUNLUMI_INTEGRATION_SCOPE; use hrm, hrm-p1, hrm-p3, hrm-p4, hrm-p5, crm, workspace, directory, api, dashboard, files, sales-process or business-model.");
+  if(requestedScope&&!Object.hasOwn(isolatedSuites,requestedScope))throw new Error("Unknown RUNLUMI_INTEGRATION_SCOPE; use hrm, hrm-p1, hrm-p3, hrm-p4, hrm-p5, crm, workspace, directory, api, dashboard, files, sales-process, business-model or finance.");
   let result;
   if(requestedScope){
     console.log(`Running isolated ${requestedScope} integration suite.`);

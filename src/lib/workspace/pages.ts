@@ -9,7 +9,7 @@ import type { WorkspaceUser } from "./roles";
 
 export type Lang = "en" | "vi";
 
-export interface HomeCard { module: "hiring" | "crm" | "hrm" | "admin"; figures: { label: [string, string]; value: number; href: string }[] }
+export interface HomeCard { module: "hiring" | "crm" | "hrm" | "finance" | "admin"; figures: { label: [string, string]; value: number; href: string }[] }
 
 export async function homePage(astro: AstroGlobal, lang: Lang) {
   const user = astro.locals.workspace!;
@@ -55,6 +55,10 @@ export async function homePage(astro: AstroGlobal, lang: Lang) {
   if (user.can("users.manage")) {
     const row = await DB.prepare("SELECT (SELECT COUNT(*) FROM workspace_members WHERE enabled = 1) AS members").first<{ members: number }>();
     cards.push({ module: "admin", figures: [{ label: ["People with access", "Người có quyền truy cập"], value: row?.members ?? 0, href: "/workspace/users" }] });
+  }
+  if (user.admin && user.can("finance.access") && user.financeEnabled === true) {
+    const row = await DB.prepare("SELECT COUNT(*) AS count FROM finance_periods WHERE authoritative_closed_revision_id IS NOT NULL").first<{ count: number }>();
+    cards.push({ module: "finance", figures: [{ label: ["Closed monthly periods", "Tháng đã chốt"], value: row?.count ?? 0, href: "/finance/actuals" }] });
   }
   return { lang, vi: lang === "vi", user, cards };
 }

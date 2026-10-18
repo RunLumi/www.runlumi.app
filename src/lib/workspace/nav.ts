@@ -4,8 +4,9 @@
 // a page that would answer 403. Paths are English; Vietnamese adds /vi.
 import type { Permission, WorkspaceUser } from "./roles";
 
-export type ModuleKey = "home" | "hiring" | "crm" | "hrm" | "admin";
+export type ModuleKey = "home" | "hiring" | "crm" | "hrm" | "finance" | "admin";
 export type IconName =
+  | "finance" | "cash_flow" | "balance" | "history"
   | "files" | "hrm" | "profile" | "hrm_people" | "hrm_settings"
   | "overview" | "hiring" | "crm" | "admin" | "today" | "pipeline" | "new" | "referrals" | "companies" | "contacts" | "reports"
   | "commission" | "model" | "fulfillment" | "assignment" | "playbooks" | "offers" | "process" | "agents" | "roles" | "candidates" | "users" | "menu";
@@ -86,6 +87,28 @@ export const modules: NavModule[] = [
     ],
   },
   {
+    key: "finance", en: "Finance", vi: "Tài chính", path: "/finance", icon: "finance", permission: "finance.access",
+    groups: [
+      { key: "review", en: "Review", vi: "Theo dõi" },
+      { key: "monthly", en: "Monthly work", vi: "Công việc tháng" },
+      { key: "statements", en: "Statements", vi: "Báo cáo" },
+      { key: "control", en: "Controls", vi: "Quản lý" },
+    ],
+    links: [
+      { key: "overview", en: "Overview", vi: "Tổng quan", path: "/finance", icon: "overview", group: "review" },
+      { key: "plans", en: "Financial plan", vi: "Kế hoạch tài chính", path: "/finance/plans", icon: "model", group: "monthly", anyOf: ["finance.plan.manage"] },
+      { key: "actuals", en: "Monthly actuals", vi: "Số thực tế tháng", path: "/finance/actuals", icon: "today", group: "monthly", anyOf: ["finance.actuals.manage"] },
+      { key: "pnl", en: "Profit and loss", vi: "Lãi lỗ", path: "/finance/pnl", icon: "reports", group: "statements" },
+      { key: "cash-flow", en: "Cash flow", vi: "Dòng tiền", path: "/finance/cash-flow", icon: "cash_flow", group: "statements" },
+      { key: "revenue", en: "Revenue", vi: "Doanh thu", path: "/finance/revenue", icon: "pipeline", group: "statements" },
+      { key: "costs", en: "Costs", vi: "Chi phí", path: "/finance/costs", icon: "offers", group: "statements" },
+      { key: "working-capital", en: "Working capital", vi: "Vốn lưu động", path: "/finance/working-capital", icon: "assignment", group: "statements" },
+      { key: "position", en: "Financial position", vi: "Tình hình tài chính", path: "/finance/position", icon: "balance", group: "statements" },
+      { key: "settings", en: "Settings", vi: "Thiết lập", path: "/finance/settings", icon: "hrm_settings", group: "control", anyOf: ["finance.configure"] },
+      { key: "audit", en: "Audit history", vi: "Lịch sử", path: "/finance/audit", icon: "history", group: "control", anyOf: ["finance.audit.read"] },
+    ],
+  },
+  {
     key: "admin", en: "Admin", vi: "Quản trị", path: "/workspace/users", icon: "admin", permission: "users.manage", links: [
       { key: "users", en: "Users and roles", vi: "Người dùng và vai trò", path: "/workspace/users", icon: "users" },
     ],
@@ -97,11 +120,14 @@ export function localized(path: string, vi: boolean): string {
 }
 
 export function visibleModules(user: WorkspaceUser): NavModule[] {
-  return modules.filter((module) => user.can(module.permission) && (module.key !== "hrm" || !user.hrmEmploymentEnded && (user.hrmEnabled !== false || user.can("hrm.configure"))));
+  return modules.filter((module) => user.can(module.permission)
+    && (module.key !== "finance" || user.admin && user.financeEnabled === true)
+    && (module.key !== "hrm" || !user.hrmEmploymentEnded && (user.hrmEnabled !== false || user.can("hrm.configure"))));
 }
 
 export function visibleLinks(user: WorkspaceUser, module: NavModule): NavLink[] {
   return module.links.filter((link) => {
+    if (module.key === "finance" && (!user.admin || !user.can("finance.access") || user.financeEnabled !== true && link.key !== "settings")) return false;
     const allowedWhileClosed=link.key==="settings"||(link.key==="job-descriptions"&&user.can("hrm.configure"))||(link.key==="retention"&&(user.can("hrm.retention.manage")||user.can("hrm.retention.review")||user.can("hrm.legalhold.manage")))||(link.key==="legal-documents"&&user.can("hrm.legal.manage"))||(link.key==="onboarding-manage"&&user.can("hrm.onboarding.manage"))||(link.key==="payroll"&&user.can("hrm.payroll.configure"));
     return (module.key!=="hrm"||!user.hrmEmploymentEnded&&(user.hrmEnabled!==false||allowedWhileClosed))&&(!link.anyOf||link.anyOf.some(permission=>user.can(permission)));
   });
@@ -123,6 +149,7 @@ export function switchLocale(url: URL): string {
 export function moduleForPath(pathname: string): ModuleKey {
   const path = pathname.replace(/^\/vi(?=\/)/, "");
   if (path.startsWith("/admin/jobs")) return "hiring";
+  if (path === "/finance" || path.startsWith("/finance/")) return "finance";
   if (path === "/hrm" || path.startsWith("/hrm/")) return "hrm";
   if (path === "/crm" || path.startsWith("/crm/")) return "crm";
   if (path.startsWith("/workspace/users")) return "admin";

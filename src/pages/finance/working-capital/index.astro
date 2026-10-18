@@ -1,0 +1,8 @@
+---
+import FinancePage from "../../../components/finance/FinancePage.astro";
+import { financePage } from "../../../lib/finance/pages";
+export const prerender = false;
+const data = await financePage(Astro, "en", "working-capital");
+if (data instanceof Response) return data;
+---
+<FinancePage data={data} />

@@ -14,6 +14,10 @@ Both share one identity (EmDash), one role model and one navigation shell. Every
 
 **Mô tả công việc trong HRM:** [danh mục nội bộ](../specs/hrm/JOB-DESCRIPTIONS.vi.md) có bản nháp COO – Head of Sales & Operations tại `/vi/hrm/job-descriptions`. Cần quyền `hrm.records.manage`; khi HRM đóng, chỉ người có quyền cấu hình được đọc. Chức danh không tự cấp quyền Workspace hoặc mở tin tuyển dụng.
 
+**Finance:** the [Finance specification](../specs/finance/README.md) accompanies the implemented System-Super-Admin-only module for monthly financial plans, actuals and management reports in D1. Its 11 pages have EN/VI peers. The existing CRM Finance role does not grant access. Financial pages become available after the deployment switch and protected book setup are enabled; follow the verified release state in [Finance status](../specs/finance/STATUS.md).
+
+**Finance:** [Đặc tả Finance](../specs/finance/README.vi.md) đi cùng module đã triển khai, chỉ System Super Admin được truy cập, gồm kế hoạch, số thực tế và báo cáo quản trị theo tháng lưu vào D1. Module có 11 trang với bản EN/VI tương ứng. Role Finance hiện có trong CRM không được vào module này. Các trang số liệu mở sau khi bật cờ triển khai và hoàn tất thiết lập sổ được bảo vệ; theo dõi bằng chứng phát hành tại [Trạng thái Finance](../specs/finance/STATUS.md).
+
 ## 1. Research findings (2026-10-08)
 
 | Area | Before | Now |

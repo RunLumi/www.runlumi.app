@@ -1,0 +1,13 @@
+---
+import type { FinanceSourceContext } from "../../lib/finance/store-types";
+import type { FinancePageData } from "./types";
+import { groupLabel, inputValue } from "./ui";
+interface Props { data: FinancePageData; sources?: FinanceSourceContext }
+const { data, sources } = Astro.props;
+const vi = data.lang === "vi";
+---
+<fieldset class="fn-form-section">
+  <legend>{vi ? "Nguồn và thời điểm số liệu" : "Source and reporting context"}</legend>
+  <div class="fn-form-grid"><div class="fn-field"><label for="source-as-of">{vi ? "Dữ liệu được cập nhật đến ngày" : "Source data as of"}</label><input class="fn-input" id="source-as-of" type="date" name="source_as_of" value={inputValue(data, "source_as_of", sources?.sourceAsOf ?? "")} /><small>{vi ? "Khi chốt tháng, nguồn phải bao phủ đến cuối tháng." : "To close a month, sources must cover its month end."}</small></div><div class="fn-field"><label for="source-scope">{vi ? "Phạm vi số liệu" : "Reporting scope"}</label><input class="fn-input" id="source-scope" name="source_scope" value={inputValue(data, "source_scope", sources?.scope ?? "")} maxlength="500" /></div></div>
+  <details class="fn-input-detail" open><summary>{vi ? "Nguồn của từng nhóm báo cáo" : "Source for each reporting block"}</summary><div class="fn-form-grid">{(["pnl", "cash", "aging", "position"] as const).map(block => <div class="fn-field"><label for={`source-${block}`}>{groupLabel(block, vi)}</label><input class="fn-input" id={`source-${block}`} name={`source.${block}.evidence`} value={inputValue(data, `source.${block}.evidence`, sources?.blocks[block]?.evidenceRef ?? "")} maxlength="300" placeholder={vi ? "Tham chiếu tài liệu nguồn" : "Source document reference"} /><label for={`source-${block}-note`} class="fn-help">{vi ? "Ghi chú nguồn" : "Source note"}</label><textarea class="fn-textarea" id={`source-${block}-note`} name={`source.${block}.note`} rows="2" maxlength="1000">{inputValue(data, `source.${block}.note`, sources?.blocks[block]?.note ?? "")}</textarea></div>)}</div></details>
+</fieldset>

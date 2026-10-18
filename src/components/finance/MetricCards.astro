@@ -1,0 +1,12 @@
+---
+import type { FinanceReport } from "../../lib/finance/model";
+import type { FinancePageData } from "./types";
+import { metricLabel, money, percent, variance } from "./ui";
+interface Props { data: FinancePageData; report?: FinanceReport; comparison?: FinanceReport; metrics: string[] }
+const { data, report, comparison, metrics } = Astro.props, vi = data.lang === "vi", precision = data.state.book?.precision ?? 0;
+---
+<div class="fn-kpis">{metrics.map(key => {
+  const value = report?.metrics[key], plan = comparison?.metrics[key], ratio = key.endsWith("_margin");
+  const delta = variance(value, plan, ["direct_costs", "operating_expenses"].includes(key) ? "lower" : ["revenue", "gross_profit", "operating_profit", "net_profit", "cash_available"].includes(key) ? "higher" : "neutral", ratio);
+  return <article class="fn-kpi"><span class="fn-kpi-label">{metricLabel(key, vi)}</span><strong class="fn-kpi-value">{ratio ? percent(value, vi) : money(value, precision, vi)}</strong><span class="fn-kpi-unit">{ratio ? (vi ? "Tỷ lệ" : "Ratio") : data.state.book?.currency}</span><span class="fn-kpi-meta">{comparison ? <>{vi ? "Kế hoạch" : "Plan"}: {ratio ? percent(plan, vi) : money(plan, precision, vi)}<br />{delta.difference !== null ? <span class:list={[delta.favorable === true && "fn-good", delta.favorable === false && "fn-bad"]}>{ratio ? `${new Intl.NumberFormat(vi ? "vi-VN" : "en-GB", { maximumFractionDigits: 1 }).format(delta.percentagePoints ?? 0)} ${vi ? "điểm %" : "pp"}` : money(delta.difference, precision, vi)} · {delta.favorable === true ? (vi ? "Thuận lợi" : "Favorable") : delta.favorable === false ? (vi ? "Bất lợi" : "Adverse") : (vi ? "Chênh lệch" : "Difference")}</span> : (vi ? "Chưa đủ dữ liệu đối chiếu" : "Comparison incomplete")}</> : value == null ? (vi ? "Chưa có đủ số liệu" : "Inputs incomplete") : (vi ? "Chưa chọn kế hoạch đối chiếu" : "No comparison plan selected")}</span></article>;
+})}</div>

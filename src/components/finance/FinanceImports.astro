@@ -1,0 +1,53 @@
+---
+import type { FinancePageData } from "./types";
+import CommandFields from "./CommandFields.astro";
+import { groupLabel, inputValue, lineLabel, money, monthLabel, selectedPlan, stateLabel, timestamp } from "./ui";
+interface Props { data: FinancePageData; kind: "plan" | "actual" }
+const { data, kind } = Astro.props, vi = data.lang === "vi", plan = selectedPlan(data), precision = data.state.book?.precision ?? 0;
+const batches = data.state.imports.filter(batch => batch.kind === kind && (kind !== "plan" || batch.planId === plan?.id));
+const template = new URLSearchParams({ kind, year: String(data.fiscalYear), period: data.period });
+if (plan) template.set("plan", plan.id);
+const writable = kind === "plan" ? plan?.state === "draft" : true;
+const expected: Record<string, string | number> = {};
+for (const period of data.months) {
+  if (kind === "plan" && plan) expected[`expected.${period}.version`] = plan.version;
+  if (kind === "actual") {
+    const target = data.state.periods.find(item => item.period === period), revision = data.state.actualRevisions.find(item => item.id === target?.workingRevisionId);
+    if (target && revision?.state === "draft") { expected[`expected.${period}.version`] = revision.version; expected[`expected.${period}.period_version`] = target.version; expected[`expected.${period}.actual_revision_id`] = revision.id; }
+    else if (!target && period >= (data.state.book?.firstPeriod ?? period) && period <= data.currentPeriod) { expected[`expected.${period}.version`] = 0; expected[`expected.${period}.period_version`] = 0; }
+  }
+}
+---
+<section class="fn-sheet fn-no-print" id="csv-import">
+  <div class="fn-sheet-head"><div><h2>{vi ? "Nhập dữ liệu CSV" : "CSV import"}</h2><p>{vi ? "Xem trước thay đổi rồi xác nhận từng tháng. Số dư tài khoản tiền được nhập trong biểu mẫu riêng." : "Preview the changes, then confirm one month at a time. Cash account observations use their separate form."}</p></div><a class="fn-button secondary small" href={`/api/finance/template?${template}`}>{vi ? "Tải mẫu CSV" : "Download template"}</a></div>
+  <ol class="fn-steps"><li>{vi ? "Chuẩn bị dữ liệu" : "Prepare"}</li><li>{vi ? "Kiểm tra bản xem trước" : "Review preview"}</li><li>{vi ? "Xác nhận từng tháng" : "Commit each month"}</li></ol>
+  {writable && <details class="fn-disclosure" open={data.submitted?.intent === "import.preview"}><summary>{vi ? "Tạo bản xem trước mới" : "Stage a new import"}</summary><div class="fn-disclosure-body"><form method="post" data-finance-import>
+    <CommandFields intent="import.preview" fields={{ kind, plan_id: kind === "plan" ? plan?.id : undefined, fiscal_year: data.fiscalYear, ...expected }} />
+    <div class="fn-field"><label for="csv-local-file">{vi ? "Chọn tệp CSV hoặc dán nội dung bên dưới" : "Choose a CSV file or paste its contents below"}</label><input class="fn-input" id="csv-local-file" type="file" accept=".csv,text/csv" data-finance-file /><small>{vi ? "UTF-8, tối đa 256 KiB, 2.400 dòng; tối đa 200 ô mỗi tháng và 12 tháng cùng năm tài chính. Chọn tệp cần JavaScript; dán nội dung luôn hoạt động." : "UTF-8, up to 256 KiB and 2,400 rows; at most 200 inputs per month and 12 months in one fiscal year. File selection uses JavaScript; pasting always works."}</small><span class="fn-help" data-finance-file-status role="status"></span></div>
+    <div class="fn-field" style="margin-top:16px"><label for="finance-csv">{vi ? "Nội dung CSV" : "CSV contents"}</label><textarea class="fn-textarea fn-mono" id="finance-csv" name="csv" rows="8" required maxlength="262144" spellcheck="false" placeholder="period,line_code,segment_code,value_state,amount,currency,evidence_ref,note">{inputValue(data, "csv")}</textarea><small>{vi ? "Giá trị entered hoặc not_applicable; không dùng CSV để xóa số liệu. N/A, số âm và khoản mục Khác cần cột note. Điền hoặc bỏ các dòng trống trong mẫu trước khi nhập." : "Use entered or not_applicable. CSV cannot clear existing data. N/A, negative amounts and Other lines need a note. Fill or remove blank template rows before importing."}</small></div>
+    <div class="fn-form-grid" style="margin-top:16px"><div class="fn-field"><label for="import-as-of">{vi ? "Nguồn cập nhật đến ngày" : "Source as of"}</label><input class="fn-input" id="import-as-of" type="date" name="source_as_of" value={inputValue(data, "source_as_of")} required /></div><div class="fn-field"><label for="import-scope">{vi ? "Phạm vi nguồn" : "Source scope"}</label><input class="fn-input" id="import-scope" name="source_scope" maxlength="300" value={inputValue(data, "source_scope")} required /></div></div>
+    <details class="fn-input-detail" open><summary>{vi ? "Nguồn đối chiếu theo nhóm" : "Block evidence references"}</summary><p class="fn-help">{vi ? "Điền nguồn cho mỗi nhóm có dòng trong CSV. Phạm vi và ngày nguồn áp dụng cho mọi tháng trong tệp." : "Provide a reference for each block present in the CSV. The source date and scope apply to every month in the file."}</p><div class="fn-form-grid">{["pnl", "cash", "aging", "position"].map(block => <div class="fn-field"><label for={`import-source-${block}`}>{groupLabel(block, vi)}</label><input class="fn-input" id={`import-source-${block}`} name={`source.${block}.evidence`} value={inputValue(data, `source.${block}.evidence`)} maxlength="300" /></div>)}</div></details>
+    <div class="fn-form-actions"><button class="fn-button" type="submit">{vi ? "Kiểm tra và xem trước" : "Validate and preview"}</button><p>{vi ? "Bước này lưu bản xem trước, chưa ghi vào số liệu của tháng." : "This stores a preview; it does not change the month’s financial inputs."}</p></div>
+  </form></div></details>}
+  {kind === "actual" && <p class="fn-help">{vi ? "Khi xác nhận, tháng chưa có dữ liệu được tạo thành bản nháp. Tháng đã chốt cần mở bản điều chỉnh trước; không nhập số thực tế cho tháng tương lai hoặc trước kỳ bắt đầu sổ." : "Committing creates a draft for a month with no data. Reopen a closed month first; actuals cannot target future months or periods before the reporting start."}</p>}
+  {batches.length === 0 && <p class="fn-help">{vi ? "Chưa có bản xem trước hoặc biên nhận nhập dữ liệu trong phạm vi này." : "No import previews or receipts in this selection yet."}</p>}
+  {batches.map(batch => <details class="fn-disclosure" open={batch.status === "preview" || batch.status === "partial"}><summary><span>{timestamp(batch.createdAt, vi, data.state.book?.timezone)}</span><span class="fn-badge">{stateLabel(batch.status, vi)}</span></summary><div class="fn-disclosure-body"><p class="fn-help">{vi ? "Phần chưa xác nhận hết hạn vào" : "Pending data expires"} {timestamp(batch.expiresAt, vi, data.state.book?.timezone)}. {vi ? "Biên nhận đã ghi dữ liệu được giữ lại." : "Committed receipts are retained."}</p><div class="fn-stack">{batch.months.map(month => <section><div class="fn-sheet-head"><h3>{monthLabel(month.period, vi)}</h3><span class:list={["fn-badge", month.status === "committed" ? "good" : ""]}>{stateLabel(month.status, vi)}</span></div>
+    {month.values.length > 0 && <div class="fn-table-scroll" tabindex="0" aria-label={vi ? "Các giá trị sẽ nhập" : "Import preview values"}><table class="fn-table"><thead><tr><th>{vi ? "Khoản mục" : "Line"}</th><th>{vi ? "Phân khúc" : "Segment"}</th><th class="num">{vi ? "Đang lưu" : "Currently saved"}</th><th class="num">{vi ? "Giá trị sẽ ghi" : "Incoming value"}</th><th>{vi ? "Giải thích" : "Explanation"}</th></tr></thead><tbody>{month.values.map(value => { const line = data.state.lines.find(item => item.code === value.lineCode); const previous = kind === "plan" ? data.state.planValues.find(item => item.planId === batch.planId && item.period === month.period && item.lineCode === value.lineCode && item.segmentCode === value.segmentCode) : data.state.actualValues.find(item => item.actualRevisionId === month.actualRevisionId && item.lineCode === value.lineCode && item.segmentCode === value.segmentCode); return <tr><td>{line ? lineLabel(line, vi) : value.lineCode}</td><td>{value.segmentCode}</td><td class="num">{previous?.state === "not_applicable" ? (vi ? "Không áp dụng" : "N/A") : money(previous?.amount, precision, vi)}</td><td class="num">{value.state === "not_applicable" ? (vi ? "Không áp dụng" : "N/A") : money(value.amount, precision, vi)}</td><td>{value.note || "—"}<small>{value.evidenceRef}</small></td></tr>; })}</tbody></table></div>}
+    {month.status === "pending" && <form method="post" class="fn-form-actions"><CommandFields intent="import.commit" fields={{ import_id: batch.id, expected_version: batch.version, period: month.period }} /><button class="fn-button" type="submit">{vi ? "Xác nhận ghi tháng này" : "Commit this month"}</button><p>{vi ? "Toàn bộ ô của tháng được ghi cùng lúc; xung đột phiên bản yêu cầu xem trước lại." : "All values in this month are saved together; a version conflict requires a fresh preview."}</p></form>}
+    {month.receipt && <p class="fn-help">{vi ? "Biên nhận đã ghi" : "Committed receipt"}: <span class="fn-mono">{month.receipt.operationId}</span> · {vi ? "Phiên bản" : "Version"} {month.receipt.version}</p>}
+  </section>)}</div>{batch.months.some(month => month.status === "pending") && <form method="post" class="fn-form-actions"><CommandFields intent="import.discard" fields={{ import_id: batch.id, expected_version: batch.version }} /><button class="fn-button danger small" type="submit">{vi ? "Bỏ phần chưa xác nhận" : "Discard pending data"}</button></form>}</div></details>)}
+</section>
+<script>
+  document.querySelectorAll<HTMLFormElement>("[data-finance-import]").forEach(form => {
+    const picker = form.querySelector<HTMLInputElement>("[data-finance-file]");
+    const target = form.querySelector<HTMLTextAreaElement>("textarea[name=csv]");
+    const status = form.querySelector<HTMLElement>("[data-finance-file-status]");
+    picker?.addEventListener("change", async () => {
+      const file = picker.files?.[0]; if (!file || !target || !status) return;
+      const vi = document.documentElement.lang === "vi";
+      if (file.size > 262144) { status.textContent = vi ? "Tệp lớn hơn 256 KiB. Chọn tệp nhỏ hơn." : "The file exceeds 256 KiB. Choose a smaller file."; picker.value = ""; return; }
+      try { target.value = new TextDecoder("utf-8", { fatal: true }).decode(await file.arrayBuffer()); status.textContent = vi ? "Đã đọc tệp. Kiểm tra nội dung rồi chọn Xem trước." : "File loaded. Review its contents and choose Preview."; }
+      catch { status.textContent = vi ? "Không thể đọc tệp UTF-8 này. Kiểm tra định dạng hoặc dán nội dung CSV." : "This file could not be read as UTF-8. Check its encoding or paste the CSV contents."; }
+    });
+  });
+</script>

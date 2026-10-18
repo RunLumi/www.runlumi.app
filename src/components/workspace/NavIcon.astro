@@ -8,6 +8,10 @@ import type { IconName } from "../../lib/workspace/nav";
 interface Props { name: IconName; size?: number }
 const { name, size = 20 } = Astro.props;
 const paths: Record<IconName, string> = {
+  finance: '<path d="M5 3.5h14v17H5Z M5 8h14 M10 8v12.5 M13 11h3 M13 15h3 M13 18h3"/>',
+  cash_flow: '<path d="M4 7h15m-4-4 4 4-4 4M20 17H5m4-4-4 4 4 4"/>',
+  balance: '<path d="M12 3v17M7 20h10M4 7h16M6 7 3 14h6L6 7ZM18 7l-3 7h6l-3-7Z"/>',
+  history: '<path d="M4 8a8 8 0 1 1-1 7M4 3v5h5M12 7v5l3 2"/>',
   files: '<path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10H3Z"/>',
   hrm: '<path d="M4 20V5h16v15M2 20h20M8 9h2M14 9h2M8 13h2M14 13h2M10 20v-3h4v3"/>',
   profile: '<rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="9" r="2.5"/><path d="M8 16c1-3 7-3 8 0M8 18h8"/>',

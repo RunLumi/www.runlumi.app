@@ -1,0 +1,57 @@
+---
+import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
+import "../../styles/finance.css";
+import type { FinancePageData } from "./types";
+import CommandFields from "./CommandFields.astro";
+import FinanceOverview from "./FinanceOverview.astro";
+import FinancePlans from "./FinancePlans.astro";
+import FinanceActuals from "./FinanceActuals.astro";
+import FinanceReports from "./FinanceReports.astro";
+import FinanceSettings from "./FinanceSettings.astro";
+import FinanceAudit from "./FinanceAudit.astro";
+import { financeErrorText, financeLink, localized, monthLabel, pageCopy, selectedPlan, selectedRevision, stateLabel, timestamp, tr } from "./ui";
+interface Props { data: FinancePageData }
+const { data } = Astro.props;
+const { state, page, lang } = data;
+const vi = lang === "vi", copy = pageCopy[page], title = tr(vi, copy.title);
+const reporting = ["overview", "pnl", "cash-flow", "revenue", "costs", "working-capital", "position"].includes(page);
+const segmented = ["pnl", "revenue", "costs", "overview"].includes(page);
+const selected = selectedPlan(data), revision = selectedRevision(data);
+const reportEnd = reporting && data.range && data.range !== "month" ? data.comparisonPeriods?.at(-1) : undefined;
+const reportRevision = reportEnd ? state.actualRevisions.find(item => item.id === state.periods.find(period => period.period === reportEnd)?.authoritativeClosedRevisionId) : revision;
+const scopeBook = (page === "plans" ? selected?.reportingSnapshot?.book : reporting || page === "actuals" ? reportRevision?.reportingSnapshot?.book : undefined) ?? state.book;
+---
+<WorkspaceShell title={title} lang={lang} user={data.user} module="finance" current={page}>
+  <div class="finance">
+    <header class="fn-heading">
+      <div><p class="fn-eyebrow">{vi ? "Finance · Chỉ Super Admin" : "Finance · Super Admin only"}</p><h1>{title}</h1><p class="fn-lede">{tr(vi, copy.description)}</p></div>
+      <div class="fn-heading-actions">
+        {reporting && state.book && <><a class="fn-button secondary" href={financeLink(data, "actuals")}>{vi ? "Nhập số thực tế" : "Enter actuals"}</a>
+          <form method="post" action="/api/finance/exports">
+            <CommandFields intent="report.export" fields={{ report: page, period: data.period, fiscal_year: data.fiscalYear, plan_id: data.selectedPlanId, actual_revision_id: data.selectedActualRevisionId, range: data.range ?? "month", segment_code: segmented ? data.segmentCode ?? "all" : "all", lang }} />
+            <button class="fn-button secondary" type="submit">{vi ? "Xuất CSV" : "Export CSV"}</button>
+          </form></>}
+      </div>
+    </header>
+    {scopeBook && <div class="fn-scope"><span><strong>{scopeBook.entityName}</strong></span><span>{scopeBook.currency} · {vi ? "Số tiền chính xác" : "Exact amounts"}</span><span>{scopeBook.timezone}</span><span>{vi ? "Năm tài chính bắt đầu tháng" : "Fiscal year starts in month"} {scopeBook.fiscalStartMonth}</span></div>}
+    {data.error && <div class="fn-notice bad" role="alert"><strong>{vi ? "Chưa lưu thay đổi" : "Changes were not saved"}</strong><p>{financeErrorText(data.error, vi)}</p><p>{vi ? "Nội dung vừa nhập được giữ lại bên dưới. Kiểm tra số liệu và phiên bản trước khi thử lại." : "Your submitted inputs are retained below. Review the figures and the version before trying again."}</p></div>}
+    {data.saved && <div class="fn-notice good" role="status"><strong>{vi ? "Đã lưu thành công" : "Saved successfully"}</strong><p>{vi ? "Dữ liệu bên dưới đã được tải lại từ bản ghi đã lưu." : "The data below has been refreshed from the saved record."}</p>{data.receipt && <p class="fn-mono">{vi ? "Biên nhận" : "Receipt"}: {data.receipt.operationId}</p>}</div>}
+    {state.book && page !== "settings" && <form method="get" class="fn-toolbar" aria-label={vi ? "Chọn phạm vi báo cáo" : "Report selection"}>
+      <div class="fn-field"><label for="finance-year">{vi ? "Năm bắt đầu kỳ tài chính" : "Fiscal starting year"}</label><input class="fn-input" id="finance-year" type="number" name="year" min="2000" max="2100" value={data.fiscalYear} required /></div>
+      <div class="fn-field"><label for="finance-period">{vi ? "Tháng" : "Month"}</label><input class="fn-input" id="finance-period" type="month" name="period" value={data.period} required /></div>
+      {state.plans.length > 0 && <div class="fn-field fn-grow"><label for="finance-plan">{vi ? "Kế hoạch đối chiếu" : "Comparison plan"}</label><select class="fn-select" id="finance-plan" name="plan"><option value="">{vi ? "Chọn kế hoạch" : "Select a plan"}</option>{state.plans.map(plan => <option value={plan.id} selected={plan.id === data.selectedPlanId}>{plan.label} · {stateLabel(plan.kind, vi)}{plan.baseline ? ` · ${vi ? "Kế hoạch gốc" : "Baseline"}` : ""}</option>)}</select></div>}
+      {reporting && <div class="fn-field"><label for="finance-range">{vi ? "Khoảng báo cáo" : "Report range"}</label><select class="fn-select" id="finance-range" name="range"><option value="month" selected={!data.range || data.range === "month"}>{vi ? "Tháng được chọn" : "Selected month"}</option><option value="quarter" selected={data.range === "quarter"}>{vi ? "Quý tài chính" : "Fiscal quarter"}</option><option value="ytd" selected={data.range === "ytd"}>{vi ? "Từ đầu năm tài chính" : "Fiscal year to date"}</option><option value="year" selected={data.range === "year"}>{vi ? "Cả năm tài chính" : "Full fiscal year"}</option></select></div>}
+      {segmented && state.segments.length > 0 && <div class="fn-field"><label for="finance-segment">{vi ? "Phân khúc P&L" : "P&L segment"}</label><select class="fn-select" id="finance-segment" name="segment"><option value="all">{vi ? "Tất cả phân khúc" : "All segments"}</option>{state.segments.map(segment => <option value={segment.code} selected={segment.code === data.segmentCode}>{vi ? segment.labelVi : segment.labelEn}</option>)}</select></div>}
+      <button class="fn-button" type="submit">{vi ? "Xem" : "Apply"}</button>
+    </form>}
+    <p class="fn-print-meta">{scopeBook?.entityName} · {scopeBook?.currency} · {monthLabel(data.period, vi)} · {selected?.label ?? (vi ? "Chưa chọn kế hoạch" : "No selected plan")} · {revision ? `${stateLabel(revision.state, vi)} ${revision.id}` : (vi ? "Chưa có phiên bản thực tế" : "No actual revision")} · {timestamp(data.generatedAt, vi, scopeBook?.timezone)}</p>
+    {!state.book && page !== "settings" ? <section class="fn-empty"><p class="fn-eyebrow">{vi ? "Bắt đầu với dữ liệu của bạn" : "Start with your own figures"}</p><h2>{vi ? "Thiết lập sổ tài chính" : "Set up your finance book"}</h2><p>{vi ? "Xác nhận phạm vi doanh nghiệp, tiền tệ và kỳ báo cáo. Sau đó bạn có thể lập kế hoạch và nhập số thực tế theo tháng." : "Confirm the reporting entity, currency and calendar. Then build a plan and enter actual results month by month."}</p><a class="fn-button" href={localized("/finance/settings", vi)}>{vi ? "Mở thiết lập" : "Open settings"}</a></section>
+      : page === "settings" ? <FinanceSettings data={data} />
+      : page === "plans" ? <FinancePlans data={data} />
+      : page === "actuals" ? <FinanceActuals data={data} />
+      : page === "audit" ? <FinanceAudit data={data} />
+      : page === "overview" ? <FinanceOverview data={data} />
+      : <FinanceReports data={data} />}
+    {state.book && <p class="fn-footnote">{vi ? "Báo cáo quản trị từ số liệu được nhập và đối chiếu. Dấu — thể hiện dữ liệu còn thiếu; số 0 là giá trị đã được nhập rõ ràng." : "Management reports from entered and reconciled inputs. A dash means data is missing; zero is an explicitly entered value."} · {vi ? "Tạo lúc" : "Generated"} {timestamp(data.generatedAt, vi, state.book.timezone)}. {reporting && (vi ? "Dùng chức năng In của trình duyệt để lưu bản in của màn hình này." : "Use your browser’s Print command to print this view.")}</p>}
+  </div>
+</WorkspaceShell>
