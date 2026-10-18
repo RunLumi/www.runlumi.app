@@ -10,6 +10,10 @@ Both share one identity (EmDash), one role model and one navigation shell. Every
 
 **HRM:** [Đặc tả HRM](../specs/hrm/README.md) là hợp đồng sản phẩm. Phân hệ hồ sơ song ngữ phía máy chủ đang được triển khai; production vẫn đóng cho đến khi `HRM_LIVE_ENABLED` và cấu hình chính sách do owner rà soát cùng được bật. Quyền HRM cấp riêng với Hiring và CRM. Tiến độ P1 ở [STATUS.md](../specs/hrm/STATUS.md).
 
+**Finance (proposed; not implemented):** [Finance requirements](../finance/README.md) define a System-Super-Admin-only module for monthly financial plans, actuals and management reports in D1. The existing CRM Finance role does not grant access to this proposed module. Track actual implementation separately in [Finance status](../finance/STATUS.md).
+
+**Finance (đề xuất; chưa triển khai):** [Đặc tả Finance](../finance/README.vi.md) xác định module chỉ System Super Admin được truy cập, gồm kế hoạch, số thực tế và báo cáo quản trị theo tháng lưu vào D1. Role Finance hiện có trong CRM không được vào module mới. Theo dõi phần đã triển khai tại [Trạng thái Finance](../finance/STATUS.md).
+
 ## 1. Research findings (2026-10-08)
 
 | Area | Before | Now |

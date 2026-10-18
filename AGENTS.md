@@ -70,6 +70,7 @@ including CMS-only changes through EmDash API/MCP.
 - HRM requirements and gates live in [docs/specs/hrm/README.md](docs/specs/hrm/README.md); track implementation evidence in `docs/specs/hrm/STATUS.md`. Production HRM stays fail-closed unless policy review, the HRM settings record and the `HRM_LIVE_ENABLED` deployment switch all agree. HRM Admin never self-approves or gains Workspace user/role administration.
 - Only Admins manage users and roles (`/workspace/users`); every access change is written to `workspace_audit`. Nobody changes their own access.
 - Navigation comes from `src/lib/workspace/nav.ts` and shows only entries the person may open; every private page renders inside `WorkspaceShell` and has a `/vi` peer.
+- Finance requirements are in [docs/finance/README.md](docs/finance/README.md) ([Tiếng Việt](docs/finance/README.vi.md)); implementation evidence belongs in [STATUS.md](docs/finance/STATUS.md). This is a proposed System-Super-Admin-only module, distinct from the existing CRM Finance role and `crm.finance`. Do not infer runtime implementation or production activation from the specification.
 
 ## Jobs / ATS contract
 
