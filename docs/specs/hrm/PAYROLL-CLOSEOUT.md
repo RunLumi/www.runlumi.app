@@ -33,3 +33,9 @@ D1 runtime verification is required in addition to Node SQLite tests. The curren
 Calendar assignment creation accepts an explicit optional ending. A bounded historical employment calendar can end before other locked/reviewed periods; overlap checks still protect every locked window and other assignments. No end date is inferred.
 
 Leave-policy assignments likewise accept an explicit optional ending; protected-period and overlap checks use the complete interval and retry grants remain single entries.
+
+## File-specific legal holds
+
+Authorized finance staff can place a matter-specific hold on an individual confidential closeout PDF from its case, including after the case is completed. Placement requires both the financial desk capabilities and `hrm.legalhold.manage`; independent release also requires `hrm.retention.review`. HRM Officer, Payroll Officer, managers and employees cannot see or release this financial hold history through their broader non-financial permissions. Revalidate the current EmDash account and current D1 membership/capabilities, entity, file revision and HRM gate before each mutation. A rehired subject still cannot place or release a hold on their own previous case.
+
+Placement and release retain the exact actor, server UTC timestamp, short matter reference and immutable history. Another person must release a hold. File and person-wide holds overlap: releasing either one preserves the other. A held file cannot be marked deleted, enter disposition or have its hold flag cleared. Deleted files and an in-progress erasure cannot receive a new hold. Preservation alone does not invalidate the financial basis, reopen a completed case or restore Workspace membership. This implements preservation controls only: owner-approved retention, approved erasure of financial file/dossier payloads, backup and derivative erasure remain separate work. No retention period or automatic deletion is introduced.
