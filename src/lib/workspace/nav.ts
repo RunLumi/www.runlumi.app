@@ -68,6 +68,7 @@ export const modules: NavModule[] = [
       { key: "my-training", en: "My training", vi: "Đào tạo của tôi", path: "/hrm/me/training", icon: "profile", anyOf: ["hrm.training.self"] },
       { key: "notifications", en: "Notifications", vi: "Thông báo", path: "/hrm/notifications", icon: "today", anyOf: ["hrm.notifications.read"] },
       { key: "people", en: "People", vi: "Nhân sự", path: "/hrm/people", icon: "hrm_people", anyOf: ["hrm.records.manage", "hrm.team.read"] },
+      { key: "job-descriptions", en: "Job descriptions", vi: "Mô tả công việc", path: "/hrm/job-descriptions", icon: "roles", anyOf: ["hrm.records.manage"] },
       { key: "legal-documents", en: "Policies and documents", vi: "Chính sách và tài liệu", path: "/hrm/documents", icon: "profile", anyOf: ["hrm.legal.manage"] },
       { key: "coi-review", en: "COI review", vi: "Rà soát COI", path: "/hrm/coi", icon: "profile", anyOf: ["hrm.coi.review"] },
       { key: "onboarding-manage", en: "Onboarding plans", vi: "Kế hoạch onboarding", path: "/hrm/onboarding", icon: "hrm_people", anyOf: ["hrm.onboarding.manage"] },
@@ -101,7 +102,7 @@ export function visibleModules(user: WorkspaceUser): NavModule[] {
 
 export function visibleLinks(user: WorkspaceUser, module: NavModule): NavLink[] {
   return module.links.filter((link) => {
-    const allowedWhileClosed=link.key==="settings"||(link.key==="retention"&&(user.can("hrm.retention.manage")||user.can("hrm.retention.review")||user.can("hrm.legalhold.manage")))||(link.key==="legal-documents"&&user.can("hrm.legal.manage"))||(link.key==="onboarding-manage"&&user.can("hrm.onboarding.manage"))||(link.key==="payroll"&&user.can("hrm.payroll.configure"));
+    const allowedWhileClosed=link.key==="settings"||(link.key==="job-descriptions"&&user.can("hrm.configure"))||(link.key==="retention"&&(user.can("hrm.retention.manage")||user.can("hrm.retention.review")||user.can("hrm.legalhold.manage")))||(link.key==="legal-documents"&&user.can("hrm.legal.manage"))||(link.key==="onboarding-manage"&&user.can("hrm.onboarding.manage"))||(link.key==="payroll"&&user.can("hrm.payroll.configure"));
     return (module.key!=="hrm"||!user.hrmEmploymentEnded&&(user.hrmEnabled!==false||allowedWhileClosed))&&(!link.anyOf||link.anyOf.some(permission=>user.can(permission)));
   });
 }

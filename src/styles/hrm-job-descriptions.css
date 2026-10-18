@@ -1,0 +1,71 @@
+/* Internal role descriptions use the existing Workspace paper, ink and focus tokens. */
+.jd-intro { max-width: 48rem; margin: -8px 0 24px; font-size: 18px; line-height: 1.6; color: var(--crm-slate); }
+.jd-catalog { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 30rem), 1fr)); gap: 24px; }
+.jd-card { margin: 0; border-top: 3px solid var(--crm-blue); }
+.jd-card + .jd-card { margin-top: 0; }
+.jd-meta-line { display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap; }
+.jd-card-title { margin: 20px 0 8px; max-width: 40rem; font-size: clamp(24px, 2.5vw, 30px); line-height: 1.25; letter-spacing: -.02em; }
+.jd-card-title a { color: var(--crm-navy); text-decoration: none; }
+.jd-card-title a:hover { color: var(--crm-blue); text-decoration: underline; text-underline-offset: 4px; }
+.jd-subtitle { margin: 14px 0 12px; color: var(--crm-navy); font-weight: 600; font-size: 18px; line-height: 1.55; }
+.jd-summary { max-width: 60rem; margin: 12px 0 20px; color: var(--crm-ink); font-size: 17px; line-height: 1.7; }
+.jd-card-facts, .jd-facts { display: grid; gap: 16px 24px; margin: 24px 0; }
+.jd-card-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 48rem; }
+.jd-facts { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 0; padding-top: 20px; border-top: 1px solid var(--crm-line); }
+.jd-card-facts dt, .jd-facts dt { margin-bottom: 4px; color: var(--crm-slate); font-size: 13px; }
+.jd-card-facts dd, .jd-facts dd { margin: 0; color: var(--crm-navy); font-size: 16px; line-height: 1.55; }
+.jd-review-note { max-width: 56rem; margin: 24px 0 0; color: var(--crm-slate); font-size: 16px; line-height: 1.6; }
+.jd-back { margin: -10px 0 20px; }
+.jd-back a { display: inline-flex; align-items: center; min-height: 44px; color: var(--crm-blue); text-underline-offset: 3px; }
+.jd-role-summary { margin-bottom: 24px; }
+.jd-layout { display: grid; grid-template-columns: minmax(12rem, 15rem) minmax(0, 1fr); gap: 24px; align-items: start; }
+.jd-toc { position: sticky; top: 132px; max-height: calc(100vh - 156px); overflow-y: auto; padding: 20px; }
+.jd-toc ol { list-style: decimal-leading-zero; margin: 0; padding-left: 26px; }
+.jd-toc li { color: var(--crm-slate); padding-left: 2px; font-size: 13px; }
+.jd-toc a { display: block; min-height: 44px; padding-block: 9px; color: var(--crm-navy); font-size: 16px; line-height: 1.6; text-decoration: none; }
+.jd-toc a:hover { color: var(--crm-blue); text-decoration: underline; text-underline-offset: 3px; }
+.jd-body.crm-sheet { margin-top: 0; padding: clamp(20px, 3vw, 40px); }
+.jd-section + .jd-section { margin-top: 36px; padding-top: 32px; border-top: 1px solid var(--crm-line); }
+.jd-section h2 { margin: 0 0 18px; color: var(--crm-navy); font-size: clamp(21px, 2.1vw, 26px); line-height: 1.35; letter-spacing: -.015em; scroll-margin-top: 144px; }
+.jd-section p, .jd-section li { font-size: 16px; line-height: 1.8; }
+.jd-section p { margin: 0 0 16px; }
+.jd-section ul { margin: 0; padding-left: 22px; }
+.jd-section li { padding-left: 4px; margin-bottom: 12px; }
+.jd-section > :last-child { margin-bottom: 0; }
+.jd-table-wrap { max-width: 100%; overflow-x: auto; border: 1px solid var(--crm-line); border-radius: 4px; }
+.jd-table-wrap table { width: 100%; min-width: 35rem; border-collapse: collapse; font-size: 16px; line-height: 1.6; }
+.jd-table-wrap th, .jd-table-wrap td { padding: 14px 16px; vertical-align: top; text-align: left; border-bottom: 1px solid var(--crm-line); }
+.jd-table-wrap thead th { background: var(--crm-paper); color: var(--crm-navy); font-weight: 650; }
+.jd-table-wrap tbody th { width: 23%; color: var(--crm-navy); font-weight: 600; }
+.jd-table-wrap tr:last-child th, .jd-table-wrap tr:last-child td { border-bottom: 0; }
+.jd-section .jd-table-hint { color: var(--crm-slate); font-size: 13px; line-height: 1.6; margin-bottom: 8px; }
+.jd-card, .jd-role-summary, .jd-toc, .jd-body { min-width: 0; overflow-wrap: anywhere; }
+.jd-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+@media (max-width: 1000px) { .jd-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 850px) {
+  .jd-layout { grid-template-columns: minmax(0, 1fr); }
+  .jd-toc { position: static; max-height: none; }
+  .jd-toc ol { columns: 2; column-gap: 32px; }
+  .jd-toc li { break-inside: avoid; }
+}
+@media (max-width: 540px) {
+  .jd-card-facts, .jd-facts { grid-template-columns: minmax(0, 1fr); }
+  .jd-toc ol { columns: 1; }
+  .jd-section h2 { scroll-margin-top: 20px; }
+}
+@media (prefers-reduced-motion: reduce) { .jd-layout, .jd-catalog { scroll-behavior: auto; } }
+@media (forced-colors: active) {
+  .jd-card, .jd-table-wrap, .jd-facts, .jd-section + .jd-section { border-color: CanvasText; }
+  .jd-card-title a, .jd-toc a, .jd-back a { color: LinkText; }
+}
+@media print {
+  .ws-header, .crm-footer, .crm-skip, .jd-back, .jd-toc, .jd-table-hint { display: none; }
+  .crm-main { padding: 0; }
+  .crm-shell { width: 100%; }
+  .jd-layout { display: block; }
+  .jd-role-summary, .jd-body.crm-sheet { box-shadow: none; border: 0; padding: 0; }
+  .jd-table-wrap { overflow: visible; }
+  .jd-table-wrap table { min-width: 0; }
+  .jd-section h2 { break-after: avoid; }
+  .jd-table-wrap tr { break-inside: avoid; }
+}

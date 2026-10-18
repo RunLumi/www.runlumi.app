@@ -10,6 +10,10 @@ Both share one identity (EmDash), one role model and one navigation shell. Every
 
 **HRM:** [Đặc tả HRM](../specs/hrm/README.md) là hợp đồng sản phẩm. Phân hệ hồ sơ song ngữ phía máy chủ đang được triển khai; production vẫn đóng cho đến khi `HRM_LIVE_ENABLED` và cấu hình chính sách do owner rà soát cùng được bật. Quyền HRM cấp riêng với Hiring và CRM. Tiến độ P1 ở [STATUS.md](../specs/hrm/STATUS.md).
 
+**HRM job descriptions:** the internal [role catalogue](../specs/hrm/JOB-DESCRIPTIONS.md) includes a draft COO – Head of Sales & Operations description at `/hrm/job-descriptions`. It requires `hrm.records.manage`; while HRM is closed, only configuration-capable users may read it. A business title creates no Workspace permissions or public vacancy.
+
+**Mô tả công việc trong HRM:** [danh mục nội bộ](../specs/hrm/JOB-DESCRIPTIONS.vi.md) có bản nháp COO – Head of Sales & Operations tại `/vi/hrm/job-descriptions`. Cần quyền `hrm.records.manage`; khi HRM đóng, chỉ người có quyền cấu hình được đọc. Chức danh không tự cấp quyền Workspace hoặc mở tin tuyển dụng.
+
 ## 1. Research findings (2026-10-08)
 
 | Area | Before | Now |

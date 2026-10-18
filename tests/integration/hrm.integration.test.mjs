@@ -36,11 +36,47 @@ test("HRM P1 uses EmDash sessions, isolated HRM grants, scoped records, D1 histo
  assert.equal((await S.hr.get("/workspace/users")).status,403,"HRM Officer cannot manage accounts");
  const closed=await S.employeeA.get("/hrm");assert.equal(closed.status,503,"Closed HRM gate response: " + closed.html);
  assert.equal((await S.hrm.get("/hrm/settings")).status,200,"HRM Admin can configure while the employee module remains unavailable");
+ // Internal role templates are readable during setup without opening HRM data or publishing an ATS vacancy.
+ const jdSlug="coo-head-of-sales-operations";
+ const jdRoots=["/hrm/job-descriptions","/vi/hrm/job-descriptions"];
+ const jdRecordCounts=()=>jobs("SELECT (SELECT COUNT(*) FROM hrm_people) AS people,(SELECT COUNT(*) FROM hrm_employments) AS employments,(SELECT COUNT(*) FROM hrm_commands) AS commands,(SELECT COUNT(*) FROM applications) AS applications")[0];
+ const beforeJdReads=jdRecordCounts(),beforeJdJobs=jobs("SELECT id,status,updated_at FROM jobs ORDER BY id");
+ for(const root of jdRoots){
+  const lang=root.startsWith("/vi/")?"vi":"en",otherRoot=lang==="vi"?jdRoots[0]:jdRoots[1];
+  for(const suffix of ["",`/${jdSlug}`]){
+   const path=root+suffix;
+   const anonymous=await localFetch(BASE+path,{redirect:"manual"});assert.equal(anonymous.status,303,"anonymous JD requests use the existing EmDash login");assert.doesNotMatch(await anonymous.text(),/COO - Head of Sales/);
+   for(const denied of [S.atsHr,S.finance])assert.equal((await denied.get(path)).status,403,"ATS and CRM roles never gain HRM job-description access");
+   assert.equal((await S.hr.get(path)).status,503,"HRM Officer cannot bypass the closed HRM gate");
+   assert.equal((await S.employeeA.get(path)).status,503,"employee HRM access stays closed");
+   for(const reader of [S.hrm,S.system]){
+    const page=await reader.get(path);assert.equal(page.status,200,`JD setup read ${path}: ${page.html.slice(0,180)}`);
+    assert.equal(page.headers.get("cache-control"),"private, no-store");assert.match(page.html,new RegExp(`<html[^>]+lang="${lang}"`));
+    assert.ok(page.html.includes("COO - Head of Sales"),"the requested role is server-rendered");
+    assert.ok(page.html.includes(otherRoot+suffix),"language switch preserves the selected job description");
+    assert.doesNotMatch(page.html,/action="\/api\/admin\/jobs\/create"/,"internal drafts do not expose vacancy publication");
+   }
+   const post=await S.hrm.post(path,{intent:"publish"});assert.equal(post.status,405);assert.equal(post.headers.get("allow"),"GET, HEAD");
+   const head=await localFetch(BASE+path,{method:"HEAD",headers:{cookie:S.hrm.header()},redirect:"manual"});assert.equal(head.status,200);assert.equal(await head.text(),"");
+  }
+  assert.equal((await S.hrm.get(root+"/not-an-approved-role")).status,404,"unknown role slugs are not rendered");
+ }
+ assert.deepEqual(jdRecordCounts(),beforeJdReads,"JD reads and rejected writes create no HRM records or commands");
+ assert.deepEqual(jobs("SELECT id,status,updated_at FROM jobs ORDER BY id"),beforeJdJobs,"JD reads and rejected writes do not create or publish ATS jobs");
+ if(browserQa){
+  await auditPair(S.hrm,"jd-catalog-closed","/hrm/job-descriptions","/vi/hrm/job-descriptions","Job descriptions","Mô tả công việc",false);
+  await auditPair(S.hrm,"jd-coo-closed",`/hrm/job-descriptions/${jdSlug}`,`/vi/hrm/job-descriptions/${jdSlug}`,"COO","COO",false);
+ }
  const configured=await S.hrm.post("/hrm/settings",{request_key:"hrm_policy_"+run,version:1,legal_entity:"TEST Local entity",purpose:"Synthetic test only",retention_policy:"Synthetic records deleted with test state",policy_reference:"TEST-only synthetic policy",reviewed:"1",enabled:"1"});assert.equal(configured.status,303,configured.html);
  const retentionSetup=await S.hrm.get("/hrm/retention");assert.equal(retentionSetup.status,200);assert.ok(retentionSetup.html.includes("retention_days")&&retentionSetup.html.includes("null"),"the policy editor starts with empty, unscheduled durations");assert.equal(jobs("SELECT COUNT(*) AS n FROM hrm_retention_policy_versions WHERE state='active'")[0].n,0,"the application seeds no category retention period");assert.equal((await S.employeeA.get("/hrm/retention")).status,403,"employees cannot access retention controls");
  assert.equal((await S.employeeA.get("/hrm")).status,403,"an employee without a linked employment period has no self-service access");
  P.a=await createPerson({user:S.employeeA,code:`TEST-A-${run}`,name:"TEST Employee A"});
  P.b=await createPerson({user:S.employeeB,code:`TEST-B-${run}`,name:"TEST Employee B",manager:S.manager.id});
+ for(const root of jdRoots)for(const suffix of ["",`/${jdSlug}`]){
+  const path=root+suffix;
+  assert.equal((await S.hr.get(path)).status,200,"HRM Officer reads role templates after HRM is enabled");
+  for(const denied of [S.employeeA,S.manager,S.atsHr,S.finance])assert.equal((await denied.get(path)).status,403,"a direct URL does not grant the HRM record capability");
+ }
  if(browserQa){
   console.log("HRM browser QA employee overview EN:",JSON.stringify(await browserQa.auditPage(S.employeeA,"/hrm",{expectedText:"HRM overview",artifactName:"p1-overview-en",formsRequired:false})));
   console.log("HRM browser QA employee overview VI:",JSON.stringify(await browserQa.auditPage(S.employeeA,"/vi/hrm",{expectedText:"Tổng quan HRM",artifactName:"p1-overview-vi",formsRequired:false})));
@@ -354,6 +390,7 @@ test("HRM P1 uses EmDash sessions, isolated HRM grants, scoped records, D1 histo
  identityTask=jobs(`SELECT id,version,state FROM hrm_onboarding_tasks WHERE id=${q(identityTask.id)}`)[0];assert.equal((await S.hr.post("/api/hrm/onboarding",{intent:"task_action",action:"verify",request_key:`onb_identity_verify_${run}`,task_id:identityTask.id,version:identityTask.version})).status,303);assert.equal(jobs(`SELECT state FROM hrm_onboarding_tasks WHERE id=${q(identityTask.id)}`)[0].state,"verified");
  const hrPrepare=jobs(`SELECT id,version,state FROM hrm_onboarding_tasks WHERE plan_id=${q(onboardingPlan.id)} AND task_key='hr_prepare'`)[0];assert.equal(hrPrepare.state,"not_started");
  assert.equal((await S.system.post("/workspace/users",{intent:"update",user_id:S.hr.id,roles:["hrm_officer"],enabled:"0"})).status,303,"remove the old HR task owner through the shared account admin path");
+ for(const root of jdRoots)assert.equal((await S.hr.get(`${root}/${jdSlug}`)).status,403,"revoked HRM membership immediately removes job-description access");
  const queueAfterRevoke=await S.hrm.get("/hrm/onboarding");assert.equal(queueAfterRevoke.status,200);assert.ok(queueAfterRevoke.html.includes("Reassignment queue"));
  assert.equal((await S.hrm.post("/api/hrm/onboarding",{intent:"task_action",action:"reassign",request_key:`onb_hr_reassign_${run}`,task_id:hrPrepare.id,version:hrPrepare.version,assignee_user_id:S.hrm.id})).status,303);
  const reassignedHrTask=jobs(`SELECT id,version,state,assignee_user_id FROM hrm_onboarding_tasks WHERE id=${q(hrPrepare.id)}`)[0];assert.equal(reassignedHrTask.assignee_user_id,S.hrm.id);
