@@ -694,6 +694,34 @@ test("HRM P3 configures schedules, attendance, overtime, leave preview and immut
  const hrSelfReview=await S.hrm.post(`/api/hrm/leave/evidence/${hrUploadedEvidence.file_id}`,{intent:"review",return_to:`/hrm/leave#leave-${hrUploadRequest.id}`,request_id:hrUploadRequest.id,request_version:hrUploadRequest.version,file_version:hrUploadedEvidence.version,request_key:`p3_hr_evidence_self_review_${run}`,decision:"approve",reason:"TEST uploader cannot review own uploaded PDF"});assert.equal(new URL(hrSelfReview.location,BASE).searchParams.get("error"),"self_approval");
  assert.equal((await S.hr.post(`/api/hrm/leave/evidence/${hrUploadedEvidence.file_id}`,{intent:"review",return_to:`/hrm/leave#leave-${hrUploadRequest.id}`,request_id:hrUploadRequest.id,request_version:hrUploadRequest.version,file_version:hrUploadedEvidence.version,request_key:`p3_hr_evidence_second_review_${run}`,decision:"approve",reason:"TEST a different HR reviewer approves the HR-uploaded PDF"})).status,303);assert.equal(jobs(`SELECT state FROM hrm_files WHERE id=${q(hrUploadedEvidence.file_id)}`)[0].state,"reviewed");
  hrUploadRequest=jobs(`SELECT id,version,current_revision_no FROM hrm_leave_requests WHERE id=${q(hrUploadRequest.id)}`)[0];const hrAmendment=await S.hrm.post("/api/hrm/leave",{intent:"amend_request",return_to:"/hrm/leave",request_key:`p3_hr_amend_leave_${run}`,request_id:hrUploadRequest.id,version:hrUploadRequest.version,starts_on:hrUploadDate,ends_on:hrUploadDate,portion:"full",leave_type_key:"medical",private_reason:"TEST HR amended confidential reason",handoff_note:"TEST HR corrected note",reason:"TEST HR corrected the pending request details"});assert.equal(hrAmendment.status,303);const hrAmendedRequest=jobs(`SELECT version,current_revision_no FROM hrm_leave_requests WHERE id=${q(hrUploadRequest.id)}`)[0];assert.equal(hrAmendedRequest.current_revision_no,2,"HR can amend a pending request in its authorized scope");assert.equal(jobs(`SELECT revision_no FROM hrm_leave_evidence_links WHERE leave_request_id=${q(hrUploadRequest.id)}`)[0].revision_no,1,"amendment preserves the prior PDF on its old revision");const hrAmendedApproval=await S.manager.post("/api/hrm/leave",{intent:"review_request",return_to:"/hrm/leave",request_key:`p3_hr_amended_evidence_missing_${run}`,request_id:hrUploadRequest.id,version:hrAmendedRequest.version,decision:"approve",reason:"TEST revised request needs new evidence"});assert.equal(new URL(hrAmendedApproval.location,BASE).searchParams.get("error"),"leave_evidence_required");
+
+ // HRM-07 cross-request race: an upward amendment of one pending request and a
+ // new request for the same employee, when the balance fits only one of them.
+ S.raceEmployee=await userSession(S.system,{email:`test-p3-race-${run}@example.test`,name:`TEST P3 Race ${run}`});assert.equal((await grant(S.raceEmployee,"employee")).status,303);
+ const racePersonId=await createPerson({user:S.raceEmployee,code:`TEST-P3-RACE-${run}`,name:"TEST P3 Race",manager:S.manager.id,startedOn:p3CalendarStart});
+ // Assignments start after P3's locked periods, before the race dates.
+ const raceSetup=async(path,fields,label)=>{const response=await S.hrm.post(path,fields);assert.equal(response.status,303,label);assert.equal(new URL(response.location,BASE).searchParams.get("error"),null,label)};
+ const activeCalendar=jobs(`SELECT id FROM hrm_work_calendar_versions WHERE calendar_key=${q(`test_${run}`)} AND state='active' ORDER BY version_number DESC LIMIT 1`)[0],activeLeavePolicy=jobs(`SELECT id FROM hrm_leave_policy_versions WHERE policy_key=${q(`test_${run}`)} AND state='active' ORDER BY version_number DESC LIMIT 1`)[0];
+ assert.ok(activeCalendar&&activeLeavePolicy,"the reviewed P3 calendar and leave policy are still active");
+ await raceSetup("/api/hrm/time",{intent:"assign_calendar",return_to:"/hrm/time",request_key:`p3_race_calendar_${run}`,person_id:racePersonId,calendar_version_id:activeCalendar.id,effective_from:vietnamDate(65)},"assign race calendar");
+ await raceSetup("/api/hrm/leave",{intent:"assign_policy",return_to:"/hrm/leave",request_key:`p3_race_policy_${run}`,person_id:racePersonId,policy_id:activeLeavePolicy.id,effective_from:vietnamDate(65)},"assign race leave policy");
+ const raceDates=[];for(let offset=70;offset<120&&raceDates.length<5;offset++){const candidate=vietnamDate(offset);if(![weekdayOf(p3Day),weekdayOf(p3NightDay)].includes(weekdayOf(candidate)))raceDates.push(candidate)}assert.equal(raceDates.length,5);
+ const raceSubmit=(date,portion,label)=>S.raceEmployee.post("/api/hrm/leave",{intent:"submit_request",return_to:"/hrm/me/leave",request_key:`p3_race_${label}_${run}`,starts_on:date,ends_on:date,portion,leave_type_key:"annual",private_reason:"TEST race",handoff_note:"TEST"});
+ const raceSaved=async(response)=>{const url=new URL(response.location,BASE);assert.equal(url.searchParams.get("saved"),"submit_request",url.searchParams.get("error")??response.location)};
+ for(const [index,date] of raceDates.slice(0,3).entries())await raceSaved(await raceSubmit(date,"full",`full_${index}`));
+ await raceSaved(await raceSubmit(raceDates[3],"half_first","half_a"));
+ const raceHeld=()=>jobs(`SELECT COALESCE(SUM(requested_minutes),0) AS n FROM hrm_leave_requests WHERE person_id=${q(racePersonId)} AND leave_type_key='annual' AND state IN ('pending_approval','approved')`)[0].n;
+ assert.equal(raceHeld(),1680,"three full days and one half day are held; 240 minutes remain");
+ const halfA=jobs(`SELECT id,version FROM hrm_leave_requests WHERE person_id=${q(racePersonId)} AND starts_on=${q(raceDates[3])}`)[0];
+ const [amendUp,newHalf]=await Promise.all([
+  S.raceEmployee.post("/api/hrm/leave",{intent:"amend_request",return_to:"/hrm/me/leave",request_key:`p3_race_amend_up_${run}`,request_id:halfA.id,version:halfA.version,starts_on:raceDates[3],ends_on:raceDates[3],portion:"full",leave_type_key:"annual",private_reason:"TEST race",handoff_note:"TEST",reason:"TEST make the half day a full day"}),
+  raceSubmit(raceDates[4],"half_first","half_b"),
+ ]);
+ const raceOutcomes=[amendUp,newHalf].map(response=>{const url=new URL(response.location,BASE);return url.searchParams.get("saved")?"saved":url.searchParams.get("error")});
+ assert.equal(raceOutcomes.filter(outcome=>outcome==="saved").length,1,`exactly one of the competing requests fits the balance: ${raceOutcomes.join(",")}`);
+ assert.ok(raceOutcomes.every(outcome=>["saved","leave_balance_insufficient","conflict"].includes(outcome)),raceOutcomes.join(","));
+ assert.equal(raceHeld(),1920,"the balance is used exactly, never overdrawn");
+
 });
 
 test("HRM P4 builds payroll from locked periods, exact inputs, separated review, immutable slips and partial payment records",{skip:["hrm-p1","hrm-p3","hrm-p5"].includes(process.env.RUNLUMI_INTEGRATION_SCOPE)},async(t)=>{
