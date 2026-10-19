@@ -182,6 +182,14 @@ In payroll, a policy component with source `crm_commission` (VND, minor-unit sca
 
 Missing commission stays unknown, not zero. Tax treatment, the approved commission policy and the payroll parallel run still need owner and specialist approval before production use.
 
+## Final pay for an ended employment
+
+A regular payroll run enrols only probation, active and notice employments. It cannot publish while a participant's employment has ended. If someone leaves after a draft regular run was created, a payroll preparer removes them on the run detail ("Remove from regular run"), with a reason. That resets calculation and approvals, and counts as a run input, so the remover cannot review or approve the run.
+
+Pay the leaver through **Payroll → Final pay for an ended employment**. Choose the active policy, the locked period, the employee code and, for a rehire, the employment period ID. The employment must have ended and must overlap the period. No other draft run or published payslip may already pay that employment for the period. The final run holds exactly that one employment and follows every regular control: locked time, compensation traced to an approved version (for an ended employment it must end with the employment), independent review and approval, and an immutable payslip. A published final payslip is changed only through a linked correction. A regular run and a final run never both pay one employment for one period.
+
+A mid-period leaver's compensation covers only part of the period, so `employment_record` lines stay blocked: there is no proration rule. Until the owner approves one, final settlement amounts belong in an owner-defined, evidenced component (for example `manual_evidence`). Creating a final run does not restore HRM or Workspace access, and it does not complete the offboarding payroll task. That still needs the independently reviewed financial dossier.
+
 ## File disposition and role changes
 
 File disposition uses three separate actors: requester, independent reviewer and System Super Admin executor. Promotion or combined roles do not waive that separation, including when resuming a deletion. Reject a requester or reviewer acting as executor before reserving or deleting the R2 object; a final D1 constraint alone cannot protect bytes already erased. A denial must preserve the request state, metadata and downloadable object. Use another authorized independent executor; never bypass the queue with a manual object deletion.

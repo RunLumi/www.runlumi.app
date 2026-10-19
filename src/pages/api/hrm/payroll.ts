@@ -4,7 +4,7 @@ import { HrmError, revision, text } from "../../../lib/hrm/fields";
 import {
   activatePayrollPolicy, approvePayrollRun, closePayrollRun, confirmPayrollPayment,
   createPayrollDispute, createPayrollPolicy, createPayrollRun, calculatePayrollRun,
-  publishPayrollRun, reviewPayrollPolicy, reviewPayrollRun, setPayrollLine,
+  publishPayrollRun, reviewPayrollPolicy, reviewPayrollRun, setPayrollLine, createFinalPayrollRun, removeEndedRunPerson,
   transitionPayrollDispute, type PayrollSourceKind, PAYROLL_SOURCE_KINDS,
 } from "../../../lib/hrm/payroll";
 import { actOnCloseoutPolicy, createCloseoutPolicy } from "../../../lib/hrm/closeout-policies";
@@ -93,6 +93,11 @@ export const POST: APIRoute = async context => {
       await reviewCompensation(env.DB, user, key, text(form, "compensation_id", 100, true), revision(form), decision, text(form, "reason", 500, true));
     }
     else if (intent === "create_run") await createPayrollRun(env.DB, user, key, text(form, "policy_version_id", 100, true), text(form, "period_id", 100, true));
+    else if (intent === "create_final_run") await createFinalPayrollRun(env.DB, user, key, {
+      policyVersionId: text(form, "policy_version_id", 100, true), periodId: text(form, "period_id", 100, true),
+      employeeCode: text(form, "employee_code", 60, true), employmentId: text(form, "employment_id", 100), reason: text(form, "reason", 500, true),
+    });
+    else if (intent === "remove_run_person") await removeEndedRunPerson(env.DB, user, key, { runId: text(form, "run_id", 100, true), personId: text(form, "person_id", 100, true), expectedVersion: revision(form), reason: text(form, "reason", 500, true) });
     else if (intent === "create_correction") await createPayrollRun(env.DB, user, key, text(form, "policy_version_id", 100, true), text(form, "period_id", 100, true), text(form, "payslip_id", 100, true), text(form, "reason", 500, true));
     else if (intent === "set_line") {
       const sourceKind = text(form, "source_kind", 40, true);
