@@ -164,6 +164,16 @@ Snapshot cũ có thể chưa lưu tên tiếng Việt. Bản tải giữ nguyên
 
 Tệp đính kèm là bản HTML được trả như dữ liệu tải xuống, có header ngôn ngữ, header riêng tư/no-store và không kèm giao diện biên tập CMS. Tệp cũng có chính sách nội dung hạn chế và nền sáng rõ ràng để đọc khi mở bản đã lưu. Bản tải chứa thông tin lương: lưu trong nơi riêng tư được phê duyệt và tuân theo chính sách lưu trữ đã được tổ chức rà soát; không công khai. Hướng dẫn này không mở payroll hay xác nhận chính sách tính lương đã được duyệt.
 
+## Thu nhập có hiệu lực cho payroll
+
+Khoản lương thuộc cấu phần `employment_record` phải trỏ tới đúng một phiên bản thu nhập tại **HRM → Payroll → Thu nhập theo hợp đồng có hiệu lực** (`/vi/hrm/payroll#compensation`, `/hrm/payroll#compensation`). HRM Admin nhập mã nhân viên, mã cấu phần, loại tiền, số chữ số thập phân, số tiền chính xác mỗi kỳ lương, ngày hiệu lực và nguồn. Nguồn là hồ sơ hợp đồng lao động hoặc phụ lục đã hoàn tất của cùng đợt làm việc, hoặc số quyết định được lưu ngoài HRM. Một HRM Admin khác hoặc System Super Admin phê duyệt. Không ai được tạo hoặc duyệt thu nhập cho hồ sơ nhân viên của chính mình.
+
+Các phiên bản đã duyệt của cùng một cấu phần và đợt làm việc không được chồng ngày. Để đổi thu nhập, tạo phiên bản mới ghi rõ phiên bản đã duyệt mà nó thay thế; phiên bản mới phải kéo dài tới hết ngày kết thúc của bản cũ. Khi được duyệt, bản cũ bị rút ngắn tới ngày trước ngày bắt đầu mới, hoặc chuyển sang “đã được thay thế” nếu bản mới bắt đầu từ cùng ngày hoặc sớm hơn. Phiếu lương đã phát hành giữ nguyên phiên bản đã dùng; thay đổi hồi tố phải đi qua bản điều chỉnh payroll có liên kết.
+
+Số tiền trên dòng lương phải bằng số tiền đã duyệt và một phiên bản phải phủ trọn kỳ lương. Kỳ không có phiên bản, phiên bản bắt đầu/kết thúc giữa kỳ hoặc có hai phiên bản trong kỳ đều bị chặn vì chưa có quy tắc chia theo ngày. Bước tính lưu mã phiên bản, ngày hiệu lực và loại nguồn vào snapshot của kỳ. Rà soát, phê duyệt và phát hành sẽ thất bại nếu phiên bản không còn phủ dòng lương. Người rà soát hoặc phê duyệt kỳ không được là người đã nhập dòng lương trong kỳ, người tạo phiên bản thu nhập được dùng hoặc người được trả lương trong kỳ.
+
+Đây là kiểm soát truy vết nguồn, không phải phép tính lương theo luật, thuế, bảo hiểm, làm thêm giờ hay hoa hồng. Vẫn cần quy tắc chia theo ngày và quy tắc lương được owner duyệt, cùng một kỳ chạy song song được kiểm tra độc lập, trước khi mở payroll.
+
 ## Xử lý xóa tệp khi vai trò thay đổi
 
 Quy trình xóa tệp dùng ba người khác nhau: người tạo yêu cầu, người rà soát độc lập và System Super Admin thực hiện xóa. Được nâng quyền hoặc có nhiều vai trò không miễn điều kiện này, kể cả khi tiếp tục một lần xóa đang dở. Phải chặn người tạo hoặc người rà soát đóng vai người thực hiện trước khi giữ chỗ hay xóa object R2; ràng buộc D1 ở bước cuối không bảo vệ được bytes đã bị xóa. Lần từ chối phải giữ nguyên trạng thái yêu cầu, metadata và object vẫn tải được. Dùng người thực hiện độc lập có quyền; không xóa object thủ công để vượt hàng đợi.

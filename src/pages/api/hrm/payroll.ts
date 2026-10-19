@@ -8,6 +8,7 @@ import {
   transitionPayrollDispute, type PayrollSourceKind, PAYROLL_SOURCE_KINDS,
 } from "../../../lib/hrm/payroll";
 import { actOnCloseoutPolicy, createCloseoutPolicy } from "../../../lib/hrm/closeout-policies";
+import { createCompensation, reviewCompensation } from "../../../lib/hrm/compensation";
 import { sameOrigin } from "../../../lib/http";
 
 export const prerender = false;
@@ -80,6 +81,17 @@ export const POST: APIRoute = async context => {
       if (decision !== "approve" && decision !== "reject") throw new HrmError("invalid_decision");
       await reviewPayrollPolicy(env.DB, user, key, text(form, "policy_id", 100, true), revision(form), decision === "approve", text(form, "reason", 500, true));
     } else if (intent === "activate_policy") await activatePayrollPolicy(env.DB, user, key, text(form, "policy_id", 100, true), revision(form));
+    else if (intent === "create_compensation") await createCompensation(env.DB, user, key, {
+      employeeCode: text(form, "employee_code", 60, true), componentCode: text(form, "component_code", 40, true), currency: text(form, "currency", 3, true),
+      minorUnitScale: text(form, "minor_unit_scale", 1, true), amountMinor: text(form, "amount_minor", 16, true), effectiveFrom: text(form, "effective_from", 10, true),
+      effectiveUntil: text(form, "effective_until", 10), sourceKind: text(form, "source_kind", 30, true), sourceReference: text(form, "source_reference", 200, true),
+      basisNote: text(form, "basis_note", 1000, true), supersedesId: text(form, "supersedes_id", 100), employmentId: text(form, "employment_id", 100),
+    });
+    else if (intent === "review_compensation") {
+      const decision = text(form, "decision", 10, true);
+      if (decision !== "approve" && decision !== "reject" && decision !== "cancel") throw new HrmError("invalid_decision");
+      await reviewCompensation(env.DB, user, key, text(form, "compensation_id", 100, true), revision(form), decision, text(form, "reason", 500, true));
+    }
     else if (intent === "create_run") await createPayrollRun(env.DB, user, key, text(form, "policy_version_id", 100, true), text(form, "period_id", 100, true));
     else if (intent === "create_correction") await createPayrollRun(env.DB, user, key, text(form, "policy_version_id", 100, true), text(form, "period_id", 100, true), text(form, "payslip_id", 100, true), text(form, "reason", 500, true));
     else if (intent === "set_line") {

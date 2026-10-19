@@ -82,6 +82,9 @@ Remaining gaps, not built:
 | hrm.payroll.self | ✓ |  | ✓ |  |  |  |  |  |  |  |  |  |
 | hrm.payroll.dispute | ✓ |  | ✓ |  |  |  |  |  |  |  |  |  |
 | hrm.payroll.dispute.manage | ✓ |  |  |  |  | ✓ | ✓ |  |  |  |  |  |
+| hrm.compensation.read | ✓ |  |  |  |  | ✓ | ✓ |  |  |  |  |  |
+| hrm.compensation.manage | ✓ |  |  |  |  | ✓ |  |  |  |  |  |  |
+| hrm.compensation.review | ✓ |  |  |  |  | ✓ |  |  |  |  |  |  |
 | hrm.services.self | ✓ |  | ✓ |  |  |  |  |  |  |  |  |  |
 | hrm.services.manage | ✓ |  |  |  | ✓ | ✓ |  |  |  |  |  |  |
 | hrm.notifications.read | ✓ |  | ✓ | ✓ | ✓ | ✓ | ✓ |  |  |  |  |  |

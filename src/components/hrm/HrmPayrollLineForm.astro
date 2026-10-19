@@ -1,9 +1,12 @@
 ---
+import type { CompensationCoverage } from "../../lib/hrm/compensation";
 import type { PayrollComponent, PayrollPerson, PayrollRun } from "../../lib/hrm/payroll";
-interface Props { run: PayrollRun; person: PayrollPerson; component: PayrollComponent; returnTo: string; vi: boolean }
-const { run, person, component, returnTo, vi } = Astro.props as Props;
+interface Props { run: PayrollRun; person: PayrollPerson; component: PayrollComponent; coverage?: CompensationCoverage; returnTo: string; vi: boolean }
+const { run, person, component, coverage, returnTo, vi } = Astro.props as Props;
 const line = person.lines.find(item => item.component_code === component.code);
-const sourceReference = component.source_kind === "employment_record" ? person.employment_id : component.source_kind === "locked_time" ? run.period_id : line?.source_reference ?? "";
+const covered = component.source_kind === "employment_record" && coverage?.state === "covered" ? coverage.version : undefined;
+const sourceReference = component.source_kind === "employment_record" ? covered?.id ?? line?.source_reference ?? "" : component.source_kind === "locked_time" ? run.period_id : line?.source_reference ?? "";
+const amount = line?.amount_minor ?? covered?.amount_minor ?? "";
 ---
 <form class="crm-form" method="post" action="/api/hrm/payroll">
   <h3 class="crm-h3">{vi ? component.title_vi : component.title_en}{component.required ? " · *" : ""}</h3>
@@ -15,9 +18,14 @@ const sourceReference = component.source_kind === "employment_record" ? person.e
   <input type="hidden" name="version" value={run.version}/>
   <input type="hidden" name="component_code" value={component.code}/>
   <input type="hidden" name="source_kind" value={component.source_kind}/>
-  <label class="crm-field"><span>{vi ? "Số tiền theo đơn vị nhỏ nhất" : "Amount in configured minor units"}</span><input class="crm-input" type="number" inputmode="numeric" min="0" step="1" name="amount_minor" value={line?.amount_minor ?? ""} required/></label>
+  <label class="crm-field"><span>{vi ? "Số tiền theo đơn vị nhỏ nhất" : "Amount in configured minor units"}</span><input class="crm-input" type="number" inputmode="numeric" min="0" step="1" name="amount_minor" value={amount} required/></label>
   <label class="crm-field"><span>{vi ? "Tham chiếu nguồn" : "Source reference"}</span><input class="crm-input" name="source_reference" value={sourceReference} maxlength="200" required/></label>
   <label class="crm-field"><span>{vi ? "Lý do nếu bằng 0" : "Reason when zero"}</span><input class="crm-input" name="zero_reason" value={line?.zero_reason ?? ""} maxlength="300"/></label>
+  {component.source_kind === "employment_record" && (covered
+    ? <p class="crm-meta">{vi ? "Phiên bản thu nhập đã duyệt bao trọn kỳ" : "Approved compensation covering the whole period"} · {covered.effective_from}—{covered.effective_until ?? "…"}</p>
+    : <p class="crm-notice warn" role="note">{coverage?.state === "partial"
+      ? (vi ? "Kỳ này chỉ được phủ một phần hoặc có nhiều phiên bản thu nhập. Không có quy tắc chia theo ngày nên khoản này bị chặn." : "Compensation covers only part of this period or changes within it. No proration rule exists, so this line is blocked.")
+      : (vi ? "Chưa có phiên bản thu nhập đã duyệt cho cấu phần này trong kỳ." : "No approved compensation version covers this component in the period.")}</p>)}
   <p class="crm-meta">{component.source_kind} · {component.direction}</p>
   <button class="crm-button secondary small">{vi ? "Lưu khoản" : "Save line"}</button>
 </form>

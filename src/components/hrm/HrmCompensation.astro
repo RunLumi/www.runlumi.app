@@ -1,0 +1,72 @@
+---
+import { formatPayrollMoney } from "../../lib/hrm/payroll";
+import type { PayrollDeskPage } from "../../lib/hrm/payroll-pages";
+interface Props { data: PayrollDeskPage }
+const d = Astro.props.data, vi = d.vi, prefix = vi ? "/vi" : "";
+const rows = d.compensation ?? [], filter = d.compensationFilter ?? "", page = d.compensationPage ?? 1;
+const returnTo = `${prefix}/hrm/payroll`;
+const stateLabel = (state: string) => ({ draft: vi ? "Nháp chờ rà soát" : "Draft awaiting review", approved: vi ? "Đã duyệt" : "Approved", rejected: vi ? "Từ chối" : "Rejected", cancelled: vi ? "Đã hủy" : "Cancelled", superseded: vi ? "Đã được thay thế" : "Superseded" }[state] ?? state);
+const sourceLabel = (kind: string) => kind === "contract_issue" ? (vi ? "Hợp đồng/phụ lục đã hoàn tất" : "Completed contract/addendum") : (vi ? "Quyết định ngoài HRM" : "Decision outside HRM");
+const range = (from: string, until: string | null) => `${from} — ${until ?? (vi ? "không thời hạn" : "open-ended")}`;
+const pageHref = (target: number) => `${prefix}/hrm/payroll?${new URLSearchParams({ ...(filter ? { compensation_employee: filter } : {}), compensation_page: String(target) })}#compensation`;
+const money = (amount: number, currency: string, scale: number) => { try { return formatPayrollMoney(amount, currency, scale, vi ? "vi" : "en"); } catch { return `${currency} ${amount}`; } };
+---
+<section class="crm-sheet" id="compensation" aria-labelledby="compensation-heading">
+  <p class="crm-eyebrow">{vi ? "Nguồn thu nhập" : "Income source"}</p>
+  <h2 class="crm-h2" id="compensation-heading">{vi ? "Thu nhập theo hợp đồng có hiệu lực" : "Effective contract compensation"}</h2>
+  <p class="crm-help">{vi ? "Khoản lương có nguồn employment_record phải trỏ tới đúng một phiên bản đã được người khác duyệt, bao trọn kỳ lương và khớp số tiền. Hệ thống không chia theo ngày: kỳ chỉ được phủ một phần sẽ bị chặn cho tới khi có quy tắc được owner duyệt." : "Lines sourced from employment_record must reference exactly one version approved by someone else, covering the whole pay period at the same amount. Nothing is prorated: a partly covered period stays blocked until an owner-approved rule exists."}</p>
+  <form class="crm-form compensation-filter" method="get" action={`${prefix}/hrm/payroll#compensation`}>
+    <label class="crm-field"><span>{vi ? "Lọc theo mã nhân viên" : "Filter by employee code"}</span><input class="crm-input" name="compensation_employee" value={filter} maxlength="60"/></label>
+    <button class="crm-button secondary small">{vi ? "Lọc" : "Filter"}</button>
+  </form>
+  {rows.length === 0 ? <p class="crm-empty">{vi ? "Chưa có phiên bản thu nhập phù hợp." : "No matching compensation versions."}</p> : <div class="crm-list">{rows.map(row => <article class="crm-row">
+    <div class="compensation-copy">
+      <strong>{row.employee_code} · {row.display_name} · {row.component_code}</strong>
+      <span class="crm-meta">{money(row.amount_minor, row.currency, row.minor_unit_scale)} {vi ? "mỗi kỳ lương" : "per pay period"} · {range(row.effective_from, row.effective_until)} · {stateLabel(row.state)}</span>
+      <span class="crm-meta">{sourceLabel(row.source_kind)}: <code>{row.source_reference}</code>{row.supersedes_id && <> · {vi ? "Thay thế" : "Replaces"} <code>{row.supersedes_id}</code></>}</span>
+      <span class="crm-meta">{vi ? "Căn cứ" : "Basis"}: {row.basis_note}</span>
+      <span class="crm-meta">{vi ? "Tạo bởi" : "Created by"} {row.created_by}{row.reviewed_by && ` · ${vi ? "Rà soát" : "Reviewed by"} ${row.reviewed_by}`} · <code>{row.id}</code></span>
+    </div>
+    <div class="crm-actions">
+      {row.state === "draft" && d.user.can("hrm.compensation.review") && row.created_by !== d.user.id && <form class="crm-form" method="post" action="/api/hrm/payroll">
+        <input type="hidden" name="intent" value="review_compensation"/><input type="hidden" name="return_to" value={returnTo}/><input type="hidden" name="request_key" value={crypto.randomUUID()}/>
+        <input type="hidden" name="compensation_id" value={row.id}/><input type="hidden" name="version" value={row.version}/>
+        <label class="crm-field"><span>{vi ? "Đã đối chiếu với" : "Checked against"}</span><input class="crm-input" name="reason" maxlength="500" required/></label>
+        <button class="crm-button small" name="decision" value="approve">{vi ? "Duyệt" : "Approve"}</button>
+        <button class="crm-button danger small" name="decision" value="reject">{vi ? "Từ chối" : "Reject"}</button>
+      </form>}
+      {row.state === "draft" && row.created_by === d.user.id && d.user.can("hrm.compensation.manage") && <form class="crm-form" method="post" action="/api/hrm/payroll">
+        <input type="hidden" name="intent" value="review_compensation"/><input type="hidden" name="return_to" value={returnTo}/><input type="hidden" name="request_key" value={crypto.randomUUID()}/>
+        <input type="hidden" name="compensation_id" value={row.id}/><input type="hidden" name="version" value={row.version}/>
+        <label class="crm-field"><span>{vi ? "Lý do hủy" : "Cancellation reason"}</span><input class="crm-input" name="reason" maxlength="500" required/></label>
+        <button class="crm-button secondary small" name="decision" value="cancel">{vi ? "Hủy bản nháp" : "Cancel draft"}</button>
+      </form>}
+    </div>
+  </article>)}</div>}
+  {(page > 1 || d.compensationHasMore) && <nav class="crm-actions" aria-label={vi ? "Trang thu nhập" : "Compensation pages"}>
+    {page > 1 && <a class="crm-button secondary small" href={pageHref(page - 1)}>{vi ? "Trang trước" : "Previous page"}</a>}
+    {d.compensationHasMore && <a class="crm-button secondary small" href={pageHref(page + 1)}>{vi ? "Trang sau" : "Next page"}</a>}
+  </nav>}
+  {d.user.can("hrm.compensation.manage") && <details class="crm-disclosure"><summary>{vi ? "Tạo phiên bản thu nhập nháp" : "Create a draft compensation version"}</summary>
+    <form class="crm-form" method="post" action="/api/hrm/payroll">
+      <input type="hidden" name="intent" value="create_compensation"/><input type="hidden" name="return_to" value={returnTo}/><input type="hidden" name="request_key" value={crypto.randomUUID()}/>
+      <div class="crm-form-grid">
+        <label class="crm-field"><span>{vi ? "Mã nhân viên" : "Employee code"}</span><input class="crm-input" name="employee_code" maxlength="60" required/></label>
+        <label class="crm-field"><span>{vi ? "Mã cấu phần lương" : "Payroll component code"}</span><input class="crm-input" name="component_code" pattern="[a-z][a-z0-9_]{0,39}" maxlength="40" required/></label>
+        <label class="crm-field"><span>{vi ? "Loại tiền" : "Currency"}</span><input class="crm-input" name="currency" pattern="[A-Za-z]{3}" maxlength="3" required/></label>
+        <label class="crm-field"><span>{vi ? "Số chữ số sau dấu thập phân" : "Minor-unit scale"}</span><select class="crm-input" name="minor_unit_scale" required><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select></label>
+        <label class="crm-field"><span>{vi ? "Số tiền mỗi kỳ (đơn vị nhỏ nhất)" : "Amount per pay period (minor units)"}</span><input class="crm-input" type="number" inputmode="numeric" name="amount_minor" min="0" step="1" required/></label>
+        <label class="crm-field"><span>{vi ? "Hiệu lực từ" : "Effective from"}</span><input class="crm-input" type="date" name="effective_from" required/></label>
+        <label class="crm-field"><span>{vi ? "Hiệu lực đến (tùy chọn)" : "Effective until (optional)"}</span><input class="crm-input" type="date" name="effective_until"/></label>
+        <label class="crm-field"><span>{vi ? "Loại nguồn" : "Source type"}</span><select class="crm-input" name="source_kind" required><option value="contract_issue">{sourceLabel("contract_issue")}</option><option value="decision_reference">{sourceLabel("decision_reference")}</option></select></label>
+        <label class="crm-field"><span>{vi ? "Mã hồ sơ hợp đồng hoặc số quyết định" : "Contract issue ID or decision reference"}</span><input class="crm-input" name="source_reference" maxlength="200" required/></label>
+        <label class="crm-field"><span>{vi ? "Mã đợt làm việc (tùy chọn, khi tuyển lại)" : "Employment period ID (optional, for rehires)"}</span><input class="crm-input" name="employment_id" maxlength="100"/></label>
+        <label class="crm-field"><span>{vi ? "Thay thế phiên bản đã duyệt (tùy chọn)" : "Replaces approved version (optional)"}</span><input class="crm-input" name="supersedes_id" maxlength="100"/></label>
+        <label class="crm-field wide"><span>{vi ? "Căn cứ và phạm vi" : "Basis and scope"}</span><textarea class="crm-textarea" name="basis_note" maxlength="1000" rows="3" required></textarea></label>
+      </div>
+      <p class="crm-help">{vi ? "Hợp đồng phải là hồ sơ hợp đồng/phụ lục đã hoàn tất của cùng đợt làm việc. Bản thay thế phải kéo dài tới hết phiên bản cũ; phiên bản cũ được rút ngắn hoặc thay thế khi bản mới được duyệt. Phiếu đã phát hành không đổi." : "A contract source must be a completed contract/addendum issue for the same employment. A replacement must run through the end of the version it replaces; the old version is shortened or superseded when the new one is approved. Published payslips do not change."}</p>
+      <button class="crm-button secondary">{vi ? "Lưu bản nháp để rà soát" : "Save draft for review"}</button>
+    </form>
+  </details>}
+</section>
+<style>.compensation-copy{display:grid;gap:.25rem;min-width:0;overflow-wrap:anywhere}.compensation-filter{display:flex;flex-wrap:wrap;align-items:end;gap:.75rem}</style>

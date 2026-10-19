@@ -1,6 +1,7 @@
 import type { WorkspaceUser } from "../workspace/roles";
 import { date, HrmError } from "./fields";
 import { audit, command, digest, guardBoolean, id, localDate, now, requirePermission, settings } from "./service";
+import { compensationCoverage, coveringCompensationSql, runCompensationCoverage, untracedCompensationSql } from "./compensation";
 
 export const PAYROLL_SOURCE_KINDS = ["employment_record", "locked_time", "approved_adjustment", "manual_evidence"] as const;
 export type PayrollSourceKind = typeof PAYROLL_SOURCE_KINDS[number];
@@ -267,7 +268,6 @@ export async function setPayrollLine(db: D1Database, user: WorkspaceUser, key: s
   if (!component || component.source_kind !== input.sourceKind) throw new HrmError("payroll_component_invalid", 422);
   const amount = parseMinorAmount(input.amountMinor), sourceReference = safeText(input.sourceReference, 200), zeroReason = safeText(input.zeroReason, 300, false);
   if (amount === 0 && !zeroReason) throw new HrmError("payroll_zero_reason_required");
-  if (input.sourceKind === "employment_record" && sourceReference !== person.employment_id) throw new HrmError("payroll_source_reference_invalid", 409);
   if (input.sourceKind === "locked_time" && sourceReference !== run.period_id) throw new HrmError("payroll_source_reference_invalid", 409);
   if (input.sourceKind === "approved_adjustment") {
     const source = await db.prepare("SELECT a.id FROM hrm_time_adjustments a JOIN hrm_time_entries e ON e.id=a.entry_id WHERE a.id=? AND a.state='approved' AND e.person_id=? AND e.period_id=?").bind(sourceReference, person.person_id, run.period_id).first<{ id: string }>();
@@ -277,10 +277,22 @@ export async function setPayrollLine(db: D1Database, user: WorkspaceUser, key: s
   const payload = { runId: run.id, personId: person.person_id, expectedVersion: input.expectedVersion, component, amount, sourceReference, zeroReason };
   const replay = await replayCommand(db, user, key, "payroll_line_set", payload);
   if (replay) return replay;
+  // Contract/income lines trace to one independently approved compensation
+  // version that covers the whole period at this exact amount (§10.1).
+  if (input.sourceKind === "employment_record") {
+    const coverage = await compensationCoverage(db, person.employment_id, component.code, run.starts_on, run.ends_on);
+    if (coverage.state === "missing") throw new HrmError("payroll_compensation_missing", 409);
+    if (coverage.state === "partial") throw new HrmError("payroll_compensation_partial_period", 409);
+    const version = coverage.version!;
+    if (sourceReference !== version.id || amount !== version.amount_minor || version.currency !== policy.currency || version.minor_unit_scale !== policy.minor_unit_scale || version.legal_entity !== policy.legal_entity) throw new HrmError("payroll_compensation_mismatch", 409);
+  }
   if (run.version !== input.expectedVersion) throw new HrmError("conflict", 409);
   await command(db, user, key, "payroll_line_set", payload, lineId, [
     guardBoolean(db, "EXISTS(SELECT 1 FROM hrm_payroll_runs WHERE id=? AND version=? AND state NOT IN ('published','closed'))", [run.id, input.expectedVersion]),
     guardBoolean(db, "EXISTS(SELECT 1 FROM hrm_payroll_run_people WHERE run_id=? AND person_id=?)", [run.id, person.person_id]),
+    input.sourceKind === "employment_record"
+      ? guardBoolean(db, `EXISTS(SELECT 1 FROM (SELECT ? AS source_reference,? AS component_code,? AS amount_minor) l JOIN hrm_payroll_run_people rp ON rp.run_id=? AND rp.person_id=? JOIN hrm_payroll_runs r ON r.id=rp.run_id JOIN hrm_payroll_policy_versions pol ON pol.id=r.policy_version_id WHERE EXISTS(${coveringCompensationSql}))`, [sourceReference, component.code, amount, run.id, person.person_id])
+      : guardBoolean(db, "1", []),
   ], [
     db.prepare("UPDATE hrm_payroll_runs SET state='draft',input_revision=input_revision+1,snapshot_json=NULL,snapshot_checksum=NULL,version=version+1,reviewed_by=NULL,reviewed_at=NULL,review_reason=NULL,approved_by=NULL,approved_at=NULL,approval_reason=NULL,actor_id=?,updated_at=? WHERE id=? AND version=? AND state NOT IN ('published','closed')").bind(user.id, time, run.id, input.expectedVersion),
     db.prepare("UPDATE hrm_payroll_run_people SET gross_minor=NULL,deductions_minor=NULL,net_minor=NULL WHERE run_id=?").bind(run.id),
@@ -304,6 +316,7 @@ export async function calculatePayrollRun(db: D1Database, user: WorkspaceUser, k
   const components = parsePayrollComponents(policy.components_json), componentMap = new Map(components.map(component => [component.code, component]));
   if (people.length < 1) throw new HrmError("payroll_roster_empty", 409);
   const snapshots: Array<Record<string, unknown>> = [], writes: D1PreparedStatement[] = [];
+  const coverageByEmployment = await runCompensationCoverage(db, run.id, run.starts_on, run.ends_on);
   for (const person of people) {
     const lineCodes = new Set(person.lines.map(line => line.component_code));
     for (const component of components) if (component.required && !lineCodes.has(component.code)) throw new HrmError("payroll_inputs_incomplete", 409);
@@ -312,7 +325,13 @@ export async function calculatePayrollRun(db: D1Database, user: WorkspaceUser, k
       if (!component || component.direction !== line.direction || component.source_kind !== line.source_kind || line.amount_minor === 0 && !line.zero_reason.trim()) throw new HrmError("payroll_inputs_invalid", 409);
     }
     const totals = calculatePayrollTotals(person.lines);
-    snapshots.push({ person_id: person.person_id, employment_id: person.employment_id, employee_code: person.employee_code_snapshot, display_name: person.display_name_snapshot, lines: person.lines.map(line => ({ component_code: line.component_code, title_en: line.title_en, title_vi: line.title_vi, direction: line.direction, amount_minor: line.amount_minor, source_kind: line.source_kind, source_reference: line.source_reference, zero_reason: line.zero_reason })), ...totals });
+    const compensation = [] as Array<{ component_code: string; version_id: string; effective_from: string; effective_until: string | null; source_kind: string }>;
+    for (const line of person.lines.filter(item => item.source_kind === "employment_record")) {
+      const coverage = coverageByEmployment.get(`${person.employment_id}:${line.component_code}`) ?? { state: "missing" as const };
+      if (coverage.state !== "covered" || coverage.version!.id !== line.source_reference || coverage.version!.amount_minor !== line.amount_minor) throw new HrmError("payroll_compensation_changed", 409);
+      compensation.push({ component_code: line.component_code, version_id: coverage.version!.id, effective_from: coverage.version!.effective_from, effective_until: coverage.version!.effective_until, source_kind: coverage.version!.source_kind });
+    }
+    snapshots.push({ compensation, person_id: person.person_id, employment_id: person.employment_id, employee_code: person.employee_code_snapshot, display_name: person.display_name_snapshot, lines: person.lines.map(line => ({ component_code: line.component_code, title_en: line.title_en, title_vi: line.title_vi, direction: line.direction, amount_minor: line.amount_minor, source_kind: line.source_kind, source_reference: line.source_reference, zero_reason: line.zero_reason })), ...totals });
     writes.push(db.prepare("UPDATE hrm_payroll_run_people SET gross_minor=?,deductions_minor=?,net_minor=? WHERE id=? AND run_id=?").bind(totals.gross_minor, totals.deductions_minor, totals.net_minor, person.id, run.id));
   }
   const snapshot = { version: 1, run_id: run.id, period_key: run.period_key, period_id: run.period_id, starts_on: run.starts_on, ends_on: run.ends_on, time_snapshot_checksum: period.snapshot_checksum, policy: { id: policy.id, key: policy.policy_key, revision: policy.revision, title_en: policy.title_en, title_vi: policy.title_vi, legal_entity: policy.legal_entity, currency: policy.currency, minor_unit_scale: policy.minor_unit_scale, rounding_policy: policy.rounding_policy, components }, correction_of_payslip_id: run.adjustment_of_payslip_id, reason: run.reason, people: snapshots };
@@ -324,6 +343,7 @@ export async function calculatePayrollRun(db: D1Database, user: WorkspaceUser, k
   await command(db, user, key, "payroll_run_calculate", payload, run.id, [
     guardBoolean(db, "EXISTS(SELECT 1 FROM hrm_payroll_runs WHERE id=? AND version=? AND state='draft')", [run.id, expectedVersion]),
     guardBoolean(db, "EXISTS(SELECT 1 FROM hrm_time_periods WHERE id=? AND state='locked' AND snapshot_checksum=?)", [run.period_id, period.snapshot_checksum]),
+    guardBoolean(db, `NOT ${untracedCompensationSql}`, [run.id]),
   ], writes);
 }
 
@@ -336,13 +356,22 @@ async function transitionRun(db: D1Database, user: WorkspaceUser, key: string, r
   if (await replayCommand(db, user, key, `payroll_run_${stage}`, payload)) return;
   if (run.version !== expectedVersion || stage === "review" && run.state !== "calculated" || stage === "approve" && (run.state !== "reviewed" || !run.reviewed_by)) throw new HrmError("conflict", 409);
   if (run.created_by === user.id) throw new HrmError("self_approval", 403);
+  // Nobody reviews or approves pay they entered, pay whose compensation they
+  // authored, or their own pay, whatever combination of roles they hold.
+  const conflict = await db.prepare(`SELECT ${inputAuthorConflict} AS conflict`).bind(run.id, user.id, run.id, user.id, run.id, user.id).first<{ conflict: number }>();
+  if (conflict?.conflict) throw new HrmError("payroll_input_author", 403);
   await command(db, user, key, `payroll_run_${stage}`, payload, run.id, [
+    guardBoolean(db, `NOT ${inputAuthorConflict}`, [run.id, user.id, run.id, user.id, run.id, user.id]),
+    guardBoolean(db, `NOT ${untracedCompensationSql}`, [run.id]),
     guardBoolean(db, `EXISTS(SELECT 1 FROM hrm_payroll_runs WHERE id=? AND version=? AND state='${stage === "review" ? "calculated" : "reviewed"}' AND created_by!=? AND snapshot_checksum IS NOT NULL)`, [run.id, expectedVersion, user.id]),
   ], [
     db.prepare(`UPDATE hrm_payroll_runs SET state=?,${field}_by=?,${field}_at=?,${reasonField}=?,version=version+1,actor_id=?,updated_at=? WHERE id=? AND version=?`).bind(state, user.id, time, cleanReason, user.id, time, run.id, expectedVersion),
     db.prepare("INSERT INTO hrm_audit(actor_id,action,target_id,detail,created_at) VALUES(?,?,?, ?,?)").bind(user.id, `payroll_run_${stage}`, run.id, JSON.stringify({ reason_recorded: true }), time),
   ]);
 }
+const inputAuthorConflict = `(EXISTS(SELECT 1 FROM hrm_audit WHERE action='payroll_input_changed' AND target_id=? AND actor_id=?)
+  OR EXISTS(SELECT 1 FROM hrm_payroll_lines l JOIN hrm_payroll_run_people rp ON rp.id=l.run_person_id JOIN hrm_compensation_versions c ON c.id=l.source_reference WHERE rp.run_id=? AND l.source_kind='employment_record' AND c.created_by=?)
+  OR EXISTS(SELECT 1 FROM hrm_payroll_run_people rp JOIN hrm_people p ON p.id=rp.person_id WHERE rp.run_id=? AND p.user_id=?))`;
 export const reviewPayrollRun = (db: D1Database, user: WorkspaceUser, key: string, runId: string, expectedVersion: number, reason: string) => transitionRun(db, user, key, runId, expectedVersion, "review", reason);
 export const approvePayrollRun = (db: D1Database, user: WorkspaceUser, key: string, runId: string, expectedVersion: number, reason: string) => transitionRun(db, user, key, runId, expectedVersion, "approve", reason);
 
@@ -395,6 +424,7 @@ export async function publishPayrollRun(db: D1Database, user: WorkspaceUser, key
       WHERE original.id=? AND original.state='published' AND source_run.period_id=? AND source_run.policy_version_id=?
       AND (SELECT COUNT(*) FROM hrm_payroll_run_people WHERE run_id=?)=1)`,[run.id,previous,run.period_id,run.policy_version_id,run.id])
       : guardBoolean(db, "NOT EXISTS(SELECT 1 FROM hrm_payroll_run_people rp JOIN hrm_employments e ON e.id=rp.employment_id WHERE rp.run_id=? AND e.status='ended')", [run.id]),
+    guardBoolean(db, `NOT ${untracedCompensationSql}`, [run.id]),
     ...(previous ? [
       guardBoolean(db, "EXISTS(SELECT 1 FROM hrm_payslips WHERE id=? AND state='published')", [previous]),
       // The payment total was read before the publish batch. Assert it is still
