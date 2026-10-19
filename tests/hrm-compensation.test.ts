@@ -162,3 +162,18 @@ test("an explicit employment period serves a rehire; other people's periods are 
     await assert.rejects(createCompensation(f.db, f.admin1, key("foreign"), f.input({ ...decision, employmentId: "p2-e" })), { message: "not_found" });
   } finally { f.close(); }
 });
+
+test("self-export carries the employee's own effective pay history without internal references", async () => {
+  const { exportOwnHrmProfile } = await import("../src/lib/hrm/profile-export.ts");
+  const f = fixture(); try {
+    const first = await createCompensation(f.db, f.admin1, key("export-1"), f.input()); await f.approve(first);
+    const raise = await createCompensation(f.db, f.admin1, key("export-2"), f.input({ effectiveFrom: "2026-04-01", amountMinor: "12000", supersedesId: first, sourceKind: "decision_reference", sourceReference: "TEST-DEC-RAISE", basisNote: "TEST internal basis note" })); await f.approve(raise);
+    await createCompensation(f.db, f.admin1, key("export-draft"), f.input({ employeeCode: "TEST-P2", sourceKind: "decision_reference", sourceReference: "TEST-DEC-P2" }));
+    const bundle = JSON.parse((await exportOwnHrmProfile(f.db, f.employee)).body);
+    assert.equal(bundle.schema_version, 11);
+    assert.deepEqual(bundle.compensation.map((row: Record<string, unknown>) => [row.amount_minor, row.effective_from, row.effective_until, row.state]), [[10000, "2026-01-01", "2026-03-31", "approved"], [12000, "2026-04-01", null, "approved"]]);
+    const text = JSON.stringify(bundle.compensation);
+    for (const secret of [first, raise, "TEST internal basis note", "TEST-DEC-RAISE", "contract-i", "TEST-admin-1", "TEST-system"]) assert.ok(!text.includes(secret), `export omits ${secret}`);
+    assert.ok(bundle.included.includes("employee_compensation_history"));
+  } finally { f.close(); }
+});
