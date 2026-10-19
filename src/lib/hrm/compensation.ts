@@ -81,10 +81,11 @@ export async function createCompensation(db: D1Database, user: WorkspaceUser, ke
   if (done) return done;
   const config = await settings(db);
   if (!config.legal_entity) throw new HrmError("hrm_entity_unconfigured", 409);
-  const person = await db.prepare(`SELECT p.id AS person_id,p.user_id,e.id AS employment_id,e.legal_entity,e.started_on,e.ended_on FROM hrm_people p JOIN hrm_employments e ON e.person_id=p.id
+  const person = await db.prepare(`SELECT p.id AS person_id,p.user_id,e.id AS employment_id,e.legal_entity,e.started_on,e.ended_on,e.relationship_type FROM hrm_people p JOIN hrm_employments e ON e.person_id=p.id
     WHERE upper(p.employee_code)=upper(?) AND (CASE WHEN ? IS NULL THEN e.id=(SELECT e2.id FROM hrm_employments e2 WHERE e2.person_id=p.id ORDER BY CASE WHEN e2.status!='ended' THEN 0 ELSE 1 END,e2.started_on DESC,e2.created_at DESC LIMIT 1) ELSE e.id=? END)`)
-    .bind(values.employeeCode, values.employmentId, values.employmentId).first<{ person_id: string; user_id: string | null; employment_id: string; legal_entity: string; started_on: string | null; ended_on: string | null }>();
+    .bind(values.employeeCode, values.employmentId, values.employmentId).first<{ person_id: string; user_id: string | null; employment_id: string; legal_entity: string; started_on: string | null; ended_on: string | null; relationship_type: string }>();
   if (!person) throw new HrmError("not_found", 404);
+  if (person.relationship_type !== "employee") throw new HrmError("payroll_contractor", 409);
   if (person.legal_entity !== config.legal_entity) throw new HrmError("hrm_entity_unconfigured", 409);
   if (person.user_id === user.id) throw new HrmError("self_approval", 403);
   if (person.started_on && values.effectiveFrom < person.started_on || person.ended_on && (values.effectiveFrom > person.ended_on || !values.effectiveUntil || values.effectiveUntil > person.ended_on)) throw new HrmError("compensation_outside_employment", 409);

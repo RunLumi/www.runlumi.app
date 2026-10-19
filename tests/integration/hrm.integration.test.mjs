@@ -10,8 +10,8 @@ import { runHrmRecoveryDrill } from "./hrm-recovery-drill.mjs";
 
 const run=Date.now().toString(36);const S={};const P={};
 const grant=(user,role)=>S.system.post("/workspace/users",{intent:"grant",email:user.email,roles:[role]});
-const createPerson=async({user,code,name,manager="",status="active",startedOn="2026-10-13"})=>{
- const result=await S.hrm.post("/hrm/people/new",{request_key:`person_${code}_${run}`,employee_code:code,account_email:user?.email??"",legal_name:name,preferred_name:name,work_email:`${code.toLowerCase()}@work.example.test`,work_phone:"0900000000",department:"TEST Operations",job_title:"TEST Analyst",legal_entity:"TEST Local entity",location:"Ho Chi Minh City",manager_user_id:manager,status,started_on:startedOn});
+const createPerson=async({user,code,name,manager="",status="active",startedOn="2026-10-13",relationshipType=""})=>{
+ const result=await S.hrm.post("/hrm/people/new",{request_key:`person_${code}_${run}`,employee_code:code,account_email:user?.email??"",legal_name:name,preferred_name:name,work_email:`${code.toLowerCase()}@work.example.test`,work_phone:"0900000000",department:"TEST Operations",job_title:"TEST Analyst",legal_entity:"TEST Local entity",location:"Ho Chi Minh City",manager_user_id:manager,status,started_on:startedOn,...(relationshipType?{relationship_type:relationshipType}:{})});
  assert.equal(result.status,303,result.html);const row=jobs(`SELECT id FROM hrm_people WHERE employee_code=${q(code)}`)[0];assert.ok(row);return row.id;
 };
 async function multipart(session,path,fields,file){const form=new FormData();for(const [key,value] of Object.entries(fields))form.set(key,String(value));form.set("file",file);const response=await localFetch(BASE+path,{method:"POST",body:form,headers:{cookie:session.header(),origin:BASE},redirect:"manual"});session.absorb(response);return {status:response.status,location:response.headers.get("location"),body:await response.text(),headers:response.headers};}
@@ -738,6 +738,9 @@ test("HRM P4 builds payroll from locked periods, exact inputs, separated review,
  const personId=await createPerson({user:S.employeeP4,code:`TEST-P4-${run}`,name:"TEST P4 Employee",startedOn:start});
  const payslipOutsider=await userSession(S.system,{email:`test-p4-payslip-outsider-${run}@example.test`,name:`TEST P4 Payslip Outsider ${run}`});assert.equal((await grant(payslipOutsider,"employee")).status,303);const payslipOutsiderPersonId=await createPerson({user:payslipOutsider,code:`TEST-P4-OUT-${run}`,name:"TEST Other Payslip Employee",startedOn:todayP4});
 
+ // Owner decision 2026-10-20: contractors are in HRM but never in payroll.
+ const contractorP4Id=await createPerson({user:null,code:`TEST-P4-CTV-${run}`,name:"TEST P4 Contractor",startedOn:start,relationshipType:"contractor"});
+ assert.equal(jobs(`SELECT e.relationship_type FROM hrm_employments e WHERE e.person_id=${q(contractorP4Id)}`)[0].relationship_type,"contractor");
  assert.equal((await S.employeeP4.get("/hrm/payroll")).status,403,"employees cannot access the payroll desk");
  assert.equal((await S.payroll.get("/hrm/me/payslips")).status,403,"payroll operators do not receive employee self-service by default");
  assert.ok([403,404].includes((await S.payroll.get(`/hrm/people/${personId}/profile?section=identity`)).status),"payroll access never grants identity record access or reveals its route");
@@ -770,6 +773,7 @@ test("HRM P4 builds payroll from locked periods, exact inputs, separated review,
  const createRun=await S.payroll.post("/api/hrm/payroll",runFields);assert.equal(createRun.status,303);const runRow=jobs(`SELECT id,version,state FROM hrm_payroll_runs WHERE period_id=${q(period.id)} AND policy_version_id=${q(policy.id)} AND adjustment_of_payslip_id IS NULL`)[0];assert.ok(runRow);assert.equal(runRow.state,"draft");
  assert.equal((await S.payroll.post("/api/hrm/payroll",runFields)).status,303,"run creation retry reuses the same run");assert.equal(jobs(`SELECT COUNT(*) AS n FROM hrm_payroll_runs WHERE period_id=${q(period.id)} AND policy_version_id=${q(policy.id)} AND adjustment_of_payslip_id IS NULL`)[0].n,1);
  const runPeople=jobs(`SELECT id,person_id,employment_id FROM hrm_payroll_run_people WHERE run_id=${q(runRow.id)} ORDER BY person_id`);assert.ok(runPeople.some(person=>person.person_id===personId));assert.ok(runPeople.length>=1);assert.ok(!runPeople.some(person=>person.person_id===payslipOutsiderPersonId),"the current second employee joined after this payroll period");
+ assert.ok(!runPeople.some(person=>person.person_id===contractorP4Id),"a contractor active in the period is never enrolled in payroll");
  const incomplete=await S.payroll.post("/api/hrm/payroll",{intent:"calculate_run",return_to:`/hrm/payroll?run=${runRow.id}`,request_key:`p4_incomplete_calc_${run}`,run_id:runRow.id,version:runRow.version});assert.equal(new URL(incomplete.location,BASE).searchParams.get("error"),"payroll_inputs_incomplete");
  // Every employment_record line traces to an approved compensation version.
  // Its author never reviews it; the run reviewer/approver never authored it.

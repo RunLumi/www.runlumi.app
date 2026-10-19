@@ -7,6 +7,8 @@ export interface Person {
   id: string; employment_id:string; employee_code: string; user_id: string | null; legal_name: string; preferred_name: string; profile_version:number;
   work_email: string; work_phone: string; department: string; job_title: string; legal_entity: string; location: string;
   manager_user_id: string | null; status: string; started_on: string | null; ended_on: string | null;
+  /** Employee or contractor (owner decision 2026-10-20); contractors are never in payroll. */
+  relationship_type: "employee" | "contractor";
   version: number; actor_id: string; created_at: string; updated_at: string;
 }
 export interface HrmRecord { id: string; person_id: string; kind: RecordKind; data: string; state: string; version: number; effective_from: string | null; effective_to: string | null; verified_by: string | null; verified_at: string | null; updated_at: string }
@@ -40,7 +42,7 @@ export async function personFor(db: D1Database, user: WorkspaceUser, personId?: 
     }else{clauses.push("p.user_id=? AND e.status!='ended' AND (e.ended_on IS NULL OR e.ended_on>?)");params.push(user.id,localDate())}
   }
   const visibleName=user.can("hrm.records.manage")?"p.legal_name":"CASE WHEN p.user_id=? THEN p.legal_name ELSE COALESCE(NULLIF(p.preferred_name,''),'Employee') END";if(!user.can("hrm.records.manage"))params.unshift(user.id);
-    const person=await db.prepare(`SELECT p.id,e.id AS employment_id,p.employee_code,p.user_id,${visibleName} AS legal_name,p.preferred_name,p.version AS profile_version,p.actor_id,p.created_at AS person_created_at,e.work_email,e.work_phone,e.department,e.job_title,e.legal_entity,e.location,e.manager_user_id,e.status,e.started_on,e.ended_on,e.version,e.actor_id AS employment_actor_id,e.created_at,e.updated_at FROM hrm_people p JOIN hrm_employments e ON e.person_id=p.id WHERE ${clauses.join(" AND ")} LIMIT 1`).bind(...params).first<Person>();
+    const person=await db.prepare(`SELECT p.id,e.id AS employment_id,p.employee_code,p.user_id,${visibleName} AS legal_name,p.preferred_name,p.version AS profile_version,p.actor_id,p.created_at AS person_created_at,e.work_email,e.work_phone,e.department,e.job_title,e.legal_entity,e.location,e.manager_user_id,e.status,e.started_on,e.ended_on,e.relationship_type,e.version,e.actor_id AS employment_actor_id,e.created_at,e.updated_at FROM hrm_people p JOIN hrm_employments e ON e.person_id=p.id WHERE ${clauses.join(" AND ")} LIMIT 1`).bind(...params).first<Person>();
   if(!person)throw new HrmError("not_found",404);return person;
 }
 export function canReadRecord(person: Person, user: WorkspaceUser, kind: RecordKind): boolean {
@@ -64,7 +66,7 @@ export async function changesFor(db: D1Database, user: WorkspaceUser, person: Pe
 export async function listPeople(db:D1Database,user:WorkspaceUser,query:string,page:number):Promise<Person[]> {
  if(!user.can("hrm.records.manage")&&!user.can("hrm.team.read"))throw new HrmError("forbidden",403);
  const team=!user.can("hrm.records.manage"),search=query,today=localDate();const visibleName=team?"COALESCE(NULLIF(p.preferred_name,''),'Employee')":"p.legal_name";
- const sql=`SELECT p.id,e.id AS employment_id,p.employee_code,p.user_id,${visibleName} AS legal_name,p.preferred_name,p.version AS profile_version,e.work_email,e.work_phone,e.department,e.job_title,e.legal_entity,e.location,e.manager_user_id,e.status,e.started_on,e.ended_on,e.version,e.actor_id AS actor_id,e.created_at,e.updated_at FROM hrm_people p JOIN hrm_employments e ON e.person_id=p.id AND e.id=(SELECT e2.id FROM hrm_employments e2 WHERE e2.person_id=p.id ORDER BY CASE WHEN e2.status!='ended' THEN 0 ELSE 1 END,e2.started_on DESC,e2.created_at DESC LIMIT 1) WHERE (instr(lower(${visibleName}),lower(?))>0 OR instr(upper(p.employee_code),upper(?))>0) ${team?"AND e.manager_user_id=? AND e.status!='ended' AND (e.started_on IS NULL OR e.started_on<=?) AND (e.ended_on IS NULL OR e.ended_on>?)":""} ORDER BY ${visibleName},p.id LIMIT 26 OFFSET ?`;
+ const sql=`SELECT p.id,e.id AS employment_id,p.employee_code,p.user_id,${visibleName} AS legal_name,p.preferred_name,p.version AS profile_version,e.work_email,e.work_phone,e.department,e.job_title,e.legal_entity,e.location,e.manager_user_id,e.status,e.started_on,e.ended_on,e.relationship_type,e.version,e.actor_id AS actor_id,e.created_at,e.updated_at FROM hrm_people p JOIN hrm_employments e ON e.person_id=p.id AND e.id=(SELECT e2.id FROM hrm_employments e2 WHERE e2.person_id=p.id ORDER BY CASE WHEN e2.status!='ended' THEN 0 ELSE 1 END,e2.started_on DESC,e2.created_at DESC LIMIT 1) WHERE (instr(lower(${visibleName}),lower(?))>0 OR instr(upper(p.employee_code),upper(?))>0) ${team?"AND e.manager_user_id=? AND e.status!='ended' AND (e.started_on IS NULL OR e.started_on<=?) AND (e.ended_on IS NULL OR e.ended_on>?)":""} ORDER BY ${visibleName},p.id LIMIT 26 OFFSET ?`;
  try{return (await db.prepare(sql).bind(search,search,...(team?[user.id,today,today]:[]),(page-1)*25).all<Person>()).results}
  catch(error){if(import.meta.env.DEV&&error instanceof Error)console.error("[hrm] people query failed:",error.message.slice(0,240));throw error}
 }
@@ -103,6 +105,8 @@ export async function command(db: D1Database,user: WorkspaceUser,key: string,ope
     if(message.includes("hrm_performance_correction_conflict"))throw new HrmError("performance_correction_conflict",409);
     if(message.includes("structured_disposition_in_progress"))throw new HrmError("structured_disposition_in_progress",409);
     if(message.includes("structured_disposition_guard_required"))throw new HrmError("structured_record_changed",409);
+    if(message.includes("hrm_contractor_not_payroll"))throw new HrmError("payroll_contractor",409);
+    if(message.includes("hrm_relationship_type_fixed"))throw new HrmError("relationship_type_fixed",409);
     if(message.includes("crm_commission_handoff_invalid"))throw new HrmError("payroll_commission_missing",409);
     if(message.includes("hrm_compensation_overlap"))throw new HrmError("compensation_overlap",409);
     if(message.includes("hrm_compensation_end_date_invalid")||message.includes("hrm_compensation_replacement_required"))throw new HrmError("compensation_supersede_invalid",409);
@@ -144,7 +148,7 @@ export async function savePerson(db:D1Database,content:D1Database,user:Workspace
  if(input.manager_user_id){const managers=await membersWithRoles(db,content,["people_manager","hrm_admin"]);if(!managers.some(m=>m.user_id===input.manager_user_id))throw new HrmError("invalid_manager")}
  if(input.user_id&&input.user_id===input.manager_user_id)throw new HrmError("invalid_manager");
  const time=now(),target=personId??id("person"),employment=employmentId??id("employment");
- const employmentColumns=["work_email","work_phone","department","job_title","legal_entity","location","manager_user_id","status","started_on","ended_on"] as const;
+ const employmentColumns=["work_email","work_phone","department","job_title","legal_entity","location","manager_user_id","status","started_on","ended_on","relationship_type"] as const;
  if(personId){
   const current=await db.prepare("SELECT employee_code FROM hrm_people WHERE id=?").bind(personId).first<{employee_code:string}>();if(!current)throw new HrmError("not_found",404);if(input.employee_code!==current.employee_code)throw new HrmError("employee_code_immutable",409);
   if(!employmentId)throw new HrmError("employment_required",409);
@@ -157,7 +161,7 @@ export async function savePerson(db:D1Database,content:D1Database,user:Workspace
  const guards=input.user_id?[guard(db,"NOT EXISTS(SELECT 1 FROM hrm_people WHERE user_id=?)",[input.user_id])]:[];
  return command(db,user,key,"person_create",{input},target,guards,[
   db.prepare("INSERT INTO hrm_people(id,employee_code,user_id,legal_name,preferred_name,actor_id,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)").bind(target,input.employee_code,input.user_id,input.legal_name,input.preferred_name,user.id,time,time),
-  db.prepare(`INSERT INTO hrm_employments(id,person_id,${employmentColumns.join(",")},actor_id,created_at,updated_at) VALUES(${Array(15).fill("?").join(",")})`).bind(employment,target,...employmentColumns.map(c=>input[c]),user.id,time,time),
+  db.prepare(`INSERT INTO hrm_employments(id,person_id,${employmentColumns.join(",")},actor_id,created_at,updated_at) VALUES(${Array(16).fill("?").join(",")})`).bind(employment,target,...employmentColumns.map(c=>input[c]),user.id,time,time),
   clearGuards(db)
  ]);
 }
