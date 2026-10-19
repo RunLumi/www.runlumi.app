@@ -232,3 +232,26 @@ test("an ended accountable owner cannot keep a report schedule running through a
   assert.equal((await runHrmReportScheduleSweep(f.db,f.content,"true",Date.now())).created,0);assert.equal(f.db.raw.prepare("SELECT state FROM hrm_report_schedules").get()?.state,"paused");assert.equal(f.db.raw.prepare("SELECT enabled FROM workspace_members WHERE user_id=?").get(f.officer.id)?.enabled,1);
  }finally{f.close()}
 });
+
+test("a missed scheduled run is captured once later with its nominal clock on the missed day and the actual capture time",async()=>{
+ const f=fixture();try{
+  const {createReportSchedule,runHrmReportScheduleSweep}=await import("../src/lib/hrm/report-snapshots.ts");
+  const policy=await f.create();await f.approve(policy);await f.activate(policy);
+  f.db.raw.prepare("UPDATE hrm_settings SET enabled=1,purpose='TEST',retention_policy='TEST',policy_reference='TEST',reviewed_by=?").run(f.approver.id);
+  await createReportSchedule(f.db,f.content,{...f.author,hrmEnabled:true},"report_missed_schedule_create",{cadence:"daily",department:null,policyRef:policy});
+  // The schedule existed before yesterday's Cron, which never ran.
+  // created_at is immutable; suspend that trigger only in this in-memory
+  // database to place the schedule in the past, then restore its exact SQL.
+  const guards=f.db.raw.prepare("SELECT name,sql FROM sqlite_master WHERE type='trigger' AND tbl_name='hrm_report_schedules' AND sql LIKE '%immutable_hrm_report_schedule_definition%'").all() as Array<{name:string;sql:string}>;
+  for(const guard of guards)f.db.raw.exec(`DROP TRIGGER ${guard.name}`);
+  f.db.raw.prepare("UPDATE hrm_report_schedules SET created_at=?").run(new Date(Date.now()-3*86400000).toISOString());
+  for(const guard of guards)f.db.raw.exec(guard.sql);
+  const nominal=Date.now()-60000,result=await runHrmReportScheduleSweep(f.db,f.content,"true",nominal);assert.equal(result.created,2);
+  const rows=f.db.raw.prepare("SELECT schedule_day,scheduled_for,generated_at,created_at FROM hrm_report_snapshots ORDER BY schedule_day").all();
+  const local=(time:number)=>new Date(time+7*3600000).toISOString().slice(0,10);
+  assert.deepEqual(rows.map(row=>row.schedule_day),[local(nominal-86400000),local(nominal)]);
+  assert.equal(rows[0].scheduled_for,new Date(nominal-86400000).toISOString(),"the missed run keeps its nominal time on the missed day");
+  assert.ok(String(rows[0].generated_at)>String(rows[1].scheduled_for),"and records when it was actually captured");
+  assert.equal((await runHrmReportScheduleSweep(f.db,f.content,"true",nominal)).created,0,"a retry captures nothing twice");
+ }finally{f.close()}
+});

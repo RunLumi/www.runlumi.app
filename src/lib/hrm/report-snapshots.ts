@@ -35,6 +35,23 @@ export function reportPeriodForSchedule(cadence:HrmReportCadence,scheduledDate:s
   if(cadence!=="monthly")return scheduledDate.slice(0,7);
   const date=new Date(`${scheduledDate}T00:00:00.000Z`);date.setUTCDate(0);return date.toISOString().slice(0,7);
 }
+/**
+ * Capture targets for one sweep: the run's own Vietnam date when due, plus the
+ * most recent missed due date within one cadence window (1 day, 6 days or
+ * 27 days, so a run on the 1st never reaches back to last month) that is not before the schedule's own creation date. A missed
+ * target keeps the same time of day as this run, so its nominal clock falls on
+ * the missed date while the snapshot records the actual capture time.
+ */
+export function reportCaptureTargets(cadence:HrmReportCadence,day:string,scheduledTime:number,createdAt:string):Array<{day:string;scheduledFor:string}>{
+  const created=new Date(Date.parse(createdAt)+7*3600000).toISOString().slice(0,10),window=cadence==="daily"?1:cadence==="weekly"?6:27;
+  const targets=reportScheduleIsDue(cadence,day)?[{day,scheduledFor:new Date(scheduledTime).toISOString()}]:[];
+  for(let back=1;back<=window;back++){
+    const previous=addDays(day,-back);
+    if(previous<created)break;
+    if(reportScheduleIsDue(cadence,previous)){targets.push({day:previous,scheduledFor:new Date(scheduledTime-back*86400000).toISOString()});break}
+  }
+  return targets;
+}
 export function reportExpiryDate(createdOn:string,retentionDays:number):string{
   if(!validLocalDate(createdOn)||!Number.isInteger(retentionDays)||retentionDays<1||retentionDays>36500)throw new HrmError("report_retention_invalid",400);
   return addDays(createdOn,retentionDays);
@@ -194,7 +211,7 @@ export async function runHrmReportScheduleSweep(db:D1Database,content:D1Database
   const config=await settings(db);if(!enabled(config,liveFlag))return {created:0,expired:0,skipped:true};
   if(!Number.isFinite(scheduledTime)||scheduledTime>Date.now())return {created:0,expired:0,skipped:true};
   const scheduledFor=new Date(scheduledTime).toISOString(),day=new Date(scheduledTime+7*3600000).toISOString().slice(0,10),today=localDate(),expiryTime=now();
-  const schedules=(await db.prepare("SELECT id,schedule_ref,legal_entity,department,cadence,retention_days,retention_basis,created_by,version FROM hrm_report_schedules WHERE state='active' ORDER BY created_at,id").all<ScheduleRow>()).results;
+  const schedules=(await db.prepare("SELECT id,schedule_ref,legal_entity,department,cadence,retention_days,retention_basis,created_by,version,created_at FROM hrm_report_schedules WHERE state='active' ORDER BY created_at,id").all<ScheduleRow>()).results;
   const configuredSchedules=schedules.filter(schedule=>schedule.legal_entity===config.legal_entity);
   if(configuredSchedules.length>MAX_ACTIVE_REPORT_SCHEDULES){
     const failures=configuredSchedules.map(schedule=>db.prepare("INSERT OR IGNORE INTO hrm_report_schedule_events(schedule_id,event_type,scheduled_on,detail_json,actor_id,created_at) VALUES(?,'run_failed',?,?,?,?)").bind(schedule.id,day,JSON.stringify({error_code:"report_schedule_limit"}),"system:hrm_report_scheduler",expiryTime));
@@ -218,7 +235,10 @@ export async function runHrmReportScheduleSweep(db:D1Database,content:D1Database
       if(schedule.legal_entity!==config.legal_entity)throw new HrmError("report_entity_changed",409);
       if(!schedule.retention_basis.startsWith("policy:"))throw new HrmError("report_policy_required",409);
       const {policy,owner}=await reportPolicyForCapture(db,content,schedule.retention_basis.slice(7),schedule.legal_entity,schedule.cadence,schedule.department),creator=await reportAccount(db,content,schedule.created_by,"hrm.reports.manage");
-      const cadence=schedule.cadence as HrmReportCadence;if(!reportScheduleIsDue(cadence,day))continue;
+      const cadence=schedule.cadence as HrmReportCadence;
+      // Today's due run plus at most one missed occurrence (outage or failed
+      // Cron), captured now with its true nominal and actual clocks.
+      for(const target of reportCaptureTargets(cadence,day,scheduledTime,schedule.created_at)){const day=target.day,scheduledFor=target.scheduledFor;
       if(await db.prepare("SELECT 1 FROM hrm_report_snapshots WHERE schedule_id=? AND schedule_day=?").bind(schedule.id,day).first())continue;
       const period=reportPeriodForSchedule(cadence,day),generatedAt=now();
       const report=await buildHrmReportSnapshotForEntity(db,schedule.legal_entity,{period,department:schedule.department},generatedAt),body=makeStored(report),checksum=await digest(body),snapshotId=id("hrmrpt"),snapshotRef=`report-${crypto.randomUUID()}`,completedAt=now(),expiresOn=reportExpiryDate(new Date(Date.parse(completedAt)+7*3600000).toISOString().slice(0,10),policy.retention_days);
@@ -232,6 +252,7 @@ export async function runHrmReportScheduleSweep(db:D1Database,content:D1Database
         db.prepare("DELETE FROM hrm_write_guards"),
       ]);
       if(await db.prepare("SELECT 1 FROM hrm_report_snapshots WHERE id=?").bind(snapshotId).first())created++;
+      }
     }catch(error){
       const code=error instanceof HrmError?error.message:"internal_error";
       await db.batch([
@@ -242,4 +263,4 @@ export async function runHrmReportScheduleSweep(db:D1Database,content:D1Database
   }
   return {created,expired,skipped:false};
 }
-interface ScheduleRow {id:string;schedule_ref:string;legal_entity:string;department:string|null;cadence:string;retention_days:number;retention_basis:string;created_by:string;version:number}
+interface ScheduleRow {id:string;schedule_ref:string;legal_entity:string;department:string|null;cadence:string;retention_days:number;retention_basis:string;created_by:string;version:number;created_at:string}
