@@ -423,32 +423,39 @@ test("14. commission: proposal is admin-only simulation; approval shows each sel
   const handoff = jobs(`SELECT id, amount_vnd FROM crm_commission_handoffs WHERE user_id = ${q(S.a.id)} AND state = 'confirmed'`)[0];
   assert.ok(handoff);
   const entity = `TEST CRM chain ${run}`;
+  // Every HRM step must save: a 303 alone can be an ?error= redirect.
+  const hrmOk = async (session, path, fields, label) => { const response = await session.post(path, fields); assert.equal(response.status, 303, label); assert.equal(new URL(response.location, "http://x").searchParams.get("error"), null, label); return response; };
   const hrmAdmin = await userSession(S.admin, { email: `test-chain-hrm-${run}@example.test`, name: `TEST Chain HRM ${run}` });
   const payroll = await userSession(S.admin, { email: `test-chain-payroll-${run}@example.test`, name: `TEST Chain Payroll ${run}` });
   for (const [session, role] of [[hrmAdmin, "hrm_admin"], [payroll, "payroll_officer"]]) assert.equal((await S.admin.post("/workspace/users", { intent: "grant", email: session.email, roles: [role] })).status, 303);
   const originalSettings = jobs("SELECT version, enabled, legal_entity, purpose, retention_policy, policy_reference, reviewed_by FROM hrm_settings WHERE id = 1")[0], settingsVersion = originalSettings.version;
   assert.equal((await S.admin.post("/hrm/settings", { request_key: `chain_settings_${run}`, version: settingsVersion, legal_entity: entity, purpose: "Synthetic CRM-to-payroll chain test only", retention_policy: "Synthetic records only", policy_reference: "TEST chain", reviewed: "1", enabled: "1" })).status, 303);
-  // A free single day inside the handoff month keeps the run within one calendar month.
+  // A free single day inside the handoff month keeps the run within one calendar
+  // month. Locking checks every employee's scheduled work and pending leave, so
+  // the day must have no period, no work-calendar assignment and no pending leave.
   const today = new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10);
   const day = Array.from({ length: Number(today.slice(8, 10)) }, (_, index) => `${month}-${String(index + 1).padStart(2, "0")}`).reverse()
-    .find((date) => jobs(`SELECT COUNT(*) AS n FROM hrm_time_periods WHERE starts_on <= ${q(date)} AND ends_on >= ${q(date)}`)[0].n === 0);
+    .find((date) => jobs(`SELECT
+      (SELECT COUNT(*) FROM hrm_time_periods WHERE starts_on <= ${q(date)} AND ends_on >= ${q(date)})
+      + (SELECT COUNT(*) FROM hrm_work_assignments WHERE effective_from <= ${q(date)} AND (effective_to IS NULL OR effective_to >= ${q(date)}))
+      + (SELECT COUNT(*) FROM hrm_leave_requests WHERE state IN ('pending_approval','cancellation_requested') AND starts_on <= ${q(date)} AND ends_on >= ${q(date)}) AS n`)[0].n === 0);
   assert.ok(day, "a free day exists in the handoff month");
   const code = `TEST-CHAIN-${run}`;
   assert.equal((await hrmAdmin.post("/hrm/people/new", { request_key: `chain_person_${run}`, employee_code: code, account_email: S.a.email, legal_name: "TEST Chain Seller", preferred_name: "TEST Chain Seller", work_email: `chain-${run}@work.example.test`, work_phone: "0900000000", department: "TEST Sales", job_title: "TEST Seller", legal_entity: entity, location: "Ho Chi Minh City", manager_user_id: "", status: "active", started_on: day })).status, 303);
   const personId = jobs(`SELECT id FROM hrm_people WHERE employee_code = ${q(code)}`)[0].id;
   const periodKey = `CHAIN-${run}`;
-  assert.equal((await hrmAdmin.post("/api/hrm/time", { intent: "create_period", return_to: "/hrm/time", request_key: `chain_period_${run}`, period_key: periodKey, starts_on: day, ends_on: day })).status, 303);
+  await hrmOk(hrmAdmin, "/api/hrm/time", { intent: "create_period", return_to: "/hrm/time", request_key: `chain_period_${run}`, period_key: periodKey, starts_on: day, ends_on: day }, "create period");
   let period = jobs(`SELECT id, version FROM hrm_time_periods WHERE period_key = ${q(periodKey)}`)[0];
-  assert.equal((await hrmAdmin.post("/api/hrm/time", { intent: "review_period", return_to: "/hrm/time", request_key: `chain_review_period_${run}`, period_id: period.id, version: period.version })).status, 303);
+  await hrmOk(hrmAdmin, "/api/hrm/time", { intent: "review_period", return_to: "/hrm/time", request_key: `chain_review_period_${run}`, period_id: period.id, version: period.version }, "review period");
   period = jobs(`SELECT id, version FROM hrm_time_periods WHERE id = ${q(period.id)}`)[0];
-  assert.equal((await hrmAdmin.post("/api/hrm/time", { intent: "lock_period", return_to: "/hrm/time", request_key: `chain_lock_period_${run}`, period_id: period.id, version: period.version, reason: "TEST synthetic chain period" })).status, 303);
+  await hrmOk(hrmAdmin, "/api/hrm/time", { intent: "lock_period", return_to: "/hrm/time", request_key: `chain_lock_period_${run}`, period_id: period.id, version: period.version, reason: "TEST synthetic chain period" }, "lock period");
   const components = [{ code: "commission", title_en: "Sales commission", title_vi: "Hoa hồng bán hàng", direction: "earning", required: true, source_kind: "crm_commission" }];
   const policyKey = `test-chain-${run}`;
-  assert.equal((await hrmAdmin.post("/api/hrm/payroll", { intent: "create_policy", return_to: "/hrm/payroll", request_key: `chain_policy_${run}`, policy_key: policyKey, title_en: "TEST chain payroll", title_vi: "TEST lương chuỗi", legal_entity: entity, currency: "VND", minor_unit_scale: "0", components_json: JSON.stringify(components) })).status, 303);
+  await hrmOk(hrmAdmin, "/api/hrm/payroll", { intent: "create_policy", return_to: "/hrm/payroll", request_key: `chain_policy_${run}`, policy_key: policyKey, title_en: "TEST chain payroll", title_vi: "TEST lương chuỗi", legal_entity: entity, currency: "VND", minor_unit_scale: "0", components_json: JSON.stringify(components) }, "create policy");
   let policy = jobs(`SELECT id, version FROM hrm_payroll_policy_versions WHERE policy_key = ${q(policyKey)}`)[0];
-  assert.equal((await S.admin.post("/api/hrm/payroll", { intent: "review_policy", return_to: "/hrm/payroll", request_key: `chain_policy_review_${run}`, policy_id: policy.id, version: policy.version, decision: "approve", reason: "TEST independent policy review" })).status, 303);
+  await hrmOk(S.admin, "/api/hrm/payroll", { intent: "review_policy", return_to: "/hrm/payroll", request_key: `chain_policy_review_${run}`, policy_id: policy.id, version: policy.version, decision: "approve", reason: "TEST independent policy review" }, "review policy");
   policy = jobs(`SELECT id, version FROM hrm_payroll_policy_versions WHERE id = ${q(policy.id)}`)[0];
-  assert.equal((await S.admin.post("/api/hrm/payroll", { intent: "activate_policy", return_to: "/hrm/payroll", request_key: `chain_policy_activate_${run}`, policy_id: policy.id, version: policy.version })).status, 303);
+  await hrmOk(S.admin, "/api/hrm/payroll", { intent: "activate_policy", return_to: "/hrm/payroll", request_key: `chain_policy_activate_${run}`, policy_id: policy.id, version: policy.version }, "activate policy");
   const payrollStep = async (session, fields, label) => { const response = await session.post("/api/hrm/payroll", { return_to: "/hrm/payroll", request_key: `chain_${label}_${run}`, ...fields }); assert.equal(new URL(response.location, "http://x").searchParams.get("error"), null, label); };
   await payrollStep(payroll, { intent: "create_run", policy_version_id: policy.id, period_id: period.id }, "run");
   const runRow = jobs(`SELECT id FROM hrm_payroll_runs WHERE policy_version_id = ${q(policy.id)} AND period_id = ${q(period.id)}`)[0];
