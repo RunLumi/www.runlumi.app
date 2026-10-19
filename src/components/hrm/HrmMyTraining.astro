@@ -2,7 +2,8 @@
 import HrmPage from "./HrmPage.astro";
 import type { MyTrainingPage } from "../../lib/hrm/training-pages";
 
-const d=Astro.props as MyTrainingPage,vi=d.vi,prefix=vi?"/vi":"",returnTo=`${prefix}/hrm/me/training`;
+// Error fallbacks pass only base fields; render empty reminders rather than crash.
+const d={reminders:[],reminderPage:1,hasMoreReminders:false,assignments:[],...(Astro.props as Partial<MyTrainingPage>)} as MyTrainingPage,vi=d.vi,prefix=vi?"/vi":"",returnTo=`${prefix}/hrm/me/training`;
 const categoryLabel=(value:string)=>({compliance:vi?"Tuân thủ":"Compliance",role:vi?"Theo vị trí":"Role-specific",professional:vi?"Chuyên môn":"Professional",development:vi?"Phát triển":"Development",certification:vi?"Chứng chỉ":"Certification",other:vi?"Khác":"Other"}[value]??value);
 const stateLabel=(value:string)=>({assigned:vi?"Được giao":"Assigned",submitted:vi?"Chờ HR duyệt":"Pending HR review",approved:vi?"Đã xác nhận":"Verified",declined:vi?"Cần bổ sung/không đạt":"Needs follow-up",cancelled:vi?"Đã hủy":"Cancelled",quarantined:vi?"Chờ HR kiểm tra":"Awaiting HR review",reviewed:vi?"Đã kiểm tra":"Reviewed",rejected:vi?"Bị từ chối":"Rejected"}[value]??value);
 const ready=(assignmentId:string,required:number)=>!required||(d.evidence[assignmentId]??[]).some(file=>file.state==="reviewed"&&!file.object_deleted_at);

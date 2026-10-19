@@ -5,7 +5,9 @@ import HrmLeaveAmendment from "./HrmLeaveAmendment.astro";
 import HrmApprovalDelegations from "./HrmApprovalDelegations.astro";
 import type { LeaveManagePage, MyLeavePage } from "../../lib/hrm/time-pages";
 type Data=LeaveManagePage|MyLeavePage;
-const d=Astro.props as Data,vi=d.vi,prefix=vi?"/vi":"";
+// An error page receives only base fields: it renders the self view with
+// empty collections and the error notice instead of crashing.
+const d={requests:[],balances:[],...(Astro.props as Partial<MyLeavePage>)} as Data,vi=d.vi,prefix=vi?"/vi":"";
 const manager="policies" in d;
 const state=(value:string)=>({pending_approval:vi?"Chờ duyệt":"Pending approval",approved:vi?"Đã duyệt":"Approved",rejected:vi?"Bị từ chối":"Rejected",withdrawn:vi?"Đã rút":"Withdrawn",cancellation_requested:vi?"Chờ duyệt hủy":"Cancellation requested",cancelled:vi?"Đã hủy":"Cancelled",cancellation_rejected:vi?"Không chấp nhận hủy":"Cancellation rejected",draft:vi?"Bản nháp":"Draft",reviewed:vi?"Đã rà soát":"Reviewed",active:vi?"Đang áp dụng":"Active",retired:vi?"Ngừng áp dụng":"Retired"}[value]||value);
 const date=(value:string)=>new Date(`${value}T00:00:00+07:00`).toLocaleDateString(vi?"vi-VN":"en-GB",{dateStyle:"medium",timeZone:"Asia/Ho_Chi_Minh"});

@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { BASE, adminSession, content, jobs, localFetch, q, userSession } from "./helpers.mjs";
 import { startHrmBrowserQa } from "./hrm-browser-qa.mjs";
 import { exerciseCloseoutPolicy } from "./hrm-closeout-policy.mjs";
@@ -1449,5 +1449,26 @@ test("HRM P5 keeps service requests private and retries in-app notifications wit
   // The restore planner records its own Workspace audit actor: the one current
  // synthetic System Super Admin, never an inferred or HRM-only account.
  const recoveryAdmins=content("SELECT id,name,email FROM users WHERE role=50 AND disabled=0");assert.equal(recoveryAdmins.length,1,"synthetic System Super Admin identity must be unambiguous");
+ // HRM-20 parity matrix: every static HRM page answers each role the same way
+ // in English and Vietnamese (status and locale-equivalent redirect), never
+ // with a server error, and ATS-only / CRM-only roles never get an HRM page.
+ const staticHrmRoutes=(function walk(dir,prefix){return readdirSync(dir,{withFileTypes:true}).flatMap(entry=>entry.isDirectory()?(entry.name.includes("[")?[]:walk(`${dir}/${entry.name}`,`${prefix}/${entry.name}`)):entry.name.endsWith(".astro")&&!entry.name.includes("[")?[entry.name==="index.astro"?prefix:`${prefix}/${entry.name.replace(/\.astro$/,"")}`]:[])})(new URL("../../src/pages/hrm",import.meta.url).pathname,"/hrm").sort();
+ assert.ok(staticHrmRoutes.length>=30,"the matrix covers every static HRM page");
+ const matrixRoles={};
+ for(const role of ["employee","people_manager","hrm_officer","payroll_officer","hr","finance"]){matrixRoles[role]=await userSession(S.system,{email:`test-matrix-${role.replaceAll("_","-")}-${run}@example.test`,name:`TEST Matrix ${role} ${run}`});assert.equal((await grant(matrixRoles[role],role)).status,303)}
+ const matrixSessions={...matrixRoles,hrm_admin:S.hrm,linked_employee:S.employeeP5,assigned_manager:S.manager,system:S.system};
+ const unlocalized=(location)=>location?new URL(location,BASE).pathname.replace(/^\/vi(?=\/|$)/,"")+new URL(location,BASE).search:null;
+ let matrixChecks=0;const statusTable={},matrixViolations=[];
+ for(const [label,session] of Object.entries(matrixSessions))for(const route of staticHrmRoutes){
+  const [en,vi]=[await session.get(route),await session.get(`/vi${route}`)];matrixChecks+=2;
+  if(en.status>=500||vi.status>=500)matrixViolations.push(`${label} ${route}: server error EN ${en.status} VI ${vi.status}`);
+  if(vi.status!==en.status)matrixViolations.push(`${label} ${route}: status EN ${en.status} VI ${vi.status}`);
+  else if(en.status>=300&&en.status<400&&unlocalized(vi.location)!==unlocalized(en.location))matrixViolations.push(`${label} ${route}: redirect EN ${en.location} VI ${vi.location}`);
+  if(["hr","finance"].includes(label)&&en.status===200)matrixViolations.push(`${label} ${route}: HRM page served to a non-HRM role`);
+  (statusTable[label]??={})[route]=en.status;
+ }
+ assert.deepEqual(matrixViolations,[],"HRM-20 role/route/locale matrix violations");
+ console.log("HRM-20 role/route/locale matrix:",JSON.stringify({routes:staticHrmRoutes.length,roles:Object.keys(matrixSessions).length,checks:matrixChecks,status:statusTable}));
+
  await runHrmRecoveryDrill({adminCookie:S.hrm.header(),employeeCookie:S.employeeP5.header(),managerCookie:S.manager.header(),employeeUserId:S.employeeP5.id,attachmentId:P.recoveryAttachmentId,fileId:P.recoveryFileId,run,recoveryOperator:{id:recoveryAdmins[0].id,name:recoveryAdmins[0].name||recoveryAdmins[0].email}});
 });
