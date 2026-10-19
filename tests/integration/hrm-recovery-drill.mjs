@@ -10,6 +10,7 @@ import { join, relative, resolve, sep } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { AwsClient } from "aws4fetch";
 import { BASE, PERSIST, content, jobs, q } from "./helpers.mjs";
+import { buildWorkspaceRestorePatches, snapshotCurrentWorkspaceAuthority } from "../../scripts/reconcile-workspace-restore.mjs";
 
 const root = process.cwd();
 const wrangler = resolve(root, "node_modules/.bin/wrangler");
@@ -125,9 +126,9 @@ async function listenPort() {
   return address.port;
 }
 
-async function startRecoveryWorker(persist, port, tempRoot) {
+async function startRecoveryWorker(persist, port, tempRoot, { restoreMode=false, instance="restored-worker" }={}) {
   const base = `http://127.0.0.1:${port}`;
-  const runtimeRoot = join(tempRoot, "restored-worker");
+  const runtimeRoot = join(tempRoot, instance);
   const excluded = new Set([".git", ".wrangler", ".astro", "node_modules", "dist", ".dev.vars", ".env", ".env.local", ".env.production"]);
   await cp(root, runtimeRoot, {
     recursive: true,
@@ -140,8 +141,7 @@ async function startRecoveryWorker(persist, port, tempRoot) {
   });
   await symlink(resolve(root, "node_modules"), join(runtimeRoot, "node_modules"), "dir");
   await mkdir(join(runtimeRoot, "dist"), { recursive: true });
-  await writeFile(join(runtimeRoot, ".dev.vars"), "HRM_LIVE_ENABLED=true\nCRM_INTAKE_SECRET=local-test-secret-not-for-production-0123456789\n", { mode: 0o600 });
-  const recoveryEnv = { ...process.env, CRM_BASE_URL: base, WRANGLER_SEND_METRICS: "false" };
+  const recoveryEnv = { ...process.env, CRM_BASE_URL: base, WRANGLER_SEND_METRICS: "false", WORKSPACE_RESTORE_MODE:restoreMode?"true":"false" };
   execFileSync(process.execPath, [join(runtimeRoot, "scripts/prepare-crm-upload-test.mjs")], {
     cwd: runtimeRoot,
     env: recoveryEnv,
@@ -205,6 +205,15 @@ async function stopRecoveryWorker(worker) {
   });
 }
 
+async function assertRestoreFence(worker){
+  const privatePaths=["/workspace","/vi/workspace/users","/hrm/people","/vi/hrm/me","/admin/jobs","/api/admin/applications","/api/jobs/test-engineer/apply","/crm","/vi/crm","/api/crm/v1/accounts","/api/intake/local","/finance/actuals","/vi/finance/actuals","/api/hrm/payroll"];
+  for(const path of privatePaths){
+    const response=await fetch(worker.base+path,{redirect:"manual"});assert.equal(response.status,503,`restore fence closes ${path}`);
+    assert.equal(response.headers.get("cache-control"),"private, no-store");assert.equal(response.headers.get("x-content-type-options"),"nosniff");
+  }
+  for(const path of ["/","/jobs","/vi","/vi/jobs"]){const response=await fetch(worker.base+path,{redirect:"manual"});assert.equal(response.status,200,`restore fence preserves public ${path}`)}
+}
+
 export async function runHrmRecoveryDrill({
   adminCookie,
   employeeCookie,
@@ -215,6 +224,9 @@ export async function runHrmRecoveryDrill({
   run,
   expectedMembershipEnabled = 1,
   closeoutFileId = null,
+  currentWorkspaceRevokedUserId = null,
+  recoveryOperator = null,
+  afterBackup = null,
 }) {
   assert.ok([0,1].includes(expectedMembershipEnabled), "recovery membership expectation must be explicit");
   assert.ok(PERSIST, "recovery drill requires the integration runner's disposable D1/R2 store");
@@ -223,7 +235,7 @@ export async function runHrmRecoveryDrill({
   assert.ok(file && !file.object_deleted_at, "recovery fixture must reference a live synthetic HRM file");
   const closeoutFile=closeoutFileId?jobs(`SELECT id,case_id,object_key,checksum,size_bytes,legal_hold,object_deleted_at FROM hrm_closeout_files WHERE id=${q(closeoutFileId)}`)[0]:null;
   if(closeoutFileId){assert.ok(closeoutFile&&!closeoutFile.object_deleted_at);assert.equal(closeoutFile.legal_hold,1,"new financial evidence inherits the explicit person-wide hold")}
-  const closeoutHolds=closeoutFile?jobs(`SELECT * FROM hrm_closeout_file_holds WHERE file_id=${q(closeoutFile.id)} ORDER BY id`):[];
+  let closeoutHolds=closeoutFile?jobs(`SELECT * FROM hrm_closeout_file_holds WHERE file_id=${q(closeoutFile.id)} ORDER BY id`):[];
   const liveFiles = jobs("SELECT object_key,checksum,size_bytes,mime_type FROM hrm_files WHERE object_deleted_at IS NULL UNION ALL SELECT object_key,checksum,size_bytes,mime_type FROM hrm_legal_files WHERE object_deleted_at IS NULL UNION ALL SELECT object_key,checksum,size_bytes,'application/pdf' AS mime_type FROM hrm_closeout_files WHERE object_deleted_at IS NULL").sort((left, right) => left.object_key.localeCompare(right.object_key));
   const sourceKeys = await listHrmObjects(BASE);
   assert.deepEqual(sourceKeys, liveFiles.map((row) => row.object_key).sort(), "live HRM metadata and private R2 object listings must match before backup");
@@ -262,15 +274,50 @@ export async function runHrmRecoveryDrill({
     content(`UPDATE users SET disabled=1 WHERE id=${q(employeeUserId)}`);
     disabledForRecovery = true;
     assert.equal(content(`SELECT disabled FROM users WHERE id=${q(employeeUserId)}`)[0].disabled, 1);
+    if(currentWorkspaceRevokedUserId){
+      assert.ok(typeof afterBackup==="function","current Workspace revocation fixture is required");
+      const liveManager=await fetch(`${BASE}/workspace`,{headers:{cookie:managerCookie},redirect:"manual"});assert.equal(liveManager.status,200,"the future-revoked EmDash account has Workspace access before the backup-point change");
+      await afterBackup();
+      const currentManager=await fetch(`${BASE}/workspace`,{headers:{cookie:managerCookie},redirect:"manual"});assert.equal(currentManager.status,403,"the post-backup Workspace revocation is effective in current D1 before restore");
+      assert.equal(content(`SELECT disabled FROM users WHERE id=${q(currentWorkspaceRevokedUserId)}`)[0]?.disabled,0,"the second revocation remains a Workspace-membership test, not an EmDash-disable test");
+      if(closeoutFile)closeoutHolds=jobs(`SELECT * FROM hrm_closeout_file_holds WHERE file_id=${q(closeoutFile.id)} ORDER BY id`);
+    }
 
-    // Preserve EmDash's current identity database from the copied local state
-    // while replacing only HRM's D1 file with the earlier local SQLite snapshot.
+    // Preserve the current shared authorization data before replacing only
+    // the isolated recovery D1 file with the earlier backup point.
     await cp(PERSIST, recoveryPersist, { recursive: true });
+    recoveryWorker=await startRecoveryWorker(recoveryPersist,await listenPort(),tempRoot,{restoreMode:true,instance:"restore-maintenance-before-time-travel"});
+    await assertRestoreFence(recoveryWorker);
+    await stopRecoveryWorker(recoveryWorker.worker);recoveryWorker=null;
     const recoveryJobsFile = await findLocalDatabaseFile(recoveryPersist, "hrm_files");
+    const currentAuthorityDb=new DatabaseSync(recoveryJobsFile,{readOnly:true});
+    let authoritySnapshot;try{authoritySnapshot=snapshotCurrentWorkspaceAuthority(currentAuthorityDb,new Date().toISOString(),recoveryOperator)}finally{currentAuthorityDb.close()}
     for (const suffix of ["", "-wal", "-shm"]) await rm(`${recoveryJobsFile}${suffix}`, { force: true });
     await cp(jobsSnapshot, recoveryJobsFile);
+    if(currentWorkspaceRevokedUserId){
+      assert.equal(databaseRows(recoveryPersist,"lumi-jobs",`SELECT enabled FROM workspace_members WHERE user_id=${q(currentWorkspaceRevokedUserId)}`)[0]?.enabled,1,"the intentionally restored backup contains the pre-revocation grant");
+      assert.equal(databaseRows(recoveryPersist,"lumi-jobs","SELECT enabled FROM hrm_settings WHERE id=1")[0]?.enabled,1,"the intentionally restored backup contains its former HRM-open state");
+      recoveryWorker=await startRecoveryWorker(recoveryPersist,await listenPort(),tempRoot,{restoreMode:true,instance:"restore-fence-before-reconcile"});
+      for(const [path,cookie]of [["/workspace",adminCookie],["/workspace",managerCookie],["/vi/workspace/users",adminCookie],["/hrm/people",adminCookie],["/vi/hrm/me",employeeCookie],["/admin/jobs",adminCookie],["/crm",managerCookie],["/finance/actuals",adminCookie],["/api/hrm/payroll",adminCookie],["/api/crm/v1/accounts",managerCookie],["/api/admin/applications",adminCookie],["/api/intake/local",null]]){
+        const response=await fetch(recoveryWorker.base+path,{headers:cookie?{cookie}: {},redirect:"manual"});assert.equal(response.status,503,`restore maintenance fences ${path}`);assert.ok(response.headers.get("cache-control")?.includes("no-store"));assert.equal(response.headers.get("x-content-type-options"),"nosniff");
+      }
+      for(const path of ["/jobs","/vi/jobs","/"]){const publicResponse=await fetch(recoveryWorker.base+path,{redirect:"manual"});assert.equal(publicResponse.status,200,`recovery maintenance preserves public ${path}`)}
+      await stopRecoveryWorker(recoveryWorker.worker);recoveryWorker=null;
+    }
+    const restoredDb=new DatabaseSync(recoveryJobsFile);restoredDb.exec("PRAGMA foreign_keys=ON");let authorityPlan;
+    try{authorityPlan=buildWorkspaceRestorePatches(restoredDb,authoritySnapshot)}finally{restoredDb.close()}
+    for(const patch of authorityPlan.patches){const patchPath=join(tempRoot,patch.name);await writeFile(patchPath,patch.sql,{flag:"wx",mode:0o600});runWrangler(["d1","execute","lumi-jobs","--local","--persist-to",recoveryPersist,"--file",patchPath])}
+    const authorityRows=databaseRows(recoveryPersist,"lumi-jobs","SELECT enabled,reviewed_by,reviewed_at FROM hrm_settings WHERE id=1")[0];
+    assert.deepEqual(authorityRows,{enabled:0,reviewed_by:null,reviewed_at:null},"a recovered pre-restore HRM configuration is never reactivated");
+    if(currentWorkspaceRevokedUserId){
+      assert.equal(databaseRows(recoveryPersist,"lumi-jobs",`SELECT enabled FROM workspace_members WHERE user_id=${q(currentWorkspaceRevokedUserId)}`)[0]?.enabled,0,"a revoked Workspace membership is replayed from the current authority snapshot");
+      assert.ok(databaseRows(recoveryPersist,"lumi-jobs",`SELECT 1 FROM workspace_audit WHERE target_user_id=${q(currentWorkspaceRevokedUserId)} AND action='access_revoked'`).length>0,"the post-backup Workspace audit record survives D1 restore");
+    }
 
-    recoveryWorker = await startRecoveryWorker(recoveryPersist, await listenPort(), tempRoot);
+    recoveryWorker = await startRecoveryWorker(recoveryPersist, await listenPort(), tempRoot,{restoreMode:true,instance:"restore-maintenance-after-reconcile"});
+    await assertRestoreFence(recoveryWorker);
+    await stopRecoveryWorker(recoveryWorker.worker);recoveryWorker=null;
+    recoveryWorker = await startRecoveryWorker(recoveryPersist, await listenPort(), tempRoot,{restoreMode:false,instance:"reconciled-workspace"});
 
     const recoveredMembership = databaseRows(recoveryPersist, "lumi-jobs", `SELECT enabled FROM workspace_members WHERE user_id=${q(employeeUserId)}`)[0];
     assert.equal(recoveredMembership?.enabled, expectedMembershipEnabled, "the recovered D1 snapshot retains the explicitly expected Workspace membership state");
@@ -304,20 +351,32 @@ export async function runHrmRecoveryDrill({
     }, "restored D1 file metadata and hold state must match the saved snapshot");
 
     const adminResponse = await fetch(`${recoveryWorker.base}/api/hrm/services/attachments/${attachmentId}`, { headers: { cookie: adminCookie }, redirect: "manual" });
-    assert.equal(adminResponse.status, 200, "HRM Admin can read the restored, reviewed synthetic request PDF");
-    assert.equal(digest(Buffer.from(await adminResponse.arrayBuffer())), file.checksum, "the authenticated HR route must serve restored bytes with the D1 checksum");
+    assert.equal(adminResponse.status, 503, "recovered HRM stays closed until identity, access and hold review is repeated");
     const managerResponse = await fetch(`${recoveryWorker.base}/api/hrm/services/attachments/${attachmentId}`, { headers: { cookie: managerCookie }, redirect: "manual" });
-    assert.equal(managerResponse.status, 404, "restored service evidence remains hidden from an unrelated manager");
+    assert.equal(managerResponse.status, 403, "a Workspace revocation after backup stays denied for the current EmDash account");
+    const restoredBytes=await s3Request(recoveryWorker.base,"GET",file.object_key);assert.equal(restoredBytes.status,200);assert.equal(digest(Buffer.from(await restoredBytes.arrayBuffer())),file.checksum,"the verified private recovery copy remains available to the recovery operator");
     const revokedEmployee = await fetch(`${recoveryWorker.base}/hrm/me/requests`, { headers: { cookie: employeeCookie }, redirect: "manual" });
     assert.notEqual(revokedEmployee.status, 200, "a later EmDash revocation must prevent the old D1 membership snapshot from restoring access");
+    if(currentWorkspaceRevokedUserId){
+      const revokedMember=await fetch(`${recoveryWorker.base}/workspace`,{headers:{cookie:managerCookie},redirect:"manual"});assert.equal(revokedMember.status,403,"a post-backup Workspace role revocation must not be undone by the restored D1 snapshot");
+      assert.equal(databaseRows(recoveryPersist,"lumi-jobs",`SELECT COUNT(*) n FROM workspace_audit WHERE target_user_id=${q(currentWorkspaceRevokedUserId)} AND action='access_revoked'`)[0].n,2);
+    }
 
     if(closeoutFile){
       const record=databaseRows(recoveryPersist,"lumi-jobs",`SELECT case_id,checksum,size_bytes,legal_hold,object_deleted_at FROM hrm_closeout_files WHERE id=${q(closeoutFile.id)}`)[0];
       assert.deepEqual(record,{case_id:closeoutFile.case_id,checksum:closeoutFile.checksum,size_bytes:closeoutFile.size_bytes,legal_hold:1,object_deleted_at:null});
       assert.deepEqual(databaseRows(recoveryPersist,"lumi-jobs",`SELECT * FROM hrm_closeout_file_holds WHERE file_id=${q(closeoutFile.id)} ORDER BY id`),closeoutHolds,"restored financial hold placement/release history stays exact");
       const path=`/api/hrm/closeout/files/${closeoutFile.id}?case_id=${closeoutFile.case_id}`;
-      const financial=await fetch(recoveryWorker.base+path,{headers:{cookie:adminCookie},redirect:"manual"});assert.equal(financial.status,200);assert.equal(digest(Buffer.from(await financial.arrayBuffer())),closeoutFile.checksum);assert.ok(financial.headers.get("cache-control")?.includes("no-store"));
+      const financial=await fetch(recoveryWorker.base+path,{headers:{cookie:adminCookie},redirect:"manual"});assert.equal(financial.status,503,"restored HRM remains closed until owner/recovery review; historical files are not exposed early");
+      const restoredFinancialBytes=await s3Request(recoveryWorker.base,"GET",closeoutFile.object_key);assert.equal(restoredFinancialBytes.status,200);assert.equal(digest(Buffer.from(await restoredFinancialBytes.arrayBuffer())),closeoutFile.checksum);
       for(const cookie of [employeeCookie,managerCookie])assert.notEqual((await fetch(recoveryWorker.base+path,{headers:{cookie},redirect:"manual"})).status,200,"restored confidential financial evidence stays inaccessible to employees and managers");
+      const restoredFileHolds=databaseRows(recoveryPersist,"lumi-jobs",`SELECT * FROM hrm_closeout_file_holds WHERE file_id=${q(closeoutFile.id)} ORDER BY id`);
+      assert.deepEqual(restoredFileHolds,closeoutHolds,"current post-backup financial file holds and their release history are reconciled before HRM stays closed");
+      if(currentWorkspaceRevokedUserId){
+        const currentHoldEvents=jobs(`SELECT id,actor_id,action,person_id,employment_id,source_application_id,offboarding_case_id,target_id,detail,created_at FROM hrm_lifecycle_events WHERE target_id IN (SELECT id FROM hrm_closeout_file_holds WHERE file_id=${q(closeoutFile.id)}) ORDER BY id`);
+        const restoredHoldEvents=databaseRows(recoveryPersist,"lumi-jobs",`SELECT id,actor_id,action,person_id,employment_id,source_application_id,offboarding_case_id,target_id,detail,created_at FROM hrm_lifecycle_events WHERE target_id IN (SELECT id FROM hrm_closeout_file_holds WHERE file_id=${q(closeoutFile.id)}) ORDER BY id`);
+        assert.deepEqual(restoredHoldEvents,currentHoldEvents,"hold placement/release events remain continuous across the old restore point");
+      }
     }
 
     const lostObject = objects.get(file.object_key);
@@ -347,7 +406,7 @@ export async function runHrmRecoveryDrill({
     assert.ok([200, 204].includes(orphanDelete.status));
     assert.deepEqual((await listHrmObjects(recoveryWorker.base)).filter((key) => !metadataKeys.has(key)), []);
 
-    console.log(`HRM synthetic recovery drill passed: ${liveFiles.length} D1/R2 file references, checksums, legal hold, private access, revocation, missing-object repair and orphan detection.`);
+    console.log(`HRM synthetic recovery drill passed: ${liveFiles.length} D1/R2 references, current Workspace authority/audit replay, HRM closed gate, hold history, checksums, private access, revocation, missing-object repair and orphan detection.`);
   } finally {
     await stopRecoveryWorker(recoveryWorker?.worker);
     if (disabledForRecovery) content(`UPDATE users SET disabled=0 WHERE id=${q(employeeUserId)}`);

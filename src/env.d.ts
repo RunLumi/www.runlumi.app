@@ -6,6 +6,8 @@ interface Env {
   FINANCE_LIVE_ENABLED?: string;
   /** HRM deployment kill switch; absent/off keeps production closed. */
   HRM_LIVE_ENABLED?: string;
+  /** In-place D1 recovery fence; while true, all private routes/jobs stay unavailable. */
+  WORKSPACE_RESTORE_MODE?: string;
   DB: D1Database;
   CONTENT_DB: D1Database;
   FILES: R2Bucket;

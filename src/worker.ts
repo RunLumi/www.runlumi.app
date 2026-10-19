@@ -6,10 +6,12 @@ import { isLarkCron, runScheduled } from "./lib/crm/lark/notify";
 import { HRM_ASSET_REMINDER_CRON, runHrmAssetReminderSweep } from "./lib/hrm/asset-reminders";
 import { runHrmTrainingReminderSweep } from "./lib/hrm/training-reminders";
 import { runHrmReportScheduleSweep } from "./lib/hrm/report-snapshots";
+import { restoreMaintenanceEnabled } from "./lib/workspace/restore-maintenance";
 
 export default {
   fetch: server.fetch,
   async scheduled(controller, env, ctx) {
+    if(restoreMaintenanceEnabled(env.WORKSPACE_RESTORE_MODE))return;
     if(isLarkCron(controller.cron)){
       ctx.waitUntil(cleanupUploads(env).catch(() => {
         console.error("crm_upload_cleanup_failed"); // !# policy: console

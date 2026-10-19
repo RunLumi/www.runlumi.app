@@ -6,7 +6,8 @@
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "vars": {
     // Company data remains unavailable until Super Admin completes book setup.
-    "FINANCE_LIVE_ENABLED": "true"
+    "FINANCE_LIVE_ENABLED": "true",
+    "WORKSPACE_RESTORE_MODE": "false"
   },
   "routes": [
     {

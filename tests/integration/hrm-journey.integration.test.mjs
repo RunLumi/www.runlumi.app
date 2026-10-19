@@ -193,8 +193,13 @@ test("one hired candidate completes the same-employment HRM journey through payr
  await post(system,"/api/hrm/closeout",{intent:"release_file_hold",case_id:exitCase.id,hold_id:specificHold.id,version:specificHold.version,reason:"TEST independent matter closure",lang:"vi"});
  specificHold=byId("hrm_closeout_file_holds",specificHold.id);assert.equal(specificHold.state,"released");assert.equal(specificHold.released_by,systemId);assert.equal(byId("hrm_closeout_files",financialProof.id).legal_hold,1,"person hold survives file hold release");
  financialProof=byId("hrm_closeout_files",financialProof.id);
- await post(system,"/api/hrm/closeout",{intent:"place_file_hold",case_id:exitCase.id,file_id:financialProof.id,version:financialProof.version,reason:"TEST new preservation matter",lang:"en"});
- assert.equal(row(`SELECT placed_by FROM hrm_closeout_file_holds WHERE file_id=${q(financialProof.id)} AND state='active'`).placed_by,systemId);
+ const postBackupWorkspaceRevokeAndHold=async()=>{
+  const revoked=await system.post("/workspace/users",{intent:"update",user_id:manager.id,enabled:"0",roles:["people_manager"]});assert.equal(revoked.status,303,"post-backup role revocation uses the real EmDash/System Admin Workspace route");
+  assert.equal(row(`SELECT enabled FROM workspace_members WHERE user_id=${q(manager.id)}`).enabled,0);
+  await post(system,"/api/hrm/closeout",{intent:"place_file_hold",case_id:exitCase.id,file_id:financialProof.id,version:byId("hrm_closeout_files",financialProof.id).version,reason:"TEST post-backup financial matter preservation",lang:"en"});
+  assert.equal(row(`SELECT placed_by FROM hrm_closeout_file_holds WHERE file_id=${q(financialProof.id)} AND state='active'`).placed_by,systemId);
+ };
+
  assert.equal(row(`SELECT revision FROM hrm_closeout_sources WHERE case_id=${q(exitCase.id)}`).revision,heldRevision);
  assert.equal(byId("hrm_closeout_dossiers",replacement.id).state,"applied");assert.equal(byId("hrm_offboarding_cases",exitCase.id).state,"completed");
  console.log("HRM journey stage passed: case-specific hold, independent release, overlapping person hold and immutable history after closure");
@@ -203,7 +208,7 @@ test("one hired candidate completes the same-employment HRM journey through payr
  assert.notEqual((await employee.get(`/api/hrm/payslips/${corrected.id}?lang=vi`)).status,200);assert.equal(byId("hrm_files",identityFile.id).object_deleted_at,null);
  await audit("offboarding-completed",admin,`/hrm/offboarding/${exitCase.id}`,`/vi/hrm/offboarding/${exitCase.id}`,code.toUpperCase(),code.toUpperCase());
  await audit("revoked-employee",employee,"/hrm/me/payslips","/vi/hrm/me/payslips","You do not have access","Bạn chưa có quyền");
- await runHrmRecoveryDrill({adminCookie:admin.header(),employeeCookie:employee.header(),managerCookie:manager.header(),employeeUserId:employee.id,attachmentId:attachment.id,fileId:attachment.file_id,run,expectedMembershipEnabled:0,closeoutFileId:financialProof.id});
+ await runHrmRecoveryDrill({adminCookie:admin.header(),employeeCookie:employee.header(),managerCookie:manager.header(),employeeUserId:employee.id,attachmentId:attachment.id,fileId:attachment.file_id,run,expectedMembershipEnabled:0,closeoutFileId:financialProof.id,currentWorkspaceRevokedUserId:manager.id,recoveryOperator:{id:systemId,name:content("SELECT name FROM users WHERE id="+q(systemId))[0]?.name??system.email},afterBackup:postBackupWorkspaceRevokeAndHold});
  await exerciseFinancialDisposition({author:admin,reviewer:custodian,executor:system,executorId:systemId,unauthorized:hr,policy:financialRetentionPolicy,caseId:exitCase.id,personId,fileId:financialProof.id,dossierId:replacement.id,browser});
  for(const table of ["hrm_legal_issues","hrm_onboarding_plans","hrm_asset_assignments","hrm_training_assignments","hrm_payroll_run_people","hrm_offboarding_cases"]){assert.ok(row(`SELECT COUNT(*) AS n FROM ${table} WHERE employment_id=${q(employmentId)}`).n>0,`${table} retained the SAME employment ID`)}
  assert.equal(provenance.person_id,personId);assert.equal(contract.person_id,personId);assert.equal(nda.person_id,personId);

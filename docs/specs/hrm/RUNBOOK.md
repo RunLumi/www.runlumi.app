@@ -36,9 +36,20 @@ R2 objects are separate from D1. Cloudflare documents object deletion as irrever
 
 1. Assign an incident lead, a recovery operator and an independent verifier. Record the authorization, affected data range, proposed UTC restore point, current Worker version and intended rollback point.
 2. Verify the production database identity and backend with the Cloudflare account owner. The read-only `wrangler d1 time-travel info lumi-jobs` command obtains a current bookmark; the `--timestamp` form can inspect a proposed UTC time. Do not select a point merely because it precedes the first error: account for valid HR changes, legal holds, access revocations and files written after that point.
-3. Preserve the current D1 export/bookmark and R2 inventory in the approved private recovery location. Never commit a backup, export, manifest with person/object identifiers, or credentials to Git.
+3. Preserve a **current-point** `lumi-jobs` export/bookmark in the approved private recovery location before restoring an older point. A full D1 export contains private HRM/ATS/CRM/payroll data and may interrupt queries while it is produced. Set `umask 077`; store it only in the authorized recovery location. Never commit exports, manifest data, identifiers or credentials to Git.
+
+Create the recovery directory outside the checkout with owner-only permissions. Save the current shared-D1 export and list of active EmDash role-50 operator IDs/names there; their contents are private:
+
+```sh
+: "${PRIVATE_RECOVERY_DIR:?Set an incident-specific private path outside the repository}"
+umask 077
+mkdir -p -m 0700 "$PRIVATE_RECOVERY_DIR"
+./node_modules/.bin/wrangler d1 export lumi-jobs --remote --output "$PRIVATE_RECOVERY_DIR/current-lumi-jobs.sql"
+./node_modules/.bin/wrangler d1 execute lumi-content --remote --command "SELECT id,name FROM users WHERE role=50 AND disabled=0" --json > "$PRIVATE_RECOVERY_DIR/current-system-admins.json"
+```
 4. Confirm that a separate R2 copy exists for every in-scope live `hrm_files` object, including bytes and SHA-256 checksum. If a copy is missing, this runbook cannot recover those bytes; record the gap and stop before enabling access.
-5. Keep HRM unavailable while the recovery operator and verifier compare the proposed D1 timestamp with the R2 copy's coverage. Agree how events newer than the D1 restore point will be preserved or replayed. If there is no approved decision for newer writes, stop.
+5. Before starting an in-place Time Travel restore, set the production Worker variable `WORKSPACE_RESTORE_MODE=true` through the approved Cloudflare recovery change and publish that Worker version. Confirm Workspace, Hiring, CRM, Finance and HRM private EN/VI pages/APIs return 503 with `private, no-store` and `nosniff`. This fence does not block `/jobs` or `/vi/jobs`, but D1 may be unavailable while its restore runs; verify those pages against the live database only after D1 is serving again. Candidate submission writes (`POST /api/jobs/<slug>/apply`) remain paused while the fence is active. The fence also skips all scheduled Worker tasks. Pause automatic main/Workers Builds for the recovery window so a deploy cannot remove it. Do not issue the restore until the production fence is serving. Keep it enabled through D1 and R2 reconciliation.
+6. Compare the proposed D1 timestamp with the R2 copy's coverage. Agree how events newer than the restore point will be preserved or replayed. If there is no approved decision for newer writes, stop.
 
 ### Restore D1 (production action requires separate owner approval)
 
@@ -50,7 +61,29 @@ The following is a destructive command. Do not run it as part of routine CI, a l
 
 Use a timestamp only when the approved incident plan specifies it and the operator has verified the resulting bookmark. Record the returned new and previous bookmarks securely. The previous bookmark is the rollback point; do not discard it until the restore has passed verification and the owner has accepted the result.
 
-After the command, keep HRM closed. Verify migration/schema version, required tables and indexes, employee/employment counts, open workflow counts, audit continuity, legal-hold state, and current shared account grants. A restored database may predate a membership revocation; re-check revocations against the current authoritative account state before restoring anyone's access. Do not publish payslips or run file-retention jobs during this step.
+After restoring, keep HRM closed and apply the current additive D1 migrations before reconciling authority. Export the restored D1 to another mode-0600 SQL file in the private recovery directory. Verify the System Super Admin actor against the still-current `lumi-content` account list, then generate a checked, bounded current-authority patch plan from the current-point export and the restored export. The independent verifier checks the manifest checksums and counts before applying it:
+
+```sh
+umask 077
+node scripts/reconcile-workspace-restore.mjs \
+  --current "$PRIVATE_RECOVERY_DIR/current-lumi-jobs.sql" \
+  --restored "$PRIVATE_RECOVERY_DIR/restored-lumi-jobs.sql" \
+  --output-dir "$PRIVATE_RECOVERY_DIR/workspace-authority-patches" \
+  --operator-id "<verified-current-system-super-admin-id>" \
+  --operator-name "<verified-current-system-super-admin-name>"
+```
+
+Before this command, the recovery operator independently verifies an active EmDash role-50 account and provides its exact user ID and name; these become `workspace_audit` actors for recovery lock/reopen events. Inspect only the sanitized counts and source/restored/patch checksums in its manifest. Keep SQL patch contents private. Apply every numbered patch in lexical order, confirming that each D1 command succeeds before moving to the next:
+
+```sh
+for patch in "$PRIVATE_RECOVERY_DIR"/workspace-authority-patches/*.sql; do
+  ./node_modules/.bin/wrangler d1 execute lumi-jobs --remote --file="$patch"
+done
+```
+
+The first patch closes HRM, disables all restored Workspace memberships and clears restored role grants. The Worker maintenance fence remains enabled during all patch stages; later patches reapply the captured current members/roles, append-only Workspace audit, active holds and lifecycle events. Each membership lockdown and current grant re-open is recorded under the verified System Super Admin actor. The final patch enables only accounts that were enabled in the current-point snapshot. HRM remains disabled and unreviewed after reconciliation; its owner must review it again. If schema, identity, immutable audit or hold rows conflict, stop and leave the access lock in place. A half-applied patch sequence likewise keeps memberships disabled until the final patch runs. Do not use `--admin` to skip the reconciliation. After the verifier accepts the patch counts, gate, holds, R2 checksums and smoke test, the owner may remove the restore fence. Keep HRM `enabled=0` and `reviewed_by=NULL`; remove the build freeze only after verifying the Worker release configuration does not silently clear or re-enable HRM. If any step fails, leave `WORKSPACE_RESTORE_MODE=true`.
+
+After the command, verify migration/schema version, required tables and indexes, employee/employment counts, open workflow counts, audit continuity, active and released legal-hold history, and current shared account grants. A restored database may predate a membership revocation; the current-point Workspace patch is the source of grants after restore, while EmDash remains the source of active account identity. Do not publish payslips or run file-retention jobs during this step.
 
 ### Restore and reconcile R2
 
@@ -66,7 +99,7 @@ Reopen HRM only after the independent verifier confirms the D1 point, D1/R2 chec
 
 ## Synthetic recovery drill
 
-The automated synthetic drill is implemented in [`tests/integration/hrm-recovery-drill.mjs`](../../../tests/integration/hrm-recovery-drill.mjs) and runs through `npm run test:integration:hrm:p5`. It snapshots synthetic `lumi-jobs` D1 state into a private temporary SQLite file, backs up HRM R2 objects to a private temporary directory, restores D1/R2 into a separate local Worker while preserving current EmDash account state, then verifies checksum and metadata parity, legal hold, private access, post-backup revocation, missing-object repair and orphan detection. It must run with disposable local D1/R2 and synthetic EmDash users only. Check [`STATUS.md`](STATUS.md) for the latest exact-head result; the existence of this test or an older pass does not establish the current gate.
+The automated synthetic drill is implemented in [`tests/integration/hrm-recovery-drill.mjs`](../../../tests/integration/hrm-recovery-drill.mjs) and runs through `npm run test:integration:hrm:p5`. It snapshots synthetic `lumi-jobs` D1 state into a private temporary SQLite file, backs up HRM R2 objects to a private temporary directory, changes a still-enabled Workspace member and places a closeout file hold **after** that backup point through the real Worker/EmDash routes, then restores D1/R2 into a separate local Worker. The test captures the later Workspace authority, feeds it through the same SQL patch builder, applies numbered patches to isolated D1, and verifies membership disable/roles, access-revocation audit, current hold event/history, checksum parity and the HRM-closed/unreviewed gate. A separate unit case exercises placement plus release after backup. It must run with disposable local D1/R2 and synthetic EmDash users only. Check [`STATUS.md`](STATUS.md) for the latest exact-head result; the existence of this test or an older pass does not establish the current gate.
 
 For a manual synthetic rehearsal, use the following sequence. Never use production data:
 
