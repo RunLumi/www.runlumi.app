@@ -4,6 +4,7 @@ import { envFromLocals } from "../ats";
 import { listCloseoutPolicies, type CloseoutPolicy } from "./closeout-policies";
 import { settings } from "./service";
 import { HrmError } from "./fields";
+import { listCompensation, runCompensationCoverage, type CompensationCoverage, type CompensationVersion } from "./compensation";
 import {
   listLockedPayrollPeriods, listMyPayslips, listPayrollDisputes, listPayrollPolicies,
   listPayrollPaymentsForRun, listPayrollRuns, listPayrollSlipsForRun, payrollDisputeEvents, payrollRun, payrollRunSettled,
@@ -18,6 +19,9 @@ export interface PayrollDeskPage extends PageBase {
   runs: Array<PayrollRun & { employee_count: number }>; selectedRun?: Awaited<ReturnType<typeof payrollRun>>;
   slips: PayrollSlip[]; payments: PayrollPayment[]; runSettled: boolean; disputes: PayrollDispute[]; selectedDispute?: PayrollDisputeEvent[];
   saved: string; error?: string;
+  compensation: CompensationVersion[]; compensationHasMore: boolean; compensationFilter: string; compensationPage: number;
+  /** Coverage hint per `run_person_id:component_code` for the selected draft run. */
+  coverage: Record<string, CompensationCoverage>;
   closeoutPolicies:CloseoutPolicy[];closeoutSources:{id:string;source_file_id:string;title_en:string;title_vi:string;version_number:number}[];
 }
 export async function payrollDeskPage(astro: AstroGlobal, lang: "en" | "vi"): Promise<Response | PayrollDeskPage> {
@@ -40,11 +44,21 @@ export async function payrollDeskPage(astro: AstroGlobal, lang: "en" | "vi"): Pr
       if (selectedRun.run.state === "published") runSettled = await payrollRunSettled(env.DB, user, runId);
     }
   }
+  const compensationFilter = (astro.url.searchParams.get("compensation_employee") ?? "").trim().slice(0, 60);
+  const compensationPage = Math.max(1, Math.min(1000, Number.parseInt(astro.url.searchParams.get("compensation_page") ?? "1", 10) || 1));
+  const listed = live && user.can("hrm.compensation.read") ? await listCompensation(env.DB, user, compensationFilter, compensationPage) : { rows: [], hasMore: false };
+  const coverage: Record<string, CompensationCoverage> = {};
+  if (selectedRun && !["published", "closed"].includes(selectedRun.run.state) && user.can("hrm.payroll.prepare")) {
+    const components = JSON.parse(selectedRun.policy.components_json) as Array<{ code: string; source_kind: string }>;
+    const byEmployment = await runCompensationCoverage(env.DB, selectedRun.run.id, selectedRun.run.starts_on, selectedRun.run.ends_on);
+    for (const person of selectedRun.people) for (const component of components.filter(item => item.source_kind === "employment_record"))
+      coverage[`${person.id}:${component.code}`] = byEmployment.get(`${person.employment_id}:${component.code}`) ?? { state: "missing" };
+  }
   const disputes = live && user.can("hrm.payroll.dispute.manage") ? await listPayrollDisputes(env.DB, user) : [];
   const disputeId = astro.url.searchParams.get("dispute");
   let selectedDispute: PayrollDisputeEvent[] | undefined;
   if (disputeId && live && user.can("hrm.payroll.dispute.manage")) selectedDispute = await payrollDisputeEvents(env.DB, user, disputeId);
-  return { ...base(lang, user, lang === "vi" ? "Payroll và phiếu lương" : "Payroll and payslips"), policies, closeoutPolicies, closeoutSources, periods, runs, selectedRun, slips, payments, runSettled, disputes, selectedDispute, saved: astro.url.searchParams.get("saved") ?? "", error: errorValue(astro) };
+  return { ...base(lang, user, lang === "vi" ? "Payroll và phiếu lương" : "Payroll and payslips"), policies, compensation: listed.rows, compensationHasMore: listed.hasMore, compensationFilter, compensationPage, coverage, closeoutPolicies, closeoutSources, periods, runs, selectedRun, slips, payments, runSettled, disputes, selectedDispute, saved: astro.url.searchParams.get("saved") ?? "", error: errorValue(astro) };
 }
 
 export interface MyPayslipsPage extends PageBase { slips: PayrollSlip[]; disputes: PayrollDispute[]; selectedDispute?: PayrollDisputeEvent[]; saved: string; error?: string }

@@ -103,6 +103,8 @@ export async function command(db: D1Database,user: WorkspaceUser,key: string,ope
     if(message.includes("hrm_performance_correction_conflict"))throw new HrmError("performance_correction_conflict",409);
     if(message.includes("structured_disposition_in_progress"))throw new HrmError("structured_disposition_in_progress",409);
     if(message.includes("structured_disposition_guard_required"))throw new HrmError("structured_record_changed",409);
+    if(message.includes("hrm_compensation_overlap"))throw new HrmError("compensation_overlap",409);
+    if(message.includes("hrm_compensation_end_date_invalid")||message.includes("hrm_compensation_replacement_required"))throw new HrmError("compensation_supersede_invalid",409);
     if(message.includes("time_period_import_pending")) throw new HrmError("time_period_import_pending",409);
     if(message.includes("time_period_locked_calendar_change")) throw new HrmError("time_period_locked_calendar_change",409);
     if(message.includes("time_period_locked")) throw new HrmError("time_period_locked",409);

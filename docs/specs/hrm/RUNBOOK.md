@@ -164,6 +164,16 @@ An older snapshot may lack Vietnamese titles. Its copy retains the original titl
 
 The attachment is an HTML file delivered as downloadable bytes, with a language header, private/no-store headers and no CMS editor UI. The file also carries its own restrictive content policy and explicit light palette for offline viewing. It contains salary data: keep downloaded copies in approved private storage and follow the organization's reviewed retention policy; do not publish them. This does not activate payroll or establish payroll-policy approval.
 
+## Effective compensation for payroll
+
+Lines from an `employment_record` component must name one compensation version on **HRM → Payroll → Effective contract compensation** (`/hrm/payroll#compensation`, `/vi/hrm/payroll#compensation`). An HRM Admin records the employee code, component code, currency, minor-unit scale, the exact amount per pay period, effective dates, and the source. The source is either a completed employment contract or addendum issue for the same employment, or a decision reference held outside HRM. Another HRM Admin or System Super Admin approves it. Nobody can create or approve pay for their own employee record.
+
+Approved versions for one employment component never overlap. To change pay, create a version that names the approved version it replaces. It must run through that version's end date. When it is approved, an earlier version is shortened to the day before the new start, or marked superseded if the new version starts on or before it. Published payslips keep the version they used, so a retroactive change needs a linked payroll correction.
+
+The line amount must equal the approved amount, and one approved version must cover the whole pay period. A period with no version, a version starting or ending mid-period, or two versions inside one period is blocked: there is no proration rule. Calculation stores the version ID, dates and source type in the run snapshot. Review, approval and publication fail if a version stops covering the line. A reviewer or approver cannot be anyone who entered a line in the run, authored a compensation version it uses, or is paid in it.
+
+This is a traceability control, not a calculation of statutory pay, tax, insurance, overtime or commission. Owner-approved proration and pay rules, and an independently checked parallel run, are still required before payroll opens.
+
 ## File disposition and role changes
 
 File disposition uses three separate actors: requester, independent reviewer and System Super Admin executor. Promotion or combined roles do not waive that separation, including when resuming a deletion. Reject a requester or reviewer acting as executor before reserving or deleting the R2 object; a final D1 constraint alone cannot protect bytes already erased. A denial must preserve the request state, metadata and downloadable object. Use another authorized independent executor; never bypass the queue with a manual object deletion.
