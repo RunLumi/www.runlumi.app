@@ -36,9 +36,20 @@ Object R2 tách biệt với D1. Cloudflare ghi rõ thao tác xóa object không
 
 1. Chỉ định người chỉ huy sự cố, người thao tác phục hồi và người xác minh độc lập. Ghi lại phê duyệt, khoảng dữ liệu bị ảnh hưởng, thời điểm UTC dự kiến phục hồi, phiên bản Worker hiện tại và mốc rollback dự kiến.
 2. Cùng chủ tài khoản Cloudflare xác minh đúng database production và backend. Lệnh chỉ đọc `wrangler d1 time-travel info lumi-jobs` lấy bookmark hiện tại; dạng có `--timestamp` có thể kiểm tra một thời điểm UTC được đề xuất. Không chọn mốc chỉ vì nó nằm trước lỗi đầu tiên: phải tính cả thay đổi HR hợp lệ, legal hold, thu hồi quyền và các tệp được ghi sau mốc đó.
-3. Giữ bản export/bookmark D1 hiện tại và danh mục R2 ở nơi phục hồi riêng tư đã được duyệt. Không commit bản sao lưu, bản export, manifest có ID người/object hoặc thông tin xác thực vào Git.
+3. Trước khi phục hồi mốc cũ, giữ export `lumi-jobs` tại **thời điểm hiện tại** trong kho riêng được duyệt. Export D1 đầy đủ chứa dữ liệu HRM/ATS/CRM/payroll riêng tư và có thể làm gián đoạn truy vấn trong lúc tạo. Dùng `umask 077`; chỉ lưu tại kho phục hồi được phép. Không commit export, manifest, định danh hoặc thông tin đăng nhập vào Git.
+
+Tạo thư mục phục hồi ngoài checkout, chỉ chủ sở hữu truy cập. Lưu export D1 hiện hành và danh sách ID/tên EmDash role 50 đang hoạt động tại đó; nội dung các tệp là dữ liệu riêng tư:
+
+```sh
+: "${PRIVATE_RECOVERY_DIR:?Chọn đường dẫn riêng theo sự cố, nằm ngoài repository}"
+umask 077
+mkdir -p -m 0700 "$PRIVATE_RECOVERY_DIR"
+./node_modules/.bin/wrangler d1 export lumi-jobs --remote --output "$PRIVATE_RECOVERY_DIR/current-lumi-jobs.sql"
+./node_modules/.bin/wrangler d1 execute lumi-content --remote --command "SELECT id,name FROM users WHERE role=50 AND disabled=0" --json > "$PRIVATE_RECOVERY_DIR/current-system-admins.json"
+```
 4. Xác nhận có bản sao R2 riêng cho mọi object đang hoạt động trong `hrm_files` thuộc phạm vi phục hồi, gồm bytes và SHA-256. Nếu thiếu bản sao, quy trình này không thể khôi phục bytes đó; ghi nhận thiếu hụt và dừng trước khi mở quyền truy cập.
-5. Giữ HRM đóng trong khi người thao tác và người xác minh đối chiếu timestamp D1 dự kiến với phạm vi dữ liệu của bản sao R2. Thống nhất cách giữ lại hoặc phát lại sự kiện mới hơn mốc D1. Nếu chưa có quyết định được duyệt cho các lần ghi mới, hãy dừng.
+5. Trước khi khôi phục Time Travel trực tiếp, bật biến Worker production `WORKSPACE_RESTORE_MODE=true` theo thay đổi phục hồi Cloudflare đã được duyệt và phát hành phiên bản đó. Xác minh các trang/API riêng tư EN/VI của Workspace, Hiring, CRM, Finance và HRM đều trả 503 kèm `private, no-store` và `nosniff`. Hàng rào này không chặn `/jobs` và `/vi/jobs`, nhưng D1 có thể tạm thời không phục vụ khi đang restore; chỉ xác minh hai trang này với database production sau khi D1 hoạt động lại. Thao tác ghi hồ sơ ứng tuyển (`POST /api/jobs/<slug>/apply`) tạm dừng khi hàng rào bật. Hàng rào cũng bỏ qua mọi scheduled Worker task. Tạm dừng Workers Builds/main auto-deploy trong cửa sổ phục hồi để deploy khác không gỡ hàng rào. Chưa chạy Time Travel nếu Worker chưa thực sự trả trạng thái maintenance. Giữ biến này bật suốt bước đối soát D1/R2.
+6. Đối chiếu timestamp D1 dự kiến với phạm vi bản sao R2. Thống nhất cách giữ hoặc phát lại sự kiện mới hơn mốc restore. Nếu chưa có quyết định được duyệt cho phần phát sinh mới, dừng lại.
 
 ### Phục hồi D1 (cần chủ sở hữu phê duyệt riêng)
 
@@ -50,7 +61,29 @@ Lệnh sau có tính phá hủy dữ liệu. Không chạy trong CI thường l�
 
 Chỉ dùng timestamp khi kế hoạch sự cố đã duyệt ghi rõ và người vận hành đã xác minh bookmark kết quả. Lưu bookmark mới và bookmark cũ ở nơi an toàn. Bookmark cũ là điểm rollback; không hủy nó cho đến khi phục hồi qua bước xác minh và chủ sở hữu chấp nhận kết quả.
 
-Sau lệnh, giữ HRM đóng. Kiểm tra phiên bản schema/migration, bảng và index bắt buộc, số lượng nhân viên và kỳ làm việc, workflow đang mở, tính liên tục của audit, legal hold và quyền tài khoản dùng chung hiện tại. Database sau phục hồi có thể cũ hơn một lần thu hồi quyền thành viên; phải đối chiếu lại với nguồn tài khoản hiện hành trước khi cấp quyền trở lại. Không phát hành payslip hoặc chạy tác vụ lưu giữ tệp trong bước này.
+Sau khi phục hồi, giữ HRM đóng và áp dụng các migration D1 hiện hành trước khi đối soát quyền. Export D1 sau restore thành tệp SQL riêng, quyền 0600 trong kho bảo mật. Xác minh actor System Super Admin qua danh sách tài khoản EmDash vẫn hiện hành, rồi tạo patch kiểm tra từ export hiện tại và export vừa phục hồi:
+
+```sh
+umask 077
+node scripts/reconcile-workspace-restore.mjs \
+  --current "$PRIVATE_RECOVERY_DIR/current-lumi-jobs.sql" \
+  --restored "$PRIVATE_RECOVERY_DIR/restored-lumi-jobs.sql" \
+  --output-dir "$PRIVATE_RECOVERY_DIR/workspace-authority-patches" \
+  --operator-id "<id-system-super-admin-hien-hanh-da-xac-minh>" \
+  --operator-name "<ten-system-super-admin-hien-hanh-da-xac-minh>"
+```
+
+Trước lệnh này, người thao tác phải xác minh độc lập tài khoản EmDash đang hoạt động với role 50 và truyền đúng ID/tên làm actor cho sự kiện khóa/khôi phục trong `workspace_audit`. Người xác minh đối chiếu checksum và số lượng trong manifest. Patch SQL có dữ liệu riêng phải được giữ bảo mật. Áp dụng từng patch theo thứ tự tên, chỉ chuyển sang bước kế tiếp khi D1 trả thành công:
+
+```sh
+for patch in "$PRIVATE_RECOVERY_DIR"/workspace-authority-patches/*.sql; do
+  ./node_modules/.bin/wrangler d1 execute lumi-jobs --remote --file="$patch"
+done
+```
+
+Patch đầu tiên đóng HRM, tắt membership đã phục hồi và xóa role snapshot cũ. Hàng rào Worker vẫn phải bật trong toàn bộ chuỗi patch. Các patch tiếp theo khôi phục membership/role hiện hành, audit Workspace nối tiếp, hold còn hiệu lực và lifecycle event. Sự kiện khóa và mở lại membership ghi System Super Admin hiện hành làm actor. Patch cuối chỉ bật tài khoản có trạng thái bật trong snapshot hiện hành. HRM vẫn tắt/chưa duyệt sau đối soát; owner phải rà soát lại. Nếu schema, danh tính, audit bất biến hoặc hold xung đột, dừng và giữ trạng thái khóa. Nếu chuỗi patch lỗi giữa chừng, membership vẫn tắt cho đến khi patch cuối chạy. Không dùng `--admin` để bỏ các guard này. Chỉ khi người xác minh chấp nhận checksum patch, cổng HRM, holds, R2 và smoke test thì owner mới được gỡ hàng rào phục hồi. Giữ `hrm_settings.enabled=0` và `reviewed_by=NULL`; chỉ bỏ lệnh đóng Workers Builds sau khi xác minh release tiếp theo không âm thầm mở HRM. Nếu có bước nào lỗi, giữ `WORKSPACE_RESTORE_MODE=true`.
+
+Sau đó, kiểm tra migration/schema, bảng/index, số nhân viên/đợt làm việc, workflow đang mở, audit, lịch sử đặt/gỡ legal hold và grant Workspace hiện hành. D1 phục hồi có thể cũ hơn lần thu hồi quyền; snapshot Workspace hiện hành là nguồn role sau restore, EmDash vẫn xác minh tài khoản còn hoạt động. Không phát hành payslip hoặc chạy xóa theo retention ở bước này.
 
 ### Phục hồi và đối soát R2
 
@@ -66,7 +99,7 @@ Chỉ mở HRM sau khi người xác minh độc lập xác nhận mốc D1, k�
 
 ## Diễn tập phục hồi bằng dữ liệu tổng hợp
 
-Diễn tập tự động được triển khai tại [`tests/integration/hrm-recovery-drill.mjs`](../../../tests/integration/hrm-recovery-drill.mjs) và chạy qua `npm run test:integration:hrm:p5`. Test chụp snapshot SQLite cục bộ của D1 `lumi-jobs` tổng hợp vào tệp tạm riêng tư, sao lưu object HRM từ R2 vào thư mục tạm riêng tư, rồi phục hồi D1/R2 vào một Worker cục bộ biệt lập trong khi giữ trạng thái tài khoản EmDash hiện hành. Sau đó test đối soát checksum/metadata, legal hold, quyền tải riêng tư, thu hồi tài khoản sau mốc backup, phát hiện object thiếu và object mồ côi. Chỉ chạy với D1/R2 cục bộ dùng một lần và tài khoản EmDash giả lập. Xem [`STATUS.md`](STATUS.md) để biết kết quả trên head mới nhất; có test hoặc từng chạy xanh không đồng nghĩa cổng hiện tại đã đạt.
+Diễn tập tự động ở [`tests/integration/hrm-recovery-drill.mjs`](../../../tests/integration/hrm-recovery-drill.mjs), chạy qua `npm run test:integration:hrm:p5`. Test chụp D1/R2 giả lập vào thư mục tạm riêng tư, sau mốc backup thu hồi một Workspace member còn EmDash active và đặt hold PDF quyết toán qua Worker thật, rồi phục hồi D1/R2 vào Worker local biệt lập. Test chụp Workspace authority hiện hành, tạo patch bằng cùng SQL builder, áp dụng vào D1 cô lập và xác minh membership/role, audit thu hồi, hold/lịch sử, checksum cùng cổng HRM vẫn đóng. Unit test riêng kiểm tra hold đặt rồi gỡ sau backup. Chỉ chạy với D1/R2 cục bộ dùng một lần và EmDash users giả lập. Xem [`STATUS.md`](STATUS.md) để biết kết quả mới nhất; một lần PASS cũ không chứng minh gate hiện tại.
 
 Khi diễn tập thủ công bằng dữ liệu giả, dùng trình tự sau. Tuyệt đối không dùng dữ liệu production:
 

@@ -5,6 +5,7 @@ import type { Permission } from "./lib/workspace/roles";
 import { workspaceUser } from "./lib/workspace/roles";
 import { sameOrigin } from "./lib/http";
 import { financeArea, financeBoundary, setFinanceReadiness } from "./lib/finance/access";
+import { restoreBlocksPath, restoreMaintenanceResponse } from "./lib/workspace/restore-maintenance";
 
 /** Private areas and the permission each needs. The first match wins. */
 const areas: { test: (path: string) => boolean; permission: Permission; api?: boolean }[] = [
@@ -31,9 +32,10 @@ function forbidden(vi: boolean): Response {
 }
 
 export const onRequest = defineMiddleware(async (context, next) => {
-  const path = context.url.pathname;
+  const path = context.url.pathname,vi=path.startsWith("/vi/");
+  const environment=envFromLocals(context.locals);
+  if(restoreBlocksPath(environment.WORKSPACE_RESTORE_MODE,path))return restoreMaintenanceResponse(path,vi);
   if (financeArea(path)) return financeBoundary(context, next);
-  const vi = path.startsWith("/vi/");
   const area = path === "/admin/jobs/login" ? undefined : areas.find((item) => item.test(path));
   const isPrivate = !!area || path.startsWith("/api/intake/") || path.startsWith("/api/crm/");
 
@@ -53,7 +55,6 @@ export const onRequest = defineMiddleware(async (context, next) => {
       if (area.api) return new Response("Unauthorized", { status: 401, headers: { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff", "Referrer-Policy": "same-origin" } });
       return new Response(null, { status: 303, headers: { Location: emdashLoginUrl(path + context.url.search), "Cache-Control": "private, no-store" } });
     }
-    const environment = envFromLocals(context.locals);
     const { DB } = environment;
     const user = await workspaceUser(context.locals, DB);
     if (!user) {

@@ -28,6 +28,7 @@ config.vars = {
   CRM_INTAKE_SECRET:'local-test-secret-not-for-production-0123456789',
   CRM_R2_ACCESS_KEY_ID:'test-crm-s3',CRM_R2_SECRET_ACCESS_KEY:'synthetic-local-only-not-for-production',
   CRM_R2_LOCAL_ENDPOINT:`${origin.origin}/cdn-cgi/local/r2/s3`,
+  WORKSPACE_RESTORE_MODE:process.env.WORKSPACE_RESTORE_MODE==='true'?'true':'false',
 };
 const target = resolve(root,'.wrangler/crm-upload-test.jsonc');
 mkdirSync(dirname(target),{recursive:true});
