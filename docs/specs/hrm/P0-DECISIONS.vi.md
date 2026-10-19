@@ -9,7 +9,7 @@ Tài liệu này gom mọi quyết định ở §16 của [đặc tả HRM](READ
 | Ngày | Quyết định | Hệ quả |
 |---|---|---|
 | 2026-10-20 | **Một pháp nhân** dùng HRM. Tên pháp nhân: `__________` | Điền đúng tên này ở *HRM → Thiết lập*; mọi chính sách payroll, nghỉ phép và báo cáo dùng cùng pháp nhân. |
-| 2026-10-20 | HRM áp dụng cho **nhân viên và cộng tác viên (CTV)**. CTV có hồ sơ tối thiểu và **không vào payroll**. | Cần một việc kỹ thuật: thêm loại quan hệ (nhân viên/CTV) cho mỗi đợt làm việc và loại CTV khỏi kỳ lương. Hiện hệ thống chưa phân biệt loại quan hệ. Partner trong CRM vẫn không mặc nhiên là CTV trong HRM. |
+| 2026-10-20 | HRM áp dụng cho **nhân viên và cộng tác viên (CTV)**. CTV có hồ sơ tối thiểu và **không vào payroll**. | Đã làm (migration 0050): mỗi đợt làm việc là nhân viên hoặc CTV. CTV không có thu nhập theo hợp đồng, kỳ lương hay quyết toán lương, và loại quan hệ bị khóa khi đợt làm việc đã được dùng cho lương. Partner trong CRM vẫn không mặc nhiên là CTV trong HRM. Trường hồ sơ tối thiểu của CTV vẫn thuộc mục 1. |
 | 2026-10-20 | Owner sẽ ghi tên **hai người duyệt độc lập** và **người phụ trách payroll**. | Điền ở mục 2 bên dưới. |
 | 2026-10-20 | Có **kế toán/chuyên gia** kiểm tra quy tắc lương và chạy kỳ song song. | Điền tên ở mục 6. |
 
