@@ -107,7 +107,7 @@ export async function workProfilePage(astro:AstroGlobal,lang:Lang,personId:strin
   if(!user.can("hrm.records.manage"))throw new HrmError("forbidden",403);
   const form=await formOf(astro);const intent=text(form,"intent",20)||"save";const requestKey=text(form,"request_key",100,true);
   if(intent==="rehire"){
-   const input={work_email:text(form,"work_email",254).toLowerCase(),work_phone:text(form,"work_phone",40),department:text(form,"department",200),job_title:text(form,"job_title",200),legal_entity:text(form,"legal_entity",200,true),location:text(form,"location",200),manager_user_id:text(form,"manager_user_id",100)||null,status:text(form,"status",20,true) as "preboarding"|"probation"|"active",started_on:date(text(form,"started_on",10,true))!};
+   const input={work_email:text(form,"work_email",254).toLowerCase(),work_phone:text(form,"work_phone",40),department:text(form,"department",200),job_title:text(form,"job_title",200),legal_entity:text(form,"legal_entity",200,true),location:text(form,"location",200),manager_user_id:text(form,"manager_user_id",100)||null,status:text(form,"status",20,true) as "preboarding"|"probation"|"active",started_on:date(text(form,"started_on",10,true))!,relationship_type:relationshipType(form,person.relationship_type)};
    if(!["preboarding","probation","active"].includes(input.status))throw new HrmError("invalid_status");
    if(input.work_email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.work_email))throw new HrmError("invalid_email");
    await startEmploymentPeriod(env.DB,env.CONTENT_DB,user,requestKey,person.id,text(form,"previous_employment_id",100,true),revision(form,"previous_version"),input);
