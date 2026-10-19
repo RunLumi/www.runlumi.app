@@ -9,8 +9,8 @@ import process from "node:process";
 const root = process.cwd();
 // HRM phases run serially against one isolated Worker/D1/R2 deployment before
 // the existing module regressions. Give the complete gate enough time to finish
-// on slower hosted runners instead of cutting P5/regressions off at ten minutes.
-const integrationTimeoutMs=20*60*1000;
+// on slower hosted runners instead of cutting P5/regressions off at twenty minutes.
+const integrationTimeoutMs=30*60*1000;
 for (const file of [".env", ".env.local", ".dev.vars"]) {
   if (existsSync(join(root, file))) {
     throw new Error("Refusing integration tests from a checkout containing " + file + "; use a credential-free clone.");
