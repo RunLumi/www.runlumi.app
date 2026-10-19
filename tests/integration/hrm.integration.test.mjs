@@ -1449,6 +1449,27 @@ test("HRM P5 keeps service requests private and retries in-app notifications wit
   // The restore planner records its own Workspace audit actor: the one current
  // synthetic System Super Admin, never an inferred or HRM-only account.
  const recoveryAdmins=content("SELECT id,name,email FROM users WHERE role=50 AND disabled=0");assert.equal(recoveryAdmins.length,1,"synthetic System Super Admin identity must be unambiguous");
+ // HRM-04: revoking the Workspace membership or disabling the EmDash account
+ // takes effect on the very next request, including the user's own private
+ // file download and self-export, and no denial is cacheable.
+ for(const mode of ["membership","account"]){
+  const revoked=await userSession(S.system,{email:`test-revoke-${mode}-${run}@example.test`,name:`TEST Revoke ${mode} ${run}`});
+  assert.equal((await grant(revoked,"employee")).status,303);
+  const revokedPerson=await createPerson({user:revoked,code:`TEST-REVOKE-${mode.toUpperCase()}-${run}`,name:`TEST Revoke ${mode}`});
+  const revokedUpload=await multipart(revoked,"/api/hrm/files/upload",{person_id:revokedPerson,kind:"personal",request_key:`revoke_file_${mode}_${run}`,return_to:"/hrm/me"},new File([new Uint8Array([37,80,68,70,45,49,46,55,10,84,69,83,84])],"TEST-revoke.pdf",{type:"application/pdf"}));
+  assert.equal(revokedUpload.status,303,revokedUpload.body);
+  const revokedFile=jobs(`SELECT id FROM hrm_files WHERE person_id=${q(revokedPerson)} AND kind='personal'`)[0].id;
+  const probes=async()=>[["page",await revoked.get("/hrm/me")],["file",await revoked.get(`/api/hrm/files/${revokedFile}`)],["export",await revoked.post("/api/hrm/me/export",{})]];
+  for(const [label,response] of await probes())assert.equal(response.status,200,`before ${mode} revocation the ${label} works`);
+  if(mode==="membership")assert.equal((await S.system.post("/workspace/users",{intent:"update",user_id:revoked.id,roles:["employee"],enabled:"0"})).status,303);
+  else content(`UPDATE users SET disabled=1 WHERE id=${q(revoked.id)}`);
+  for(const [label,response] of await probes()){
+   assert.notEqual(response.status,200,`${mode} revocation blocks the next ${label} request`);
+   assert.ok(!response.html.includes("%PDF")&&!response.html.includes(`TEST-REVOKE-${mode.toUpperCase()}`),`no private bytes or export after ${mode} revocation`);
+   assert.match(response.headers.get("cache-control")??"",/no-store/,`${mode} ${label} denial is not cacheable`);
+  }
+ }
+
  // HRM-20 parity matrix: every static HRM page answers each role the same way
  // in English and Vietnamese (status and locale-equivalent redirect), never
  // with a server error, and ATS-only / CRM-only roles never get an HRM page.
