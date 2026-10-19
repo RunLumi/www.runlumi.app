@@ -414,8 +414,89 @@ test("14. commission: proposal is admin-only simulation; approval shows each sel
   assert.match(finView.html, /Chuyển sang payroll HRM/); assert.match(finView.html, /Chờ payroll/);
   assert.equal((await S.fin.post("/crm/commission", { intent: "handoff_void", handoff_id: handoffs[0].id, reason: "TEST returned to manual payout for this regression" })).status, 303);
   assert.equal(jobs(`SELECT state FROM crm_commission_handoffs WHERE id = ${q(handoffs[0].id)}`)[0].state, "voided");
+  // One HTTP chain from CRM commission to an issued payslip, then a refund:
+  // Finance re-confirms the month, HRM payroll imports that handoff for the
+  // seller's own EmDash account and publishes; the handoff can no longer be
+  // voided, a refund produces a refund notice for payroll, and pay is unchanged.
+  const reconfirmKey = `crm_handoff_again_${run}`;
+  assert.equal((await S.fin.post("/crm/commission", { intent: "handoff", request_key: reconfirmKey, user_id: S.a.id, period: month })).status, 303, "voided lines can be handed off again");
+  const handoff = jobs(`SELECT id, amount_vnd FROM crm_commission_handoffs WHERE user_id = ${q(S.a.id)} AND state = 'confirmed'`)[0];
+  assert.ok(handoff);
+  const entity = `TEST CRM chain ${run}`;
+  const hrmAdmin = await userSession(S.admin, { email: `test-chain-hrm-${run}@example.test`, name: `TEST Chain HRM ${run}` });
+  const payroll = await userSession(S.admin, { email: `test-chain-payroll-${run}@example.test`, name: `TEST Chain Payroll ${run}` });
+  for (const [session, role] of [[hrmAdmin, "hrm_admin"], [payroll, "payroll_officer"]]) assert.equal((await S.admin.post("/workspace/users", { intent: "grant", email: session.email, roles: [role] })).status, 303);
+  const originalSettings = jobs("SELECT version, enabled, legal_entity, purpose, retention_policy, policy_reference, reviewed_by FROM hrm_settings WHERE id = 1")[0], settingsVersion = originalSettings.version;
+  assert.equal((await S.admin.post("/hrm/settings", { request_key: `chain_settings_${run}`, version: settingsVersion, legal_entity: entity, purpose: "Synthetic CRM-to-payroll chain test only", retention_policy: "Synthetic records only", policy_reference: "TEST chain", reviewed: "1", enabled: "1" })).status, 303);
+  // A free single day inside the handoff month keeps the run within one calendar month.
+  const today = new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10);
+  const day = Array.from({ length: Number(today.slice(8, 10)) }, (_, index) => `${month}-${String(index + 1).padStart(2, "0")}`).reverse()
+    .find((date) => jobs(`SELECT COUNT(*) AS n FROM hrm_time_periods WHERE starts_on <= ${q(date)} AND ends_on >= ${q(date)}`)[0].n === 0);
+  assert.ok(day, "a free day exists in the handoff month");
+  const code = `TEST-CHAIN-${run}`;
+  assert.equal((await hrmAdmin.post("/hrm/people/new", { request_key: `chain_person_${run}`, employee_code: code, account_email: S.a.email, legal_name: "TEST Chain Seller", preferred_name: "TEST Chain Seller", work_email: `chain-${run}@work.example.test`, work_phone: "0900000000", department: "TEST Sales", job_title: "TEST Seller", legal_entity: entity, location: "Ho Chi Minh City", manager_user_id: "", status: "active", started_on: day })).status, 303);
+  const personId = jobs(`SELECT id FROM hrm_people WHERE employee_code = ${q(code)}`)[0].id;
+  const periodKey = `CHAIN-${run}`;
+  assert.equal((await hrmAdmin.post("/api/hrm/time", { intent: "create_period", return_to: "/hrm/time", request_key: `chain_period_${run}`, period_key: periodKey, starts_on: day, ends_on: day })).status, 303);
+  let period = jobs(`SELECT id, version FROM hrm_time_periods WHERE period_key = ${q(periodKey)}`)[0];
+  assert.equal((await hrmAdmin.post("/api/hrm/time", { intent: "review_period", return_to: "/hrm/time", request_key: `chain_review_period_${run}`, period_id: period.id, version: period.version })).status, 303);
+  period = jobs(`SELECT id, version FROM hrm_time_periods WHERE id = ${q(period.id)}`)[0];
+  assert.equal((await hrmAdmin.post("/api/hrm/time", { intent: "lock_period", return_to: "/hrm/time", request_key: `chain_lock_period_${run}`, period_id: period.id, version: period.version, reason: "TEST synthetic chain period" })).status, 303);
+  const components = [{ code: "commission", title_en: "Sales commission", title_vi: "Hoa hồng bán hàng", direction: "earning", required: true, source_kind: "crm_commission" }];
+  const policyKey = `test-chain-${run}`;
+  assert.equal((await hrmAdmin.post("/api/hrm/payroll", { intent: "create_policy", return_to: "/hrm/payroll", request_key: `chain_policy_${run}`, policy_key: policyKey, title_en: "TEST chain payroll", title_vi: "TEST lương chuỗi", legal_entity: entity, currency: "VND", minor_unit_scale: "0", components_json: JSON.stringify(components) })).status, 303);
+  let policy = jobs(`SELECT id, version FROM hrm_payroll_policy_versions WHERE policy_key = ${q(policyKey)}`)[0];
+  assert.equal((await S.admin.post("/api/hrm/payroll", { intent: "review_policy", return_to: "/hrm/payroll", request_key: `chain_policy_review_${run}`, policy_id: policy.id, version: policy.version, decision: "approve", reason: "TEST independent policy review" })).status, 303);
+  policy = jobs(`SELECT id, version FROM hrm_payroll_policy_versions WHERE id = ${q(policy.id)}`)[0];
+  assert.equal((await S.admin.post("/api/hrm/payroll", { intent: "activate_policy", return_to: "/hrm/payroll", request_key: `chain_policy_activate_${run}`, policy_id: policy.id, version: policy.version })).status, 303);
+  const payrollStep = async (session, fields, label) => { const response = await session.post("/api/hrm/payroll", { return_to: "/hrm/payroll", request_key: `chain_${label}_${run}`, ...fields }); assert.equal(new URL(response.location, "http://x").searchParams.get("error"), null, label); };
+  await payrollStep(payroll, { intent: "create_run", policy_version_id: policy.id, period_id: period.id }, "run");
+  const runRow = jobs(`SELECT id FROM hrm_payroll_runs WHERE policy_version_id = ${q(policy.id)} AND period_id = ${q(period.id)}`)[0];
+  assert.deepEqual(jobs(`SELECT person_id FROM hrm_payroll_run_people WHERE run_id = ${q(runRow.id)}`).map((row) => row.person_id), [personId], "the dedicated entity's roster is the seller alone");
+  const runVersion = () => jobs(`SELECT version FROM hrm_payroll_runs WHERE id = ${q(runRow.id)}`)[0].version;
+  const desk = await payroll.get(`/hrm/payroll?run=${runRow.id}`);
+  assert.ok(desk.html.includes(handoff.id), "the line form offers the confirmed handoff");
+  assert.ok(!desk.html.includes("Garage Trust"), "payroll never sees CRM customers");
+  const wrongAmount = await payroll.post("/api/hrm/payroll", { intent: "set_line", return_to: "/hrm/payroll", request_key: `chain_wrong_${run}`, run_id: runRow.id, person_id: personId, version: runVersion(), component_code: "commission", amount_minor: String(handoff.amount_vnd + 1), source_kind: "crm_commission", source_reference: handoff.id, zero_reason: "" });
+  assert.equal(new URL(wrongAmount.location, "http://x").searchParams.get("error"), "payroll_commission_mismatch");
+  await payrollStep(payroll, { intent: "set_line", run_id: runRow.id, person_id: personId, version: runVersion(), component_code: "commission", amount_minor: String(handoff.amount_vnd), source_kind: "crm_commission", source_reference: handoff.id, zero_reason: "" }, "line");
+  await payrollStep(payroll, { intent: "calculate_run", run_id: runRow.id, version: runVersion() }, "calculate");
+  await payrollStep(hrmAdmin, { intent: "review_run", run_id: runRow.id, version: runVersion(), reason: "TEST reviewed against the CRM handoff total" }, "review");
+  await payrollStep(hrmAdmin, { intent: "approve_run", run_id: runRow.id, version: runVersion(), reason: "TEST independent approval" }, "approve");
+  await payrollStep(S.admin, { intent: "publish_run", run_id: runRow.id, version: runVersion() }, "publish");
+  const slip = jobs(`SELECT snapshot_json FROM hrm_payslips WHERE run_id = ${q(runRow.id)}`)[0];
+  const snapshot = JSON.parse(slip.snapshot_json);
+  assert.equal(snapshot.net_minor, handoff.amount_vnd, "the payslip pays exactly the Finance-confirmed total");
+  assert.ok(!/Garage Trust|opp_|ledger/i.test(slip.snapshot_json), "no CRM customer, opportunity or ledger data reaches the payslip");
+  const lateVoid = await S.fin.post("/crm/commission", { intent: "handoff_void", handoff_id: handoff.id, reason: "TEST too late" });
+  assert.equal(lateVoid.status, 422, "a handoff payroll used cannot be voided");
+  // Refund one handed-off deal: Finance records a refund notice; pay stays as issued.
+  const refundedOpp = jobs(`SELECT opportunity_id FROM crm_commission_handoff_lines WHERE handoff_id = ${q(handoff.id)} ORDER BY amount_vnd LIMIT 1`)[0].opportunity_id;
+  const payment = jobs(`SELECT id FROM crm_ledger WHERE opportunity_id = ${q(refundedOpp)} AND kind = 'payment' AND status = 'confirmed' ORDER BY created_at LIMIT 1`)[0];
+  assert.ok(payment, "the handed-off deal has a confirmed payment to refund");
+  assert.equal((await S.fin.post(`/crm/${refundedOpp}`, { intent: "refund", target_entry_id: payment.id, amount_vnd: 1000, occurred_on: today, evidence: "TEST-CHAIN-REFUND", note: "TEST refund after handoff" })).status, 303);
+  const financeView = await S.fin.get("/crm/commission");
+  assert.match(financeView.html, /Refunded after handoff/);
+  assert.equal((await S.fin.post("/crm/commission", { intent: "refund_notice", handoff_id: handoff.id, reason: "TEST customer refund after payroll used the handoff" })).status, 303);
+  const notice = jobs(`SELECT amount_vnd, line_count FROM crm_commission_refund_notices WHERE handoff_id = ${q(handoff.id)}`)[0];
+  assert.ok(notice && notice.amount_vnd > 0 && notice.amount_vnd <= handoff.amount_vnd);
+  assert.equal(jobs(`SELECT snapshot_json FROM hrm_payslips WHERE run_id = ${q(runRow.id)}`)[0].snapshot_json, slip.snapshot_json, "the issued payslip is unchanged");
+  const viDesk = await payroll.get("/vi/hrm/payroll");
+  assert.match(viDesk.html, /Báo hoàn tiền từ CRM/);
+  assert.ok(viDesk.html.includes(code), "payroll sees the employee, month and amount of the notice");
+  // Restore the HRM settings the earlier suites left, for the regressions that follow.
+  const restoreVersion = jobs("SELECT version FROM hrm_settings WHERE id = 1")[0].version;
+  // A fresh database had no HRM configuration: leave HRM closed and unreviewed.
+  const restore = originalSettings.legal_entity
+    ? { legal_entity: originalSettings.legal_entity, purpose: originalSettings.purpose, retention_policy: originalSettings.retention_policy, policy_reference: originalSettings.policy_reference, ...(originalSettings.reviewed_by ? { reviewed: "1" } : {}), ...(originalSettings.enabled ? { enabled: "1" } : {}) }
+    : { legal_entity: entity, purpose: "Synthetic CRM-to-payroll chain test only", retention_policy: "Synthetic records only", policy_reference: "TEST chain" };
+  assert.equal((await S.admin.post("/hrm/settings", { request_key: `chain_settings_restore_${run}`, version: restoreVersion, ...restore })).status, 303);
+  assert.equal(jobs("SELECT enabled FROM hrm_settings WHERE id = 1")[0].enabled, originalSettings.legal_entity ? originalSettings.enabled : 0);
+
   await S.admin.post("/crm/commission", { intent: "seller_terms", user_id: S.a.id, seller_type: "partner_seller", effective_from: `${month}-02` });
-  assert.equal((await S.fin.post("/crm/commission", { intent: "payout", user_id: S.a.id, period: "2026-10", amount_vnd: "100000", evidence: "TEST-PAYOUT" })).status, 303);
+  // The handed-off month stays with payroll; the manual payout uses an earlier month.
+  const earlierMonth = new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(5, 7)) - 2, 1)).toISOString().slice(0, 7);
+  assert.equal((await S.fin.post("/crm/commission", { intent: "payout", user_id: S.a.id, period: earlierMonth, amount_vnd: "100000", evidence: "TEST-PAYOUT" })).status, 303);
   assert.equal(jobs(`SELECT COUNT(*) AS n FROM crm_commission_payouts WHERE user_id = ${q(S.a.id)} AND evidence = 'TEST-PAYOUT'`)[0].n, 1);
   // Restore the proposal so later runs start from an unapproved policy again.
   // Voided handoffs stay as append-only history; they no longer hold any line.

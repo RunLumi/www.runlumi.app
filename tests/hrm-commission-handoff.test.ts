@@ -5,7 +5,7 @@ import { makeUser } from "../src/lib/workspace/roles.ts";
 import type { CrmActor } from "../src/lib/crm/access.ts";
 import type { CommissionLine } from "../src/lib/crm/commission.ts";
 import type { CommissionView } from "../src/lib/crm/commission-store.ts";
-import { confirmHandoff, lineKey, selectHandoffLines, voidHandoff } from "../src/lib/crm/commission-handoff.ts";
+import { confirmHandoff, lineKey, recordRefundNotice, refundExposure, selectHandoffLines, voidHandoff } from "../src/lib/crm/commission-handoff.ts";
 import { approvePayrollRun, calculatePayrollRun, createPayrollRun, publishPayrollRun, reviewPayrollRun, setPayrollLine } from "../src/lib/hrm/payroll.ts";
 
 let seq = 0;
@@ -97,5 +97,26 @@ test("payroll imports a confirmed handoff once at its exact amount; a correction
     await assert.rejects(set("p1", "40000", handoff, second), { message: "payroll_commission_already_used" }, "a separate regular run cannot pay the same handoff again");
     const snapshot = JSON.parse(String(f.raw.prepare("SELECT snapshot_json FROM hrm_payslips WHERE state='published'").get()!.snapshot_json));
     assert.deepEqual(Object.keys(snapshot).filter((k) => /customer|opportunit|ledger/i.test(k)), [], "no CRM customer data reaches the payslip");
+  } finally { f.close(); }
+});
+
+test("a refund after payroll used a handoff becomes an append-only notice for payroll, never an automatic deduction", async () => {
+  const f = fixture(); try {
+    const earned = [line(), line({ opportunity_id: "opp-2", component: "starter_live", amount: 120000 })];
+    const handoff = await confirmHandoff(f.db, f.db, f.finance, form({ user_id: "TEST-seller", period: "2026-03", request_key: key("confirm") }), f.view(earned));
+    const refunded = [line({ status: "forfeited" }), earned[1]];
+    assert.deepEqual(refundExposure(refunded, [{ handoff_id: handoff, line_key: lineKey(earned[0]), amount_vnd: 40000 }, { handoff_id: handoff, line_key: lineKey(earned[1]), amount_vnd: 120000 }], new Set()).map((row) => [row.amount_vnd, row.line_count]), [[40000, 1]]);
+    const notice = (values: Record<string, string>, actor = f.finance) => recordRefundNotice(f.db, f.db, actor, form({ handoff_id: handoff, reason: "TEST customer refunded the Trust Kit", request_key: key("notice"), ...values }), f.view(refunded));
+    await assert.rejects(notice({}), (error: Error & { fields?: Record<string, string> }) => error.fields?.handoff_id === "not_in_payroll", "before payroll uses it, Finance voids and re-confirms instead");
+    const runId = await createPayrollRun(f.db, f.payroll, key("run"), "policy", "period");
+    const version = Number(f.raw.prepare("SELECT version FROM hrm_payroll_runs WHERE id=?").get(runId)!.version);
+    await setPayrollLine(f.db, f.payroll, key("line"), { runId, personId: "p1", expectedVersion: version, componentCode: "commission", amountMinor: "160000", sourceKind: "crm_commission", sourceReference: handoff, zeroReason: "" });
+    await assert.rejects(notice({}, actor("TEST-seller")), { message: "forbidden" });
+    const noticeKey = key("notice-ok"), id = await notice({ request_key: noticeKey });
+    assert.equal(await notice({ request_key: noticeKey }), id, "a retry returns the first notice");
+    assert.deepEqual({ ...f.raw.prepare("SELECT amount_vnd,line_count FROM crm_commission_refund_notices WHERE id=?").get(id) }, { amount_vnd: 40000, line_count: 1 });
+    await assert.rejects(notice({}), (error: Error & { fields?: Record<string, string> }) => error.fields?.handoff_id === "nothing_refunded", "each forfeited line is noticed once");
+    assert.throws(() => f.raw.prepare("UPDATE crm_commission_refund_notices SET amount_vnd=1").run(), /immutable_history/);
+    assert.equal(f.raw.prepare("SELECT amount_minor FROM hrm_payroll_lines WHERE source_reference=?").get(handoff)?.amount_minor, 160000, "the payroll line is not changed by the notice");
   } finally { f.close(); }
 });
