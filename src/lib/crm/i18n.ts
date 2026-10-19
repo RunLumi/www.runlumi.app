@@ -18,6 +18,8 @@ const dict = {
   err_not_employee: ["Only people whose seller type is Employee at the end of the month go to payroll.", "Chỉ người có loại người bán là Nhân viên vào cuối tháng mới chuyển sang payroll."],
   err_nothing_earned: ["No earned, unhanded commission became eligible in that month.", "Không có khoản hoa hồng đã đủ điều kiện và chưa chuyển trong tháng đó."],
   err_in_payroll: ["Payroll already uses this handoff; correct it through a linked payroll correction.", "Payroll đã dùng bản chuyển này; điều chỉnh qua bản điều chỉnh payroll có liên kết."],
+  err_nothing_refunded: ["No refund has forfeited a handed-off line that is not already noticed.", "Chưa có khoản hoàn tiền nào làm mất dòng đã chuyển mà chưa được ghi nhận."],
+  err_not_in_payroll: ["Payroll has not used this handoff; void and re-confirm it instead.", "Payroll chưa dùng bản chuyển này; hãy hủy và xác nhận lại."],
   err_exceeds_payment: ["More than the refundable amount of that payment.", "Vượt số tiền còn có thể hoàn của khoản thanh toán."],
   err_has_refunds: ["Void its refunds first.", "Hãy hủy các khoản hoàn tiền trước."],
   err_owner_approval_required: ["Record the owner's approval first.", "Cần ghi nhận chủ đã duyệt trước."],
