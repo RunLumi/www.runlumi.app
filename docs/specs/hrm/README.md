@@ -443,6 +443,8 @@ Tiếp tục mở giai đoạn khi mọi test quyền/privacy tương ứng đ�
 
 ## 16. Quyết định còn phải chốt
 
+Gói điền và ký từng quyết định: [P0-DECISIONS.vi.md](P0-DECISIONS.vi.md) ([English](P0-DECISIONS.md)). Ngày 2026-10-20 owner đã chốt: một pháp nhân; HRM gồm nhân viên và cộng tác viên (CTV có hồ sơ tối thiểu, không vào payroll); owner sẽ ghi tên người duyệt độc lập, người phụ trách payroll và kế toán kiểm tra quy tắc lương.
+
 1. Pháp nhân, nơi làm việc, loại quan hệ lao động/cộng tác nào dùng HRM; Partner CRM không mặc nhiên là nhân viên.
 2. Ai giữ vai trò HRM Officer, Payroll Officer, người phê duyệt độc lập và người rà soát COI; tuyến dự phòng là ai.
 3. Trường bắt buộc, mục đích/căn cứ xử lý, retention và legal hold từng loại; ai xử lý yêu cầu dữ liệu cá nhân.
@@ -457,6 +459,7 @@ Tiếp tục mở giai đoạn khi mọi test quyền/privacy tương ứng đ�
 ## 17. Tài liệu liên quan
 
 - [Prompt /goal triển khai đầy đủ HRM](goal-hrm.md)
+- [Gói quyết định P0](P0-DECISIONS.vi.md) ([English](P0-DECISIONS.md))
 
 - [Workspace: vai trò, điều hướng và cách thêm module](../../workspace/README.md)
 - [Hợp đồng hướng dẫn repo](../../../AGENTS.md)
