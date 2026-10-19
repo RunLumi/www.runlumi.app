@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { reportCsvCell, reportCsvContent, reportStateLabel, type HrmReportSnapshot } from "../src/lib/hrm/reports";
-import { reportExpiryDate, reportPeriodForSchedule, reportScheduleIsDue, runHrmReportScheduleSweep } from "../src/lib/hrm/report-snapshots";
+import { reportCaptureTargets, reportExpiryDate, reportPeriodForSchedule, reportScheduleIsDue, runHrmReportScheduleSweep } from "../src/lib/hrm/report-snapshots";
 
 test("HRM aggregate CSV escapes spreadsheet formula cells and preserves CSV quoting",()=>{
   assert.equal(reportCsvCell("=HYPERLINK(\"https://example.test\")"),"\"'=HYPERLINK(\"\"https://example.test\"\")\"");
@@ -59,4 +59,21 @@ test("report schedule sweep gates destructive work and records an over-cap failu
   assert.deepEqual(await runHrmReportScheduleSweep(db as never,db as never,"true",scheduledTime),{created:0,expired:0,skipped:true});
   assert.equal(batches.flat().length,21,"every over-cap active schedule receives one deduplicated failure event");
   assert.ok(!queries.some(sql=>sql.includes("UPDATE hrm_report_snapshots")),"an over-cap schedule set stops before expiry deletion");
+});
+
+test("capture targets follow Vietnam dates across midnight, month, year and leap boundaries and catch up one missed run",()=>{
+  const at=(iso:string)=>Date.parse(iso),old="2020-01-01T00:00:00.000Z";
+  // 2026-12-31T17:05Z is 00:05 on 1 January 2027 in Vietnam: the monthly run is due and captures December.
+  assert.deepEqual(reportCaptureTargets("monthly","2027-01-01",at("2026-12-31T17:05:00.000Z"),old),[{day:"2027-01-01",scheduledFor:"2026-12-31T17:05:00.000Z"}]);
+  assert.equal(reportPeriodForSchedule("monthly","2027-01-01"),"2026-12");
+  assert.equal(reportPeriodForSchedule("monthly","2028-03-01"),"2028-02","leap February is the captured month");
+  // A monthly run missed on the 1st is caught up once on a later day with its nominal clock on the 1st.
+  assert.deepEqual(reportCaptureTargets("monthly","2028-03-03",at("2028-03-02T17:05:00.000Z"),old),[{day:"2028-03-01",scheduledFor:"2028-02-29T17:05:00.000Z"}]);
+  assert.deepEqual(reportCaptureTargets("monthly","2028-03-29",at("2028-03-28T17:05:00.000Z"),old),[],"older than 27 days is not reconstructed");
+  // Daily: today plus yesterday; weekly: the most recent Monday within six days.
+  assert.deepEqual(reportCaptureTargets("daily","2028-02-29",at("2028-02-28T17:05:00.000Z"),old).map(target=>target.day),["2028-02-29","2028-02-28"]);
+  assert.deepEqual(reportCaptureTargets("weekly","2026-10-21",at("2026-10-20T17:05:00.000Z"),old).map(target=>target.day),["2026-10-19"]);
+  // Nothing before the schedule existed: created at 09:00 Vietnam on 20 October.
+  assert.deepEqual(reportCaptureTargets("daily","2026-10-20",at("2026-10-20T03:00:00.000Z"),"2026-10-20T02:00:00.000Z").map(target=>target.day),["2026-10-20"]);
+  for(const target of reportCaptureTargets("daily","2028-02-29",at("2028-02-28T17:05:00.000Z"),old))assert.equal(new Date(Date.parse(target.scheduledFor)+7*3600000).toISOString().slice(0,10),target.day,"each nominal clock falls on its Vietnam date");
 });
