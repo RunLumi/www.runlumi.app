@@ -27,6 +27,8 @@ export interface PayrollLine {
 export interface PayrollRun {
   id: string; period_key: string; period_id: string; starts_on: string; ends_on: string;
   policy_version_id: string; adjustment_of_payslip_id: string | null; reason: string;
+  /** Set only on a final run for one ended employment. */
+  final_employment_id?: string | null;
   state: string; input_revision: number; snapshot_json: string | null; snapshot_checksum: string | null;
   version: number; created_by: string; created_at: string; reviewed_by: string | null; reviewed_at: string | null;
   review_reason: string | null; approved_by: string | null; approved_at: string | null; approval_reason: string | null;
@@ -37,6 +39,8 @@ export interface PayrollPerson {
   id: string; run_id: string; person_id: string; employment_id: string;
   employee_code_snapshot: string; display_name_snapshot: string;
   gross_minor: number | null; deductions_minor: number | null; net_minor: number | null;
+  /** Current employment status, for staff controls only; not part of any snapshot. */
+  employment_status?: string;
   lines: PayrollLine[];
 }
 export interface PayrollPolicy {
@@ -234,12 +238,84 @@ export async function createPayrollRun(db: D1Database, user: WorkspaceUser, key:
   ], writes);
 }
 
+/**
+ * Another run already pays this employment for the period: a current payslip
+ * involving a final run, or any unpublished run. Binds: employment, period,
+ * this run (or "" when creating).
+ */
+const employmentPeriodTakenSql = `(EXISTS(SELECT 1 FROM hrm_payroll_run_people rp JOIN hrm_payroll_runs r ON r.id=rp.run_id
+    WHERE rp.employment_id=? AND r.period_id=? AND r.id!=? AND r.state NOT IN ('published','closed'))
+  OR EXISTS(SELECT 1 FROM hrm_payroll_run_people rp JOIN hrm_payroll_runs r ON r.id=rp.run_id JOIN hrm_payslips s ON s.run_person_id=rp.id AND s.state='published'
+    WHERE rp.employment_id=? AND r.period_id=?))`;
+
+/**
+ * Final pay for one ended employment that overlapped a locked period. Uses the
+ * same policy, locked time, compensation tracing and independent approval as
+ * a regular run; it never enrols anyone else or restores access.
+ */
+export async function createFinalPayrollRun(db: D1Database, user: WorkspaceUser, key: string, input: { policyVersionId: string; periodId: string; employeeCode: string; employmentId: string; reason: string }): Promise<string> {
+  requirePermission(user, "hrm.payroll.prepare"); live(user);
+  const reason = safeText(input.reason, 500), code = safeText(input.employeeCode, 60), employmentId = safeText(input.employmentId, 100, false) || null;
+  const payload = { policyVersionId: input.policyVersionId, periodId: input.periodId, code, employmentId, reason };
+  const replay = await replayCommand(db, user, key, "payroll_final_run_create", payload);
+  if (replay) return replay;
+  const policy = await db.prepare("SELECT * FROM hrm_payroll_policy_versions WHERE id=? AND state='active'").bind(input.policyVersionId).first<PayrollPolicy>();
+  if (!policy) throw new HrmError("payroll_policy_not_active", 409);
+  const period = await db.prepare("SELECT id,period_key,starts_on,ends_on,state,snapshot_checksum FROM hrm_time_periods WHERE id=?").bind(input.periodId).first<{ id: string; period_key: string; starts_on: string; ends_on: string; state: string; snapshot_checksum: string | null }>();
+  if (!period || period.state !== "locked" || !period.snapshot_checksum) throw new HrmError("payroll_time_period_not_locked", 409);
+  const employment = await db.prepare(`SELECT p.id AS person_id,p.employee_code,COALESCE(NULLIF(p.preferred_name,''),p.legal_name) AS display_name,e.id,e.status,e.legal_entity,e.started_on,e.ended_on
+    FROM hrm_people p JOIN hrm_employments e ON e.person_id=p.id WHERE upper(p.employee_code)=upper(?) AND e.status='ended' AND (? IS NULL OR e.id=?) ORDER BY e.ended_on DESC,e.created_at DESC LIMIT 1`)
+    .bind(code, employmentId, employmentId).first<{ person_id: string; employee_code: string; display_name: string; id: string; status: string; legal_entity: string; started_on: string | null; ended_on: string | null }>();
+  if (!employment) throw new HrmError("payroll_final_employment_invalid", 404);
+  if (employment.legal_entity !== policy.legal_entity || !employment.ended_on || employment.ended_on < period.starts_on || employment.started_on && employment.started_on > period.ends_on) throw new HrmError("payroll_final_employment_invalid", 409);
+  const taken = await db.prepare(`SELECT ${employmentPeriodTakenSql} AS taken`).bind(employment.id, period.id, "", employment.id, period.id).first<{ taken: number }>();
+  if (taken?.taken) throw new HrmError("payroll_final_already_paid", 409);
+  const runId = id("payrun"), time = now();
+  return command(db, user, key, "payroll_final_run_create", payload, runId, [
+    guardBoolean(db, "EXISTS(SELECT 1 FROM hrm_time_periods WHERE id=? AND state='locked' AND snapshot_checksum IS NOT NULL)", [period.id]),
+    guardBoolean(db, "EXISTS(SELECT 1 FROM hrm_payroll_policy_versions WHERE id=? AND state='active')", [policy.id]),
+    guardBoolean(db, "EXISTS(SELECT 1 FROM hrm_employments WHERE id=? AND status='ended')", [employment.id]),
+    guardBoolean(db, `NOT ${employmentPeriodTakenSql}`, [employment.id, period.id, runId, employment.id, period.id]),
+  ], [
+    db.prepare("INSERT INTO hrm_payroll_runs(id,period_key,period_id,starts_on,ends_on,policy_version_id,final_employment_id,reason,state,version,created_by,created_at,actor_id,updated_at) VALUES(?,?,?,?,?,?,?,?,'draft',1,?,?,?,?)").bind(runId, period.period_key, period.id, period.starts_on, period.ends_on, policy.id, employment.id, reason, user.id, time, user.id, time),
+    db.prepare("INSERT INTO hrm_payroll_run_people(id,run_id,person_id,employment_id,employee_code_snapshot,display_name_snapshot) VALUES(?,?,?,?,?,?)").bind(id("prp"), runId, employment.person_id, employment.id, employment.employee_code, employment.display_name),
+    db.prepare("INSERT INTO hrm_audit(actor_id,action,person_id,target_id,detail,created_at) VALUES(?,'payroll_final_run_created',?,?,?,?)").bind(user.id, employment.person_id, runId, JSON.stringify({ period_key: period.period_key, policy_version_id: policy.id }), time),
+  ]);
+}
+
+/**
+ * Take an ended employment out of a draft regular run so the rest of the
+ * run can proceed; pay them through a final run instead. Counts as a run
+ * input: the remover cannot review or approve the run.
+ */
+export async function removeEndedRunPerson(db: D1Database, user: WorkspaceUser, key: string, input: { runId: string; personId: string; expectedVersion: number; reason: string }): Promise<void> {
+  requirePermission(user, "hrm.payroll.prepare"); live(user);
+  const reason = safeText(input.reason, 500), payload = { ...input, reason };
+  if (await replayCommand(db, user, key, "payroll_run_person_remove", payload)) return;
+  const row = await db.prepare(`SELECT rp.id,rp.employment_id,r.version,r.state,r.adjustment_of_payslip_id,r.final_employment_id,e.status FROM hrm_payroll_run_people rp JOIN hrm_payroll_runs r ON r.id=rp.run_id JOIN hrm_employments e ON e.id=rp.employment_id WHERE rp.run_id=? AND rp.person_id=?`)
+    .bind(input.runId, input.personId).first<{ id: string; employment_id: string; version: number; state: string; adjustment_of_payslip_id: string | null; final_employment_id: string | null; status: string }>();
+  if (!row) throw new HrmError("not_found", 404);
+  if (row.adjustment_of_payslip_id || row.final_employment_id || ["published", "closed"].includes(row.state) || row.status !== "ended") throw new HrmError("payroll_run_person_not_removable", 409);
+  if (row.version !== input.expectedVersion) throw new HrmError("conflict", 409);
+  const time = now();
+  await command(db, user, key, "payroll_run_person_remove", payload, input.runId, [
+    guardBoolean(db, "EXISTS(SELECT 1 FROM hrm_payroll_runs WHERE id=? AND version=? AND state NOT IN ('published','closed') AND adjustment_of_payslip_id IS NULL AND final_employment_id IS NULL)", [input.runId, input.expectedVersion]),
+    guardBoolean(db, "EXISTS(SELECT 1 FROM hrm_employments WHERE id=? AND status='ended')", [row.employment_id]),
+  ], [
+    db.prepare("DELETE FROM hrm_payroll_lines WHERE run_person_id=?").bind(row.id),
+    db.prepare("DELETE FROM hrm_payroll_run_people WHERE id=? AND run_id=?").bind(row.id, input.runId),
+    db.prepare("UPDATE hrm_payroll_runs SET state='draft',input_revision=input_revision+1,snapshot_json=NULL,snapshot_checksum=NULL,version=version+1,reviewed_by=NULL,reviewed_at=NULL,review_reason=NULL,approved_by=NULL,approved_at=NULL,approval_reason=NULL,actor_id=?,updated_at=? WHERE id=? AND version=?").bind(user.id, time, input.runId, input.expectedVersion),
+    db.prepare("UPDATE hrm_payroll_run_people SET gross_minor=NULL,deductions_minor=NULL,net_minor=NULL WHERE run_id=?").bind(input.runId),
+    db.prepare("INSERT INTO hrm_audit(actor_id,action,person_id,target_id,detail,created_at) VALUES(?,'payroll_input_changed',?,?,?,?)").bind(user.id, input.personId, input.runId, JSON.stringify({ change: "ended_person_removed", reason_recorded: true }), time),
+  ]);
+}
+
 async function loadRun(db: D1Database, runId: string) {
   const run = await db.prepare("SELECT * FROM hrm_payroll_runs WHERE id=?").bind(runId).first<PayrollRun>();
   if (!run) throw new HrmError("not_found", 404);
   const policy = await db.prepare("SELECT * FROM hrm_payroll_policy_versions WHERE id=?").bind(run.policy_version_id).first<PayrollPolicy>();
   if (!policy) throw new HrmError("payroll_policy_missing", 409);
-  const people = (await db.prepare("SELECT * FROM hrm_payroll_run_people WHERE run_id=? ORDER BY employee_code_snapshot,person_id").bind(runId).all<Omit<PayrollPerson, "lines">>()).results;
+  const people = (await db.prepare("SELECT rp.*,e.status AS employment_status FROM hrm_payroll_run_people rp JOIN hrm_employments e ON e.id=rp.employment_id WHERE rp.run_id=? ORDER BY rp.employee_code_snapshot,rp.person_id").bind(runId).all<Omit<PayrollPerson, "lines">>()).results;
   const lines = (await db.prepare("SELECT l.*,rp.person_id FROM hrm_payroll_lines l JOIN hrm_payroll_run_people rp ON rp.id=l.run_person_id WHERE rp.run_id=? ORDER BY rp.employee_code_snapshot,l.component_code").bind(runId).all<PayrollLine & { person_id: string }>()).results;
   return { run, policy, people: people.map(person => ({ ...person, lines: lines.filter(line => line.person_id === person.person_id).map(({ person_id: _personId, ...line }) => line) })) };
 }
@@ -454,7 +530,13 @@ export async function publishPayrollRun(db: D1Database, user: WorkspaceUser, key
       JOIN hrm_payroll_run_people target ON target.run_id=? AND target.person_id=source.person_id AND target.employment_id=source.employment_id
       WHERE original.id=? AND original.state='published' AND source_run.period_id=? AND source_run.policy_version_id=?
       AND (SELECT COUNT(*) FROM hrm_payroll_run_people WHERE run_id=?)=1)`,[run.id,previous,run.period_id,run.policy_version_id,run.id])
-      : guardBoolean(db, "NOT EXISTS(SELECT 1 FROM hrm_payroll_run_people rp JOIN hrm_employments e ON e.id=rp.employment_id WHERE rp.run_id=? AND e.status='ended')", [run.id]),
+      // A regular run never pays ended staff; only the final run for exactly that employment does.
+      : guardBoolean(db, "NOT EXISTS(SELECT 1 FROM hrm_payroll_run_people rp JOIN hrm_employments e ON e.id=rp.employment_id JOIN hrm_payroll_runs r ON r.id=rp.run_id WHERE rp.run_id=? AND e.status='ended' AND r.final_employment_id IS NOT rp.employment_id)", [run.id]),
+    // No employment is paid twice for one period through a final run.
+    guardBoolean(db, `NOT EXISTS(SELECT 1 FROM hrm_payroll_run_people rp JOIN hrm_payroll_runs r ON r.id=rp.run_id
+      JOIN hrm_payroll_run_people orp ON orp.employment_id=rp.employment_id JOIN hrm_payroll_runs o ON o.id=orp.run_id AND o.id!=r.id AND o.period_id=r.period_id
+      JOIN hrm_payslips s ON s.run_person_id=orp.id AND s.state='published'
+      WHERE r.id=? AND (r.final_employment_id IS NOT NULL OR o.final_employment_id IS NOT NULL) AND s.id IS NOT ?)`, [run.id, previous]),
     guardBoolean(db, `NOT ${untracedCompensationSql}`, [run.id]),
     // A CRM commission handoff appears on at most one current payslip.
     guardBoolean(db, `NOT ${runCommissionReusedSql}`, [run.id, run.id, previous]),

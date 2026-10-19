@@ -182,6 +182,14 @@ Trong payroll, cấu phần có nguồn `crm_commission` (VND, độ chính xác
 
 Hoa hồng chưa có vẫn là chưa biết, không phải số 0. Cách tính thuế, chính sách hoa hồng đã duyệt và kỳ chạy song song payroll vẫn cần owner và người phụ trách chuyên môn phê duyệt trước khi dùng thật.
 
+## Kỳ lương cuối cho đợt làm việc đã kết thúc
+
+Kỳ lương thường chỉ ghi danh các đợt làm việc thử việc, chính thức hoặc đang báo nghỉ. Kỳ không được phát hành khi có người tham gia đã kết thúc đợt làm việc. Nếu nhân viên nghỉ sau khi kỳ thường nháp đã được tạo, người chuẩn bị payroll gỡ người đó ở trang chi tiết kỳ ("Gỡ khỏi kỳ thường") kèm lý do. Thao tác này đặt lại bước tính và các phê duyệt, và được tính là một đầu vào của kỳ, nên người gỡ không được rà soát hay phê duyệt kỳ đó.
+
+Trả lương cho người nghỉ qua **Payroll → Kỳ lương cuối cho nhân viên đã nghỉ**. Chọn chính sách đang áp dụng, kỳ công đã khóa, mã nhân viên và, nếu là người được tuyển lại, mã đợt làm việc. Đợt làm việc phải đã kết thúc và có ngày nằm trong kỳ. Chưa được có kỳ nháp hay phiếu lương đã phát hành nào khác trả cho đợt làm việc đó trong kỳ. Kỳ lương cuối chỉ có đúng đợt làm việc đó và theo mọi kiểm soát của kỳ thường: công đã khóa, thu nhập truy về phiên bản đã duyệt (với đợt đã kết thúc, phiên bản phải kết thúc cùng đợt làm việc), rà soát và phê duyệt độc lập, phiếu lương bất biến. Phiếu lương cuối đã phát hành chỉ được thay đổi qua bản điều chỉnh có liên kết. Một đợt làm việc không bao giờ được cả kỳ thường lẫn kỳ cuối cùng trả cho một kỳ.
+
+Với người nghỉ giữa kỳ, thu nhập chỉ phủ một phần kỳ nên dòng `employment_record` bị chặn vì chưa có quy tắc chia theo ngày. Cho tới khi owner duyệt quy tắc đó, khoản quyết toán cuối phải nằm trong cấu phần có bằng chứng do owner định nghĩa (ví dụ `manual_evidence`). Tạo kỳ lương cuối không mở lại quyền HRM hay Workspace, và không tự hoàn tất việc payroll của offboarding; việc đó vẫn cần hồ sơ quyết toán được rà soát độc lập.
+
 ## Xử lý xóa tệp khi vai trò thay đổi
 
 Quy trình xóa tệp dùng ba người khác nhau: người tạo yêu cầu, người rà soát độc lập và System Super Admin thực hiện xóa. Được nâng quyền hoặc có nhiều vai trò không miễn điều kiện này, kể cả khi tiếp tục một lần xóa đang dở. Phải chặn người tạo hoặc người rà soát đóng vai người thực hiện trước khi giữ chỗ hay xóa object R2; ràng buộc D1 ở bước cuối không bảo vệ được bytes đã bị xóa. Lần từ chối phải giữ nguyên trạng thái yêu cầu, metadata và object vẫn tải được. Dùng người thực hiện độc lập có quyền; không xóa object thủ công để vượt hàng đợi.
