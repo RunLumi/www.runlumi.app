@@ -106,7 +106,8 @@ export async function startHrmBrowserQa({ baseUrl, binary, artifactDir = join(tm
       assert.equal(result.success, true, "synthetic EmDash session cookie is installed in the isolated browser");
     }
     const expectedUrl = downloadedHtml === undefined ? new URL(path, baseUrl).href : "about:blank";
-    await send("Page.navigate", { url: expectedUrl }, sessionId);
+    try { await send("Page.navigate", { url: expectedUrl }, sessionId); }
+    catch(error) { throw new Error(`Browser navigation failed for ${path}: ${error instanceof Error?error.message:"unknown"}`,{cause:error}); }
     for (let attempt = 0; attempt < 100; attempt++) {
       const state = await evaluate("({ ready: document.readyState, url: location.href })");
       if (state.ready === "complete" && state.url === expectedUrl) {

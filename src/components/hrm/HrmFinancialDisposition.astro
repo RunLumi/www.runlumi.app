@@ -1,0 +1,62 @@
+---
+import type { RetentionPageData } from "../../lib/hrm/retention-pages";
+const d=Astro.props.data as RetentionPageData,f=d.financial!,vi=d.vi,path=`${vi?"/vi":""}/hrm/retention`;
+const state=(value:string)=>({pending_review:vi?"Chờ rà soát":"Pending review",approved:vi?"Đã duyệt":"Approved",rejected:vi?"Bị từ chối":"Rejected",blocked:vi?"Bị chặn":"Blocked",deleting:vi?"Đang xử lý":"Processing",retryable:vi?"Cần đối soát":"Reconciliation required",completed:vi?"Đã ghi nhận xử lý":"Processing recorded",live:vi?"Khả dụng":"Available",erasing:vi?"Đang khóa để xóa":"Erasure in progress",erased:vi?"Đã xác nhận xóa":"Erasure confirmed",unavailable:vi?"Chưa xác minh":"Unverified"}[value]??value);
+const person=(id:string|null)=>id?(f.actorLabels[id]||(vi?"Tài khoản không còn khả dụng":"Account unavailable")):(vi?"Chưa có":"Not recorded");
+const next=(name:string,value:string)=>{const url=new URL(path,Astro.url);if(f.selected)url.searchParams.set("financial_case",f.selected.id);if(f.policySearch)url.searchParams.set("financial_policy",f.policySearch);if(f.caseSearch)url.searchParams.set("financial_person",f.caseSearch);url.searchParams.set(name,value);return url.pathname+url.search+"#financial-disposition"};
+const kindLabel=(kind:string)=>kind==="file"?(vi?"PDF quyết toán":"Financial PDF"):(vi?"Nội dung dossier":"Dossier content");
+---
+<section class="crm-sheet" id="financial-disposition">
+ <h3 class="crm-h2">{vi?"Xử lý dữ liệu đến hạn":"Disposition of due records"}</h3>
+ <p class="crm-help">{vi?"Mỗi yêu cầu có người đề nghị, người rà soát độc lập và System Super Admin thực hiện là ba người khác nhau. Legal hold luôn chặn xóa. Xóa PDF và xóa nội dung dossier là hai quyết định riêng; không khôi phục quyền truy cập của nhân viên đã nghỉ.":"Each request needs three distinct people: requester, independent reviewer and System Super Admin executor. Legal holds block erasure. PDF erasure and dossier content redaction are separate decisions; neither restores access for ended employees."}</p>
+ {!d.live?<p class="crm-notice warn">{vi?"HRM đang đóng. Có thể chuẩn bị chính sách; chưa mở xử lý dữ liệu nhân viên.":"HRM is closed. Policy preparation is available; employee disposition is not open."}</p>:<>
+ <form class="crm-form" method="get" action={path}>
+  <label class="crm-field"><span>{vi?"Tìm hồ sơ theo mã hoặc tên nhân viên":"Find cases by employee code or name"}</span><input class="crm-input" name="financial_person" value={f.caseSearch} maxlength="100"/></label>
+  <button class="crm-button secondary">{vi?"Tìm hồ sơ":"Find cases"}</button>
+ </form>
+ <ul>{f.cases.map(item=><li><a href={next("financial_case",item.id)}>{item.employee_code} · {item.legal_name}</a> · {item.ended_on}</li>)}</ul>
+ {f.cases.length===0&&<p class="crm-empty">{vi?"Không có hồ sơ phù hợp.":"No matching cases."}</p>}
+ {f.nextCase&&<a href={next("financial_cases_after",f.nextCase)}>{vi?"Hồ sơ tiếp theo":"More cases"}</a>}
+ {f.selected&&<>
+ <h4>{f.selected.employee_code} · {f.selected.legal_name}</h4>
+ <a href={`${vi?"/vi":""}/hrm/offboarding/${encodeURIComponent(f.selected.id)}`}>{vi?"Mở hồ sơ nghỉ việc và legal hold":"Open offboarding case and legal holds"}</a>
+ {f.policiesHaveMore&&<p class="crm-notice warn">{vi?"Đang hiển thị 50 chính sách đang hiệu lực. Cần thu hẹp danh sách chính sách trước khi chọn nếu chưa thấy quy tắc phù hợp.":"Showing 50 active policies. Narrow the policy catalogue if the applicable rule is not shown."}</p>}
+ <form class="crm-form" method="get" action={path}>
+  <input type="hidden" name="financial_case" value={f.selected.id}/>
+  <label class="crm-field"><span>{vi?"Lọc chính sách đang hiệu lực theo mã":"Filter active policies by code"}</span><input class="crm-input" name="financial_policy" value={f.policySearch} maxlength="80"/></label>
+  <button class="crm-button secondary">{vi?"Lọc chính sách":"Filter policies"}</button>
+ </form>
+ <div class="crm-list">{f.targets.map(target=><article class="crm-row"><div class="crm-onboarding-copy"><strong>{kindLabel(target.kind)}</strong><span class="crm-meta">{state(target.control)} · {vi?"Tham chiếu":"Reference"}: {target.id} · v{target.version}</span></div>
+ {target.eligible&&d.user.can("hrm.retention.manage")&&<details><summary>{vi?"Đề nghị xử lý":"Request disposition"}</summary><form class="crm-form" method="post" action="/api/hrm/retention">
+  <input type="hidden" name="intent" value="request_financial_disposition"/><input type="hidden" name="lang" value={d.lang}/><input type="hidden" name="request_key" value={crypto.randomUUID()}/><input type="hidden" name="case_id" value={f.selected!.id}/><input type="hidden" name="target_kind" value={target.kind}/><input type="hidden" name="target_id" value={target.id}/><input type="hidden" name="version" value={target.version}/>
+  <label class="crm-field"><span>{vi?"Chính sách áp dụng đã rà soát":"Reviewed applicable policy"}</span><select class="crm-select" name="policy_id" required><option value="">{vi?"Chọn chính sách":"Choose policy"}</option>{f.activePolicies.filter(p=>target.kind==="file"?p.file_days!==null:p.dossier_days!==null).map(policy=><option value={policy.id}>{vi?policy.title_vi:policy.title_en} · v{policy.revision}</option>)}</select></label>
+  <label class="crm-field"><span>{vi?"Căn cứ phạm vi và việc áp dụng":"Scope and applicability basis"}</span><textarea class="crm-input" name="reason" maxlength="1000" required rows="3"></textarea></label>
+  <label><input type="checkbox" name="confirmed" value="yes" required/> {vi?"Tôi đã kiểm tra phạm vi, mốc tính và chính sách áp dụng. Hệ thống sẽ kiểm tra lại hạn và legal hold.":"I checked the scope, anchor and policy applicability. The system will recheck the due date and legal holds."}</label>
+  <button class="crm-button secondary">{vi?"Gửi rà soát độc lập":"Submit for independent review"}</button>
+ </form></details>}
+ </article>)}</div>
+ {f.nextTarget&&<a href={next("financial_targets_after",f.nextTarget)}>{vi?"Dữ liệu tiếp theo":"More records"}</a>}
+ <h4>{vi?"Yêu cầu xử lý":"Disposition requests"}</h4>
+ <div class="crm-list">{f.requests.map(request=><article class="crm-row"><div class="crm-onboarding-copy"><strong>{kindLabel(request.target_kind)} · {state(request.state)}</strong>
+ <p>{vi?"Kiểm soát hiện hành":"Current control"}: {state(request.control)} · {vi?"Đến hạn":"Due"}: {request.due_on} · {vi?"Chính sách":"Policy"} v{request.policy_revision}</p>
+ <p class="crm-meta">{vi?"Đề nghị":"Requested"}: {person(request.requested_by)} · {request.requested_at}<br/>{vi?"Rà soát":"Reviewed"}: {person(request.reviewed_by)} · {request.reviewed_at??"—"}<br/>{vi?"Thực hiện":"Executed"}: {person(request.completed_by)} · {request.completed_at??"—"}</p>
+ <p>{request.request_reason}</p>{request.review_reason&&<p>{request.review_reason}</p>}{request.block_reason&&<p>{request.block_reason}</p>}
+ {request.state==="completed"&&request.control!=="erased"&&<p class="crm-notice warn">{vi?"Đã ghi nhận xóa nội dung nhưng chưa xác nhận kiểm soát độc lập. Cần đối soát; chưa coi là hoàn tất.":"Payload redaction is recorded but the independent control is not confirmed. Reconciliation is required; this operation is not complete."}</p>}
+ </div><div class="crm-actions">
+ {request.state==="pending_review"&&request.requested_by!==d.user.id&&d.user.can("hrm.retention.review")&&<form class="crm-form" method="post" action="/api/hrm/retention">
+  <input type="hidden" name="intent" value="review_financial_disposition"/><input type="hidden" name="lang" value={d.lang}/><input type="hidden" name="request_key" value={crypto.randomUUID()}/><input type="hidden" name="case_id" value={f.selected!.id}/><input type="hidden" name="request_id" value={request.id}/><input type="hidden" name="version" value={request.version}/>
+  <label class="crm-field"><span>{vi?"Căn cứ rà soát độc lập":"Independent review basis"}</span><textarea class="crm-input" name="reason" maxlength="1000" rows="3" required></textarea></label>
+  <label><input type="checkbox" name="confirmed" value="yes" required/> {vi?"Tôi đã rà soát phạm vi và việc áp dụng chính sách.":"I reviewed the scope and policy applicability."}</label>
+  <button class="crm-button secondary" name="decision" value="approve">{vi?"Duyệt":"Approve"}</button><button class="crm-button secondary" name="decision" value="reject">{vi?"Từ chối":"Reject"}</button>
+ </form>}
+ {d.user.admin&&request.requested_by!==d.user.id&&request.reviewed_by!==d.user.id&&(["approved","deleting","retryable"].includes(request.state)||(request.state==="completed"&&request.control==="erasing"))&&<form class="crm-form" method="post" action="/api/hrm/retention">
+  <input type="hidden" name="intent" value={request.target_kind==="file"?"execute_financial_file":"execute_financial_dossier"}/><input type="hidden" name="lang" value={d.lang}/><input type="hidden" name="request_key" value={crypto.randomUUID()}/><input type="hidden" name="case_id" value={f.selected!.id}/><input type="hidden" name="request_id" value={request.id}/><input type="hidden" name="version" value={request.version}/>
+  <label><input type="checkbox" name="confirmed" value="yes" required/> {vi?"Tôi xác nhận thao tác không thể hoàn tác, giữ đúng phạm vi đã duyệt và đối soát mọi bước còn dở.":"I confirm this irreversible action stays within the approved scope and reconciles any incomplete steps."}</label>
+  <button class="crm-button secondary">{vi?"Thực hiện / đối soát":"Execute / reconcile"}</button>
+ </form>}
+ </div></article>)}</div>
+ {f.requests.length===0&&<p class="crm-empty">{vi?"Chưa có yêu cầu xử lý cho hồ sơ này.":"No disposition requests for this case."}</p>}
+ {f.nextRequest&&<a href={next("financial_requests_after",f.nextRequest)}>{vi?"Yêu cầu tiếp theo":"More requests"}</a>}
+ </>}
+ </>}
+</section>

@@ -1,11 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
+import { beginFinancialErasure, completeFinancialErasure, financialControlKey, type FinancialControl } from "../src/lib/hrm/financial-control.ts";
 import { closeoutFixture } from "./support/hrm-closeout-fixture.ts";
 import { sqliteD1 } from "./support/d1-sqlite.ts";
 import { makeUser } from "../src/lib/workspace/roles.ts";
 import { actOnOffboardingTask } from "../src/lib/hrm/offboarding.ts";
 import { command } from "../src/lib/hrm/service.ts";
-import { downloadCloseoutFile, prepareCloseoutApplication, prepareCloseoutDossier, reviewCloseoutDossier, reopenCloseoutReview, reviewCloseoutFile, uploadCloseoutFile } from "../src/lib/hrm/closeout-dossiers.ts";
+import { closeoutDesk, closeoutDossierControlTarget, downloadCloseoutFile, prepareCloseoutApplication, prepareCloseoutDossier, reviewCloseoutDossier, reopenCloseoutReview, reviewCloseoutFile, uploadCloseoutFile } from "../src/lib/hrm/closeout-dossiers.ts";
 
 function fixture(){
  const f=closeoutFixture(),content=sqliteD1("content");
@@ -19,11 +21,19 @@ function fixture(){
  f.db.raw.prepare("UPDATE hrm_settings SET enabled=1,legal_entity='TEST entity',purpose='TEST only',retention_policy='TEST only',policy_reference='TEST only',reviewed_by='TEST-owner',reviewed_at=? WHERE id=1").run(f.time);
  type Stored={bytes:Uint8Array;customMetadata:Record<string,string>};const objects=new Map<string,Stored>();
  const sourceKey="hrm/legal/TEST-closeout-source.docx",proofKey=`hrm/closeout/${f.caseId}/proof`;
- objects.set(sourceKey,{bytes:f.sourceBytes,customMetadata:{sha256:f.sourceHash}});objects.set(proofKey,{bytes:f.evidenceBytes,customMetadata:{checksum:f.hash,case_id:f.caseId}});
+ objects.set(sourceKey,{bytes:f.sourceBytes,customMetadata:{sha256:f.sourceHash}});objects.set(proofKey,{bytes:f.evidenceBytes,customMetadata:{checksum:f.hash,case_id:f.caseId,financial_control:"1"}});
+ const initialControl:FinancialControl={version:1,phase:"live",target:{kind:"file",id:"proof",caseId:f.caseId,personId:"person",employmentId:"person-employment",checksum:f.hash,sizeBytes:f.evidenceBytes.byteLength},operationHash:"f".repeat(64),createdBy:"TEST-author",registeredAt:f.time,liveAt:f.time,abandonedBy:null,abandonedAt:null,erasure:null};
+ objects.set(financialControlKey("file",f.caseId,"proof"),{bytes:new TextEncoder().encode(JSON.stringify(initialControl)),customMetadata:{}});
+ const etag=(item:Stored)=>createHash("sha256").update(item.bytes).digest("hex");
  const bucket={
-  async head(key:string){const item=objects.get(key);return item?{size:item.bytes.byteLength,customMetadata:{...item.customMetadata}}:null},
-  async get(key:string){const item=objects.get(key);return item?{size:item.bytes.byteLength,customMetadata:{...item.customMetadata},body:new Response(item.bytes).body}:null},
-  async put(key:string,data:ArrayBuffer,options:{customMetadata:Record<string,string>}){objects.set(key,{bytes:new Uint8Array(data.slice(0)),customMetadata:{...options.customMetadata}});return {key}},
+  async head(key:string){const item=objects.get(key);return item?{size:item.bytes.byteLength,etag:etag(item),customMetadata:{...item.customMetadata}}:null},
+  async get(key:string){const item=objects.get(key);return item?{size:item.bytes.byteLength,etag:etag(item),customMetadata:{...item.customMetadata},body:new Response(item.bytes).body}:null},
+  async put(key:string,data:string|ArrayBuffer,options:R2PutOptions={}){
+   const current=objects.get(key),condition=options.onlyIf;
+   if(condition instanceof Headers){if(condition.get("if-none-match")==="*"&&current)return null}
+   else if(condition?.etagMatches!==undefined&&(!current||condition.etagMatches!==etag(current)))return null;
+   const item={bytes:typeof data==="string"?new TextEncoder().encode(data):new Uint8Array(data.slice(0)),customMetadata:{...options.customMetadata}};objects.set(key,item);return {key,etag:etag(item),size:item.bytes.byteLength,customMetadata:{...item.customMetadata}};
+  },
   async delete(key:string){objects.delete(key)},
  } as unknown as R2Bucket;
  const input=()=>({caseId:f.caseId,policyId:"policy",sourceRevision:f.source(),checks:[{key:"TEST_CHECK",outcome:"verified",reason:"TEST independent financial source inspection",file_ids:["proof"]}],noPayrollEvidence:["proof"]});
@@ -143,11 +153,35 @@ test("EmDash revocation during evidence inspection is rechecked before approval"
  }finally{f.close()}
 });
 
-test("an upload whose actor is revoked before the metadata transaction cleans up its unused private R2 object",async()=>{
+test("an upload revoked before metadata removes its unused payload and fences the abandoned registration",async()=>{
  const f=fixture();try{
   const put=f.bucket.put.bind(f.bucket),keys=[...f.objects.keys()].sort();
-  f.bucket.put=async (...args)=>{const result=await put(...args);f.content.raw.prepare("UPDATE users SET disabled=1 WHERE id=?").run(f.author.id);return result};
+  let payloadStored=false;
+  f.bucket.put=async (...args)=>{const result=await put(...args);if(args[2]?.customMetadata?.financial_control==="1"&&result){payloadStored=true;f.content.raw.prepare("UPDATE users SET disabled=1 WHERE id=?").run(f.author.id)}return result};
   await assert.rejects(uploadCloseoutFile(f.db,f.content,f.bucket,f.author,"TEST-revoked-mid-upload",f.caseId,new File([f.evidenceBytes],"TEST.pdf",{type:"application/pdf"})),{message:"closeout_account_unavailable"});
-  assert.deepEqual([...f.objects.keys()].sort(),keys);assert.equal(f.db.raw.prepare("SELECT COUNT(*) AS n FROM hrm_closeout_files").get()?.n,1);
+  assert.equal(payloadStored,true,"revocation is injected after actual private bytes, not just the control record, were stored");
+  const payloadKeys=(values:string[])=>values.filter(key=>!key.startsWith("hrm-privacy/"));
+  assert.deepEqual(payloadKeys([...f.objects.keys()].sort()),payloadKeys(keys));
+  const created=[...f.objects.keys()].filter(key=>!keys.includes(key));assert.equal(created.length,1);
+  const marker=JSON.parse(new TextDecoder().decode(f.objects.get(created[0])!.bytes));assert.equal(marker.phase,"abandoned");assert.equal(marker.abandonedBy,"system:hrm-upload-abort");
+  assert.ok(!JSON.stringify(marker).includes("synthetic closeout evidence"));assert.equal(f.db.raw.prepare("SELECT COUNT(*) AS n FROM hrm_closeout_files").get()?.n,1);
+ }finally{f.close()}
+});
+
+test("an older D1 dossier and copied decision reason stay hidden under current erasure control",async()=>{
+ const f=fixture();try{
+  const id=await f.prepare(),privateDetail="TEST old private review detail retained in the stale backup";
+  await reviewCloseoutDossier(f.db,f.content,f.bucket,f.reviewer,"TEST-private-reason-review",{caseId:f.caseId,dossierId:id,version:Number(f.row(id).version),decision:"approve",reason:privateDetail,confirmed:true});
+  const row=f.row(id),target=await closeoutDossierControlTarget({id:String(row.id),case_id:String(row.case_id),person_id:String(row.person_id),employment_id:String(row.employment_id),basis_checksum:String(row.basis_checksum),checks_json:String(row.checks_json),no_payroll_evidence_json:String(row.no_payroll_evidence_json)});
+  // Model the authority boundary after an old DB restore: current R2 says
+  // erased, while the restored D1 rows still contain their old plaintext.
+  // This is not a substitute for testing the actual erasure executor.
+  const decision={requestId:"TEST-disposition",policyId:"TEST-retention-policy",policyRevision:1,requestedBy:"TEST-requester",requestedAt:f.time,reviewedBy:"TEST-retention-reviewer",reviewedAt:f.time,authorizedBy:"TEST-system-executor",authorizedAt:f.time,completedBy:null,completedAt:null};
+  await beginFinancialErasure(f.bucket,target,decision);await completeFinancialErasure(f.bucket,target,decision,"TEST-system-executor");
+  assert.equal(f.row(id).review_reason,privateDetail,"the test really contains the old DB payload");
+  const desk=await closeoutDesk(f.db,f.content,f.bucket,f.reviewer,f.caseId,null),visible=desk.dossiers.find(item=>item.id===id)!;
+  assert.equal(visible.payload_state,"erased");assert.equal(visible.review_reason,null);assert.equal(visible.checks_json,"[]");
+  assert.ok(!JSON.stringify(desk.dossiers).includes(privateDetail));assert.ok(!JSON.stringify(desk.events).includes(privateDetail),"a direct event copy cannot bypass payload suppression");
+  await assert.rejects(prepareCloseoutApplication(f.db,f.content,f.bucket,f.reviewer,f.caseId,id,true),{message:"financial_data_disposed"});
  }finally{f.close()}
 });
