@@ -166,6 +166,10 @@ An older snapshot may lack Vietnamese titles. Its copy retains the original titl
 
 The attachment is an HTML file delivered as downloadable bytes, with a language header, private/no-store headers and no CMS editor UI. The file also carries its own restrictive content policy and explicit light palette for offline viewing. It contains salary data: keep downloaded copies in approved private storage and follow the organization's reviewed retention policy; do not publish them. This does not activate payroll or establish payroll-policy approval.
 
+## Employees and contractors
+
+Each employment period is either **Employee** or **Contractor (never in payroll)**. HR sets the type when creating the person, changing work details, or rehiring. A rehire starts with the previous period's type. Existing periods are employees. Owner decision 2026-10-20: contractors (CTV) are in HRM with a minimal profile but never in payroll. The payroll roster leaves them out, final pay rejects them, and they cannot have contract compensation. D1 enforces this for every insert path. Once a period has compensation or payroll participation, its type cannot change, so issued pay stays explainable. Correct a wrong type before compensation or payroll uses the period. A CRM Partner is not automatically an HRM contractor. Which profile fields a contractor needs is still the owner's decision (P0 item 1).
+
 ## Effective compensation for payroll
 
 Lines from an `employment_record` component must name one compensation version on **HRM → Payroll → Effective contract compensation** (`/hrm/payroll#compensation`, `/vi/hrm/payroll#compensation`). An HRM Admin records the employee code, component code, currency, minor-unit scale, the exact amount per pay period, effective dates, and the source. The source is either a completed employment contract or addendum issue for the same employment, or a decision reference held outside HRM. Another HRM Admin or System Super Admin approves it. Nobody can create or approve pay for their own employee record.

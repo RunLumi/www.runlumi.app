@@ -570,7 +570,19 @@ Local evidence: `npm run ci:verify` passes (404 unit tests including the refund-
 - Production: Worker `837a7f41-9ea2-43a8-a964-f2c4b5a38e6b` serves `main e80b4fa0491d` at 100% (deployed 20:57:32Z). Remote D1 has no pending migrations; 0049 is present with six refund-notice triggers. There are zero refund notices, handoffs, payroll runs and report snapshots, HRM is disabled and unreviewed, and read-only queries wrote zero rows. Anonymous `/` and `/vi/` return 200; `/hrm/payroll` and `/crm/commission` redirect with `private, no-store`.
 - Requirement matrix refresh: HRM-01, HRM-08, HRM-20, HRM-29, HRM-32, HRM-33 and HRM-38 are marked PASS for their tested scope, now that the HRM-20 matrices and hosted runs exist. HRM-04 and HRM-07 were updated in #109/#110.
 
-### What still blocks completion
+### Employees and contractors — owner decision 2026-10-20
+
+The owner decided that HRM covers employees and contractors (CTV), and that contractors are never in payroll.
+
+- Migration 0050 adds `relationship_type` (`employee` or `contractor`) to every employment period. Existing periods stay employees, and employment history records the type.
+- D1 triggers reject a compensation version or payroll-run participation for a contractor on every insert path. They also fix the type once compensation or payroll references the period.
+- The payroll roster, the roster guard and final pay skip or reject contractors.
+- The EN/VI create, work-details and rehire forms let HR choose the type. A rehire defaults to the previous period's type; an independent review found the rehire path had dropped it, and that is fixed.
+- Evidence:
+  - `npm run ci:verify` passes (408 unit tests, Astro 0 errors, build), including real-SQL tests for roster exclusion, the direct-insert triggers, the frozen type and a rehired contractor.
+  - Local P1 integration (rehire keeps the type) and P4 integration (a contractor active in the period is not enrolled in the payroll run) pass.
+- Still open: the minimal contractor profile fields (P0 item 1). A CRM Partner is not automatically an HRM contractor.
+
 
 Engineering scope from this session's list is closed except optional performance PDF attachments. The remaining blockers are owner or specialist decisions:
 

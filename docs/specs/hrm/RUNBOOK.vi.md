@@ -166,6 +166,10 @@ Snapshot cũ có thể chưa lưu tên tiếng Việt. Bản tải giữ nguyên
 
 Tệp đính kèm là bản HTML được trả như dữ liệu tải xuống, có header ngôn ngữ, header riêng tư/no-store và không kèm giao diện biên tập CMS. Tệp cũng có chính sách nội dung hạn chế và nền sáng rõ ràng để đọc khi mở bản đã lưu. Bản tải chứa thông tin lương: lưu trong nơi riêng tư được phê duyệt và tuân theo chính sách lưu trữ đã được tổ chức rà soát; không công khai. Hướng dẫn này không mở payroll hay xác nhận chính sách tính lương đã được duyệt.
 
+## Nhân viên và cộng tác viên
+
+Mỗi đợt làm việc là **Nhân viên** hoặc **Cộng tác viên (không vào payroll)**. HR chọn loại khi tạo hồ sơ, sửa thông tin công việc hoặc tái tuyển; khi tái tuyển, loại mặc định là loại của đợt trước. Các đợt có sẵn là nhân viên. Theo quyết định của owner ngày 2026-10-20, CTV có trong HRM với hồ sơ tối thiểu nhưng không bao giờ vào payroll: danh sách kỳ lương bỏ qua CTV, quyết toán lương cuối từ chối CTV, và không thể tạo thu nhập theo hợp đồng cho CTV. D1 chặn điều này ở mọi đường ghi dữ liệu. Khi đợt làm việc đã có thu nhập theo hợp đồng hoặc đã vào kỳ lương, loại quan hệ bị khóa để khoản lương đã trả luôn giải thích được; nếu chọn sai, hãy sửa trước khi đợt đó được dùng cho lương. Partner trong CRM không mặc nhiên là CTV trong HRM. Các trường hồ sơ tối thiểu của CTV vẫn chờ owner quyết định (mục 1 của gói P0).
+
 ## Thu nhập có hiệu lực cho payroll
 
 Khoản lương thuộc cấu phần `employment_record` phải trỏ tới đúng một phiên bản thu nhập tại **HRM → Payroll → Thu nhập theo hợp đồng có hiệu lực** (`/vi/hrm/payroll#compensation`, `/hrm/payroll#compensation`). HRM Admin nhập mã nhân viên, mã cấu phần, loại tiền, số chữ số thập phân, số tiền chính xác mỗi kỳ lương, ngày hiệu lực và nguồn. Nguồn là hồ sơ hợp đồng lao động hoặc phụ lục đã hoàn tất của cùng đợt làm việc, hoặc số quyết định được lưu ngoài HRM. Một HRM Admin khác hoặc System Super Admin phê duyệt. Không ai được tạo hoặc duyệt thu nhập cho hồ sơ nhân viên của chính mình.
