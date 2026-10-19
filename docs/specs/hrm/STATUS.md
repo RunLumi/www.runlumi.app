@@ -487,3 +487,12 @@ Local evidence: `npm run ci:verify` passes (402 unit tests, build). That include
 
 Self-export schema v11 (same branch): with `hrm.payroll.self`, the employee's export adds their own approved and superseded compensation versions. Each carries component, currency/scale, amount per period, cadence, effective dates, source type, state and approval time. It never includes version IDs, basis notes, contract/decision references or reviewer identities, and it lists those as excluded. A real-SQL test checks the history and the absence of each internal value. Schema assertions in existing unit and integration tests move to v11.
 
+
+### HRM-20 role × route × locale matrix — working branch, 2026-10-19
+
+The P5 integration requests every static HRM page (33 today, discovered from `src/pages/hrm`) in English and Vietnamese for 10 sessions. These are unlinked Employee, People Manager, HRM Officer, Payroll Officer, ATS-only HR, CRM-only Finance, HRM Admin, linked employee, assigned manager and System Super Admin: 660 checks against the real local Worker/D1/R2. The matrix requires that no page returns a server error, that EN/VI status and locale-equivalent redirects match, and that ATS-only and CRM-only roles never receive an HRM page. It collects every violation before failing.
+
+Its first runs found two real defects. `/hrm/me/leave` returned 500 for a People Manager with no employee record, and `/hrm/me/training` returned 500 for a System Super Admin with no employee record. In both cases the page's error fallback omitted collections the component dereferences. Both components now default those collections, so the error state renders the localized error with empty lists. The final run passes with zero violations. Status mix: HR and Finance 403 on all 33 pages; unlinked Employee 403 on all; linked employee 200 on 14; Payroll Officer 200 on 3; System Super Admin 200 on 26 and 404 on 7.
+
+This proves HTTP status and permission parity for static routes. Visual EN/VI equivalence remains the separate Chrome audit, which covers every route in both locales. Dynamic routes (`[id]` pages) and per-record states are not part of this matrix.
+
