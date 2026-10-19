@@ -4,6 +4,21 @@ import type { Failure, PageBase } from "../../lib/hrm/pages";
 interface Props { data: PageBase|Failure; module?:"hrm"; current?:string }
 const {data}=Astro.props;const vi=data.vi;
 const messages:Record<string,[string,string]>={
+ financial_disposition_retryable:["Disposition is not fully confirmed. Reconcile the existing request before starting another operation.","Việc xử lý chưa được xác nhận đầy đủ. Cần đối soát yêu cầu hiện có trước khi bắt đầu lần khác."],
+ financial_retention_manual:["This category has no approved retention schedule. Review its policy before requesting disposition.","Danh mục này chưa có lịch lưu giữ được duyệt. Cần rà soát chính sách trước khi đề nghị xử lý."],
+ financial_retention_anchor_unavailable:["The configured retention anchor is unavailable. Reconcile the source record before requesting disposition.","Chưa có mốc tính thời hạn theo cấu hình. Cần đối soát hồ sơ nguồn trước khi đề nghị xử lý."],
+ financial_retention_invalid:["Check the policy fields, explicit dates and anchors. Leave both days and anchor empty to keep a category unscheduled.","Hãy kiểm tra các trường chính sách, ngày hiệu lực và mốc tính. Để trống cả hạn lẫn mốc nếu danh mục chưa lên lịch."],
+ financial_retention_source_required:["Choose an independently reviewed policy DOCX for this entity with an available, matching source file.","Chọn DOCX chính sách đúng pháp nhân, đã được rà soát độc lập và còn tệp nguồn khớp để đối chiếu."],
+ financial_retention_expired:["This policy's effective period has ended. Prepare a new reviewed version.","Thời gian hiệu lực của chính sách đã kết thúc. Cần lập và rà soát phiên bản mới."],
+ financial_disposition_changed:["The financial target, case or policy changed. Reload and prepare a fresh request.","Dữ liệu tài chính, hồ sơ nghỉ việc hoặc chính sách đã thay đổi. Hãy tải lại và lập yêu cầu mới."],
+ financial_disposition_in_progress:["A financial disposition is already reserved. Reconcile that operation before changing its preservation or policy.","Một lần xử lý dữ liệu tài chính đã được giữ chỗ. Cần đối soát lần xử lý đó trước khi đổi yêu cầu bảo toàn hoặc chính sách."],
+ financial_control_invalid:["The current financial control record could not be verified. Reconcile this item before using it.","Chưa xác minh được hồ sơ kiểm soát tài chính hiện hành. Cần đối soát trước khi sử dụng mục này."],
+ financial_control_missing:["Current privacy control is missing. Reconcile the record before restoring access.","Thiếu trạng thái kiểm soát quyền riêng tư hiện hành. Cần đối soát hồ sơ trước khi mở lại dữ liệu."],
+ financial_control_conflict:["This item's control state changed. Reload and inspect the current state.","Trạng thái kiểm soát của mục này đã thay đổi. Hãy tải lại và kiểm tra trạng thái hiện hành."],
+ financial_control_pending:["This item is temporarily unavailable while its registration or disposition is reconciled.","Mục này tạm chưa khả dụng vì đang đối soát việc đăng ký hoặc xử lý xóa."],
+ financial_data_disposed:["This financial item is no longer available. Check its processing history before creating another copy.","Mục tài chính này không còn được cung cấp. Hãy kiểm tra lịch sử xử lý trước khi tạo bản khác."],
+ financial_payload_unavailable:["The stored financial file could not be verified. Reconcile the file before using it.","Chưa xác minh được tệp tài chính đã lưu. Cần đối soát trước khi sử dụng tệp."],
+ financial_payload_remaining:["File content is still present; disposition has not completed.","Nội dung tệp vẫn còn; việc xóa chưa hoàn tất."],
  closeout_pdf_required:["Upload a PDF file for confidential financial evidence.","Chứng cứ tài chính riêng tư phải là tệp PDF."],
  closeout_hold_unavailable:["A deleted file or an erasure already in progress cannot receive a new hold.","Không thể đặt hold mới cho tệp đã xóa hoặc đang được xử lý xóa."],
  report_account_unavailable:["Your account or permissions changed. Reload and try again.","Tài khoản hoặc quyền đã thay đổi. Hãy tải lại trang."],

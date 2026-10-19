@@ -354,3 +354,6 @@ export async function runHrmRecoveryDrill({
     await rm(tempRoot, { recursive: true, force: true });
   }
 }
+
+// Disposable local integration storage only; never a production resource.
+export { s3Request as syntheticR2Request };

@@ -1,5 +1,6 @@
 ---
 import HrmPage from "./HrmPage.astro";
+import HrmFinancialRetention from "./HrmFinancialRetention.astro";
 import type { RetentionPageData } from "../../lib/hrm/retention-pages";
 const d=Astro.props as RetentionPageData;const vi=d.vi;
 const policyState=(value:string)=>({draft:vi?"Bản nháp":"Draft",reviewed:vi?"Đã rà soát":"Reviewed",active:vi?"Đang áp dụng":"Active",retired:vi?"Đã ngừng":"Retired",rejected:vi?"Bị từ chối":"Rejected"}[value]||value);
@@ -24,6 +25,8 @@ const parseRulesForDisplay=(value:string,localeVi:boolean,label:(key:string)=>st
  <p class="crm-help">{vi?"Mỗi danh mục cần thời hạn và căn cứ được người phụ trách rà soát. Chưa có thời hạn mặc định. Hold còn hiệu lực sẽ chặn yêu cầu xóa; gỡ hold cần người khác với người đặt hold. Dữ liệu hết hạn không bị xóa tự động. Redact hồ sơ cấu trúc cần đến hạn, không còn hold, file sống hay thay đổi chờ duyệt, sau đó phải qua người rà soát độc lập và System Super Admin.":"Each category needs a reviewed retention period and basis. No durations are assumed. An active hold blocks deletion; another person must release a hold. Expired data is not deleted automatically. Structured-record redaction requires a due record with no hold, live file or pending change, followed by independent review and System Super Admin execution."}</p>
  {!d.live&&<div class="crm-notice bad">{vi?"HRM production vẫn đóng. Việc cấu hình/rà soát retention không mở công tắc production.":"HRM production remains closed. Configuring or reviewing retention does not enable the production switch."}</div>}
  {d.saved&&<p class="crm-notice good" role="status">{vi?"Đã ghi nhận thay đổi lưu trữ; kiểm tra trạng thái bên dưới.":"Retention action recorded; check the resulting state below."}</p>}
+
+ {d.financial&&<HrmFinancialRetention data={d}/>}
 
  <section class="crm-sheet"><h2 class="crm-h2">{vi?"Chính sách lưu trữ có phiên bản":"Versioned retention policy"}</h2>
   {canManage&&<form class="crm-form" method="post" action="/api/hrm/retention"><input type="hidden" name="lang" value={d.lang}/><input type="hidden" name="intent" value="create_policy"/><input type="hidden" name="request_key" value={crypto.randomUUID()}/><label class="crm-field"><span>{vi?"Quy tắc cho đủ danh mục (JSON)":"Rules for every category (JSON)"}</span><textarea class="crm-input crm-json" name="rules_json" rows="13" required>{d.policyTemplate}</textarea><span class="crm-help">{vi?"`retention_days: null` nghĩa là không lên lịch xóa tự động. Ghi rõ căn cứ đã được rà soát; không dùng số ngày mặc định.":"`retention_days: null` means no scheduled eligibility. Enter the reviewed basis; do not use an assumed duration."}</span></label><button class="crm-button secondary" type="submit">{vi?"Tạo phiên bản nháp":"Create draft version"}</button></form>}

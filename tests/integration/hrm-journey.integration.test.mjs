@@ -7,6 +7,8 @@ import {createHash} from "node:crypto";
 import {BASE,adminSession,content,jobs,localFetch,q,userSession} from "./helpers.mjs";
 import {startHrmBrowserQa} from "./hrm-browser-qa.mjs";
 import {exerciseCloseoutPolicy} from "./hrm-closeout-policy.mjs";
+import {exerciseFinancialRetentionPolicy} from "./hrm-financial-retention-policy.mjs";
+import {exerciseFinancialDisposition} from "./hrm-financial-disposition.mjs";
 import {runHrmRecoveryDrill} from "./hrm-recovery-drill.mjs";
 
 const run=Date.now().toString(36),entity="TEST Journey Entity",reason="TEST synthetic independent review; not a production policy";
@@ -23,11 +25,11 @@ const offset=(date,days)=>new Date(Date.parse(date+"T00:00:00Z")+days*86400000).
 test("one hired candidate completes the same-employment HRM journey through payroll, offboarding, held evidence and restore",async t=>{
  const system=await adminSession(),users={};
  const systemAccounts=content("SELECT id FROM users WHERE role=50 AND disabled=0");assert.equal(systemAccounts.length,1,"synthetic System Admin identity must be unambiguous");const systemId=systemAccounts[0].id;
- for(const [name,role]of Object.entries({admin:"hrm_admin",hr:"hrm_officer",manager:"people_manager",payroll:"payroll_officer",employee:"employee",other:"employee",ats:"hr",crm:"finance"})){
+ for(const [name,role]of Object.entries({admin:"hrm_admin",custodian:"hrm_admin",hr:"hrm_officer",manager:"people_manager",payroll:"payroll_officer",employee:"employee",other:"employee",ats:"hr",crm:"finance"})){
   users[name]=await userSession(system,{email:`test-journey-${name}-${run}@example.test`,name:`TEST Journey ${name} ${run}`});
   await post(system,"/workspace/users",{intent:"grant",email:users[name].email,roles:[role]});
  }
- const {admin,hr,manager,payroll,employee,other,ats,crm}=users;
+ const {admin,custodian,hr,manager,payroll,employee,other,ats,crm}=users;
  const today=new Date(Date.now()+7*3600000).toISOString().slice(0,10),start=offset(today,-90),workDay=start,leaveDay=offset(start,1),code=`JOURNEY-${run}`;
  const browser=process.env.HRM_BROWSER_BINARY?await startHrmBrowserQa({baseUrl:BASE,binary:process.env.HRM_BROWSER_BINARY,artifactDir:process.env.HRM_BROWSER_ARTIFACT_DIR}):null;if(browser)t.after(()=>browser.close());
  const audit=async(name,actor,enPath,viPath,enText,viText,formsRequired=false,revealSelector)=>{
@@ -97,7 +99,8 @@ test("one hired candidate completes the same-employment HRM journey through payr
  await post(employee,"/hrm/me/coi",{intent:"create",has_conflict:"no",related_organization:"",relationship:"",description:"",impact:"",proposed_mitigation:""});let coi=row(`SELECT * FROM hrm_coi_declarations WHERE person_id=${q(personId)}`);await post(employee,`/hrm/me/coi/${coi.id}`,{intent:"submit",version:coi.version});coi=byId("hrm_coi_declarations",coi.id);await post(admin,`/hrm/coi/${coi.id}`,{intent:"assign",version:coi.version,reviewer_id:hr.id});coi=byId("hrm_coi_declarations",coi.id);await post(hr,`/hrm/coi/${coi.id}`,{intent:"start_review",version:coi.version});coi=byId("hrm_coi_declarations",coi.id);await post(hr,`/hrm/coi/${coi.id}`,{intent:"review",decision:"cleared",version:coi.version,reason});coi=byId("hrm_coi_declarations",coi.id);await post(hr,`/hrm/coi/${coi.id}`,{intent:"review",decision:"closed",version:coi.version,reason});assert.equal(byId("hrm_coi_declarations",coi.id).state,"closed");
  await audit("nda-acknowledged",employee,`/hrm/me/documents/${nda.id}`,`/vi/hrm/me/documents/${nda.id}`,"Acknowledged at","Đã xác nhận đã đọc lúc");
  console.log("HRM journey stage passed: contract scans, exact-version NDA acknowledgement and COI");
- const {policy:closeoutPolicy}=await exerciseCloseoutPolicy({author:admin,approver:system,unauthorized:payroll,entity,start,today,browser});
+ const {policy:closeoutPolicy,source:retentionSource}=await exerciseCloseoutPolicy({author:admin,approver:system,unauthorized:payroll,entity,start,today,browser});
+ const financialRetentionPolicy=await exerciseFinancialRetentionPolicy({author:admin,reviewer:system,unauthorized:hr,sourceVersionId:retentionSource.id,start,today,browser});
 
  const templateKey=`journey-${run}`,tasks=[{key:"profile_review",title_en:"TEST Review profile",title_vi:"TEST Kiểm tra hồ sơ",instructions_en:"TEST verify your own profile",instructions_vi:"TEST Kiểm tra hồ sơ của mình",milestone:"TEST start",assignee_kind:"employee",verifier_kind:"hrm_officer",due_offset_days:0,required:true,allow_waive:false,dependencies:[],evidence_type:"text",action_key:"profile"}];
  await post(hr,"/api/hrm/onboarding",{intent:"create_template",return_to:"/hrm/onboarding",template_key:templateKey,title_en:"TEST Journey onboarding",title_vi:"TEST Onboarding xuyên suốt",applicability_json:JSON.stringify({legal_entities:[entity],locations:[],job_titles:[],employment_statuses:["preboarding","active"]}),tasks_json:JSON.stringify(tasks)});
@@ -201,6 +204,7 @@ test("one hired candidate completes the same-employment HRM journey through payr
  await audit("offboarding-completed",admin,`/hrm/offboarding/${exitCase.id}`,`/vi/hrm/offboarding/${exitCase.id}`,code.toUpperCase(),code.toUpperCase());
  await audit("revoked-employee",employee,"/hrm/me/payslips","/vi/hrm/me/payslips","You do not have access","Bạn chưa có quyền");
  await runHrmRecoveryDrill({adminCookie:admin.header(),employeeCookie:employee.header(),managerCookie:manager.header(),employeeUserId:employee.id,attachmentId:attachment.id,fileId:attachment.file_id,run,expectedMembershipEnabled:0,closeoutFileId:financialProof.id});
+ await exerciseFinancialDisposition({author:admin,reviewer:custodian,executor:system,executorId:systemId,unauthorized:hr,policy:financialRetentionPolicy,caseId:exitCase.id,personId,fileId:financialProof.id,dossierId:replacement.id,browser});
  for(const table of ["hrm_legal_issues","hrm_onboarding_plans","hrm_asset_assignments","hrm_training_assignments","hrm_payroll_run_people","hrm_offboarding_cases"]){assert.ok(row(`SELECT COUNT(*) AS n FROM ${table} WHERE employment_id=${q(employmentId)}`).n>0,`${table} retained the SAME employment ID`)}
  assert.equal(provenance.person_id,personId);assert.equal(contract.person_id,personId);assert.equal(nda.person_id,personId);
  console.log("HRM journey complete: one candidate/person/employment, denied cross-user reads, paid correction, revoked access, held files and synthetic restore; owner/specialist gates remain unapproved");

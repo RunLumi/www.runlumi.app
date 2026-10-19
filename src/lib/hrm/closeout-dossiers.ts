@@ -6,18 +6,27 @@ import { closeoutPolicySourceSql, parseCloseoutChecks, type CloseoutPolicy } fro
 import { readCloseoutBasis, requireCloseout, type CloseoutBasisResult } from "./closeout-basis";
 
 import type { CloseoutFileHold } from "./closeout-holds";
+import { abandonStagedFinancialControl, publishFinancialControl, readFinancialControl, readFinancialFilePayload, requireLiveFinancialControl, stageFinancialControl, stageFinancialFilePayload, type FinancialControl, type FinancialControlTarget } from "./financial-control";
 
 export interface CloseoutOutcome {key:string;outcome:"verified"|"not_applicable";reason:string;file_ids:string[]}
 export interface CloseoutDossier {
  id:string;case_id:string;person_id:string;employment_id:string;employee_user_id:string|null;policy_id:string;source_revision:number;
  basis_json:string;basis_checksum:string;checks_json:string;no_payroll_evidence_json:string;state:"prepared"|"approved"|"rejected"|"applied"|"invalidated";
  prepared_by:string;prepared_at:string;reviewed_by:string|null;reviewed_at:string|null;review_reason:string|null;applied_by:string|null;applied_at:string|null;
+ payload_disposition_state:"none"|"deleting"|"completed";payload_disposed_at:string|null;payload_disposed_checksum:string|null;disposition_request_id:string|null;
  version:number;actor_id:string;updated_at:string;
 }
 export interface CloseoutFile {
  id:string;case_id:string;object_key:string;original_name:string;size_bytes:number;checksum:string;state:string;uploaded_by:string;
  created_at:string;reviewed_by:string|null;reviewed_at:string|null;review_reason:string|null;object_deleted_at:string|null;
  disposition_state:string;legal_hold:number;version:number;actor_id:string;updated_at:string;
+}
+export function closeoutFileControlTarget(file:Pick<CloseoutFile,"id"|"case_id"|"checksum"|"size_bytes">,scope:{person_id:string;employment_id:string}):FinancialControlTarget{
+ return {kind:"file",id:file.id,caseId:file.case_id,personId:scope.person_id,employmentId:scope.employment_id,checksum:file.checksum,sizeBytes:file.size_bytes};
+}
+export async function closeoutDossierControlTarget(row:Pick<CloseoutDossier,"id"|"case_id"|"person_id"|"employment_id"|"basis_checksum"|"checks_json"|"no_payroll_evidence_json">):Promise<FinancialControlTarget>{
+ const metadata=JSON.stringify({basis_checksum:row.basis_checksum,checks_json:row.checks_json,no_payroll_evidence_json:row.no_payroll_evidence_json});
+ return {kind:"dossier",id:row.id,caseId:row.case_id,personId:row.person_id,employmentId:row.employment_id,checksum:await digest(metadata),sizeBytes:new TextEncoder().encode(metadata).byteLength};
 }
 const text=(value:unknown,max:number)=>{if(typeof value!=="string")throw new HrmError("closeout_invalid",400);const result=value.trim();if(!result||result.length>max||/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/u.test(result))throw new HrmError("closeout_invalid",400);return result};
 const ref=(value:unknown)=>{const result=text(value,120);if(!/^[A-Za-z0-9_-]+$/.test(result))throw new HrmError("closeout_invalid",400);return result};
@@ -63,8 +72,10 @@ async function evidence(db:D1Database,bucket:R2Bucket,caseId:string,fileIds:stri
  const unique=[...new Set(fileIds)].sort();if(unique.length<1||unique.length>155)throw new HrmError("closeout_evidence_invalid",400);
  const result=await db.prepare("SELECT f.* FROM hrm_closeout_files f JOIN json_each(?) refs ON refs.value=f.id WHERE f.case_id=? ORDER BY f.id").bind(JSON.stringify(unique),caseId).all<CloseoutFile>();
  if(result.results.length!==unique.length)throw new HrmError("closeout_evidence_invalid",409);
+ const scope=await db.prepare("SELECT person_id,employment_id FROM hrm_offboarding_cases WHERE id=?").bind(caseId).first<{person_id:string;employment_id:string}>();if(!scope)throw new HrmError("not_found",404);
  for(const file of result.results){
   if(file.state!=="reviewed"||!file.reviewed_by||file.reviewed_by===file.uploaded_by||file.object_deleted_at||!["none","rejected","blocked"].includes(file.disposition_state))throw new HrmError("closeout_evidence_invalid",409);
+  await requireLiveFinancialControl(bucket,closeoutFileControlTarget(file,scope));
   const object=await bucket.head(file.object_key);if(!object||object.size!==file.size_bytes||object.customMetadata?.checksum!==file.checksum||object.customMetadata?.case_id!==caseId)throw new HrmError("closeout_evidence_invalid",409);
  }
  return result.results;
@@ -80,19 +91,29 @@ function requireReady(basis:CloseoutBasisResult,policyRow:CloseoutPolicy,noPayro
  if(basis.hasPayroll&&noPayrollProof.length)throw new HrmError("closeout_evidence_invalid",400);
 }
 export async function prepareCloseoutDossier(db:D1Database,content:D1Database,bucket:R2Bucket,user:WorkspaceUser,key:string,input:{caseId:string;policyId:string;sourceRevision:number;checks:unknown;noPayrollEvidence:unknown}):Promise<string>{
- await account(db,content,user);const prior=await replay(db,user,key,"closeout_dossier_prepare",input);if(prior)return prior;
+ await account(db,content,user);const operationHash=await digest(JSON.stringify(input));
+ const finishReceipt=async(dossierId:string)=>{
+  const saved=await dossierFor(db,input.caseId,dossierId);if(saved.prepared_by!==user.id)throw new HrmError("conflict",409);
+  await currentCase(db,user,input.caseId);await account(db,content,user);
+  await publishFinancialControl(bucket,await closeoutDossierControlTarget(saved),operationHash);return dossierId;
+ };
+ const prior=await replay(db,user,key,"closeout_dossier_prepare",input);if(prior)return finishReceipt(prior);
  const basis=await currentCase(db,user,input.caseId),policyRow=await policy(db,bucket,input.policyId,basis);
  if(basis.caseState!=="open"||basis.basis.source_revision!==input.sourceRevision)throw new HrmError("closeout_source_changed",409);
  const checks=parseCloseoutOutcomes(input.checks,policyRow),exemption=refs(input.noPayrollEvidence),files=await evidence(db,bucket,input.caseId,[...checks.flatMap(c=>c.file_ids),...exemption]);
  // Preparation records a source snapshot even if further source work is needed;
  // approval and application always recompute all blockers against current data.
  const dossierId=id("closeout"),time=now();
+ const expected=await closeoutDossierControlTarget({id:dossierId,case_id:input.caseId,person_id:basis.basis.case.person_id,employment_id:basis.basis.case.employment_id,basis_checksum:basis.checksum,checks_json:JSON.stringify(checks),no_payroll_evidence_json:JSON.stringify(exemption)});
+ await account(db,content,user);await stageFinancialControl(bucket,expected,operationHash,user.id);
  const guards=[...await authority(db,user,String(basis.basis.employment.legal_entity)),sourceGuard(db,basis),policyGuard(db,policyRow,input.caseId),fileGuards(db,files)];
  await account(db,content,user);
- return command(db,user,key,"closeout_dossier_prepare",input,dossierId,guards,[
+ const result=await command(db,user,key,"closeout_dossier_prepare",input,dossierId,guards,[
   db.prepare(`INSERT INTO hrm_closeout_dossiers(id,case_id,person_id,employment_id,employee_user_id,policy_id,source_revision,basis_json,basis_checksum,checks_json,no_payroll_evidence_json,prepared_by,prepared_at,actor_id,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).bind(dossierId,input.caseId,basis.basis.case.person_id,basis.basis.case.employment_id,basis.basis.case.employee_user_id,policyRow.id,basis.basis.source_revision,JSON.stringify(basis.basis),basis.checksum,JSON.stringify(checks),JSON.stringify(exemption),user.id,time,user.id,time),
   db.prepare("INSERT INTO hrm_closeout_dossier_files(dossier_id,file_id,checksum) SELECT ?,json_extract(value,'$.id'),json_extract(value,'$.checksum') FROM json_each(?)").bind(dossierId,JSON.stringify(files.map(f=>({id:f.id,checksum:f.checksum})))),
  ]);
+ if(result!==dossierId){await abandonStagedFinancialControl(bucket,expected,operationHash,"system:hrm-dossier-duplicate");return finishReceipt(result)}
+ await account(db,content,user);await publishFinancialControl(bucket,expected,operationHash);return result;
 }
 async function dossierFor(db:D1Database,caseId:string,dossierId:string){
  const row=await db.prepare("SELECT * FROM hrm_closeout_dossiers WHERE id=? AND case_id=?").bind(ref(dossierId),ref(caseId)).first<CloseoutDossier>();if(!row)throw new HrmError("not_found",404);return row;
@@ -102,8 +123,9 @@ export async function reviewCloseoutDossier(db:D1Database,content:D1Database,buc
  const row=await dossierFor(db,input.caseId,input.dossierId),reason=text(input.reason,1000);
  if(!["approve","reject"].includes(input.decision))throw new HrmError("closeout_invalid",400);
  if(row.prepared_by===user.id||row.employee_user_id===user.id)throw new HrmError("self_approval",403);
- if(row.state!=="prepared"||row.version!==input.version)throw new HrmError("closeout_source_changed",409);
- const basis=await currentCase(db,user,input.caseId),guards=[...await authority(db,user,String(basis.basis.employment.legal_entity)),sourceGuard(db,basis),guardBoolean(db,"EXISTS(SELECT 1 FROM hrm_closeout_dossiers WHERE id=? AND version=? AND state='prepared' AND prepared_by!=? AND employee_user_id IS NOT ?)",[row.id,input.version,user.id,user.id])];
+ if(row.payload_disposition_state!=="none"||row.state!=="prepared"||row.version!==input.version)throw new HrmError("closeout_source_changed",409);
+ await requireLiveFinancialControl(bucket,await closeoutDossierControlTarget(row));
+ const basis=await currentCase(db,user,input.caseId),guards=[...await authority(db,user,String(basis.basis.employment.legal_entity)),sourceGuard(db,basis),guardBoolean(db,"EXISTS(SELECT 1 FROM hrm_closeout_dossiers WHERE id=? AND version=? AND state='prepared' AND payload_disposition_state='none' AND prepared_by!=? AND employee_user_id IS NOT ?)",[row.id,input.version,user.id,user.id])];
  if(input.decision==="approve"){
   if(!input.confirmed)throw new HrmError("confirmation_required",400);
   if(row.source_revision!==basis.basis.source_revision||row.basis_checksum!==basis.checksum)throw new HrmError("closeout_source_changed",409);
@@ -116,10 +138,11 @@ export async function reviewCloseoutDossier(db:D1Database,content:D1Database,buc
  * closure share one D1 transaction rather than two independently successful writes. */
 export async function prepareCloseoutApplication(db:D1Database,content:D1Database,bucket:R2Bucket,user:WorkspaceUser,caseId:string,dossierId:string,confirmed:boolean):Promise<{guards:D1PreparedStatement[];writes:D1PreparedStatement[]}>{
  await account(db,content,user);if(!confirmed)throw new HrmError("confirmation_required",400);
- const row=await dossierFor(db,caseId,dossierId);if(row.state!=="approved"||row.reviewed_by!==user.id||row.prepared_by===user.id||row.employee_user_id===user.id)throw new HrmError("closeout_approval_required",409);
+ const row=await dossierFor(db,caseId,dossierId);if(row.payload_disposition_state!=="none"||row.state!=="approved"||row.reviewed_by!==user.id||row.prepared_by===user.id||row.employee_user_id===user.id)throw new HrmError("closeout_approval_required",409);
+ await requireLiveFinancialControl(bucket,await closeoutDossierControlTarget(row));
  const basis=await currentCase(db,user,caseId);if(row.source_revision!==basis.basis.source_revision||row.basis_checksum!==basis.checksum)throw new HrmError("closeout_source_changed",409);
  const policyRow=await policy(db,bucket,row.policy_id,basis),checks=parseCloseoutOutcomes(JSON.parse(row.checks_json),policyRow),exemption=refs(JSON.parse(row.no_payroll_evidence_json)),files=await evidence(db,bucket,caseId,[...checks.flatMap(c=>c.file_ids),...exemption]);requireReady(basis,policyRow,exemption);
- const guards=[...await authority(db,user,String(basis.basis.employment.legal_entity)),sourceGuard(db,basis),policyGuard(db,policyRow,caseId),fileGuards(db,files),guardBoolean(db,"EXISTS(SELECT 1 FROM hrm_closeout_dossiers WHERE id=? AND version=? AND state='approved' AND reviewed_by=? AND prepared_by!=? AND employee_user_id IS NOT ?)",[row.id,row.version,user.id,user.id,user.id])];
+ const guards=[...await authority(db,user,String(basis.basis.employment.legal_entity)),sourceGuard(db,basis),policyGuard(db,policyRow,caseId),fileGuards(db,files),guardBoolean(db,"EXISTS(SELECT 1 FROM hrm_closeout_dossiers WHERE id=? AND version=? AND state='approved' AND payload_disposition_state='none' AND reviewed_by=? AND prepared_by!=? AND employee_user_id IS NOT ?)",[row.id,row.version,user.id,user.id,user.id])];
  await account(db,content,user);const time=now();return {guards,writes:[db.prepare("UPDATE hrm_closeout_dossiers SET state='applied',applied_by=?,applied_at=?,version=version+1,actor_id=?,updated_at=? WHERE id=? AND version=? AND state='approved'").bind(user.id,time,user.id,time,row.id,row.version)]};
 }
 
@@ -136,48 +159,89 @@ export async function reopenCloseoutReview(db:D1Database,content:D1Database,user
 }
 
 export async function uploadCloseoutFile(db:D1Database,content:D1Database,bucket:R2Bucket,user:WorkspaceUser,key:string,caseId:string,file:File):Promise<string>{
- await account(db,content,user);const basis=await currentCase(db,user,caseId);if(basis.caseState!=="open")throw new HrmError("offboarding_case_inactive",409);
+ await account(db,content,user);const basis=await currentCase(db,user,caseId);
  if(file.size<1||file.size>5*1024*1024)throw new HrmError("file_size",400);const bytes=await file.arrayBuffer();
  if(file.type!=="application/pdf"||readableFileType(new Uint8Array(bytes))!=="application/pdf")throw new HrmError("closeout_pdf_required",400);
- const name=file.name.replace(/[\x00-\x1f\x7f"\\/]/g,"_").slice(0,160)||"evidence.pdf",checksum=await digest(bytes),payload={caseId,name,checksum,size:file.size};const prior=await replay(db,user,key,"closeout_file_upload",payload);if(prior)return prior;
- const fileId=id("closeout_file"),objectKey=`hrm/closeout/${caseId}/${fileId}`,time=now();await bucket.put(objectKey,bytes,{httpMetadata:{contentType:"application/pdf"},customMetadata:{checksum,case_id:caseId}});
+ const name=file.name.replace(/[\x00-\x1f\x7f"\\/]/g,"_").slice(0,160)||"evidence.pdf",checksum=await digest(bytes),payload={caseId,name,checksum,size:file.size},operationHash=await digest(JSON.stringify(payload));
+ const finishReceipt=async(fileId:string)=>{
+  const saved=await db.prepare("SELECT * FROM hrm_closeout_files WHERE id=? AND case_id=?").bind(fileId,caseId).first<CloseoutFile>();if(!saved||saved.uploaded_by!==user.id||saved.checksum!==checksum||saved.size_bytes!==file.size)throw new HrmError("conflict",409);
+  const expected=closeoutFileControlTarget(saved,basis.basis.case);
+  await stageFinancialFilePayload(bucket,expected,operationHash,user.id,bytes,()=>account(db,content,user));
+  await account(db,content,user);await publishFinancialControl(bucket,expected,operationHash);return fileId;
+ };
+ const prior=await replay(db,user,key,"closeout_file_upload",payload);if(prior)return finishReceipt(prior);
+ if(basis.caseState!=="open")throw new HrmError("offboarding_case_inactive",409);
+ const fileId=id("closeout_file"),objectKey=`hrm/closeout/${caseId}/${fileId}`,expected=closeoutFileControlTarget({id:fileId,case_id:caseId,checksum,size_bytes:file.size},basis.basis.case);
+ let metadataAttempted=false;
  try{
+  const staged=await stageFinancialFilePayload(bucket,expected,operationHash,user.id,bytes,()=>account(db,content,user)),time=staged.value.registeredAt;
   const guards=[...await authority(db,user,String(basis.basis.employment.legal_entity)),guardBoolean(db,"EXISTS(SELECT 1 FROM hrm_offboarding_cases WHERE id=? AND state='open')",[caseId])];await account(db,content,user);
+  metadataAttempted=true;
   const result=await command(db,user,key,"closeout_file_upload",payload,fileId,guards,[db.prepare("INSERT INTO hrm_closeout_files(id,case_id,object_key,original_name,size_bytes,checksum,uploaded_by,created_at,actor_id,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)").bind(fileId,caseId,objectKey,name,file.size,checksum,user.id,time,user.id,time)]);
-  if(result!==fileId)await bucket.delete(objectKey);return result;
- }catch(error){await bucket.delete(objectKey);throw error}
+  if(result!==fileId){
+   // The committed receipt definitively belongs to another target. Fence this
+   // duplicate before removing its own transient bytes, never the winner's.
+   await abandonStagedFinancialControl(bucket,expected,operationHash,"system:hrm-upload-duplicate");await bucket.delete(objectKey);return finishReceipt(result);
+  }
+  await account(db,content,user);await publishFinancialControl(bucket,expected,operationHash);return result;
+ }catch(error){
+  // Once a D1 write was attempted, a negative read cannot prove it failed.
+  // Preserve uncertain registrations quarantined for receipt reconciliation.
+  if(!metadataAttempted){try{await abandonStagedFinancialControl(bucket,expected,operationHash,"system:hrm-upload-abort");await bucket.delete(objectKey)}catch{/* Unknown external outcomes remain fenced/quarantined. */}}
+  throw error;
+ }
 }
 export async function reviewCloseoutFile(db:D1Database,content:D1Database,bucket:R2Bucket,user:WorkspaceUser,key:string,input:{caseId:string;fileId:string;version:number;decision:"reviewed"|"rejected";reason:string}):Promise<void>{
  await account(db,content,user);if(await replay(db,user,key,"closeout_file_review",input))return;
  const basis=await currentCase(db,user,input.caseId),file=await db.prepare("SELECT * FROM hrm_closeout_files WHERE id=? AND case_id=?").bind(ref(input.fileId),input.caseId).first<CloseoutFile>();
  if(!file)throw new HrmError("not_found",404);if(file.uploaded_by===user.id)throw new HrmError("self_approval",403);
  if(!["reviewed","rejected"].includes(input.decision)||file.state!=="quarantined"||file.version!==input.version)throw new HrmError("conflict",409);
- const object=await bucket.head(file.object_key);if(!object||object.size!==file.size_bytes||object.customMetadata?.checksum!==file.checksum||object.customMetadata?.case_id!==input.caseId)throw new HrmError("file_unavailable",404);
+ await readFinancialFilePayload(bucket,closeoutFileControlTarget(file,basis.basis.case));
  await account(db,content,user);const reason=text(input.reason,1000),time=now();await command(db,user,key,"closeout_file_review",input,file.id,[...await authority(db,user,String(basis.basis.employment.legal_entity)),guardBoolean(db,"EXISTS(SELECT 1 FROM hrm_closeout_files WHERE id=? AND case_id=? AND version=? AND state='quarantined' AND uploaded_by!=? AND object_deleted_at IS NULL AND disposition_state IN ('none','rejected','blocked'))",[file.id,input.caseId,input.version,user.id])],[db.prepare("UPDATE hrm_closeout_files SET state=?,reviewed_by=?,reviewed_at=?,review_reason=?,version=version+1,actor_id=?,updated_at=? WHERE id=? AND version=?").bind(input.decision,user.id,time,reason,user.id,time,file.id,input.version)]);
 }
 export async function downloadCloseoutFile(db:D1Database,content:D1Database,bucket:R2Bucket,user:WorkspaceUser,caseId:string,fileId:string):Promise<Response>{
- await account(db,content,user);await currentCase(db,user,caseId);
+ await account(db,content,user);const basis=await currentCase(db,user,caseId);
  const file=await db.prepare("SELECT * FROM hrm_closeout_files WHERE id=? AND case_id=? AND object_deleted_at IS NULL AND disposition_state NOT IN ('deleting','completed')").bind(ref(fileId),ref(caseId)).first<CloseoutFile>();if(!file)throw new HrmError("not_found",404);
- const object=await bucket.get(file.object_key);if(!object||object.size!==file.size_bytes||object.customMetadata?.checksum!==file.checksum||object.customMetadata?.case_id!==caseId){if(object)await object.body.cancel();throw new HrmError("file_unavailable",404)}
- try{await account(db,content,user);await audit(db,user,"closeout_file_read",null,file.id,{case_id:caseId,state:file.state})}catch(error){await object.body.cancel();throw error}
- return new Response(object.body,{headers:{"Content-Type":"application/pdf","Content-Length":String(file.size_bytes),"Content-Disposition":`attachment; filename="financial-evidence.pdf"; filename*=UTF-8''${encodeURIComponent(file.original_name).replaceAll("'","%27")}`,"Cache-Control":"private, no-store","X-Content-Type-Options":"nosniff","Content-Security-Policy":"sandbox","Referrer-Policy":"no-referrer"}});
+ const bytes=await readFinancialFilePayload(bucket,closeoutFileControlTarget(file,basis.basis.case));
+ await account(db,content,user);
+ if(!await db.prepare("SELECT 1 FROM hrm_closeout_files WHERE id=? AND case_id=? AND object_deleted_at IS NULL AND disposition_state NOT IN ('deleting','completed')").bind(file.id,caseId).first())throw new HrmError("file_unavailable",404);
+ await audit(db,user,"closeout_file_read",null,file.id,{case_id:caseId,state:file.state});
+ return new Response(bytes,{headers:{"Content-Type":"application/pdf","Content-Length":String(file.size_bytes),"Content-Disposition":`attachment; filename="financial-evidence.pdf"; filename*=UTF-8''${encodeURIComponent(file.original_name).replaceAll("'","%27")}`,"Cache-Control":"private, no-store","X-Content-Type-Options":"nosniff","Content-Security-Policy":"sandbox","Referrer-Policy":"no-referrer"}});
 }
 
-export type CloseoutDossierSummary=Omit<CloseoutDossier,"basis_json">;
-export type CloseoutFileSummary=Omit<CloseoutFile,"object_key">;
-export async function closeoutDesk(db:D1Database,content:D1Database,user:WorkspaceUser,caseId:string,policyId:string|null){
+type CloseoutDossierMetadata=Omit<CloseoutDossier,"basis_json">;
+export type CloseoutDossierSummary=CloseoutDossierMetadata&{payload_state:FinancialControl["phase"]|"unavailable"};
+type CloseoutFileMetadata=Omit<CloseoutFile,"object_key">;
+export type CloseoutFileSummary=CloseoutFileMetadata&{control_state:FinancialControl["phase"]|"unavailable"};
+export async function closeoutDesk(db:D1Database,content:D1Database,bucket:R2Bucket,user:WorkspaceUser,caseId:string,policyId:string|null){
  requireCloseout(user);const basis=await currentCase(db,user,caseId);
  const [policyRows,dossierRows,fileRows,events,holds]=await Promise.all([
   db.prepare(`SELECT p.*,v.source_file_id FROM hrm_closeout_policy_versions p LEFT JOIN hrm_legal_template_versions v ON v.id=p.source_version_id WHERE p.legal_entity=? AND (p.state='active' OR EXISTS(SELECT 1 FROM hrm_closeout_dossiers d WHERE d.case_id=? AND d.policy_id=p.id)) ORDER BY p.created_at DESC,p.id LIMIT 101`).bind(String(basis.basis.employment.legal_entity),caseId).all<CloseoutPolicy&{source_file_id:string|null}>(),
-  db.prepare("SELECT id,case_id,person_id,employment_id,employee_user_id,policy_id,source_revision,basis_checksum,checks_json,no_payroll_evidence_json,state,prepared_by,prepared_at,reviewed_by,reviewed_at,review_reason,applied_by,applied_at,version,actor_id,updated_at FROM hrm_closeout_dossiers WHERE case_id=? ORDER BY prepared_at DESC,id DESC LIMIT 101").bind(caseId).all<CloseoutDossierSummary>(),
-  db.prepare("SELECT id,case_id,original_name,size_bytes,checksum,state,uploaded_by,created_at,reviewed_by,reviewed_at,review_reason,object_deleted_at,disposition_state,legal_hold,version,actor_id,updated_at FROM hrm_closeout_files WHERE case_id=? ORDER BY created_at DESC,id DESC LIMIT 201").bind(caseId).all<CloseoutFileSummary>(),
+  db.prepare("SELECT id,case_id,person_id,employment_id,employee_user_id,policy_id,source_revision,basis_checksum,checks_json,no_payroll_evidence_json,state,prepared_by,prepared_at,reviewed_by,reviewed_at,review_reason,applied_by,applied_at,payload_disposition_state,payload_disposed_at,payload_disposed_checksum,disposition_request_id,version,actor_id,updated_at FROM hrm_closeout_dossiers WHERE case_id=? ORDER BY prepared_at DESC,id DESC LIMIT 101").bind(caseId).all<CloseoutDossierMetadata>(),
+  db.prepare("SELECT id,case_id,original_name,size_bytes,checksum,state,uploaded_by,created_at,reviewed_by,reviewed_at,review_reason,object_deleted_at,disposition_state,legal_hold,version,actor_id,updated_at FROM hrm_closeout_files WHERE case_id=? ORDER BY created_at DESC,id DESC LIMIT 201").bind(caseId).all<CloseoutFileMetadata>(),
   db.prepare("SELECT id,dossier_id,event_type,detail_json,actor_id,created_at FROM hrm_closeout_events WHERE case_id=? ORDER BY id DESC LIMIT 100").bind(caseId).all<{id:number;dossier_id:string|null;event_type:string;detail_json:string;actor_id:string|null;created_at:string}>(),
   db.prepare("SELECT * FROM hrm_closeout_file_holds WHERE case_id=? ORDER BY placed_at DESC,id DESC LIMIT 501").bind(caseId).all<CloseoutFileHold>(),
  ]);
  if(policyRows.results.length>100||dossierRows.results.length>100||fileRows.results.length>200||holds.results.length>500)throw new HrmError("closeout_source_limit",409);
+ const files:CloseoutFileSummary[]=await Promise.all(fileRows.results.map(async file=>{
+  let control_state:CloseoutFileSummary["control_state"]="unavailable";
+  try{control_state=(await readFinancialControl(bucket,closeoutFileControlTarget(file,basis.basis.case))).value.phase}catch{/* Missing or inconsistent control never makes old restored metadata usable. */}
+  return {...file,control_state};
+ }));
+ const dossiers:CloseoutDossierSummary[]=await Promise.all(dossierRows.results.map(async row=>{
+  let payload_state:CloseoutDossierSummary["payload_state"]="unavailable";
+  try{if(row.payload_disposition_state!=="none")throw new Error("Disposed or reserved payload");payload_state=(await readFinancialControl(bucket,await closeoutDossierControlTarget(row))).value.phase}catch{/* An old DB payload cannot override absent/current privacy controls. */}
+  return {...row,payload_state,...(payload_state!=="live"?{checks_json:"[]",no_payroll_evidence_json:"[]",review_reason:null}:{})};
+ }));
+ const hidden=new Set(dossiers.filter(row=>row.payload_state!=="live").map(row=>row.id));
+ const visibleEvents=events.results.map(event=>{
+  if(!event.dossier_id||!hidden.has(event.dossier_id)||!["approved","rejected","applied"].includes(event.event_type))return event;
+  let detail:Record<string,unknown>={};try{const parsed=JSON.parse(event.detail_json);if(parsed&&typeof parsed==="object"&&!Array.isArray(parsed))detail=parsed}catch{/* Do not expose an unverified reason copy. */}
+  delete detail.reason;return {...event,detail_json:JSON.stringify(detail)};
+ });
  const actorIds=[...new Set([...dossierRows.results.flatMap(d=>[d.prepared_by,d.reviewed_by,d.applied_by]),...fileRows.results.flatMap(f=>[f.uploaded_by,f.reviewed_by]),...events.results.map(e=>e.actor_id),...holds.results.flatMap(h=>[h.placed_by,h.released_by])].filter((id):id is string=>!!id))];
  const actors=actorIds.length?(await content.prepare("SELECT id,COALESCE(NULLIF(name,''),'Account') AS name FROM users WHERE id IN (SELECT value FROM json_each(?))").bind(JSON.stringify(actorIds)).all<{id:string;name:string}>()).results:[];
  const actorLabels=Object.fromEntries(actors.map(a=>[a.id,a.name]));
  const selectedPolicy=policyId?policyRows.results.find(p=>p.id===policyId&&p.state==='active')??null:null;
- return {basis,policies:policyRows.results,selectedPolicy,actorLabels,dossiers:dossierRows.results,files:fileRows.results,events:events.results,fileHolds:holds.results};
+ return {basis,policies:policyRows.results,selectedPolicy,actorLabels,dossiers,files,events:visibleEvents,fileHolds:holds.results};
 }

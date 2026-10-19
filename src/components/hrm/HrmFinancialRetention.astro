@@ -1,0 +1,54 @@
+---
+import HrmFinancialDisposition from "./HrmFinancialDisposition.astro";
+import type { RetentionPageData } from "../../lib/hrm/retention-pages";
+const d=Astro.props.data as RetentionPageData,f=d.financial!,vi=d.vi;
+const path=`${vi?"/vi":""}/hrm/retention`;
+const state=(value:string)=>({draft:vi?"Bản nháp":"Draft",reviewed:vi?"Đã rà soát":"Reviewed",active:vi?"Đang hiệu lực":"Active",retired:vi?"Đã ngừng":"Retired",rejected:vi?"Bị từ chối":"Rejected"}[value]??value);
+const anchor=(value:string|null)=>({file_created:vi?"Ngày tạo bản tải lên":"Upload creation date",employment_ended:vi?"Ngày kết thúc đợt làm việc":"Employment end date",case_completed:vi?"Ngày hoàn tất hồ sơ nghỉ việc":"Offboarding case completion",dossier_prepared:vi?"Ngày lập hồ sơ quyết toán":"Dossier preparation date",dossier_applied:vi?"Ngày ghi hoàn tất quyết toán":"Financial completion date"}[value??""]??(vi?"Chưa chọn mốc":"No anchor selected"));
+const person=(id:string|null)=>id?(f.actorLabels[id]||(vi?"Tài khoản không còn khả dụng":"Account unavailable")):(vi?"Chưa có":"Not recorded");
+const dateTime=(value:string)=>new Date(value).toLocaleString(vi?"vi-VN":"en-GB",{dateStyle:"medium",timeStyle:"short",timeZone:"Asia/Ho_Chi_Minh"});
+const canManage=d.user.can("hrm.retention.manage"),canReview=d.user.can("hrm.retention.review"),canActivate=d.user.can("hrm.retention.activate");
+---
+<section class="crm-sheet" id="financial-retention">
+ <h2 class="crm-h2">{vi?"Lưu giữ dữ liệu quyết toán":"Financial closeout retention"}</h2>
+ <p class="crm-help">{vi?"Chính sách dành riêng cho PDF và nội dung hồ sơ quyết toán. Chọn nguồn DOCX đã được rà soát, mốc tính và căn cứ cho từng loại; để trống hạn và mốc nghĩa là chưa lên lịch xử lý. Hạn dùng ngày lịch Việt Nam (UTC+7). Cấu hình không tự xóa dữ liệu; từng lần xử lý cần phạm vi và phê duyệt riêng.":"Separate policy for financial PDFs and dossier content. Choose a reviewed DOCX source, anchor and basis for each type; leaving both duration and anchor empty keeps it unscheduled. Periods use Vietnam calendar dates (UTC+7). Configuration does not automatically erase data; each disposition needs its own scope and approval."}</p>
+ {!f.legalEntity&&<p class="crm-notice warn">{vi?"Chọn pháp nhân trong Thiết lập trước khi tạo chính sách.":"Configure the legal entity in Settings before creating a policy."}</p>}
+ <form class="crm-form" method="get" action={path}>
+  <label class="crm-field"><span>{vi?"Tìm nguồn chính sách theo mã hoặc tiêu đề":"Find a policy source by code or title"}</span><input class="crm-input" name="financial_source" value={f.sourceSearch} maxlength="100"/></label>
+  <button class="crm-button secondary" type="submit">{vi?"Tìm nguồn DOCX":"Find DOCX source"}</button>
+ </form>
+ {f.sourcesHaveMore&&<p class="crm-help">{vi?"Đang hiển thị 50 nguồn đầu tiên. Nhập mã hoặc tiêu đề cụ thể để thu hẹp kết quả.":"Showing the first 50 sources. Enter a specific code or title to narrow the results."}</p>}
+ {canManage&&<details class="crm-sheet"><summary>{vi?"Tạo phiên bản chính sách tài chính":"Create financial retention policy version"}</summary>
+  <form class="crm-form" method="post" action="/api/hrm/retention">
+   <input type="hidden" name="intent" value="create_financial_policy"/><input type="hidden" name="lang" value={d.lang}/><input type="hidden" name="request_key" value={crypto.randomUUID()}/>
+   <label class="crm-field"><span>{vi?"Mã chính sách":"Policy code"}</span><input class="crm-input" name="policy_key" maxlength="80" pattern="[A-Z][A-Z0-9_-]+" required/></label>
+   <label class="crm-field"><span>{vi?"Tiêu đề tiếng Anh":"English title"}</span><input class="crm-input" name="title_en" maxlength="160" required/></label>
+   <label class="crm-field"><span>{vi?"Tiêu đề tiếng Việt":"Vietnamese title"}</span><input class="crm-input" name="title_vi" maxlength="160" required/></label>
+   <label class="crm-field"><span>{vi?"Mục đích lưu giữ":"Retention purpose"}</span><textarea class="crm-input" name="purpose" maxlength="1000" required rows="3"></textarea></label>
+   <label class="crm-field"><span>{vi?"Phiên bản DOCX đã rà soát":"Reviewed DOCX version"}</span><select class="crm-select" name="source_version_id" required><option value="">{vi?"Chọn nguồn":"Choose source"}</option>{f.sourceVersions.map(source=><option value={source.id}>{vi?source.title_vi:source.title_en} · v{source.version_number} · SHA-256 {source.source_checksum.slice(0,12)}</option>)}</select></label>
+   <div class="crm-actions"><label class="crm-field"><span>{vi?"Hiệu lực từ":"Effective from"}</span><input class="crm-input" type="date" name="effective_from" required/></label><label class="crm-field"><span>{vi?"Hiệu lực đến":"Effective until"}</span><input class="crm-input" type="date" name="effective_until" required/></label></div>
+   {(["file","dossier"] as const).map(kind=><fieldset class="crm-sheet"><legend>{kind==="file"?(vi?"PDF quyết toán":"Financial PDF"):(vi?"Nội dung hồ sơ quyết toán":"Dossier content")}</legend>
+    <label class="crm-field"><span>{vi?"Số ngày giữ (để trống nếu chưa lên lịch)":"Retention days (empty means unscheduled)"}</span><input class="crm-input" type="number" min="1" max="36500" step="1" name={`${kind}_days`}/></label>
+    <label class="crm-field"><span>{vi?"Mốc tính khi có thời hạn":"Anchor when a period is configured"}</span><select class="crm-select" name={`${kind}_anchor`}><option value="">{vi?"Chưa chọn":"Not selected"}</option>{(kind==="file"?["file_created","employment_ended","case_completed"]:["dossier_prepared","dossier_applied","employment_ended","case_completed"]).map(value=><option value={value}>{anchor(value)}</option>)}</select></label>
+    <label class="crm-field"><span>{vi?"Căn cứ đã rà soát / lý do chưa lên lịch":"Reviewed basis / reason for keeping it unscheduled"}</span><textarea class="crm-input" name={`${kind}_basis`} maxlength="1000" rows="3" required></textarea></label>
+   </fieldset>)}
+   <p class="crm-help">{vi?"Không ghi số tài khoản, số tiền hay thông tin cá nhân vào mục đích/căn cứ. Nhập chính sách đã được người phụ trách rà soát; vai trò quản trị không xác nhận tính đúng về pháp lý.":"Keep account numbers, amounts and personal details out of policy purposes/bases. Enter rules reviewed by the accountable owner; an admin role does not establish legal applicability."}</p>
+   <button class="crm-button secondary" type="submit" disabled={!f.legalEntity||f.sourceVersions.length===0}>{vi?"Lưu bản nháp":"Save draft"}</button>
+  </form>
+ </details>}
+ <div class="crm-list">{f.policies.length===0?<p class="crm-empty">{vi?"Chưa có phiên bản chính sách tài chính.":"No financial retention policy versions."}</p>:f.policies.map(policy=><article class="crm-row"><div class="crm-onboarding-copy">
+  <strong>{vi?policy.title_vi:policy.title_en} · v{policy.revision}</strong><span class="crm-meta">{policy.policy_key} · {state(policy.state)} · {policy.effective_from}–{policy.effective_until}</span><p>{policy.purpose}</p>
+  <p>{vi?"PDF":"PDF"}: {policy.file_days===null?(vi?"Chưa lên lịch":"Unscheduled"):`${policy.file_days} ${vi?"ngày":"days"} · ${anchor(policy.file_anchor)}`}<br/>{policy.file_basis}</p>
+  <p>{vi?"Nội dung hồ sơ":"Dossier content"}: {policy.dossier_days===null?(vi?"Chưa lên lịch":"Unscheduled"):`${policy.dossier_days} ${vi?"ngày":"days"} · ${anchor(policy.dossier_anchor)}`}<br/>{policy.dossier_basis}</p>
+  {policy.source_file_id&&<a href={`/api/hrm/legal/files/${encodeURIComponent(policy.source_file_id)}`}>{vi?"Mở nguồn DOCX":"Open DOCX source"}</a>}
+  <p class="crm-meta">{vi?"Tạo bởi":"Created by"} {person(policy.created_by)} · {dateTime(policy.created_at)}{policy.reviewed_at?` · ${vi?"Rà soát":"Reviewed"}: ${person(policy.reviewed_by)} · ${dateTime(policy.reviewed_at)}`:""}</p>
+  {policy.review_reason&&<p>{policy.review_reason}</p>}
+ </div><div class="crm-actions">{policy.created_by!==d.user.id&&((policy.state==="draft"&&canReview)||(policy.state==="reviewed"&&canActivate)||(policy.state==="active"&&canActivate))&&<form class="crm-form" method="post" action="/api/hrm/retention">
+  <input type="hidden" name="intent" value="financial_policy_action"/><input type="hidden" name="lang" value={d.lang}/><input type="hidden" name="request_key" value={crypto.randomUUID()}/><input type="hidden" name="policy_id" value={policy.id}/><input type="hidden" name="version" value={policy.version}/>
+  <label class="crm-field"><span>{vi?"Căn cứ quyết định":"Decision basis"}</span><input class="crm-input" name="reason" maxlength="500" required/></label>
+  {policy.state==="draft"?<><button class="crm-button secondary" name="action" value="approve">{vi?"Rà soát độc lập":"Independent review"}</button><button class="crm-button secondary" name="action" value="reject">{vi?"Từ chối":"Reject"}</button></>:<button class="crm-button secondary" name="action" value={policy.state==="reviewed"?"activate":"retire"}>{policy.state==="reviewed"?(vi?"Kích hoạt phiên bản":"Activate version"):(vi?"Ngừng phiên bản":"Retire version")}</button>}
+ </form>}</div></article>)}</div>
+ {f.next&&<p><a href={`${path}?financial_after=${encodeURIComponent(`${f.next.policyKey}:${f.next.revision}`)}#financial-retention`}>{vi?"Các phiên bản tiếp theo":"More policy versions"}</a></p>}
+</section>
+
+<HrmFinancialDisposition data={d}/>
