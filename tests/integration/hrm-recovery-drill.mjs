@@ -353,7 +353,10 @@ export async function runHrmRecoveryDrill({
     const adminResponse = await fetch(`${recoveryWorker.base}/api/hrm/services/attachments/${attachmentId}`, { headers: { cookie: adminCookie }, redirect: "manual" });
     assert.equal(adminResponse.status, 503, "recovered HRM stays closed until identity, access and hold review is repeated");
     const managerResponse = await fetch(`${recoveryWorker.base}/api/hrm/services/attachments/${attachmentId}`, { headers: { cookie: managerCookie }, redirect: "manual" });
-    assert.equal(managerResponse.status, 403, "a Workspace revocation after backup stays denied for the current EmDash account");
+    // With a post-backup revocation the manager is no longer a member (403).
+    // Without one, the still-current manager meets the forced-closed HRM gate
+    // (503); restored evidence is never served either way.
+    assert.equal(managerResponse.status, currentWorkspaceRevokedUserId ? 403 : 503, currentWorkspaceRevokedUserId ? "a Workspace revocation after backup stays denied for the current EmDash account" : "an unrevoked manager meets the closed recovered HRM gate, not restored evidence");
     const restoredBytes=await s3Request(recoveryWorker.base,"GET",file.object_key);assert.equal(restoredBytes.status,200);assert.equal(digest(Buffer.from(await restoredBytes.arrayBuffer())),file.checksum,"the verified private recovery copy remains available to the recovery operator");
     const revokedEmployee = await fetch(`${recoveryWorker.base}/hrm/me/requests`, { headers: { cookie: employeeCookie }, redirect: "manual" });
     assert.notEqual(revokedEmployee.status, 200, "a later EmDash revocation must prevent the old D1 membership snapshot from restoring access");
