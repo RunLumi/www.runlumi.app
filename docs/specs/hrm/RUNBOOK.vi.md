@@ -174,6 +174,14 @@ Số tiền trên dòng lương phải bằng số tiền đã duyệt và một
 
 Đây là kiểm soát truy vết nguồn, không phải phép tính lương theo luật, thuế, bảo hiểm, làm thêm giờ hay hoa hồng. Vẫn cần quy tắc chia theo ngày và quy tắc lương được owner duyệt, cùng một kỳ chạy song song được kiểm tra độc lập, trước khi mở payroll.
 
+## Hoa hồng CRM trong payroll
+
+Hoa hồng ghi nhận trong CRM chưa phải là lương. Với người có loại người bán là Nhân viên vào cuối tháng, Tài chính mở **CRM → Hoa hồng → Chuyển sang payroll HRM** và xác nhận tháng đó. CRM cố định các dòng đã đủ điều kiện trong tháng theo chính sách đã duyệt, với số tiền do CRM tính; không ai nhập tay tổng tiền. Mỗi dòng chỉ nằm trong một bản chuyển còn hiệu lực. Một người trong một tháng chỉ đi một kênh: hoặc chuyển payroll, hoặc ghi chi thủ công trong CRM. D1 chặn cả hai chiều.
+
+Trong payroll, cấu phần có nguồn `crm_commission` (VND, độ chính xác 0) nhận bản chuyển đã xác nhận của chính tài khoản EmDash của nhân viên và đúng một tháng dương lịch của kỳ, với đúng số tiền. HRM chỉ đọc mã bản chuyển, tháng, tổng và số dòng. Khách hàng, cơ hội và sổ thu không bao giờ đi vào payroll hay phiếu lương. Một bản chuyển chỉ được một kỳ dùng; sau khi phát hành, nó nằm trên đúng một phiếu lương hiện hành. Bản điều chỉnh có liên kết được mang tiếp, còn một kỳ thường khác không được trả lại lần nữa. Khi payroll đã dùng, Tài chính không còn hủy được bản chuyển. Hoàn tiền phát sinh sau đó không tự trừ lương; phải quyết định qua bản điều chỉnh hoặc thu hồi có rà soát.
+
+Hoa hồng chưa có vẫn là chưa biết, không phải số 0. Cách tính thuế, chính sách hoa hồng đã duyệt và kỳ chạy song song payroll vẫn cần owner và người phụ trách chuyên môn phê duyệt trước khi dùng thật.
+
 ## Xử lý xóa tệp khi vai trò thay đổi
 
 Quy trình xóa tệp dùng ba người khác nhau: người tạo yêu cầu, người rà soát độc lập và System Super Admin thực hiện xóa. Được nâng quyền hoặc có nhiều vai trò không miễn điều kiện này, kể cả khi tiếp tục một lần xóa đang dở. Phải chặn người tạo hoặc người rà soát đóng vai người thực hiện trước khi giữ chỗ hay xóa object R2; ràng buộc D1 ở bước cuối không bảo vệ được bytes đã bị xóa. Lần từ chối phải giữ nguyên trạng thái yêu cầu, metadata và object vẫn tải được. Dùng người thực hiện độc lập có quyền; không xóa object thủ công để vượt hàng đợi.

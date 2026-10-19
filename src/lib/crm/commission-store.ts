@@ -74,8 +74,9 @@ export async function loadCommission(db: D1Database, contentDb: D1Database, acto
   const visible = seesAll || approved;
   const lines = seesAll ? all : approved ? all.filter((line) => line.user_id === actor.id && !line.simulated) : [];
   const payouts = (await db.prepare(`SELECT * FROM crm_commission_payouts ${seesAll ? "" : "WHERE user_id = ?"} ORDER BY period DESC, created_at DESC LIMIT 500`).bind(...(seesAll ? [] : [actor.id])).all<PayoutRow>()).results;
+  const handoffs = (await db.prepare(`SELECT user_id, amount_vnd FROM crm_commission_handoffs WHERE state = 'confirmed' ${seesAll ? "" : "AND user_id = ?"}`).bind(...(seesAll ? [] : [actor.id])).all<{ user_id: string; amount_vnd: number }>()).results;
   const names = Object.fromEntries([...users.values()].map((user) => [user.id, user.name || user.email]));
-  return { versions, lines, people: summarizeByPerson(lines, payouts), terms: seesAll ? terms : terms.filter((row) => row.user_id === actor.id), payouts, names, visible };
+  return { versions, lines, people: summarizeByPerson(lines, payouts, handoffs), terms: seesAll ? terms : terms.filter((row) => row.user_id === actor.id), payouts, names, visible };
 }
 
 export async function saveSellerTerms(db: D1Database, contentDb: D1Database, actor: CrmActor, form: FormData): Promise<void> {
@@ -170,9 +171,15 @@ export async function recordPayout(db: D1Database, actor: CrmActor, form: FormDa
   if (userId === actor.id && !actor.configure) throw new ForbiddenError();
   const id = newId("pay");
   const amount = negative ? -magnitude! : magnitude!;
-  await once(db, actor, requestKey(form), "commission_payout", id, [
-    db.prepare("INSERT INTO crm_commission_payouts (id, user_id, period, amount_vnd, policy_id, evidence, note, recorded_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
-      .bind(id, userId, period, amount, approved.id, evidence, note, actor.id, nowIso()),
-    eventStatement(db, actor, "commission_payout", { user_id: userId, period, amount_vnd: amount }, {}),
-  ]);
+  try {
+    await once(db, actor, requestKey(form), "commission_payout", id, [
+      db.prepare("INSERT INTO crm_commission_payouts (id, user_id, period, amount_vnd, policy_id, evidence, note, recorded_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+        .bind(id, userId, period, amount, approved.id, evidence, note, actor.id, nowIso()),
+      eventStatement(db, actor, "commission_payout", { user_id: userId, period, amount_vnd: amount }, {}),
+    ]);
+  } catch (error) {
+    // A month handed to HRM payroll is paid there, never also as a manual payout.
+    if (error instanceof Error && error.message.includes("crm_commission_period_handed_off")) throw new ValidationError({ period: "handed_off" });
+    throw error;
+  }
 }

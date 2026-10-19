@@ -22,6 +22,8 @@ export interface PayrollDeskPage extends PageBase {
   compensation: CompensationVersion[]; compensationHasMore: boolean; compensationFilter: string; compensationPage: number;
   /** Coverage hint per `run_person_id:component_code` for the selected draft run. */
   coverage: Record<string, CompensationCoverage>;
+  /** Confirmed CRM commission handoffs for the selected run's month, by run person. Totals only. */
+  commission: Record<string, Array<{ id: string; amount_vnd: number; line_count: number }>>;
   closeoutPolicies:CloseoutPolicy[];closeoutSources:{id:string;source_file_id:string;title_en:string;title_vi:string;version_number:number}[];
 }
 export async function payrollDeskPage(astro: AstroGlobal, lang: "en" | "vi"): Promise<Response | PayrollDeskPage> {
@@ -54,11 +56,17 @@ export async function payrollDeskPage(astro: AstroGlobal, lang: "en" | "vi"): Pr
     for (const person of selectedRun.people) for (const component of components.filter(item => item.source_kind === "employment_record"))
       coverage[`${person.id}:${component.code}`] = byEmployment.get(`${person.employment_id}:${component.code}`) ?? { state: "missing" };
   }
+  const commission: PayrollDeskPage["commission"] = {};
+  if (selectedRun && !["published", "closed"].includes(selectedRun.run.state) && user.can("hrm.payroll.prepare") && selectedRun.run.starts_on.slice(0, 7) === selectedRun.run.ends_on.slice(0, 7)) {
+    const rows = (await env.DB.prepare(`SELECT rp.id AS run_person_id,h.id,h.amount_vnd,h.line_count FROM hrm_payroll_run_people rp JOIN hrm_people p ON p.id=rp.person_id
+      JOIN crm_commission_handoffs h ON h.user_id=p.user_id AND h.state='confirmed' AND h.period=? WHERE rp.run_id=? ORDER BY h.confirmed_at`).bind(selectedRun.run.starts_on.slice(0, 7), selectedRun.run.id).all<{ run_person_id: string; id: string; amount_vnd: number; line_count: number }>()).results;
+    for (const row of rows) commission[row.run_person_id] = [...(commission[row.run_person_id] ?? []), { id: row.id, amount_vnd: row.amount_vnd, line_count: row.line_count }];
+  }
   const disputes = live && user.can("hrm.payroll.dispute.manage") ? await listPayrollDisputes(env.DB, user) : [];
   const disputeId = astro.url.searchParams.get("dispute");
   let selectedDispute: PayrollDisputeEvent[] | undefined;
   if (disputeId && live && user.can("hrm.payroll.dispute.manage")) selectedDispute = await payrollDisputeEvents(env.DB, user, disputeId);
-  return { ...base(lang, user, lang === "vi" ? "Payroll và phiếu lương" : "Payroll and payslips"), policies, compensation: listed.rows, compensationHasMore: listed.hasMore, compensationFilter, compensationPage, coverage, closeoutPolicies, closeoutSources, periods, runs, selectedRun, slips, payments, runSettled, disputes, selectedDispute, saved: astro.url.searchParams.get("saved") ?? "", error: errorValue(astro) };
+  return { ...base(lang, user, lang === "vi" ? "Payroll và phiếu lương" : "Payroll and payslips"), policies, compensation: listed.rows, compensationHasMore: listed.hasMore, compensationFilter, compensationPage, coverage, commission, closeoutPolicies, closeoutSources, periods, runs, selectedRun, slips, payments, runSettled, disputes, selectedDispute, saved: astro.url.searchParams.get("saved") ?? "", error: errorValue(astro) };
 }
 
 export interface MyPayslipsPage extends PageBase { slips: PayrollSlip[]; disputes: PayrollDispute[]; selectedDispute?: PayrollDisputeEvent[]; saved: string; error?: string }

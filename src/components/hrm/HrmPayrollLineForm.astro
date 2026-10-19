@@ -1,12 +1,13 @@
 ---
 import type { CompensationCoverage } from "../../lib/hrm/compensation";
 import type { PayrollComponent, PayrollPerson, PayrollRun } from "../../lib/hrm/payroll";
-interface Props { run: PayrollRun; person: PayrollPerson; component: PayrollComponent; coverage?: CompensationCoverage; returnTo: string; vi: boolean }
-const { run, person, component, coverage, returnTo, vi } = Astro.props as Props;
+interface Props { run: PayrollRun; person: PayrollPerson; component: PayrollComponent; coverage?: CompensationCoverage; commission?: Array<{ id: string; amount_vnd: number; line_count: number }>; returnTo: string; vi: boolean }
+const { run, person, component, coverage, commission, returnTo, vi } = Astro.props as Props;
 const line = person.lines.find(item => item.component_code === component.code);
 const covered = component.source_kind === "employment_record" && coverage?.state === "covered" ? coverage.version : undefined;
-const sourceReference = component.source_kind === "employment_record" ? covered?.id ?? line?.source_reference ?? "" : component.source_kind === "locked_time" ? run.period_id : line?.source_reference ?? "";
-const amount = line?.amount_minor ?? covered?.amount_minor ?? "";
+const handoff = component.source_kind === "crm_commission" && commission?.length === 1 ? commission[0] : undefined;
+const sourceReference = component.source_kind === "crm_commission" ? line?.source_reference ?? handoff?.id ?? "" : component.source_kind === "employment_record" ? covered?.id ?? line?.source_reference ?? "" : component.source_kind === "locked_time" ? run.period_id : line?.source_reference ?? "";
+const amount = line?.amount_minor ?? covered?.amount_minor ?? handoff?.amount_vnd ?? "";
 ---
 <form class="crm-form" method="post" action="/api/hrm/payroll">
   <h3 class="crm-h3">{vi ? component.title_vi : component.title_en}{component.required ? " · *" : ""}</h3>
@@ -26,6 +27,9 @@ const amount = line?.amount_minor ?? covered?.amount_minor ?? "";
     : <p class="crm-notice warn" role="note">{coverage?.state === "partial"
       ? (vi ? "Kỳ này chỉ được phủ một phần hoặc có nhiều phiên bản thu nhập. Không có quy tắc chia theo ngày nên khoản này bị chặn." : "Compensation covers only part of this period or changes within it. No proration rule exists, so this line is blocked.")
       : (vi ? "Chưa có phiên bản thu nhập đã duyệt cho cấu phần này trong kỳ." : "No approved compensation version covers this component in the period.")}</p>)}
+  {component.source_kind === "crm_commission" && (commission?.length
+    ? <p class="crm-meta">{vi ? "Bản chuyển hoa hồng CRM đã xác nhận cho tháng này" : "Confirmed CRM commission handoff for this month"}: {commission.map(item => `${item.id} · ${item.line_count} ${vi ? "dòng" : "lines"}`).join("; ")}</p>
+    : <p class="crm-notice warn" role="note">{vi ? "Chưa có bản chuyển hoa hồng CRM đã xác nhận cho nhân viên và tháng này. Không nhập số 0 thay cho dữ liệu chưa có." : "No confirmed CRM commission handoff exists for this employee and month. Do not enter zero for unknown commission."}</p>)}
   <p class="crm-meta">{component.source_kind} · {component.direction}</p>
   <button class="crm-button secondary small">{vi ? "Lưu khoản" : "Save line"}</button>
 </form>
