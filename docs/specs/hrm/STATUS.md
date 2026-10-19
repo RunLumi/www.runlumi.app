@@ -520,3 +520,29 @@ Owner or specialist decisions still block P0 and the activation gates of P2–P5
 10. **Activation.** Who sets `HRM_LIVE_ENABLED` and marks the HRM settings reviewed?
 
 Engineering scope still open: dynamic-route and per-record HRM-20 states; derivative/old-backup erasure proof; report/reminder metadata lifecycle (RPT-01–10); a single HTTP chain from a CRM deal to a published payslip; and a refund-after-handoff recovery workflow. HRM is not complete and production stays closed.
+
+
+### HRM-20 dynamic-route matrix — working branch, 2026-10-20
+
+P5 now also requests every dynamic HRM route for the same 10 sessions in EN and VI:
+
+- `/hrm/people/:id`
+- `/hrm/people/:id/profile`
+- `/hrm/coi/:id`
+- `/hrm/me/coi/:id`
+- `/hrm/documents/issues/:id`
+- `/hrm/me/documents/:id`
+- `/hrm/offboarding/:id`
+- `/hrm/transfers/:id`
+- `/hrm/job-descriptions/:slug`
+
+Each route is requested with a real record and with a nonexistent ID, 360 checks against the real Worker/D1/R2 state that P1–P5 create. The matrix requires that:
+
+- no response is a server error;
+- EN/VI status and locale-equivalent redirects match;
+- a nonexistent record never renders 200;
+- a real record the session cannot open answers exactly like a missing one, so no other person's record is revealed by its status code;
+- ATS-only and CRM-only roles never receive an HRM record.
+
+The probe person belongs to none of the matrix sessions. The first run flagged the linked employee's own record (403 versus 404 for a missing ID), which reveals nothing new, so the probe was moved to another person's record. The combined local run passes P1–P5 (4/4) and the journey (1/1) with zero dynamic violations. Per-record workflow states beyond these detail pages remain under the existing per-phase browser audits.
+

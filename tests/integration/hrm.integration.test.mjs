@@ -1458,7 +1458,7 @@ test("HRM P5 keeps service requests private and retries in-app notifications wit
  for(const role of ["employee","people_manager","hrm_officer","payroll_officer","hr","finance"]){matrixRoles[role]=await userSession(S.system,{email:`test-matrix-${role.replaceAll("_","-")}-${run}@example.test`,name:`TEST Matrix ${role} ${run}`});assert.equal((await grant(matrixRoles[role],role)).status,303)}
  const matrixSessions={...matrixRoles,hrm_admin:S.hrm,linked_employee:S.employeeP5,assigned_manager:S.manager,system:S.system};
  const unlocalized=(location)=>location?new URL(location,BASE).pathname.replace(/^\/vi(?=\/|$)/,"")+new URL(location,BASE).search:null;
- let matrixChecks=0;const statusTable={},matrixViolations=[];
+ let matrixChecks=0;const statusTable={},matrixViolations=[],dynamicViolations=[];
  for(const [label,session] of Object.entries(matrixSessions))for(const route of staticHrmRoutes){
   const [en,vi]=[await session.get(route),await session.get(`/vi${route}`)];matrixChecks+=2;
   if(en.status>=500||vi.status>=500)matrixViolations.push(`${label} ${route}: server error EN ${en.status} VI ${vi.status}`);
@@ -1468,6 +1468,33 @@ test("HRM P5 keeps service requests private and retries in-app notifications wit
   (statusTable[label]??={})[route]=en.status;
  }
  assert.deepEqual(matrixViolations,[],"HRM-20 role/route/locale matrix violations");
+ // Dynamic routes: a real record and a nonexistent ID per route. Without
+ // access, the real record must answer exactly like the missing one, so a
+ // status code never reveals that a record exists.
+ const firstId=(sql)=>jobs(sql)[0]?.id??null;
+ // Probe someone none of the matrix sessions is: a session's own record is
+ // already known to it, so only other people's records test for leaks.
+ const matrixUserIds=Object.values(matrixSessions).map(session=>session.id).filter(Boolean);
+ const matrixPerson=firstId(`SELECT id FROM hrm_people WHERE user_id IS NULL OR user_id NOT IN (${matrixUserIds.map(q).join(",")}) ORDER BY rowid LIMIT 1`);
+ const matrixCoi=firstId("SELECT id FROM hrm_coi_declarations ORDER BY rowid LIMIT 1"),matrixIssue=firstId("SELECT id FROM hrm_legal_issues ORDER BY rowid LIMIT 1");
+ const dynamicRoutes=[["/hrm/people/:id",matrixPerson],["/hrm/people/:id/profile",matrixPerson],["/hrm/coi/:id",matrixCoi],["/hrm/me/coi/:id",matrixCoi],["/hrm/documents/issues/:id",matrixIssue],["/hrm/me/documents/:id",matrixIssue],["/hrm/offboarding/:id",firstId("SELECT id FROM hrm_offboarding_cases ORDER BY rowid LIMIT 1")],["/hrm/transfers/:id",firstId("SELECT id FROM applications ORDER BY rowid LIMIT 1")],["/hrm/job-descriptions/:id","coo-head-of-sales-operations"]];
+ const dynamicSkipped=dynamicRoutes.filter(([,value])=>!value).map(([route])=>route);let dynamicChecks=0;const dynamicTable={};
+ for(const [label,session] of Object.entries(matrixSessions))for(const [route,recordId] of dynamicRoutes.filter(([,value])=>value)){
+  const real=route.replace(":id",encodeURIComponent(recordId)),missing=route.replace(":id",route.includes("job-descriptions")?"no-such-role-matrix-probe":"hrm_missing_matrix_probe_0000000000000000");
+  const [en,vi,enMissing,viMissing]=[await session.get(real),await session.get(`/vi${real}`),await session.get(missing),await session.get(`/vi${missing}`)];dynamicChecks+=4;
+  for(const [name,a,b] of [["record",en,vi],["missing",enMissing,viMissing]]){
+   if(a.status>=500||b.status>=500)dynamicViolations.push(`${label} ${route} ${name}: server error EN ${a.status} VI ${b.status}`);
+   if(a.status!==b.status)dynamicViolations.push(`${label} ${route} ${name}: status EN ${a.status} VI ${b.status}`);
+   else if(a.status>=300&&a.status<400&&unlocalized(a.location)!==unlocalized(b.location))dynamicViolations.push(`${label} ${route} ${name}: redirect EN ${a.location} VI ${b.location}`);
+  }
+  if(enMissing.status===200)dynamicViolations.push(`${label} ${route}: a nonexistent record rendered 200`);
+  if(en.status!==200&&en.status!==enMissing.status)dynamicViolations.push(`${label} ${route}: existence leak, record ${en.status} vs missing ${enMissing.status}`);
+  if(["hr","finance"].includes(label)&&en.status===200)dynamicViolations.push(`${label} ${route}: HRM record served to a non-HRM role`);
+  (dynamicTable[label]??={})[route]=`${en.status}/${enMissing.status}`;
+ }
+ console.log("HRM-20 dynamic route matrix:",JSON.stringify({routes:dynamicRoutes.length-dynamicSkipped.length,skipped:dynamicSkipped,checks:dynamicChecks,status:dynamicTable}));
+ assert.deepEqual(dynamicViolations,[],"HRM-20 dynamic route matrix violations");
+
  console.log("HRM-20 role/route/locale matrix:",JSON.stringify({routes:staticHrmRoutes.length,roles:Object.keys(matrixSessions).length,checks:matrixChecks,status:statusTable}));
 
  await runHrmRecoveryDrill({adminCookie:S.hrm.header(),employeeCookie:S.employeeP5.header(),managerCookie:S.manager.header(),employeeUserId:S.employeeP5.id,attachmentId:P.recoveryAttachmentId,fileId:P.recoveryFileId,run,recoveryOperator:{id:recoveryAdmins[0].id,name:recoveryAdmins[0].name||recoveryAdmins[0].email}});
