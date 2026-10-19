@@ -10,7 +10,7 @@ import { rateKeys, sellerTypes, type RateKey, type SellerType } from "../../lib/
 import type { CommissionProps } from "../../lib/crm/routes/commission";
 
 type Props = CommissionProps;
-const { ctx, state, view, people, person } = Astro.props;
+const { ctx, state, view, people, person, handoffs } = Astro.props;
 const { lang, vi, base } = ctx;
 const seesAll = ctx.actor.configure || ctx.actor.finance;
 const current = view.versions[0];
@@ -82,10 +82,10 @@ const e = (intent: string, field: string) => errorFor(state, intent, field);
   {view.visible && <section class="crm-sheet" id="people" aria-labelledby="people-h">
     <h2 class="crm-h2" id="people-h">{seesAll ? (vi ? "Theo người" : "By person") : (vi ? "Của bạn" : "Yours")}</h2>
     {view.people.length ? <div class="crm-table-wrap"><table class="crm-table">
-      <thead><tr><th>{vi ? "Người" : "Person"}</th><th class="num">{vi ? "Đủ điều kiện" : "Earned"}</th><th class="num">{vi ? "Đang giữ" : "Holdback"}</th><th class="num">{vi ? "Chờ thu/bàn giao" : "Waiting"}</th><th class="num">{vi ? "Đã chi" : "Paid"}</th><th class="num">{vi ? "Số dư" : "Balance"}</th>{seesAll && <th class="num">{vi ? "Mô phỏng (chưa duyệt)" : "Simulated (unapproved)"}</th>}</tr></thead>
+      <thead><tr><th>{vi ? "Người" : "Person"}</th><th class="num">{vi ? "Đủ điều kiện" : "Earned"}</th><th class="num">{vi ? "Đang giữ" : "Holdback"}</th><th class="num">{vi ? "Chờ thu/bàn giao" : "Waiting"}</th><th class="num">{vi ? "Đã chi" : "Paid"}</th><th class="num">{vi ? "Chuyển payroll" : "Sent to payroll"}</th><th class="num">{vi ? "Số dư" : "Balance"}</th>{seesAll && <th class="num">{vi ? "Mô phỏng (chưa duyệt)" : "Simulated (unapproved)"}</th>}</tr></thead>
       <tbody>{view.people.map((row) => <tr>
         <td>{seesAll ? <a class="crm-link" href={`?person=${encodeURIComponent(row.user_id)}#lines`}>{name(row.user_id)}</a> : name(row.user_id)}{row.missing_terms > 0 && <span class="crm-badge amber" style="margin-left:6px">{vi ? "chưa khai báo loại" : "no seller type"}</span>}</td>
-        <td class="num">{money(row.earned)}</td><td class="num">{money(row.holdback)}</td><td class="num">{money(row.waiting)}</td><td class="num">{money(row.paid)}</td>
+        <td class="num">{money(row.earned)}</td><td class="num">{money(row.holdback)}</td><td class="num">{money(row.waiting)}</td><td class="num">{money(row.paid)}</td><td class="num">{money(row.payroll)}</td>
         <td class="num"><strong>{money(row.balance)}</strong>{row.balance < 0 && <span class="crm-meta"><br />{vi ? "cần thu hồi" : "to recover"}</span>}</td>
         {seesAll && <td class="num">{money(row.simulated)}</td>}
       </tr>)}</tbody>
@@ -105,6 +105,32 @@ const e = (intent: string, field: string) => errorFor(state, intent, field);
         <div class="crm-actions"><button class="crm-button" type="submit">{vi ? "Ghi nhận" : "Record"}</button></div>
       </form>
     </details> : <p class="crm-help">{vi ? "Chỉ ghi nhận chi trả sau khi có chính sách đã duyệt." : "Payouts can be recorded only under an approved policy."}</p>)}
+  </section>}
+
+  {ctx.actor.finance && approved && <section class="crm-sheet" id="payroll" aria-labelledby="payroll-h">
+    <h2 class="crm-h2" id="payroll-h">{vi ? "Chuyển sang payroll HRM" : "Hand off to HRM payroll"}</h2>
+    <p class="crm-help">{vi ? "Với nhân viên, hoa hồng được trả qua payroll. Xác nhận một tháng sẽ cố định các khoản đã đủ điều kiện trong tháng đó với số tiền do CRM tính; payroll chỉ thấy tổng, tháng và số dòng, không thấy khách hàng hay sổ thu. Mỗi khoản chỉ được chuyển một lần, và một tháng không thể vừa chuyển payroll vừa ghi chi thủ công." : "Employees are paid commission through payroll. Confirming a month freezes the lines that became eligible in it at the CRM-computed amounts. Payroll sees only the total, month and line count, never customers or the ledger. Each line is handed off once, and one month cannot be both handed off and recorded as a manual payout."}</p>
+    <form class="crm-form" method="post" action="#payroll">
+      <Hidden intent="handoff" state={state} />
+      <div class="crm-form-grid">
+        <Field name="user_id" id="h-user" type="select" label={vi ? "Nhân viên" : "Employee"} lang={lang} value={v("handoff", "user_id")} error={e("handoff", "user_id")} options={people.map((item) => ({ value: item.id, label: item.label }))} />
+        <Field name="period" id="h-period" label={vi ? "Tháng đủ điều kiện (YYYY-MM)" : "Eligible month (YYYY-MM)"} lang={lang} value={v("handoff", "period", vnDate().slice(0, 7))} error={e("handoff", "period")} />
+      </div>
+      <div class="crm-actions"><button class="crm-button" type="submit">{vi ? "Xác nhận chuyển payroll" : "Confirm handoff"}</button></div>
+    </form>
+    {handoffs.length ? <div class="crm-table-wrap"><table class="crm-table">
+      <thead><tr><th>{vi ? "Người" : "Person"}</th><th>{vi ? "Tháng" : "Month"}</th><th class="num">{vi ? "Số tiền" : "Amount"}</th><th class="num">{vi ? "Số dòng" : "Lines"}</th><th>{vi ? "Trạng thái" : "Status"}</th><th>{vi ? "Thao tác" : "Action"}</th></tr></thead>
+      <tbody>{handoffs.map((row) => <tr>
+        <td>{name(row.user_id)}</td><td>{row.period}</td><td class="num">{money(row.amount_vnd)}</td><td class="num">{row.line_count}</td>
+        <td><span class:list={["crm-badge", row.state === "voided" ? "red" : row.in_payroll ? "green" : "amber"]}>{row.state === "voided" ? (vi ? "Đã hủy" : "Voided") : row.in_payroll ? (vi ? "Payroll đã dùng" : "Used by payroll") : (vi ? "Chờ payroll" : "Awaiting payroll")}</span>{row.void_reason && <span class="crm-meta"><br />{row.void_reason}</span>}</td>
+        <td>{row.state === "confirmed" && !row.in_payroll ? <form class="crm-form" method="post" action="#payroll">
+          <input type="hidden" name="intent" value="handoff_void" /><input type="hidden" name="request_key" value={crypto.randomUUID()} />
+          <input type="hidden" name="handoff_id" value={row.id} />
+          <Field name="reason" id={`hv-${row.id}`} label={vi ? "Lý do hủy" : "Void reason"} lang={lang} value="" required maxlength={500} />
+          <button class="crm-button secondary small" type="submit">{vi ? "Hủy bản chuyển" : "Void handoff"}</button>
+        </form> : "—"}</td>
+      </tr>)}</tbody>
+    </table></div> : <p class="crm-empty">{vi ? "Chưa có bản chuyển payroll." : "No payroll handoffs yet."}</p>}
   </section>}
 
   {view.visible && <section class="crm-sheet" id="lines" aria-labelledby="lines-h">

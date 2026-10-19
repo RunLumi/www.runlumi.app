@@ -130,6 +130,7 @@ Nhân viên hợp lý khi một người làm cả **bán hàng và vận hành 
 - **Ai được tính:** người bán là người được ghi công trên cơ hội (`seller_id`). Giao lại cho người khác không đổi ghi công. Người giới thiệu được ghi tự động khi gửi qua *Giới thiệu khách*, hoặc do admin đặt trên cơ hội.
 - **Cách tính:** CRM tính từ sổ thương mại (thu, hoàn, credit), trạng thái bàn giao và ngày live. Mỗi dòng có trạng thái: *chờ thu/bàn giao*, *chờ hết thời gian giữ*, *đã đủ điều kiện*, *chưa khai báo loại người bán*.
 - **Chi trả:** CRM **không chi tiền**. Khi chính sách đã duyệt, tài chính ghi nhận "đã chi theo bảng kê" (số tiền, kỳ, bằng chứng). CRM hiện số dư từng người; số dư âm nghĩa là phải thu hồi.
+- **Chuyển sang payroll HRM (nhân viên):** với người có loại *nhân viên* vào cuối tháng, tài chính có thể xác nhận một "bản chuyển payroll" cho tháng đó tại *Hoa hồng → Chuyển sang payroll HRM*. CRM tự cộng các dòng *đã đủ điều kiện* theo chính sách đã duyệt và có ngày đủ điều kiện trong tháng; không ai nhập tay số tiền. Mỗi dòng chỉ được chuyển một lần. Một người và một tháng chỉ đi một kênh: hoặc chuyển payroll, hoặc ghi chi thủ công. Payroll HRM chỉ thấy tổng, tháng và số dòng, không thấy khách hàng, cơ hội hay sổ thu. Tài chính có thể hủy bản chuyển khi payroll chưa dùng; sau khi payroll đã dùng, thay đổi phải qua bản điều chỉnh payroll có liên kết. Hoàn tiền phát sinh sau khi chuyển không tự trừ vào lương.
 - **Quyền xem:** trước khi duyệt, chỉ admin/tài chính thấy số dự kiến. Sau khi duyệt, mỗi cộng tác viên thấy dòng của chính mình.
 
 ## 7. Quyết định cần founder

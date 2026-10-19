@@ -98,12 +98,14 @@ export function computeCommission(
   return lines;
 }
 
-export interface PersonSummary { user_id: string; earned: number; holdback: number; waiting: number; forfeited: number; simulated: number; paid: number; balance: number; missing_terms: number }
+export interface PersonSummary { user_id: string; earned: number; holdback: number; waiting: number; forfeited: number; simulated: number; paid: number; balance: number; missing_terms: number;
+  /** Confirmed handoffs to HRM payroll; payroll pays these, so they are not owed here. */
+  payroll: number }
 
-/** Balance = earned (payable policies only) − recorded payouts. Negative means money to recover. */
-export function summarizeByPerson(lines: readonly CommissionLine[], payouts: readonly { user_id: string; amount_vnd: number }[]): PersonSummary[] {
+/** Balance = earned (payable policies only) − recorded payouts − payroll handoffs. Negative means money to recover. */
+export function summarizeByPerson(lines: readonly CommissionLine[], payouts: readonly { user_id: string; amount_vnd: number }[], handoffs: readonly { user_id: string; amount_vnd: number }[] = []): PersonSummary[] {
   const people = new Map<string, PersonSummary>();
-  const get = (id: string) => people.get(id) ?? people.set(id, { user_id: id, earned: 0, holdback: 0, waiting: 0, forfeited: 0, simulated: 0, paid: 0, balance: 0, missing_terms: 0 }).get(id)!;
+  const get = (id: string) => people.get(id) ?? people.set(id, { user_id: id, earned: 0, holdback: 0, waiting: 0, forfeited: 0, simulated: 0, paid: 0, balance: 0, missing_terms: 0, payroll: 0 }).get(id)!;
   for (const line of lines) {
     const row = get(line.user_id);
     if (line.status === "no_terms") row.missing_terms += 1;
@@ -112,7 +114,8 @@ export function summarizeByPerson(lines: readonly CommissionLine[], payouts: rea
     else row[line.status] += line.amount;
   }
   for (const payout of payouts) get(payout.user_id).paid += payout.amount_vnd;
-  return [...people.values()].map((row) => ({ ...row, balance: row.earned - row.paid })).sort((a, b) => b.earned - a.earned);
+  for (const handoff of handoffs) get(handoff.user_id).payroll += handoff.amount_vnd;
+  return [...people.values()].map((row) => ({ ...row, balance: row.earned - row.paid - row.payroll })).sort((a, b) => b.earned - a.earned);
 }
 
 export function parsePolicyBody(value: string): CommissionPolicy {

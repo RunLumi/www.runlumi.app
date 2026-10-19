@@ -3,7 +3,7 @@ import { date, HrmError } from "./fields";
 import { audit, command, digest, guardBoolean, id, localDate, now, requirePermission, settings } from "./service";
 import { compensationCoverage, coveringCompensationSql, runCompensationCoverage, untracedCompensationSql } from "./compensation";
 
-export const PAYROLL_SOURCE_KINDS = ["employment_record", "locked_time", "approved_adjustment", "manual_evidence"] as const;
+export const PAYROLL_SOURCE_KINDS = ["employment_record", "locked_time", "approved_adjustment", "manual_evidence", "crm_commission"] as const;
 export type PayrollSourceKind = typeof PAYROLL_SOURCE_KINDS[number];
 export interface PayrollComponent {
   code: string;
@@ -286,13 +286,16 @@ export async function setPayrollLine(db: D1Database, user: WorkspaceUser, key: s
     const version = coverage.version!;
     if (sourceReference !== version.id || amount !== version.amount_minor || version.currency !== policy.currency || version.minor_unit_scale !== policy.minor_unit_scale || version.legal_entity !== policy.legal_entity) throw new HrmError("payroll_compensation_mismatch", 409);
   }
+  if (input.sourceKind === "crm_commission") await assertCommissionHandoff(db, run, person.person_id, sourceReference, amount, policy);
   if (run.version !== input.expectedVersion) throw new HrmError("conflict", 409);
   await command(db, user, key, "payroll_line_set", payload, lineId, [
     guardBoolean(db, "EXISTS(SELECT 1 FROM hrm_payroll_runs WHERE id=? AND version=? AND state NOT IN ('published','closed'))", [run.id, input.expectedVersion]),
     guardBoolean(db, "EXISTS(SELECT 1 FROM hrm_payroll_run_people WHERE run_id=? AND person_id=?)", [run.id, person.person_id]),
     input.sourceKind === "employment_record"
       ? guardBoolean(db, `EXISTS(SELECT 1 FROM (SELECT ? AS source_reference,? AS component_code,? AS amount_minor) l JOIN hrm_payroll_run_people rp ON rp.run_id=? AND rp.person_id=? JOIN hrm_payroll_runs r ON r.id=rp.run_id JOIN hrm_payroll_policy_versions pol ON pol.id=r.policy_version_id WHERE EXISTS(${coveringCompensationSql}))`, [sourceReference, component.code, amount, run.id, person.person_id])
-      : guardBoolean(db, "1", []),
+      : input.sourceKind === "crm_commission"
+        ? guardBoolean(db, `NOT ${commissionReusedSql}`, [sourceReference, run.id, run.id, sourceReference, run.adjustment_of_payslip_id])
+        : guardBoolean(db, "1", []),
   ], [
     db.prepare("UPDATE hrm_payroll_runs SET state='draft',input_revision=input_revision+1,snapshot_json=NULL,snapshot_checksum=NULL,version=version+1,reviewed_by=NULL,reviewed_at=NULL,review_reason=NULL,approved_by=NULL,approved_at=NULL,approval_reason=NULL,actor_id=?,updated_at=? WHERE id=? AND version=? AND state NOT IN ('published','closed')").bind(user.id, time, run.id, input.expectedVersion),
     db.prepare("UPDATE hrm_payroll_run_people SET gross_minor=NULL,deductions_minor=NULL,net_minor=NULL WHERE run_id=?").bind(run.id),
@@ -300,6 +303,34 @@ export async function setPayrollLine(db: D1Database, user: WorkspaceUser, key: s
     db.prepare("INSERT INTO hrm_audit(actor_id,action,person_id,target_id,detail,created_at) VALUES(?,'payroll_input_changed',?,?,?,?)").bind(user.id, person.person_id, run.id, JSON.stringify({ component_code: component.code, direction: component.direction, source_kind: component.source_kind }), time),
   ]);
   return lineId;
+}
+
+/**
+ * True when a CRM commission handoff is already used by another unpublished
+ * run, or by a current payslip other than the one this correction replaces.
+ * Superseded payslips are history; a correction carries the handoff forward.
+ * Binds: handoff, run, run, handoff, replaced payslip (or null).
+ */
+const commissionReusedSql = `(EXISTS(SELECT 1 FROM hrm_payroll_lines l JOIN hrm_payroll_run_people rp ON rp.id=l.run_person_id JOIN hrm_payroll_runs r ON r.id=rp.run_id
+    WHERE l.source_kind='crm_commission' AND l.source_reference=? AND r.id!=? AND r.state NOT IN ('published','closed'))
+  OR EXISTS(SELECT 1 FROM hrm_payslips s, json_each(s.snapshot_json,'$.lines') j
+    WHERE s.state='published' AND s.run_id!=? AND json_extract(j.value,'$.source_kind')='crm_commission' AND json_extract(j.value,'$.source_reference')=?
+    AND s.id IS NOT ?))`;
+/** Publish-time form over every commission line in the run. Binds: run, run, replaced payslip (or null). */
+const runCommissionReusedSql = `EXISTS(SELECT 1 FROM hrm_payroll_lines mine JOIN hrm_payroll_run_people mine_rp ON mine_rp.id=mine.run_person_id, hrm_payslips s, json_each(s.snapshot_json,'$.lines') j
+  WHERE mine_rp.run_id=? AND mine.source_kind='crm_commission' AND s.state='published' AND s.run_id!=? AND s.id IS NOT ?
+  AND json_extract(j.value,'$.source_kind')='crm_commission' AND json_extract(j.value,'$.source_reference')=mine.source_reference)`;
+
+/** A commission line equals one confirmed CRM handoff for this employee's own account and the run's single calendar month. */
+async function assertCommissionHandoff(db: D1Database, run: PayrollRun, personId: string, handoffId: string, amount: number, policy: PayrollPolicy): Promise<void> {
+  if (policy.currency !== "VND" || policy.minor_unit_scale !== 0) throw new HrmError("payroll_commission_currency", 409);
+  if (run.starts_on.slice(0, 7) !== run.ends_on.slice(0, 7)) throw new HrmError("payroll_commission_period", 409);
+  const handoff = await db.prepare("SELECT h.amount_vnd,h.period,h.state FROM crm_commission_handoffs h JOIN hrm_people p ON p.user_id=h.user_id WHERE h.id=? AND p.id=?").bind(handoffId, personId).first<{ amount_vnd: number; period: string; state: string }>();
+  if (!handoff || handoff.state !== "confirmed") throw new HrmError("payroll_commission_missing", 409);
+  if (handoff.period !== run.starts_on.slice(0, 7)) throw new HrmError("payroll_commission_period", 409);
+  if (handoff.amount_vnd !== amount) throw new HrmError("payroll_commission_mismatch", 409);
+  const reused = await db.prepare(`SELECT ${commissionReusedSql} AS reused`).bind(handoffId, run.id, run.id, handoffId, run.adjustment_of_payslip_id).first<{ reused: number }>();
+  if (reused?.reused) throw new HrmError("payroll_commission_already_used", 409);
 }
 
 export async function calculatePayrollRun(db: D1Database, user: WorkspaceUser, key: string, runId: string, expectedVersion: number): Promise<void> {
@@ -425,6 +456,8 @@ export async function publishPayrollRun(db: D1Database, user: WorkspaceUser, key
       AND (SELECT COUNT(*) FROM hrm_payroll_run_people WHERE run_id=?)=1)`,[run.id,previous,run.period_id,run.policy_version_id,run.id])
       : guardBoolean(db, "NOT EXISTS(SELECT 1 FROM hrm_payroll_run_people rp JOIN hrm_employments e ON e.id=rp.employment_id WHERE rp.run_id=? AND e.status='ended')", [run.id]),
     guardBoolean(db, `NOT ${untracedCompensationSql}`, [run.id]),
+    // A CRM commission handoff appears on at most one current payslip.
+    guardBoolean(db, `NOT ${runCommissionReusedSql}`, [run.id, run.id, previous]),
     ...(previous ? [
       guardBoolean(db, "EXISTS(SELECT 1 FROM hrm_payslips WHERE id=? AND state='published')", [previous]),
       // The payment total was read before the publish batch. Assert it is still

@@ -174,6 +174,14 @@ The line amount must equal the approved amount, and one approved version must co
 
 This is a traceability control, not a calculation of statutory pay, tax, insurance, overtime or commission. Owner-approved proration and pay rules, and an independently checked parallel run, are still required before payroll opens.
 
+## CRM commission in payroll
+
+Recorded CRM commission is not pay. For a seller whose CRM seller type is Employee at the end of the month, Finance opens **CRM → Commission → Hand off to HRM payroll** and confirms the month. CRM freezes the earned lines that became eligible in that month, under an approved policy, at their computed amounts. Nobody types the total. Each earned line can be in only one live handoff. A person-month is either handed off or recorded as a manual CRM payout, never both. D1 enforces this in both directions.
+
+In payroll, a policy component with source `crm_commission` (VND, minor-unit scale 0) takes the confirmed handoff for the employee's own EmDash account and the run's single calendar month, at exactly its amount. HRM reads only the handoff ID, month, total and line count. Customers, opportunities and ledger entries never reach payroll or the payslip. A handoff can be used by one run; after publication it appears on exactly one current payslip. A linked correction carries it forward, and a separate regular run cannot pay it again. Once payroll references a handoff, Finance can no longer void it. A refund after the handoff does not deduct pay automatically: decide it through a reviewed payroll correction or recovery.
+
+Missing commission stays unknown, not zero. Tax treatment, the approved commission policy and the payroll parallel run still need owner and specialist approval before production use.
+
 ## File disposition and role changes
 
 File disposition uses three separate actors: requester, independent reviewer and System Super Admin executor. Promotion or combined roles do not waive that separation, including when resuming a deletion. Reject a requester or reviewer acting as executor before reserving or deleting the R2 object; a final D1 constraint alone cannot protect bytes already erased. A denial must preserve the request state, metadata and downloadable object. Use another authorized independent executor; never bypass the queue with a manual object deletion.

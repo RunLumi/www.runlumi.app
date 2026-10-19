@@ -397,8 +397,27 @@ test("14. commission: proposal is admin-only simulation; approval shows each sel
   assert.ok(mine.html.includes("Garage Trust"), "A sees lines for deals A sold");
   assert.ok(!mine.html.includes(S.b.name), "A does not see other people's lines");
   assert.equal((await S.a.post("/crm/commission", { intent: "payout", user_id: S.a.id, period: "2026-10", amount_vnd: "100000", evidence: "TEST" })).status, 403);
+  // Payroll handoff: only Employee-type sellers, computed amounts, once per line, never both channels.
+  const month = new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 7);
+  assert.equal((await S.fin.post("/crm/commission", { intent: "handoff", user_id: S.a.id, period: month })).status, 422, "a partner is not handed to payroll");
+  await S.admin.post("/crm/commission", { intent: "seller_terms", user_id: S.a.id, seller_type: "employee", effective_from: `${month}-01` });
+  assert.equal((await S.a.post("/crm/commission", { intent: "handoff", user_id: S.a.id, period: month })).status, 403, "sellers cannot hand off their own commission");
+  const handoffKey = `crm_handoff_${run}`;
+  assert.equal((await S.fin.post("/crm/commission", { intent: "handoff", request_key: handoffKey, user_id: S.a.id, period: month })).status, 303);
+  assert.equal((await S.fin.post("/crm/commission", { intent: "handoff", request_key: handoffKey, user_id: S.a.id, period: month })).status, 303, "a retry replays the handoff");
+  const handoffs = jobs(`SELECT id, amount_vnd, line_count, state FROM crm_commission_handoffs WHERE user_id = ${q(S.a.id)}`);
+  assert.equal(handoffs.length, 1); assert.ok(handoffs[0].amount_vnd > 0 && handoffs[0].line_count > 0);
+  assert.equal(jobs(`SELECT COALESCE(SUM(amount_vnd),0) AS n FROM crm_commission_handoff_lines WHERE handoff_id = ${q(handoffs[0].id)}`)[0].n, handoffs[0].amount_vnd, "the total is the sum of frozen earned lines");
+  assert.equal((await S.fin.post("/crm/commission", { intent: "handoff", user_id: S.a.id, period: month })).status, 422, "no earned line is handed off twice");
+  assert.equal((await S.fin.post("/crm/commission", { intent: "payout", user_id: S.a.id, period: month, amount_vnd: "100000", evidence: "TEST-BLOCKED" })).status, 422, "a handed-off month is not also paid manually");
+  const finView = await S.fin.get("/vi/crm/commission");
+  assert.match(finView.html, /Chuyển sang payroll HRM/); assert.match(finView.html, /Chờ payroll/);
+  assert.equal((await S.fin.post("/crm/commission", { intent: "handoff_void", handoff_id: handoffs[0].id, reason: "TEST returned to manual payout for this regression" })).status, 303);
+  assert.equal(jobs(`SELECT state FROM crm_commission_handoffs WHERE id = ${q(handoffs[0].id)}`)[0].state, "voided");
+  await S.admin.post("/crm/commission", { intent: "seller_terms", user_id: S.a.id, seller_type: "partner_seller", effective_from: `${month}-02` });
   assert.equal((await S.fin.post("/crm/commission", { intent: "payout", user_id: S.a.id, period: "2026-10", amount_vnd: "100000", evidence: "TEST-PAYOUT" })).status, 303);
   assert.equal(jobs(`SELECT COUNT(*) AS n FROM crm_commission_payouts WHERE user_id = ${q(S.a.id)} AND evidence = 'TEST-PAYOUT'`)[0].n, 1);
   // Restore the proposal so later runs start from an unapproved policy again.
+  // Voided handoffs stay as append-only history; they no longer hold any line.
   jobs("DELETE FROM crm_commission_payouts; DELETE FROM crm_policies WHERE policy_key = 'local-commission' AND version > 1");
 });
