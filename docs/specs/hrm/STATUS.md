@@ -583,11 +583,24 @@ The owner decided that HRM covers employees and contractors (CTV), and that cont
   - Local P1 integration (rehire keeps the type) and P4 integration (a contractor active in the period is not enrolled in the payroll run) pass.
 - Still open: the minimal contractor profile fields (P0 item 1). A CRM Partner is not automatically an HRM contractor.
 
+### Release readback — PRs #112–#113, 2026-10-20
+
+- Exact-head GitHub-hosted runs passed before each merge:
+  - #112 at `6f9b6ca` (run 39340806000);
+  - #113 at `73fb429` (run 39342747519). This run covered 408 unit tests, all four HRM phases, the journey, 75 regressions and the build, with nothing skipped.
+- Both were merged with merge commits: #112 as `484b95f`, then #113, which was stacked on it, as `2fcdcd7`.
+- Production state (read-only checks):
+  - Worker version `dc7921ee-91dd-40e6-b803-cd643326c6a5` serves `main 2fcdcd7a7a4e` at 100%.
+  - Remote D1 has no pending migrations. 0050 is present: the `relationship_type` column, the three contractor triggers and the two recreated history triggers.
+  - There are zero HRM people, employments, payroll runs and compensation versions. HRM is disabled and unreviewed, and the read-only queries wrote zero rows.
+  - Anonymous `/` and `/vi/` return 200. `/hrm/people`, `/vi/hrm/people` and `/hrm/payroll` redirect to EmDash login with `private, no-store`.
+
+### What still blocks completion
 
 Engineering scope from this session's list is closed except optional performance PDF attachments. The remaining blockers are owner or specialist decisions:
 
-- legal entity and scope;
-- named independent approvers;
+- the legal entity name (scope is decided: one entity, employees and contractors) and the minimal contractor profile;
+- named independent approvers, payroll owner and accountant/specialist;
 - retention periods and legal holds (RPT-01), purge SLA and alerting;
 - signing methods and any e-signature provider (HRM-11);
 - work-time and leave rules;
