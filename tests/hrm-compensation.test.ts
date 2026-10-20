@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { sqliteD1 } from "./support/d1-sqlite.ts";
 import { makeUser, type Role } from "../src/lib/workspace/roles.ts";
 import { createCompensation, reviewCompensation, type CompensationInput } from "../src/lib/hrm/compensation.ts";
+import { startEmploymentPeriod } from "../src/lib/hrm/service.ts";
 import { approvePayrollRun, calculatePayrollRun, createPayrollRun, publishPayrollRun, reviewPayrollRun, setPayrollLine } from "../src/lib/hrm/payroll.ts";
 
 const user = (id: string, roles: Role[], admin = false) => ({ ...makeUser({ id, name: id, email: `${id}@example.test` }, admin, roles), hrmEnabled: true });
@@ -175,5 +176,32 @@ test("self-export carries the employee's own effective pay history without inter
     const text = JSON.stringify(bundle.compensation);
     for (const secret of [first, raise, "TEST internal basis note", "TEST-DEC-RAISE", "contract-i", "TEST-admin-1", "TEST-system"]) assert.ok(!text.includes(secret), `export omits ${secret}`);
     assert.ok(bundle.included.includes("employee_compensation_history"));
+  } finally { f.close(); }
+});
+
+test("contractors are never in payroll: no compensation, no run participation, and the type is fixed once payroll uses an employment", async () => {
+  const f = fixture(); try {
+    f.raw.exec("UPDATE hrm_employments SET relationship_type='contractor',version=version+1 WHERE id='p1-e'");
+    assert.equal(JSON.parse(String(f.raw.prepare("SELECT snapshot FROM hrm_employment_history WHERE employment_id='p1-e' ORDER BY version DESC LIMIT 1").get()!.snapshot)).relationship_type, "contractor", "history records the relationship type");
+    await assert.rejects(createCompensation(f.db, f.admin1, key("contractor"), f.input()), { message: "payroll_contractor" });
+    assert.throws(() => f.raw.prepare("INSERT INTO hrm_compensation_versions(id,person_id,employment_id,legal_entity,component_code,currency,minor_unit_scale,amount_minor,effective_from,source_kind,source_reference,basis_note,created_by,created_at,actor_id,updated_at) VALUES('direct','p1','p1-e','TEST entity','base','VND',0,1,'2026-01-01','decision_reference','TEST','TEST','TEST-x','x','TEST-x','x')").run(), /hrm_contractor_not_payroll/);
+    const runId = await createPayrollRun(f.db, f.payroll, key("run"), "policy", "period");
+    assert.deepEqual(f.raw.prepare("SELECT person_id FROM hrm_payroll_run_people WHERE run_id=?").all(runId).map((row) => row.person_id), ["p2"], "the regular roster leaves the contractor out");
+    assert.throws(() => f.raw.prepare("INSERT INTO hrm_payroll_run_people(id,run_id,person_id,employment_id,employee_code_snapshot,display_name_snapshot) VALUES('x',?,'p1','p1-e','TEST','TEST')").run(runId), /hrm_contractor_not_payroll/);
+    assert.throws(() => f.raw.exec("UPDATE hrm_employments SET relationship_type='contractor',version=version+1 WHERE id='p2-e'"), /hrm_relationship_type_fixed/, "an employment payroll used keeps its type");
+  } finally { f.close(); }
+});
+
+test("a rehired contractor stays a contractor unless HR explicitly chooses otherwise", async () => {
+  const f = fixture(); try {
+    const time = new Date().toISOString();
+    f.raw.prepare("INSERT INTO hrm_people(id,employee_code,legal_name,actor_id,created_at,updated_at) VALUES('p3','TEST-P3','TEST p3','TEST-author',?,?)").run(time, time);
+    f.raw.prepare("INSERT INTO hrm_employments(id,person_id,legal_entity,status,started_on,ended_on,relationship_type,actor_id,created_at,updated_at) VALUES('p3-e','p3','TEST entity','ended','2026-01-01','2026-02-28','contractor','TEST-author',?,?)").run(time, time);
+    const rehire = { work_email: "", work_phone: "", department: "", job_title: "", legal_entity: "TEST entity", location: "", manager_user_id: null, status: "active" as const, started_on: "2026-03-01", relationship_type: "contractor" as const };
+    await assert.rejects(startEmploymentPeriod(f.db, f.db, f.admin1, key("bad-type"), "p3", "p3-e", 1, { ...rehire, relationship_type: "staff" as "employee" }), { message: "invalid_relationship_type" });
+    const period = await startEmploymentPeriod(f.db, f.db, f.admin1, key("rehire"), "p3", "p3-e", 1, rehire);
+    assert.equal(f.raw.prepare("SELECT relationship_type FROM hrm_employments WHERE id=?").get(period)?.relationship_type, "contractor");
+    const runId = await createPayrollRun(f.db, f.payroll, key("run"), "policy", "period");
+    assert.ok(!f.raw.prepare("SELECT person_id FROM hrm_payroll_run_people WHERE run_id=?").all(runId).some((row) => row.person_id === "p3"), "the rehired contractor stays out of payroll");
   } finally { f.close(); }
 });

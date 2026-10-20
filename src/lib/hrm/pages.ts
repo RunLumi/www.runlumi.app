@@ -7,6 +7,12 @@ import { HrmError, date, kindOf, period, readRecord, revision, text, recordKinds
 import { settings, enabled, saveSettings, savePerson, startEmploymentPeriod, localDate, personFor, recordsFor, changesFor, submitRecord, reviewChange, listPeople, type Person, type Settings, type HrmRecord, type Change, type PrivateFile } from "./service";
 import { listAssetReminderPolicies, type AssetReminderPolicy } from "./asset-reminders";
 import { listTrainingReminderPolicies, type TrainingReminderPolicy } from "./training-reminders";
+/** Employee or contractor; an absent field keeps the current value so older forms never change it. */
+function relationshipType(form:FormData,fallback:"employee"|"contractor"):"employee"|"contractor"{
+  const value=text(form,"relationship_type",20)||fallback;
+  if(value!=="employee"&&value!=="contractor")throw new HrmError("invalid_relationship_type");
+  return value;
+}
 export type Lang = "en" | "vi";
 export interface PageBase { lang:Lang; vi:boolean; user:WorkspaceUser; title:string; live:boolean }
 export interface Failure extends PageBase { error:string; status:number }
@@ -88,7 +94,7 @@ export async function createPersonPage(astro:AstroGlobal,lang:Lang):Promise<Resp
   if(config.legal_entity&&fields.legal_entity!==config.legal_entity)throw new HrmError("legal_entity_unconfigured");
   if(fields.ended_on&&fields.started_on&&fields.ended_on<fields.started_on)throw new HrmError("invalid_date");
   if(fields.user_id&&fields.work_email&&fields.work_email.toLowerCase()!==fields.work_email)fields.work_email=fields.work_email.toLowerCase();
-  await savePerson(env.DB,env.CONTENT_DB,user,text(form,"request_key",100,true),null,null,0,0,fields);
+  await savePerson(env.DB,env.CONTENT_DB,user,text(form,"request_key",100,true),null,null,0,0,{...fields,relationship_type:relationshipType(form,"employee")});
   return redirect(astro,{saved:"1"});
  }catch(e){error=e instanceof HrmError?e.message:"internal_error";if(e instanceof HrmError)astro.response.status=e.status;}
  return {...base(lang,user),title:lang==="vi"?"Tạo hồ sơ nhân viên":"Create employee",error,saved:astro.url.searchParams.has("saved"),settings:config,managers};
@@ -101,7 +107,7 @@ export async function workProfilePage(astro:AstroGlobal,lang:Lang,personId:strin
   if(!user.can("hrm.records.manage"))throw new HrmError("forbidden",403);
   const form=await formOf(astro);const intent=text(form,"intent",20)||"save";const requestKey=text(form,"request_key",100,true);
   if(intent==="rehire"){
-   const input={work_email:text(form,"work_email",254).toLowerCase(),work_phone:text(form,"work_phone",40),department:text(form,"department",200),job_title:text(form,"job_title",200),legal_entity:text(form,"legal_entity",200,true),location:text(form,"location",200),manager_user_id:text(form,"manager_user_id",100)||null,status:text(form,"status",20,true) as "preboarding"|"probation"|"active",started_on:date(text(form,"started_on",10,true))!};
+   const input={work_email:text(form,"work_email",254).toLowerCase(),work_phone:text(form,"work_phone",40),department:text(form,"department",200),job_title:text(form,"job_title",200),legal_entity:text(form,"legal_entity",200,true),location:text(form,"location",200),manager_user_id:text(form,"manager_user_id",100)||null,status:text(form,"status",20,true) as "preboarding"|"probation"|"active",started_on:date(text(form,"started_on",10,true))!,relationship_type:relationshipType(form,person.relationship_type)};
    if(!["preboarding","probation","active"].includes(input.status))throw new HrmError("invalid_status");
    if(input.work_email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.work_email))throw new HrmError("invalid_email");
    await startEmploymentPeriod(env.DB,env.CONTENT_DB,user,requestKey,person.id,text(form,"previous_employment_id",100,true),revision(form,"previous_version"),input);
@@ -112,7 +118,7 @@ export async function workProfilePage(astro:AstroGlobal,lang:Lang,personId:strin
   if(email){const rows=(await env.CONTENT_DB.prepare("SELECT id FROM users WHERE lower(email)=? AND disabled=0 LIMIT 2").bind(email).all<{id:string}>()).results;if(rows.length!==1)throw new HrmError("invalid_account");accountId=rows[0].id}
   const input={employee_code:text(form,"employee_code",50,true),user_id:accountId,legal_name:text(form,"legal_name",200,true),preferred_name:text(form,"preferred_name",200),work_email:text(form,"work_email",254),work_phone:text(form,"work_phone",40),department:text(form,"department",200),job_title:text(form,"job_title",200),legal_entity:text(form,"legal_entity",200,true),location:text(form,"location",200),manager_user_id:text(form,"manager_user_id",100)||null,status:text(form,"status",20,true),started_on:date(text(form,"started_on",10)),ended_on:date(text(form,"ended_on",10))};
   if(!["preboarding","probation","active","notice","ended"].includes(input.status))throw new HrmError("invalid_status");if(input.ended_on&&input.started_on&&input.ended_on<input.started_on)throw new HrmError("invalid_date");if(input.work_email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.work_email))throw new HrmError("invalid_email");if(input.legal_entity!==person.legal_entity&&input.legal_entity!==(await settings(env.DB)).legal_entity)throw new HrmError("legal_entity_unconfigured");
-  await savePerson(env.DB,env.CONTENT_DB,user,requestKey,person.id,text(form,"employment_id",100,true),revision(form),revision(form,"profile_version"),input);return redirect(astro,{saved:"1"});
+  await savePerson(env.DB,env.CONTENT_DB,user,requestKey,person.id,text(form,"employment_id",100,true),revision(form),revision(form,"profile_version"),{...input,relationship_type:relationshipType(form,person.relationship_type)});return redirect(astro,{saved:"1"});
  }catch(cause){error=cause instanceof HrmError?cause.message:"internal_error";if(cause instanceof HrmError)astro.response.status=cause.status}
  let accountEmail="";if(user.can("hrm.records.manage")&&person.user_id)accountEmail=(await env.CONTENT_DB.prepare("SELECT email FROM users WHERE id=?").bind(person.user_id).first<{email:string}>())?.email??"";await import("./service").then(({audit})=>audit(env.DB,user,"work_record_viewed",person.id,person.employment_id));
  return {...base(lang,user),title:lang==="vi"?"Thông tin công việc":"Work details",person,accountEmail,managers,saved:astro.url.searchParams.has("saved"),canRehire,rehired:astro.url.searchParams.get("rehired")==="1",error};

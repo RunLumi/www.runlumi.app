@@ -225,12 +225,12 @@ export async function createPayrollRun(db: D1Database, user: WorkspaceUser, key:
   if (correction) {
     writes.push(db.prepare("INSERT INTO hrm_payroll_run_people(id,run_id,person_id,employment_id,employee_code_snapshot,display_name_snapshot) SELECT 'prp_'||lower(hex(randomblob(16))),?,rp.person_id,rp.employment_id,rp.employee_code_snapshot,rp.display_name_snapshot FROM hrm_payslips s JOIN hrm_payroll_run_people rp ON rp.id=s.run_person_id WHERE s.id=?").bind(runId, correction.id));
   } else {
-    writes.push(db.prepare("INSERT INTO hrm_payroll_run_people(id,run_id,person_id,employment_id,employee_code_snapshot,display_name_snapshot) SELECT 'prp_'||lower(hex(randomblob(16))),?,p.id,e.id,p.employee_code,COALESCE(NULLIF(p.preferred_name,''),p.legal_name) FROM hrm_people p JOIN hrm_employments e ON e.person_id=p.id WHERE e.legal_entity=? AND e.status IN ('probation','active','notice') AND (e.started_on IS NULL OR e.started_on<=?) AND (e.ended_on IS NULL OR e.ended_on>=?) AND NOT EXISTS(SELECT 1 FROM hrm_employments newer WHERE newer.person_id=p.id AND newer.started_on>e.started_on AND newer.started_on<=?)").bind(runId, policy.legal_entity, period.ends_on, period.starts_on, period.ends_on));
+    writes.push(db.prepare("INSERT INTO hrm_payroll_run_people(id,run_id,person_id,employment_id,employee_code_snapshot,display_name_snapshot) SELECT 'prp_'||lower(hex(randomblob(16))),?,p.id,e.id,p.employee_code,COALESCE(NULLIF(p.preferred_name,''),p.legal_name) FROM hrm_people p JOIN hrm_employments e ON e.person_id=p.id WHERE e.legal_entity=? AND e.relationship_type='employee' AND e.status IN ('probation','active','notice') AND (e.started_on IS NULL OR e.started_on<=?) AND (e.ended_on IS NULL OR e.ended_on>=?) AND NOT EXISTS(SELECT 1 FROM hrm_employments newer WHERE newer.person_id=p.id AND newer.started_on>e.started_on AND newer.started_on<=?)").bind(runId, policy.legal_entity, period.ends_on, period.starts_on, period.ends_on));
   }
   writes.push(db.prepare("INSERT INTO hrm_audit(actor_id,action,target_id,detail,created_at) VALUES(?,'payroll_run_created',?,?,?)").bind(user.id, runId, JSON.stringify({ period_key: period.period_key, policy_version_id: policy.id, correction: Boolean(correction) }), time));
   const rosterGuard = correction
     ? guardBoolean(db, "EXISTS(SELECT 1 FROM hrm_payslips s JOIN hrm_payroll_runs r ON r.id=s.run_id WHERE s.id=? AND s.state='published' AND r.period_id=? AND r.policy_version_id=?)", [correction.id, periodId, policy.id])
-    : guardBoolean(db, "EXISTS(SELECT 1 FROM hrm_employments e WHERE e.legal_entity=? AND e.status IN ('probation','active','notice') AND (e.started_on IS NULL OR e.started_on<=?) AND (e.ended_on IS NULL OR e.ended_on>=?))", [policy.legal_entity, period.ends_on, period.starts_on]);
+    : guardBoolean(db, "EXISTS(SELECT 1 FROM hrm_employments e WHERE e.legal_entity=? AND e.relationship_type='employee' AND e.status IN ('probation','active','notice') AND (e.started_on IS NULL OR e.started_on<=?) AND (e.ended_on IS NULL OR e.ended_on>=?))", [policy.legal_entity, period.ends_on, period.starts_on]);
   return command(db, user, key, "payroll_run_create", payload, runId, [
     guardBoolean(db, "EXISTS(SELECT 1 FROM hrm_time_periods WHERE id=? AND state='locked' AND snapshot_checksum IS NOT NULL)", [periodId]),
     rosterGuard,
@@ -263,10 +263,11 @@ export async function createFinalPayrollRun(db: D1Database, user: WorkspaceUser,
   if (!policy) throw new HrmError("payroll_policy_not_active", 409);
   const period = await db.prepare("SELECT id,period_key,starts_on,ends_on,state,snapshot_checksum FROM hrm_time_periods WHERE id=?").bind(input.periodId).first<{ id: string; period_key: string; starts_on: string; ends_on: string; state: string; snapshot_checksum: string | null }>();
   if (!period || period.state !== "locked" || !period.snapshot_checksum) throw new HrmError("payroll_time_period_not_locked", 409);
-  const employment = await db.prepare(`SELECT p.id AS person_id,p.employee_code,COALESCE(NULLIF(p.preferred_name,''),p.legal_name) AS display_name,e.id,e.status,e.legal_entity,e.started_on,e.ended_on
+  const employment = await db.prepare(`SELECT p.id AS person_id,p.employee_code,COALESCE(NULLIF(p.preferred_name,''),p.legal_name) AS display_name,e.id,e.status,e.legal_entity,e.started_on,e.ended_on,e.relationship_type
     FROM hrm_people p JOIN hrm_employments e ON e.person_id=p.id WHERE upper(p.employee_code)=upper(?) AND e.status='ended' AND (? IS NULL OR e.id=?) ORDER BY e.ended_on DESC,e.created_at DESC LIMIT 1`)
-    .bind(code, employmentId, employmentId).first<{ person_id: string; employee_code: string; display_name: string; id: string; status: string; legal_entity: string; started_on: string | null; ended_on: string | null }>();
+    .bind(code, employmentId, employmentId).first<{ person_id: string; employee_code: string; display_name: string; id: string; status: string; legal_entity: string; started_on: string | null; ended_on: string | null; relationship_type: string }>();
   if (!employment) throw new HrmError("payroll_final_employment_invalid", 404);
+  if (employment.relationship_type !== "employee") throw new HrmError("payroll_contractor", 409);
   if (employment.legal_entity !== policy.legal_entity || !employment.ended_on || employment.ended_on < period.starts_on || employment.started_on && employment.started_on > period.ends_on) throw new HrmError("payroll_final_employment_invalid", 409);
   const taken = await db.prepare(`SELECT ${employmentPeriodTakenSql} AS taken`).bind(employment.id, period.id, "", employment.id, period.id).first<{ taken: number }>();
   if (taken?.taken) throw new HrmError("payroll_final_already_paid", 409);

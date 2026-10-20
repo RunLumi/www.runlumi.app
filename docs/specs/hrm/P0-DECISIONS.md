@@ -9,7 +9,7 @@ This package collects every §16 decision in the [HRM specification](README.md) 
 | Date | Decision | Consequence |
 |---|---|---|
 | 2026-10-20 | **One legal entity** uses HRM. Entity name: `__________` | Enter exactly this name in *HRM → Settings*. Every payroll, leave and report policy uses it. |
-| 2026-10-20 | HRM covers **employees and contractors (CTV)**. Contractors have a minimal profile and are **never in payroll**. | Engineering follow-up: add a relationship type (employee/contractor) to each employment period and exclude contractors from payroll runs. The system does not yet distinguish relationship types. A CRM Partner is still not automatically an HRM contractor. |
+| 2026-10-20 | HRM covers **employees and contractors (CTV)**. Contractors have a minimal profile and are **never in payroll**. | Implemented (migration 0050): each employment period is an employee or a contractor. Contractors have no contract compensation, payroll run or final pay, and the type is fixed once payroll uses the period. A CRM Partner is still not automatically an HRM contractor. The minimal contractor profile fields remain item 1. |
 | 2026-10-20 | The owner will name **two independent approvers** and the **payroll owner**. | Fill in item 2 below. |
 | 2026-10-20 | An **accountant/specialist** will check pay rules and run the parallel period. | Fill in the name under item 6. |
 
