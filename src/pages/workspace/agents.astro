@@ -1,0 +1,9 @@
+---
+import Page from "../../components/workspace/WorkspaceAgents.astro";
+import { agentsPage } from "../../lib/workspace/admin-security-pages";
+
+export const prerender = false;
+const data = await agentsPage(Astro, "en");
+if (data instanceof Response) return data;
+---
+<Page {...data} />

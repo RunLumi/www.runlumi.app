@@ -117,13 +117,28 @@ The server's instructions tell the agent:
 - record do-not-contact requests;
 - never contact customers itself.
 
-## 5. Code map
+## 5. Module access set by admins, and the call audit (R-10)
+
+- **Creating a token needs step-up.** The person verifies one of their EmDash passkeys within the last five minutes ([docs/workspace/security.md](../workspace/security.md)).
+- **Modules.** Admins choose on **Admin → AI agents** (`/workspace/agents`) what agents may do per module: *off*, *read* or *read and write*. Defaults keep today's behaviour: CRM read and write, Workspace read.
+  - The REST API and MCP both check the level on every call. Lowering it takes effect on the next call (`403 module_not_allowed`).
+  - `tools/list` lists only tools the token may run now.
+- **Workspace module.** One read tool, `workspace_my_access`: the person's own roles and modules, the agent levels, and the modules agents can never use.
+- **Never available to agents**, at any level:
+  - Hiring (candidate data): tokens never reach hiring.
+  - HRM: the HRM spec requires its own token and scope; CRM tokens never work there.
+  - Finance: a System Super Admin browser session only.
+  - Inside CRM: payments, ledger, commission, fulfillment, assignment and configuration (no tool exists).
+- **Every call is audited** in `workspace_audit` (`agent_tool_called`, `via` = `api` or `mcp`, module, outcome, token ID; never the arguments). Admins review it in **Admin → Audit log** with the "AI agent actions" filter.
+
+## 6. Code map
 
 | File | Role |
 |---|---|
 | `src/lib/crm/api/tokens.ts` | Create, list, revoke, authenticate, rate limit |
 | `src/lib/crm/api/tools.ts` | The operations and their JSON Schemas (single source for REST and MCP) |
-| `src/lib/crm/api/http.ts` | Bearer auth, JSON bodies, idempotency, error mapping |
+| `src/lib/crm/api/http.ts` | Bearer auth, JSON bodies, idempotency, error mapping, module level check and call audit |
+| `src/lib/workspace/agents.ts`, `src/lib/workspace/agent-tools.ts` | Admin module levels, excluded modules, Workspace tools |
 | `src/pages/api/crm/v1/[...path].ts` | REST routes |
 | `src/pages/api/crm/mcp.ts` | MCP JSON-RPC |
 | `src/pages/crm/api.astro`, `src/components/crm/ApiTokensView.astro` | Token page (EN/VI) |

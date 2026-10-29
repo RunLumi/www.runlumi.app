@@ -19,6 +19,8 @@ type JsonSchema = Record<string, unknown>;
 
 export interface Tool {
   name: string; title: string; description: string; write: boolean; inputSchema: JsonSchema;
+  /** Admin-set agent module this tool belongs to (src/lib/workspace/agents.ts). Default "crm". */
+  module?: "crm" | "workspace";
   run: (ctx: ToolContext, args: Args) => Promise<unknown>;
 }
 
