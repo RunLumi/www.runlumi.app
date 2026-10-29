@@ -124,10 +124,16 @@ export const modules: NavModule[] = [
     key: "admin", en: "Admin", vi: "Quản trị", path: "/workspace/users", icon: "admin", permission: "users.manage",
     groups: [
       { key: "access", en: "People and access", vi: "Người dùng và quyền" },
+      { key: "security", en: "Security and integrations", vi: "Bảo mật và tích hợp" },
     ],
     links: [
       { key: "users", en: "Users", vi: "Người dùng", path: "/workspace/users", icon: "users", group: "access" },
       { key: "roles", en: "Roles and permissions", vi: "Vai trò và quyền", path: "/workspace/roles", icon: "roles", group: "access" },
+      { key: "security", en: "Security", vi: "Bảo mật", path: "/workspace/security", icon: "security", group: "security" },
+      { key: "audit", en: "Audit log", vi: "Nhật ký kiểm toán", path: "/workspace/audit", icon: "history", group: "security" },
+      { key: "notifications", en: "Notification rules", vi: "Quy tắc thông báo", path: "/workspace/notifications", icon: "today", group: "security" },
+      { key: "webhooks", en: "Webhooks", vi: "Webhook", path: "/workspace/webhooks", icon: "apps", group: "security" },
+      { key: "agents", en: "AI agents", vi: "AI agent", path: "/workspace/agents", icon: "agents", group: "security" },
     ],
   },
 ];
@@ -140,6 +146,7 @@ export const modules: NavModule[] = [
 export const accountModule: NavModule = {
   key: "account", en: "My account", vi: "Tài khoản của tôi", path: "/workspace/account", icon: "account", permission: "workspace.access", links: [
     { key: "profile", en: "Profile", vi: "Hồ sơ", path: "/workspace/account", icon: "profile" },
+    { key: "security", en: "Security", vi: "Bảo mật", path: "/workspace/account/security", icon: "security" },
   ],
 };
 
@@ -184,7 +191,7 @@ export function moduleForPath(pathname: string): ModuleKey {
   if (path === "/finance" || path.startsWith("/finance/")) return "finance";
   if (path === "/hrm" || path.startsWith("/hrm/")) return "hrm";
   if (path === "/crm" || path.startsWith("/crm/")) return "crm";
-  if (path.startsWith("/workspace/users") || path.startsWith("/workspace/roles")) return "admin";
+  if (["/workspace/users", "/workspace/roles", "/workspace/audit", "/workspace/security", "/workspace/notifications", "/workspace/webhooks", "/workspace/agents"].some((root) => path === root || path.startsWith(`${root}/`))) return "admin";
   if (path.startsWith("/workspace/account")) return "account";
   return "home";
 }
