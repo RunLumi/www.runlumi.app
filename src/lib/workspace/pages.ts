@@ -1,10 +1,9 @@
 // Workspace home and the users/roles admin page.
 import type { AstroGlobal } from "astro";
 import { envFromLocals } from "../ats";
-import { sameOrigin } from "../http";
 import { vnDate } from "../crm/money";
 import { RETENTION_STATUSES, retentionCutoff } from "../hiring/interviews";
-import { type AuditRow, AccessError, type MemberRow, parseRoles, recentAudit, saveMember, workspaceMembers } from "./members";
+import { type AccessFormState, type AccessRow, type AuditEntry, accessRows, auditFor, emptyState, handleAccessPost, namesFor } from "./access";
 import type { WorkspaceUser } from "./roles";
 
 export type Lang = "en" | "vi";
@@ -63,41 +62,99 @@ export async function homePage(astro: AstroGlobal, lang: Lang) {
   return { lang, vi: lang === "vi", user, cards };
 }
 
-export interface UsersState { errors: Record<string, string>; values: Record<string, string>; intent: string }
+export type UsersState = AccessFormState;
 
+export type UsersFilter = "all" | "active" | "revoked" | "admins" | "terms";
+
+/** Admin › Users: the access table, quick filters, search and recent changes. */
 export async function usersPage(astro: AstroGlobal, lang: Lang): Promise<Response | {
-  lang: Lang; vi: boolean; user: WorkspaceUser; members: MemberRow[]; accounts: { id: string; email: string; name: string | null; role: number }[];
-  audit: AuditRow[]; names: Record<string, string>; state: UsersState; withTerms: Set<string>;
+  lang: Lang; vi: boolean; user: WorkspaceUser; rows: AccessRow[]; shown: AccessRow[]; filter: UsersFilter; query: string;
+  audit: AuditEntry[]; names: Map<string, string>; state: UsersState;
 }> {
   const user = astro.locals.workspace!;
   const { DB, CONTENT_DB } = envFromLocals(astro.locals);
-  let state: UsersState = { errors: {}, values: {}, intent: "" };
+  let state: UsersState = emptyState;
   if (astro.request.method === "POST") {
-    if (!user.can("users.manage")) return new Response("Forbidden", { status: 403 });
-    if (!sameOrigin(astro.request)) return new Response("Invalid request origin.", { status: 400 });
-    const form = await astro.request.formData().catch(() => null);
-    if (!form) return new Response("Invalid form body.", { status: 400 });
-    const intent = String(form.get("intent") ?? "");
-    try {
-      if (intent !== "grant" && intent !== "update") return new Response("Unknown action.", { status: 400 });
-      await saveMember(DB, CONTENT_DB, user, {
-        email: intent === "grant" ? String(form.get("email") ?? "") : undefined,
-        userId: intent === "update" ? String(form.get("user_id") ?? "") : undefined,
-        roles: parseRoles(form.getAll("roles")),
-        enabled: form.get("enabled") !== "0",
-      });
-      return new Response(null, { status: 303, headers: { Location: `${astro.url.pathname}?saved=1`, "Cache-Control": "private, no-store" } });
-    } catch (error) {
-      if (!(error instanceof AccessError)) throw error;
-      astro.response.status = 422;
-      state = { intent, errors: { [error.field]: error.message }, values: { email: String(form.get("email") ?? ""), user_id: String(form.get("user_id") ?? "") } };
-    }
+    const result = await handleAccessPost(astro, () => `${astro.url.pathname}?saved=1`);
+    if (result instanceof Response) return result;
+    state = result;
   }
-  const members = await workspaceMembers(DB, CONTENT_DB);
-  const accounts = (await CONTENT_DB.prepare("SELECT id, email, name, role FROM users WHERE disabled = 0 ORDER BY role DESC, name, email LIMIT 300").all<{ id: string; email: string; name: string | null; role: number }>()).results;
-  const audit = await recentAudit(DB);
-  const names = Object.fromEntries([...accounts.map((account) => [account.id, account.name || account.email]), ...members.map((member) => [member.user_id, member.name || member.email])]);
-  // Partners earn commission only once their seller terms are declared.
-  const withTerms = new Set((await DB.prepare("SELECT DISTINCT user_id FROM crm_seller_terms").all<{ user_id: string }>()).results.map((row) => row.user_id));
-  return { lang, vi: lang === "vi", user, members, accounts, audit, names, state, withTerms };
+  const rows = await accessRows(DB, CONTENT_DB);
+  const filters: UsersFilter[] = ["all", "active", "revoked", "admins", "terms"];
+  const requested = astro.url.searchParams.get("filter") as UsersFilter | null;
+  const filter = requested && filters.includes(requested) ? requested : "all";
+  const query = (astro.url.searchParams.get("q") ?? "").trim().slice(0, 100);
+  const needle = query.toLocaleLowerCase("vi");
+  const shown = rows.filter((row) => ({
+    all: true, active: row.enabled && row.active, revoked: !row.enabled || !row.active, admins: row.admin, terms: row.sellerTermsMissing,
+  })[filter]).filter((row) => !needle || `${row.name} ${row.email}`.toLocaleLowerCase("vi").includes(needle));
+  const audit = await auditFor(DB, undefined, 10);
+  const names = await namesFor(CONTENT_DB, audit.map((row) => row.target_user_id));
+  return { lang, vi: lang === "vi", user, rows, shown, filter, query, audit, names, state };
+}
+
+/** Admin › Users › New: grant roles to an existing EmDash account. */
+export async function newMemberPage(astro: AstroGlobal, lang: Lang): Promise<Response | {
+  lang: Lang; vi: boolean; user: WorkspaceUser; candidates: { email: string; name: string | null }[]; state: UsersState;
+}> {
+  const user = astro.locals.workspace!;
+  if (!user.can("users.manage")) return new Response("Forbidden", { status: 403 });
+  const { DB, CONTENT_DB } = envFromLocals(astro.locals);
+  const base = lang === "vi" ? "/vi/workspace/users" : "/workspace/users";
+  let state: UsersState = emptyState;
+  if (astro.request.method === "POST") {
+    const result = await handleAccessPost(astro, (id) => `${base}/${encodeURIComponent(id)}?saved=1`);
+    if (result instanceof Response) return result;
+    state = result;
+  }
+  const members = new Set((await DB.prepare("SELECT user_id FROM workspace_members").all<{ user_id: string }>()).results.map((row) => row.user_id));
+  const candidates = (await CONTENT_DB.prepare("SELECT id, email, name FROM users WHERE disabled = 0 AND role < 50 ORDER BY name, email LIMIT 300").all<{ id: string; email: string; name: string | null }>()).results
+    .filter((account) => !members.has(account.id)).map(({ email, name }) => ({ email, name }));
+  return { lang, vi: lang === "vi", user, candidates, state };
+}
+
+/** Admin › Users › person: identity, roles, modules, credentials and access history. */
+export async function memberPage(astro: AstroGlobal, lang: Lang): Promise<Response | {
+  lang: Lang; vi: boolean; user: WorkspaceUser; member: AccessRow; audit: AuditEntry[]; names: Map<string, string>; state: UsersState; self: boolean;
+}> {
+  const user = astro.locals.workspace!;
+  if (!user.can("users.manage")) return new Response("Forbidden", { status: 403 });
+  const { DB, CONTENT_DB } = envFromLocals(astro.locals);
+  const id = String(astro.params.id ?? "");
+  const notFound = () => new Response(lang === "vi" ? "Không tìm thấy người dùng." : "User not found.", { status: 404, headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "private, no-store" } });
+  if (!id || id.length > 100) return notFound();
+  let state: UsersState = emptyState;
+  if (astro.request.method === "POST") {
+    const result = await handleAccessPost(astro, (saved) => `${astro.url.pathname.replace(/\/[^/]*$/, "")}/${encodeURIComponent(saved)}?saved=1`);
+    if (result instanceof Response) return result;
+    state = result;
+  }
+  const [member] = await accessRows(DB, CONTENT_DB, id);
+  if (!member) return notFound();
+  const audit = await auditFor(DB, id, 100);
+  const names = await namesFor(CONTENT_DB, [member.granted_by]);
+  return { lang, vi: lang === "vi", user, member, audit, names, state, self: member.user_id === user.id };
+}
+
+/** Admin › Roles and permissions: the permission map as a matrix. */
+export function rolesPage(astro: AstroGlobal, lang: Lang): Response | { lang: Lang; vi: boolean; user: WorkspaceUser } {
+  const user = astro.locals.workspace!;
+  if (!user.can("users.manage")) return new Response("Forbidden", { status: 403 });
+  return { lang, vi: lang === "vi", user };
+}
+
+/** My account: the signed-in person's own identity, roles and connections. */
+export async function accountPage(astro: AstroGlobal, lang: Lang) {
+  const user = astro.locals.workspace!;
+  const { DB, CONTENT_DB } = envFromLocals(astro.locals);
+  const identity = await CONTENT_DB.prepare("SELECT email, name, role, created_at FROM users WHERE id = ? LIMIT 1").bind(user.id).first<{ email: string; name: string | null; role: number; created_at: string | null }>();
+  let passkeys: { name: string | null; device_type: string; backed_up: number; created_at: string | null; last_used_at: string | null }[] | null = null;
+  try {
+    passkeys = (await CONTENT_DB.prepare("SELECT name, device_type, backed_up, created_at, last_used_at FROM credentials WHERE user_id = ? ORDER BY created_at").bind(user.id).all<NonNullable<typeof passkeys>[number]>()).results;
+  } catch { passkeys = null; }
+  const membership = user.admin ? null : await DB.prepare("SELECT created_at, updated_at FROM workspace_members WHERE user_id = ?").bind(user.id).first<{ created_at: string; updated_at: string }>();
+  const tokens = user.can("crm.access")
+    ? (await DB.prepare("SELECT COUNT(*) AS n FROM crm_api_tokens WHERE user_id = ? AND revoked_at IS NULL AND expires_at > ?").bind(user.id, new Date().toISOString()).first<{ n: number }>())?.n ?? 0
+    : null;
+  return { lang, vi: lang === "vi", user, identity, passkeys, membership, tokens };
 }

@@ -41,7 +41,7 @@ test("managers cannot read identity, dependent, contact, banking or tax data for
 });
 test("the production kill switch hides employee navigation but leaves available HRM configuration screens for admins",()=>{
  const ordinary=makeUser({id:"employee",name:"Employee",email:"e@example.test"},false,["employee"]);ordinary.hrmEnabled=false;assert.equal(visibleModules(ordinary).some(m=>m.key==="hrm"),false);
- const admin=makeUser({id:"hrm",name:"HRM",email:"h@example.test"},false,["hrm_admin"]);admin.hrmEnabled=false;const module=modules.find(m=>m.key==="hrm")!;assert.deepEqual(visibleLinks(admin,module).map(l=>l.key),["job-descriptions","onboarding-manage","payroll","legal-documents","report-governance","retention","settings"]);
+ const admin=makeUser({id:"hrm",name:"HRM",email:"h@example.test"},false,["hrm_admin"]);admin.hrmEnabled=false;const module=modules.find(m=>m.key==="hrm")!;assert.deepEqual(visibleLinks(admin,module).map(l=>l.key),["job-descriptions","legal-documents","onboarding-manage","retention","payroll","report-governance","settings"]);
 });
 test("profile validators reject malformed values and external states without evidence",()=>{
  assert.throws(()=>readRecord(new FormData(),"contact"),HrmError);

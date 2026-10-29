@@ -1,0 +1,14 @@
+---
+// R-03: a child screen names its path back to the list it came from. The last
+// item is the current page and is not a link.
+export interface Crumb { label: string; href?: string }
+interface Props { items: Crumb[]; vi: boolean }
+const { items, vi } = Astro.props;
+---
+<nav class="ws-crumbs" aria-label={vi ? "Đường dẫn" : "Breadcrumb"}>
+  <ol>
+    {items.map((item, index) => <li>{index === items.length - 1 || !item.href
+      ? <span aria-current={index === items.length - 1 ? "page" : undefined}>{item.label}</span>
+      : <a href={item.href}>{item.label}</a>}</li>)}
+  </ol>
+</nav>

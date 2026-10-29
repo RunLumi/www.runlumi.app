@@ -1,0 +1,17 @@
+---
+// Page title block. A child screen passes `crumbs` (R-03); a top-level page
+// may pass an eyebrow instead. Actions go in the "actions" slot.
+import Breadcrumbs, { type Crumb } from "./Breadcrumbs.astro";
+
+interface Props { title: string; vi: boolean; crumbs?: Crumb[]; eyebrow?: string; lede?: string }
+const { title, vi, crumbs, eyebrow, lede } = Astro.props;
+---
+<div class="ws-page-head">
+  <div>
+    {crumbs?.length ? <Breadcrumbs items={crumbs} vi={vi} /> : eyebrow && <p class="crm-eyebrow">{eyebrow}</p>}
+    <h1 class="crm-h1">{title}</h1>
+    {lede && <p class="crm-lede">{lede}</p>}
+    <slot name="lede" />
+  </div>
+  {Astro.slots.has("actions") && <div class="ws-page-actions"><slot name="actions" /></div>}
+</div>
