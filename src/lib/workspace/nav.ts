@@ -38,6 +38,7 @@ export const modules: NavModule[] = [
       { key: "today", en: "Today", vi: "Hôm nay", path: "/crm", icon: "today", group: "sell" },
       { key: "leads", en: "Leads", vi: "Lead", path: "/crm/leads", icon: "leads", group: "sell" },
       { key: "pipeline", en: "Pipeline", vi: "Cơ hội", path: "/crm/pipeline", icon: "pipeline", group: "sell" },
+      { key: "calendar", en: "Calendar", vi: "Lịch", path: "/crm/calendar", icon: "calendar", group: "sell" },
       { key: "new", en: "New opportunity", vi: "Tạo cơ hội", path: "/crm/new", icon: "new", group: "sell" },
       { key: "referrals", en: "Referrals", vi: "Giới thiệu khách", path: "/crm/referrals", icon: "referrals", group: "sell", anyOf: ["crm.refer"] },
       { key: "companies", en: "Companies", vi: "Công ty", path: "/crm/accounts", icon: "companies", group: "customers" },
