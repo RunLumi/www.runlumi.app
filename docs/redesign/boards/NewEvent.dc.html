@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Tạo lịch hẹn</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="root scrim" style="width: 720px; height: 780px; padding: 28px 40px">
+<section class="dlg" role="dialog" aria-labelledby="ne-t" style="height: 724px">
+<div class="dlg-h" id="ne-t">Tạo lịch hẹn
+<button type="button" class="btn btn-ghost icon-btn btn-sm btn-neutral" aria-label="Đóng" style="position: absolute; right: 12px; top: 12px"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+</div>
+<div class="dlg-b" style="overflow: auto; flex: 1">
+<p style="margin: 0; padding: 10px 12px; border-radius: 6px; background: #F7F8FA; font-size: 13px; color: #5E6677">Hoặc nhờ AI agent của bạn (qua MCP) điền form này, ví dụ “Hẹn anh Trí xem mẫu 14h thứ 7”; bạn xác nhận trước khi lưu.</p>
+<div style="font: 600 13px Geist, system-ui, sans-serif; color: #102A43; padding-bottom: 4px; border-bottom: 1px solid #E7EAF0">Thông tin lịch hẹn</div>
+<label class="fld"><span class="fld-l">Chủ đề <span class="req">*</span></span><input class="in" value="Xem mẫu vật liệu tại xưởng"></label>
+<div class="fgrid2">
+<label class="fld"><span class="fld-l">Bắt đầu <span class="req">*</span></span><input class="in" value="31/10/2026  14:00"></label>
+<label class="fld"><span class="fld-l">Kết thúc <span class="req">*</span></span><input class="in" value="31/10/2026  15:30"></label>
+</div>
+<label style="display: flex; gap: 10px; align-items: center; font-size: 14px"><input type="checkbox" class="cb">Cả ngày</label>
+<div class="fgrid2">
+<label class="fld"><span class="fld-l">Liên quan đến</span><span class="in in-sel"><span style="display: flex; gap: 8px; align-items: center"><span class="badge b-info">Cơ hội</span>Quán cà phê The Lối – Q.3</span></span></label>
+<label class="fld"><span class="fld-l">Liên hệ</span><span class="in in-sel">Anh Trí · Chủ quán</span></label>
+<label class="fld"><span class="fld-l">Người phụ trách <span class="req">*</span></span><span class="in in-sel">Minh Anh</span></label>
+<label class="fld"><span class="fld-l">Loại</span><span class="in in-sel">Gặp mặt<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></label>
+</div>
+<label class="fld"><span class="fld-l">Địa điểm</span><input class="in" placeholder="Ví dụ: Xưởng Bình Tân"></label>
+<label class="fld"><span class="fld-l">Khách mời</span><span class="in" style="display: flex; gap: 6px; align-items: center"><span class="badge b-neutral">Thanh Quân</span><span class="muted" style="font-size: 14px">Thêm người…</span></span></label>
+<div class="fgrid2">
+<label class="fld"><span class="fld-l">Nhắc trước</span><span class="in in-sel">30 phút<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></label>
+<label class="fld"><span class="fld-l">Lặp lại</span><span class="in in-sel">Không lặp<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></label>
+</div>
+<label class="fld"><span class="fld-l">Mô tả</span><textarea class="in" rows="2" placeholder="Ví dụ: mang 3 mẫu gạch terrazzo"></textarea></label>
+<p style="margin: 0; font-size: 13px; color: #5E6677">Lumi không tự gửi lời mời cho khách hàng. Lời mời chỉ được gửi sau khi bạn xác nhận.</p>
+</div>
+<div class="dlg-f"><button type="button" class="btn">Hủy</button><button type="button" class="btn">Lưu và tạo tiếp</button><button type="button" class="btn btn-primary">Lưu</button></div>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":720,"height":780}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

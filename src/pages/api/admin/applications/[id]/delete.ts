@@ -1,6 +1,8 @@
 import type { APIRoute } from "astro";
 import { envFromLocals } from "../../../../../lib/ats";
 import { badRequest, redirect303, sameOrigin } from "../../../../../lib/http";
+import { auditStatement } from "../../../../../lib/workspace/members";
+import { stepUpGuard } from "../../../../../lib/workspace/step-up";
 import { deskForbidden, deskPath, postLang } from "../../../../../lib/hiring/desk";
 
 export const prerender = false;
@@ -9,6 +11,8 @@ export const POST: APIRoute = async (context) => {
   const denied = deskForbidden(context.locals, "hiring.applications.delete");
   if (denied) return denied;
   if (!sameOrigin(context.request)) return badRequest("Invalid request.");
+  const stepUp = await stepUpGuard(context);
+  if (stepUp) return stepUp;
   const form = await context.request.formData().catch(() => new FormData());
   if (form.get("confirm") !== "1") return badRequest("Confirm the deletion first.");
   const id = context.params.id ?? "";
@@ -22,6 +26,7 @@ export const POST: APIRoute = async (context) => {
   try {
     await Promise.all(files.map((file) => FILES.delete(file.object_key)));
     await DB.prepare("DELETE FROM applications WHERE id = ?").bind(id).run();
+    await auditStatement(DB, context.locals.workspace!, "record_deleted", "hiring", { record: "application", id }, new Date().toISOString(), { module: "hiring" }).run();
   } catch (error) {
     console.error("Delete application failed", error);
     return new Response("Could not delete application.", { status: 500 });

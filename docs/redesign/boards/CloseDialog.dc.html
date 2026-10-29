@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Cài đặt Kanban và Đóng cơ hội</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="root scrim" style="width: 1440px; height: 680px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 48px; padding: 48px 64px; align-items: start">
+
+<section class="dlg" role="dialog" aria-labelledby="ks-t">
+<div class="dlg-h" id="ks-t">Cài đặt Kanban
+<button type="button" class="btn btn-ghost icon-btn btn-sm btn-neutral" aria-label="Đóng" style="position: absolute; right: 12px; top: 12px"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+</div>
+<div class="dlg-b">
+<p style="margin: 0; font-size: 14px; color: #5E6677">Áp dụng cho danh sách “Đang mở · Pipeline thi công”. Thay đổi áp dụng cho mọi người dùng danh sách này.</p>
+<label class="fld"><span class="fld-l">Nhóm cột theo <span class="req">*</span></span>
+<span class="in in-sel" role="combobox" aria-expanded="false" tabindex="0">Giai đoạn<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span>
+<span style="font-size: 13px; color: #5E6677">Chọn được: giai đoạn, người phụ trách, nhóm dự báo hoặc một trường danh sách tùy chỉnh.</span></label>
+<label class="fld"><span class="fld-l">Tổng của cột theo</span>
+<span class="in in-sel" role="combobox" aria-expanded="false" tabindex="0">Giá trị<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span>
+<span style="font-size: 13px; color: #5E6677">Giá trị khác loại tiền tệ được cộng riêng theo từng loại, không quy đổi.</span></label>
+<label style="display: flex; gap: 10px; align-items: flex-start; font-size: 14px"><input type="checkbox" class="cb" checked style="margin-top: 2px">Hiện vùng thả Thắng / Thua khi kéo thẻ</label>
+<label style="display: flex; gap: 10px; align-items: flex-start; font-size: 14px"><input type="checkbox" class="cb" checked style="margin-top: 2px">Hiện cảnh báo trên thẻ: không có hoạt động sắp tới, có công việc quá hạn, vượt số ngày chuẩn của giai đoạn</label>
+</div>
+<div class="dlg-f"><button type="button" class="btn">Hủy</button><button type="button" class="btn btn-primary">Lưu</button></div>
+</section>
+
+<section class="dlg" role="dialog" aria-labelledby="cl-t">
+<div class="dlg-h" id="cl-t">Đóng cơ hội: Quán cà phê The Lối – Q.3</div>
+<div class="dlg-b">
+<fieldset style="border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px">
+<legend class="fld-l" style="margin-bottom: 8px">Giai đoạn đóng <span class="req">*</span></legend>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<label style="border: 2px solid #1F7A4D; background: #E9F7EF; border-radius: 8px; padding: 12px; display: flex; gap: 10px; align-items: center; font-weight: 600; color: #1F7A4D"><input type="radio" name="res" checked class="cb">Đã bàn giao · Thắng</label>
+<label style="border: 1px solid #C8D0DE; border-radius: 8px; padding: 12px; display: flex; gap: 10px; align-items: center; font-weight: 500"><input type="radio" name="res" class="cb">Không ký hợp đồng · Thua</label>
+</div>
+</fieldset>
+<div class="fgrid2">
+<label class="fld"><span class="fld-l">Ngày chốt dự kiến <span class="req">*</span></span><input class="in" value="29/10/2026"></label>
+<label class="fld"><span class="fld-l">Giá trị <span class="req">*</span></span><input class="in" value="540.000.000"></label>
+<label class="fld"><span class="fld-l">Số tiền cọc <span class="req">*</span></span><input class="in" placeholder="Ví dụ: 162.000.000" style="border-color: #C2410C" aria-invalid="true" aria-describedby="dep-err"><span id="dep-err" style="font-size: 13px; color: #C2410C">Giai đoạn “Đã bàn giao” yêu cầu trường này.</span></label>
+<label class="fld"><span class="fld-l">Hạn cọc <span class="req">*</span></span><input class="in" placeholder="dd/mm/yyyy" style="border-color: #C2410C" aria-invalid="true"><span style="font-size: 13px; color: #C2410C">Giai đoạn “Đã bàn giao” yêu cầu trường này.</span></label>
+</div>
+<p style="margin: 0; font-size: 13px; color: #5E6677">Chọn Thua: hệ thống yêu cầu lý do thua. Danh sách lý do thua và trường bắt buộc của từng giai đoạn do admin đặt trong Cấu hình CRM.</p>
+</div>
+<div class="dlg-f"><button type="button" class="btn">Hủy, giữ giai đoạn “Đã gửi báo giá”</button><button type="button" class="btn btn-primary">Lưu và đóng cơ hội</button></div>
+</section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":680}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

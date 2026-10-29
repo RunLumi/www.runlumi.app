@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Tìm kiếm</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="root" style="min-height: 1000px">
+<dc-import name="TopNav" app="work" active="" hint-size="100%,104px"></dc-import>
+<main class="page">
+<section class="panel" style="padding: 16px 20px">
+<div class="eyebrow">Kết quả tìm kiếm <span class="badge b-neutral" style="text-transform: none; letter-spacing: 0">Dữ liệu minh họa</span></div>
+<h1 class="h1">“bếp mộc” · 9 kết quả</h1>
+</section>
+<div class="split">
+<aside class="panel side-nav" aria-label="Lọc theo object" style="flex: 0 0 240px; padding: 8px">
+<div class="side-h">Loại dữ liệu</div>
+<sc-for list="{{filters}}" as="f" hint-placeholder-count="7"><a href="#" class="{{f.cls}}"><span>{{f.name}}</span><span class="muted">{{f.n}}</span></a></sc-for>
+<p class="muted" style="font-size: 12px; padding: 8px 12px; margin: 0">Chỉ hiện bản ghi bạn có quyền xem.</p>
+</aside>
+<div style="flex: 999 1 720px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+<sc-for list="{{groups}}" as="g" hint-placeholder-count="4">
+<section class="rl" aria-label="{{g.name}}">
+<div class="rl-h"><span class="rl-t"><span class="rl-i" style="{{g.style}}">{{g.letter}}</span>{{g.name}} ({{g.n}})</span><a href="#" style="font-size: 13px">Xem tất cả</a></div>
+<sc-for list="{{g.items}}" as="i" hint-placeholder-count="2">
+<div class="rl-row"><a href="{{i.href}}" style="font-weight: 600">{{i.title}}</a><span class="muted">{{i.meta}}</span></div>
+</sc-for>
+</section>
+</sc-for>
+</div>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const F = (name, n, on) => ({ name: name, n: n, cls: on ? 'on' : '' });
+    const G = (name, letter, color, items) => ({ name: name, letter: letter, style: 'background:' + color, n: items.length, items: items });
+    const I = (title, meta, href) => ({ title: title, meta: meta, href: href || '#' });
+    return {
+      filters: [F('Tất cả', 9, true), F('Dự án', 1), F('Công việc', 3), F('Cơ hội', 1), F('Đối tác', 1), F('Tin nhắn', 2), F('Thư', 1)],
+      groups: [
+        G('Dự án', 'D', '#006093', [I('Nhà hàng Bếp Mộc – Q.7', 'Công việc · Đang thi công · Quản lý dự án: Hải Ngân · 62% công việc đã xong', 'ProjectBoard.dc.html')]),
+        G('Cơ hội', 'C', '#0F7B7B', [I('Nhà hàng Bếp Mộc – Q.7', 'Lumi CRM · Giai đoạn: Đã khởi công · 2.050.000.000 ₫', 'DealRecord.dc.html')]),
+        G('Công việc', 'V', '#1F7A4D', [I('Lắp quầy bar khu A', 'Bếp Mộc · Hạn 31/10 · Phụ trách: Thanh Quân', 'TaskRecord.dc.html'), I('Kiểm tra hệ thống hút khói', 'Bếp Mộc · Hạn 04/11 · Phụ trách: Hải Ngân', 'TaskRecord.dc.html'), I('Đặt thêm gạch terrazzo', 'Bếp Mộc · Xong 22/10', 'TaskRecord.dc.html')]),
+        G('Tin nhắn', '#', '#5B4FC4', [I('#thi-cong · Hải Ngân', '“Bếp Mộc xin dời nghiệm thu sang thứ 6” · hôm qua 17:40', 'Messages.dc.html'), I('Tin nhắn riêng · Thanh Quân', '“Ảnh quầy bar Bếp Mộc đã gửi” · 27/10', 'Messages.dc.html')])
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

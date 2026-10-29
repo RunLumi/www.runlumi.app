@@ -1,0 +1,55 @@
+---
+// Admin › AI agents (R-10). Module levels for every connected agent, the
+// modules agents can never reach, and every personal token with its calls.
+import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
+import DataTable from "./ui/DataTable.astro";
+import PageHeader from "./ui/PageHeader.astro";
+import Panel from "./ui/Panel.astro";
+import { localized } from "../../lib/workspace/nav";
+import type { AgentsData } from "../../lib/workspace/admin-security-pages";
+import { agentModules, excludedModules, moduleLimits } from "../../lib/workspace/agents";
+import { dateTime } from "../../lib/workspace/format";
+
+type Props = AgentsData;
+const { lang, vi, user, policy, tokens, names, calls7d, error, saved } = Astro.props;
+const t = (en: string, viText: string) => (vi ? viText : en);
+const moduleNames: Record<string, [string, string, string, string]> = {
+  crm: ["CRM", "CRM", "Companies, contacts, opportunities, notes and stages the person may see. No payments, quotes, commission, fulfillment, assignment or configuration.", "Công ty, liên hệ, cơ hội, ghi chú và giai đoạn người đó được thấy. Không có thanh toán, báo giá, hoa hồng, bàn giao, phân công hay cấu hình."],
+  workspace: ["Workspace", "Workspace", "The person's own roles and modules.", "Vai trò và phân hệ của chính người đó."],
+  hiring: ["Hiring", "Tuyển dụng", "", ""], hrm: ["HRM", "HRM", "", ""], finance: ["Finance", "Tài chính", "", ""],
+};
+const levels = [["off", t("Off", "Tắt")], ["read", t("Read", "Đọc")], ["write", t("Read and write", "Đọc và ghi")]] as const;
+const rank = { off: 0, read: 1, write: 2 };
+const state = (token: typeof tokens[number]) => token.revoked_at ? t("Revoked", "Đã thu hồi") : token.expires_at < new Date().toISOString() ? t("Expired", "Hết hạn") : t("Active", "Đang dùng");
+---
+<WorkspaceShell title={t("AI agents", "AI agent")} lang={lang} user={user} module="admin" current="agents">
+  <PageHeader vi={vi} eyebrow={t("Admin", "Quản trị")} title={t("AI agents", "AI agent")} lede={t("Each person connects their own AI agent over MCP with a personal token. The agent acts with that person's current permissions, only in the modules allowed here. Lowering a level applies to the next call.", "Mỗi người tự kết nối AI agent của mình qua MCP bằng token cá nhân. Agent dùng quyền hiện tại của chính người đó, chỉ trong các module cho phép ở đây. Hạ mức có hiệu lực từ lần gọi kế tiếp.")}>
+    <Fragment slot="actions"><a class="crm-button secondary" href={`${localized("/workspace/audit", vi)}?kind=agent`}>{t("Agent calls", "Lần gọi của agent")}</a></Fragment>
+  </PageHeader>
+  {saved && <div class="crm-notice good" role="status">{t("Saved.", "Đã lưu.")}</div>}
+  {error && <div class="crm-notice bad" role="alert">{t("That change was not saved.", "Chưa lưu được thay đổi.")} <code>{error}</code></div>}
+  <Panel title={t("Modules and levels", "Module và mức cho phép")} note={t("Changing levels needs your passkey.", "Đổi mức cần passkey của bạn.")}>
+    <form class="crm-form" method="post">
+      <input type="hidden" name="intent" value="policy" />
+      {agentModules.map((module) => <fieldset class="crm-fieldset"><legend><strong>{moduleNames[module][vi ? 1 : 0]}</strong> — {moduleNames[module][vi ? 3 : 2]}</legend>
+        <div class="crm-actions">{levels.filter(([level]) => rank[level] <= rank[moduleLimits[module].max]).map(([level, text]) => <label class="crm-check"><input type="radio" name={`level_${module}`} value={level} checked={policy[module] === level} /><span>{text}</span></label>)}</div>
+      </fieldset>)}
+      <div class="crm-actions"><button class="crm-button" type="submit">{t("Save levels", "Lưu mức")}</button></div>
+    </form>
+    <h3 class="crm-h2">{t("Never available to agents", "Không bao giờ mở cho agent")}</h3>
+    <dl class="crm-facts">{excludedModules.map((module) => <div><dt>{moduleNames[module.key][vi ? 1 : 0]}</dt><dd>{module.reason[vi ? 1 : 0]}</dd></div>)}</dl>
+  </Panel>
+  <Panel title={t("Connected agents (personal tokens)", "Agent đã kết nối (token cá nhân)")} note={t("People create and revoke their own tokens on CRM › Connect an AI agent. Revoking here needs your passkey.", "Mỗi người tự tạo và thu hồi token ở CRM › Kết nối AI agent. Thu hồi ở đây cần passkey của bạn.")} flush>
+    {tokens.length
+      ? <DataTable vi={vi} label={t("Personal tokens", "Token cá nhân")} frozen={2} widths={["13rem", "12rem"]} frozenNames={t("Person and Token", "Người và Token")} minWidth="1050px" meta={t(`${tokens.length} tokens`, `${tokens.length} token`)}>
+          <thead><tr><th scope="col">{t("Person", "Người")}</th><th scope="col">{t("Token", "Token")}</th><th scope="col">{t("Scope", "Phạm vi")}</th><th scope="col">{t("Created", "Tạo lúc")}</th><th scope="col">{t("Last call", "Gọi gần nhất")}</th><th scope="col" class="num">{t("Calls, 7 days", "Lần gọi 7 ngày")}</th><th scope="col" class="num">{t("Refused, 7 days", "Bị từ chối 7 ngày")}</th><th scope="col">{t("Status", "Trạng thái")}</th><th scope="col">{t("Action", "Hành động")}</th></tr></thead>
+          <tbody>{tokens.map((token) => <tr>
+            <th scope="row">{names[token.user_id] ?? token.user_id}</th><td>{token.name}</td><td>{token.scope === "write" ? t("Read and write", "Đọc và ghi") : t("Read", "Đọc")}</td>
+            <td>{dateTime(token.created_at, vi)}</td><td>{token.last_used_at ? dateTime(token.last_used_at, vi) : "—"}</td>
+            <td class="num">{calls7d[token.id]?.calls ?? 0}</td><td class="num">{calls7d[token.id]?.denied ?? 0}</td><td>{state(token)}</td>
+            <td>{!token.revoked_at && <form method="post"><input type="hidden" name="intent" value="revoke" /><input type="hidden" name="token_id" value={token.id} /><input type="hidden" name="request_key" value={crypto.randomUUID()} /><button class="crm-button small danger" type="submit">{t("Revoke", "Thu hồi")}</button></form>}</td>
+          </tr>)}</tbody>
+        </DataTable>
+      : <p class="crm-empty">{t("No tokens yet.", "Chưa có token nào.")}</p>}
+  </Panel>
+</WorkspaceShell>

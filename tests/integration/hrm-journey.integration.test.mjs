@@ -4,7 +4,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {createHash} from "node:crypto";
-import {BASE,adminSession,content,jobs,localFetch,q,userSession} from "./helpers.mjs";
+import {BASE,Session,adminSession,content,jobs,localFetch,q,userSession} from "./helpers.mjs";
 import {startHrmBrowserQa} from "./hrm-browser-qa.mjs";
 import {exerciseCloseoutPolicy} from "./hrm-closeout-policy.mjs";
 import {exerciseFinancialRetentionPolicy} from "./hrm-financial-retention-policy.mjs";
@@ -18,7 +18,8 @@ const row=(sql)=>{const result=jobs(sql)[0];assert.ok(result,"expected synthetic
 const byId=(table,id)=>row(`SELECT * FROM ${table} WHERE id=${q(id)}`);
 function ok(response,label){assert.equal(response.status,303,`${label}: status ${response.status}`);const url=new URL(response.location,BASE);assert.equal(url.searchParams.get("error"),null,`${label}: ${url.searchParams.get("error")}`);return response}
 const post=async(user,path,fields)=>ok(await user.post(path,{request_key:key(),...fields}),fields.intent??path);
-async function upload(user,path,fields,file,fileField="file"){const form=new FormData();for(const [name,value]of Object.entries({request_key:key(),...fields}))form.set(name,String(value));form.set(fileField,file);const response=await localFetch(BASE+path,{method:"POST",headers:{origin:BASE,...(user?{cookie:user.header()}:{})},body:form,redirect:"manual"});return ok({status:response.status,location:response.headers.get("location")},"upload")}
+// A signed-in upload takes the same one-time Workspace passkey check as Session.get/post, then repeats with the same request_key.
+async function upload(user,path,fields,file,fileField="file"){const values={request_key:key(),...fields};const send=async()=>{const form=new FormData();for(const [name,value]of Object.entries(values))form.set(name,String(value));form.set(fileField,file);const response=await localFetch(BASE+path,{method:"POST",headers:{origin:BASE,...(user?{cookie:user.header()}:{})},body:form,redirect:"manual"});user?.absorb(response);return {status:response.status,location:response.headers.get("location"),body:await response.text()}};let result=await send();if(user&&Session.asksForPasskey(result.status,result.location,result.body)&&await user.verifyPasskey()===200)result=await send();return ok({status:result.status,location:result.location},"upload")}
 const pdf=(label)=>new File([`%PDF-1.4\nTEST SYNTHETIC ${label}\n%%EOF`],`TEST-${label}.pdf`,{type:"application/pdf"});
 const offset=(date,days)=>new Date(Date.parse(date+"T00:00:00Z")+days*86400000).toISOString().slice(0,10);
 
@@ -197,7 +198,7 @@ test("one hired candidate completes the same-employment HRM journey through payr
  let specificHold=row(`SELECT * FROM hrm_closeout_file_holds WHERE file_id=${q(financialProof.id)} AND state='active'`);
  assert.equal(specificHold.placed_by,admin.id);assert.match(specificHold.placed_at,/Z$/);
  const selfRelease=await admin.post("/api/hrm/closeout",{intent:"release_file_hold",case_id:exitCase.id,hold_id:specificHold.id,version:specificHold.version,reason,request_key:key()});assert.equal(new URL(selfRelease.location,BASE).searchParams.get("error"),"self_approval");
- await audit("financial-file-hold",system,`/hrm/offboarding/${exitCase.id}`,`/vi/hrm/offboarding/${exitCase.id}`,"Active file legal hold","Legal hold đang áp dụng",true,`#financial-file-${financialProof.id}`);
+ await audit("financial-file-hold",system,`/hrm/offboarding/${exitCase.id}`,`/vi/hrm/offboarding/${exitCase.id}`,"Active file legal hold","Tạm giữ pháp lý đang áp dụng",true,`#financial-file-${financialProof.id}`);
  await post(system,"/api/hrm/closeout",{intent:"release_file_hold",case_id:exitCase.id,hold_id:specificHold.id,version:specificHold.version,reason:"TEST independent matter closure",lang:"vi"});
  specificHold=byId("hrm_closeout_file_holds",specificHold.id);assert.equal(specificHold.state,"released");assert.equal(specificHold.released_by,systemId);assert.equal(byId("hrm_closeout_files",financialProof.id).legal_hold,1,"person hold survives file hold release");
  financialProof=byId("hrm_closeout_files",financialProof.id);

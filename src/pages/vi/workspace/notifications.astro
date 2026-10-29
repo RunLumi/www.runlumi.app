@@ -1,0 +1,9 @@
+---
+import Page from "../../../components/workspace/WorkspaceRules.astro";
+import { rulesPage } from "../../../lib/workspace/admin-security-pages";
+
+export const prerender = false;
+const data = await rulesPage(Astro, "vi");
+if (data instanceof Response) return data;
+---
+<Page {...data} />

@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Lịch · tháng</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="root" style="min-height: 1100px">
+
+<dc-import name="TopNav" app="crm" active="Lịch" hint-size="100%,104px"></dc-import>
+
+<main class="page">
+<section class="panel">
+<div class="oh" style="padding-bottom: 14px; align-items: center">
+<div class="oh-id">
+<span class="oi oi-cal"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg></span>
+<div>
+<div class="eyebrow">Lịch <span class="badge b-neutral" style="text-transform: none; letter-spacing: 0">Dữ liệu minh họa</span></div>
+<h1 class="h1">Tháng 11, 2026</h1>
+</div>
+<div class="bg" style="margin-left: 12px">
+<button type="button" class="btn icon-btn" aria-label="Tháng trước"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></button>
+<button type="button" class="btn icon-btn" aria-label="Tháng sau"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></button>
+</div>
+<button type="button" class="btn">Hôm nay</button>
+</div>
+<div class="tools">
+<div class="bg" role="group" aria-label="Chế độ xem lịch">
+<button type="button" class="btn">Ngày</button>
+<a class="btn" href="CalendarWeek.dc.html">Tuần</a>
+<button type="button" class="btn btn-on" aria-pressed="true">Tháng</button>
+<a class="btn" href="Tasks.dc.html">Danh sách</a>
+</div>
+<button type="button" class="btn icon-btn" aria-label="Làm mới"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7L20 8"></path><path d="M20 3v5h-5"></path></svg></button>
+<a class="btn btn-primary" href="NewEvent.dc.html">Tạo lịch hẹn</a>
+</div>
+</div>
+</section>
+
+<div class="split">
+<aside class="panel" aria-label="Lịch đang hiển thị" style="flex: 0 0 272px; padding: 14px; display: flex; flex-direction: column; gap: 16px">
+<div>
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px"><b style="font-size: 14px; color: #102A43">Tháng 11, 2026</b>
+<span class="bg"><button type="button" class="btn btn-ghost icon-btn btn-sm btn-neutral" aria-label="Tháng trước"><svg class="ic-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></button><button type="button" class="btn btn-ghost icon-btn btn-sm btn-neutral" aria-label="Tháng sau"><svg class="ic-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></button></span></div>
+<div class="mini" aria-label="Lịch nhỏ">
+<b>T2</b><b>T3</b><b>T4</b><b>T5</b><b>T6</b><b>T7</b><b>CN</b>
+<sc-for list="{{mini}}" as="m" hint-placeholder-count="42"><span class="{{m.cls}}">{{m.d}}</span></sc-for>
+</div>
+</div>
+<div>
+<div style="font: 600 12px Geist, system-ui, sans-serif; color: #5E6677; text-transform: uppercase; letter-spacing: .06em; padding: 0 8px 4px">Lịch của tôi</div>
+<div class="cal-legend">
+<label class="cal-cb"><input type="checkbox" class="cb" checked><span class="sw sw-ev"></span>Lịch hẹn của tôi</label>
+<label class="cal-cb"><input type="checkbox" class="cb" checked><span class="sw sw-deal"></span>Cơ hội theo ngày chốt dự kiến</label>
+<label class="cal-cb"><input type="checkbox" class="cb" checked><span class="sw sw-dep"></span>Cơ hội theo Hạn cọc</label>
+<label class="cal-cb"><input type="checkbox" class="cb" checked><span class="sw sw-task"></span>Công việc của tôi</label>
+</div>
+</div>
+<div>
+<div style="font: 600 12px Geist, system-ui, sans-serif; color: #5E6677; text-transform: uppercase; letter-spacing: .06em; padding: 0 8px 4px">Lịch của người khác</div>
+<div class="cal-legend">
+<label class="cal-cb"><input type="checkbox" class="cb"><span class="sw sw-tq"></span>Thanh Quân</label>
+<label class="cal-cb"><input type="checkbox" class="cb"><span class="sw sw-hn"></span>Hải Ngân</label>
+</div>
+<button type="button" class="btn btn-ghost btn-sm" style="margin-top: 4px">+ Thêm lịch</button>
+</div>
+<p style="margin: 0; padding: 10px; border-radius: 6px; background: #F7F8FA; font-size: 13px; line-height: 1.45; color: #5E6677">Kéo cơ hội sang ngày khác: đổi ngày chốt dự kiến. Kéo lịch hẹn: đổi ngày của lịch hẹn. Mục màu cam đỏ: Hạn cọc đã qua, chưa nhận cọc.</p>
+</aside>
+
+<section class="panel" aria-label="Lịch tháng 11, 2026" style="flex: 999 1 820px; min-width: 0; overflow: visible">
+<div class="mg" role="grid">
+<div class="mg-h" role="columnheader">Thứ 2</div><div class="mg-h" role="columnheader">Thứ 3</div><div class="mg-h" role="columnheader">Thứ 4</div><div class="mg-h" role="columnheader">Thứ 5</div><div class="mg-h" role="columnheader">Thứ 6</div><div class="mg-h" role="columnheader">Thứ 7</div><div class="mg-h" role="columnheader">Chủ nhật</div>
+<sc-for list="{{days}}" as="day" hint-placeholder-count="42">
+<div class="{{day.cls}}" role="gridcell">
+<span class="mc-d">{{day.d}}</span>
+<sc-for list="{{day.items}}" as="it" hint-placeholder-count="1">
+<button type="button" class="{{it.cls}}"><sc-if value="{{it.hasT}}" hint-placeholder-val="{{false}}"><span class="ev-t">{{it.t}}</span></sc-if><span>{{it.label}}</span></button>
+</sc-for>
+<sc-if value="{{day.hasMore}}" hint-placeholder-val="{{false}}"><button type="button" class="more">{{day.more}}</button></sc-if>
+<sc-if value="{{day.pop}}" hint-placeholder-val="{{false}}">
+<div class="pop" role="dialog" aria-label="Xem nhanh cơ hội" style="position: absolute; top: 30px; right: calc(100% - 4px); width: 320px; z-index: 9; padding: 0; overflow: hidden">
+<div style="padding: 14px 16px; border-bottom: 1px solid #E7EAF0; display: flex; gap: 10px; align-items: flex-start">
+<span class="oi oi-deal" style="width: 32px; height: 32px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2l3 7h7l-5.5 4.5 2 7.5L12 16.5 5.5 21l2-7.5L2 9h7z"></path></svg></span>
+<div style="min-width: 0; flex: 1"><a href="DealRecord.dc.html" style="font: 600 15px/1.3 Geist, system-ui, sans-serif">Quán cà phê The Lối – Q.3</a><div class="muted" style="font-size: 13px; margin-top: 2px">Cơ hội · ngày chốt dự kiến CN, 08/11/2026</div></div>
+<button type="button" class="btn btn-ghost icon-btn btn-sm btn-neutral" aria-label="Đóng"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+</div>
+<div style="padding: 12px 16px; display: grid; grid-template-columns: 110px 1fr; gap: 8px; font-size: 14px">
+<span class="muted">Đối tác</span><a href="AccountRecord.dc.html">The Lối Coffee</a>
+<span class="muted">Giai đoạn</span><span>Đã gửi báo giá · 4 ngày</span>
+<span class="muted">Giá trị</span><b class="num" style="color: #102A43">540.000.000 ₫</b>
+<span class="muted">Người phụ trách</span><span>Minh Anh</span>
+<span class="muted">Hoạt động tiếp theo</span><span>Xem mẫu vật liệu · 31/10 14:00</span>
+</div>
+<div style="padding: 10px 16px; border-top: 1px solid #E7EAF0; background: #F7F8FA; display: flex; gap: 8px; justify-content: flex-end">
+<button type="button" class="btn btn-sm">Đổi ngày chốt dự kiến</button>
+<a class="btn btn-sm btn-primary" href="DealRecord.dc.html">Mở cơ hội</a>
+</div>
+</div>
+</sc-if>
+</div>
+</sc-for>
+</div>
+</section>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const E = (cls, label, t) => ({ cls: 'ev ' + cls, label: label, t: t || '', hasT: !!t });
+    const ev = {
+      'o27': [E('ev-task', 'Gửi báo giá v2 – The Lối', '09:00')],
+      'o28': [E('ev-over', 'Quá Hạn cọc · Hoa Sen Spa')],
+      'o29': [E('ev-ev', 'Khảo sát An Phát', '09:00'), E('ev-task', 'Gọi lại Smile Care')],
+      'o30': [E('ev-ev', 'Họp Lumen Tech', '14:00')],
+      'o31': [E('ev-ev', 'Xem mẫu vật liệu', '14:00')],
+      '2': [E('ev-deal', 'Chốt dự kiến · Biệt thự Thảo Điền'), E('ev-ev', 'Nghiệm thu biệt thự', '10:00')],
+      '3': [E('ev-task', 'Gửi hồ sơ hoàn công')],
+      '4': [E('ev-ev', 'Khảo sát Nguyễn Lan', '08:30')],
+      '5': [E('ev-deal', 'Chốt dự kiến · Spa Hoa Sen'), E('ev-dep', 'Hạn cọc · Lumen Tech')],
+      '6': [E('ev-ev', 'Demo 3D Smile Care', '15:00'), E('ev-task', 'Báo giá Nhà Xinh')],
+      '8': [E('ev-deal ev-sel', 'Chốt dự kiến · The Lối Coffee')],
+      '10': [E('ev-deal', 'Chốt dự kiến · Lumen Tech')],
+      '11': [E('ev-ev', 'Ký hợp đồng Lumen', '10:00')],
+      '12': [E('ev-deal', 'Chốt dự kiến · An Phát Land')],
+      '13': [E('ev-ev', 'Đo đạc nhà Thủ Đức', '09:00')],
+      '15': [E('ev-deal', 'Chốt dự kiến · Smile Care')],
+      '17': [E('ev-dep', 'Hạn cọc đợt 2 · Bếp Mộc')],
+      '18': [E('ev-ev', 'Kiểm tra công trình', '14:00')],
+      '20': [E('ev-deal', 'Chốt dự kiến · Nhà Xinh Decor')],
+      '24': [E('ev-ev', 'Giao ban pipeline', '09:30')],
+      '25': [E('ev-task', 'Cập nhật dự báo T12')],
+      '28': [E('ev-deal', 'Chốt dự kiến · Nguyễn Lan')],
+      '30': [E('ev-deal', 'Chốt dự kiến · Trần Bảo')],
+      'd2': [E('ev-ev', 'Nghiệm thu sơ bộ VinaE', '10:00')]
+    };
+    const days = [];
+    const mini = [];
+    const push = (key, d, out, col) => {
+      const wk = col >= 5;
+      let cls = 'mc' + (out ? ' mc-out' : '') + (wk && !out ? ' mc-wknd' : '') + (key === 'o29' ? ' mc-today' : '');
+      days.push({ d: d, cls: cls, items: ev[key] || [], hasMore: key === '6', more: '+2 mục khác', pop: key === '8' });
+      mini.push({ d: d, cls: out ? (key === 'o29' ? 't' : 'o') : '' });
+    };
+    let col = 0;
+    for (let d = 26; d <= 31; d++) push('o' + d, d, true, col++ % 7);
+    for (let d = 1; d <= 30; d++) push(String(d), d, false, col++ % 7);
+    for (let d = 1; d <= 6; d++) push('d' + d, d, true, col++ % 7);
+    return { days: days, mini: mini };
+  }
+}
+</script>
+</body>
+</html>

@@ -457,3 +457,63 @@ export async function relatedOpportunities(db: D1Database, actor: CrmActor, oppo
 export async function recentEvents(db: D1Database, opportunityId: string): Promise<{ id: string; actor_name: string; kind: string; body: string; created_at: string }[]> {
   return (await db.prepare("SELECT id, actor_name, kind, body, created_at FROM crm_events WHERE opportunity_id = ? ORDER BY created_at DESC LIMIT 100").bind(opportunityId).all<{ id: string; actor_name: string; kind: string; body: string; created_at: string }>()).results;
 }
+
+export interface BoardOpportunity extends Opportunity { stage_since: string | null; open_tasks: number; overdue_tasks: number }
+
+/**
+ * Open and paused opportunities of one playbook for the Kanban, with when
+ * they entered their current stage and their open/overdue task counts. At
+ * most 300, so the board stays light; the table pages through the rest.
+ */
+export async function boardOpportunities(db: D1Database, actor: CrmActor, filters: Filters, inactiveOwners: readonly string[] = [], today = new Date().toISOString().slice(0, 10)): Promise<BoardOpportunity[]> {
+  const where = filterSql(actor, { ...filters, stage: "", outcome: "" }, inactiveOwners);
+  return (await db.prepare(`SELECT o.*, a.name AS account_name, a.industry, a.region, a.do_not_contact AS account_dnc,
+      (SELECT MAX(h.created_at) FROM crm_stage_history h WHERE h.opportunity_id = o.id AND h.to_stage = o.stage_id) AS stage_since,
+      (SELECT COUNT(*) FROM crm_tasks t WHERE t.opportunity_id = o.id AND t.status = 'open') AS open_tasks,
+      (SELECT COUNT(*) FROM crm_tasks t WHERE t.opportunity_id = o.id AND t.status = 'open' AND t.due_on IS NOT NULL AND t.due_on < ?) AS overdue_tasks
+    FROM crm_opportunities o JOIN crm_accounts a ON a.id = o.account_id WHERE ${where.sql} AND o.outcome IN ('open', 'paused')
+    ORDER BY CASE WHEN o.next_action_due IS NULL THEN 1 ELSE 0 END, o.next_action_due, o.updated_at DESC LIMIT 300`).bind(today, ...where.args).all<BoardOpportunity>()).results;
+}
+
+export const INLINE_FIELDS = ["estimated_value_vnd", "win_probability", "next_action_due", "next_action"] as const;
+export type InlineField = typeof INLINE_FIELDS[number];
+
+/**
+ * Table inline edit: changes one detail field and keeps every other detail
+ * as stored, through the same versioned save as the record page.
+ */
+export async function saveInline(db: D1Database, actor: CrmActor, opportunity: Opportunity, form: FormData): Promise<void> {
+  const field = String(form.get("field") ?? "") as InlineField;
+  if (!INLINE_FIELDS.includes(field)) fail("field", "invalid");
+  const full = new FormData();
+  const stored: Record<string, string | number | null> = {
+    title: opportunity.title, next_action: opportunity.next_action, next_action_due: opportunity.next_action_due, estimated_value_vnd: opportunity.estimated_value_vnd,
+    win_probability: opportunity.win_probability, referrer: opportunity.referrer, source_detail: opportunity.source_detail, cohort_key: opportunity.cohort_key,
+    service_period_start: opportunity.service_period_start, service_period_end: opportunity.service_period_end, renewal_due_on: opportunity.renewal_due_on,
+  };
+  for (const [key, value] of Object.entries(stored)) full.set(key, value === null || value === undefined ? "" : String(value));
+  const value = form.get("value");
+  full.set(field, typeof value === "string" ? value : "");
+  for (const key of ["version", "request_key"]) { const raw = form.get(key); if (typeof raw === "string") full.set(key, raw); }
+  try {
+    await saveDetails(db, actor, opportunity, full);
+  } catch (error) {
+    // Report the error against the cell that was edited.
+    if (error instanceof ValidationError && error.fields[field]) throw new ValidationError({ value: error.fields[field] });
+    throw error;
+  }
+}
+
+/**
+ * Close dialog (from the record or a Kanban drop zone): the target must be a
+ * won or lost stage of the opportunity's playbook, and a lost close needs a
+ * reason. The move itself is the ordinary, requirement-checked stage move.
+ */
+export async function closeOpportunity(db: D1Database, actor: CrmActor, opportunity: Opportunity, playbook: Playbook, form: FormData): Promise<void> {
+  const to = typeof form.get("to_stage") === "string" ? String(form.get("to_stage")) : "";
+  const target = playbook.def.stages.find((stage) => stage.id === to);
+  if (!target || (target.outcome !== "won" && target.outcome !== "lost")) fail("to_stage", "invalid");
+  const reason = typeof form.get("reason") === "string" ? String(form.get("reason")).trim() : "";
+  if (target!.outcome === "lost" && !reason) fail("reason", "required");
+  await moveStage(db, actor, opportunity, playbook, form);
+}

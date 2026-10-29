@@ -4,12 +4,12 @@
 // a page that would answer 403. Paths are English; Vietnamese adds /vi.
 import type { Permission, WorkspaceUser } from "./roles";
 
-export type ModuleKey = "home" | "hiring" | "crm" | "hrm" | "finance" | "admin";
+export type ModuleKey = "home" | "hiring" | "crm" | "hrm" | "finance" | "admin" | "account";
 export type IconName =
   | "finance" | "cash_flow" | "balance" | "history"
   | "files" | "hrm" | "profile" | "hrm_people" | "hrm_settings"
-  | "overview" | "hiring" | "crm" | "admin" | "today" | "pipeline" | "new" | "referrals" | "companies" | "contacts" | "reports"
-  | "commission" | "model" | "fulfillment" | "assignment" | "playbooks" | "offers" | "process" | "agents" | "roles" | "candidates" | "users" | "menu";
+  | "overview" | "hiring" | "crm" | "admin" | "today" | "leads" | "lead_settings" | "calendar" | "pipeline" | "new" | "referrals" | "companies" | "contacts" | "reports"
+  | "commission" | "model" | "fulfillment" | "assignment" | "playbooks" | "offers" | "process" | "agents" | "roles" | "candidates" | "users" | "menu" | "apps" | "account" | "security";
 export interface NavLink { key: string; en: string; vi: string; path: string; icon: IconName; group?: string; anyOf?: Permission[] }
 export interface NavGroup { key: string; en: string; vi: string }
 export interface NavModule { key: ModuleKey; en: string; vi: string; path: string; icon: IconName; permission: Permission; links: NavLink[]; groups?: NavGroup[] }
@@ -36,7 +36,9 @@ export const modules: NavModule[] = [
     ],
     links: [
       { key: "today", en: "Today", vi: "Hôm nay", path: "/crm", icon: "today", group: "sell" },
+      { key: "leads", en: "Leads", vi: "Lead", path: "/crm/leads", icon: "leads", group: "sell" },
       { key: "pipeline", en: "Pipeline", vi: "Cơ hội", path: "/crm/pipeline", icon: "pipeline", group: "sell" },
+      { key: "calendar", en: "Calendar", vi: "Lịch", path: "/crm/calendar", icon: "calendar", group: "sell" },
       { key: "new", en: "New opportunity", vi: "Tạo cơ hội", path: "/crm/new", icon: "new", group: "sell" },
       { key: "referrals", en: "Referrals", vi: "Giới thiệu khách", path: "/crm/referrals", icon: "referrals", group: "sell", anyOf: ["crm.refer"] },
       { key: "companies", en: "Companies", vi: "Công ty", path: "/crm/accounts", icon: "companies", group: "customers" },
@@ -47,6 +49,7 @@ export const modules: NavModule[] = [
       { key: "fulfillment", en: "Fulfillment", vi: "Bàn giao", path: "/crm/fulfillment", icon: "fulfillment", group: "operations", anyOf: ["crm.fulfillment", "crm.team"] },
       { key: "operations", en: "Assignment and cohorts", vi: "Phân công và cohort", path: "/crm/admin", icon: "assignment", group: "operations", anyOf: ["crm.team"] },
       { key: "playbooks", en: "Playbooks", vi: "Playbook", path: "/crm/admin/playbooks", icon: "playbooks", group: "setup", anyOf: ["crm.configure"] },
+      { key: "lead-settings", en: "Lead statuses", vi: "Trạng thái Lead", path: "/crm/admin/leads", icon: "lead_settings", group: "setup", anyOf: ["crm.configure"] },
       { key: "offers", en: "Offers and prices", vi: "Gói và giá", path: "/crm/admin/offers", icon: "offers", group: "setup", anyOf: ["crm.configure"] },
       { key: "process", en: "Sales process", vi: "Quy trình bán hàng", path: "/crm/process", icon: "process", group: "help" },
       { key: "files", en: "Files", vi: "Tài liệu", path: "/crm/files", icon: "files", group: "help" },
@@ -54,39 +57,48 @@ export const modules: NavModule[] = [
     ],
   },
   {
-    key: "hrm", en: "HRM", vi: "HRM", path: "/hrm", icon: "hrm", permission: "hrm.access", links: [
-      { key: "home", en: "My overview", vi: "Tổng quan của tôi", path: "/hrm", icon: "overview" },
-      { key: "profile", en: "My profile", vi: "Hồ sơ của tôi", path: "/hrm/me", icon: "profile", anyOf: ["hrm.profile.self"] },
-      { key: "my-documents", en: "My legal documents", vi: "Tài liệu pháp lý của tôi", path: "/hrm/me/documents", icon: "profile", anyOf: ["hrm.legal.self"] },
-      { key: "my-coi", en: "My COI declarations", vi: "Khai báo COI của tôi", path: "/hrm/me/coi", icon: "profile", anyOf: ["hrm.coi.self"] },
-      { key: "my-onboarding", en: "Onboarding tasks", vi: "Việc cần làm khi gia nhập", path: "/hrm/me/onboarding", icon: "today", anyOf: ["hrm.onboarding.self", "hrm.onboarding.tasks"] },
-      { key: "my-time", en: "My attendance", vi: "Công của tôi", path: "/hrm/me/time", icon: "today", anyOf: ["hrm.time.self"] },
-      { key: "my-leave", en: "My leave", vi: "Phép của tôi", path: "/hrm/me/leave", icon: "today", anyOf: ["hrm.leave.self"] },
-      { key: "my-payslips", en: "My payslips", vi: "Phiếu lương của tôi", path: "/hrm/me/payslips", icon: "profile", anyOf: ["hrm.payroll.self"] },
-      { key: "my-requests", en: "My HR requests", vi: "Yêu cầu HR của tôi", path: "/hrm/me/requests", icon: "today", anyOf: ["hrm.services.self"] },
-      { key: "my-assets", en: "My assets", vi: "Tài sản của tôi", path: "/hrm/me/assets", icon: "profile", anyOf: ["hrm.assets.self"] },
-      { key: "my-benefits", en: "My benefits", vi: "Phúc lợi của tôi", path: "/hrm/me/benefits", icon: "profile", anyOf: ["hrm.benefits.self"] },
-      { key: "my-performance", en: "My reviews", vi: "Đánh giá của tôi", path: "/hrm/me/performance", icon: "profile", anyOf: ["hrm.performance.self"] },
-      { key: "my-training", en: "My training", vi: "Đào tạo của tôi", path: "/hrm/me/training", icon: "profile", anyOf: ["hrm.training.self"] },
-      { key: "notifications", en: "Notifications", vi: "Thông báo", path: "/hrm/notifications", icon: "today", anyOf: ["hrm.notifications.read"] },
-      { key: "people", en: "People", vi: "Nhân sự", path: "/hrm/people", icon: "hrm_people", anyOf: ["hrm.records.manage", "hrm.team.read"] },
-      { key: "job-descriptions", en: "Job descriptions", vi: "Mô tả công việc", path: "/hrm/job-descriptions", icon: "roles", anyOf: ["hrm.records.manage"] },
-      { key: "legal-documents", en: "Policies and documents", vi: "Chính sách và tài liệu", path: "/hrm/documents", icon: "profile", anyOf: ["hrm.legal.manage"] },
-      { key: "coi-review", en: "COI review", vi: "Rà soát COI", path: "/hrm/coi", icon: "profile", anyOf: ["hrm.coi.review"] },
-      { key: "onboarding-manage", en: "Onboarding plans", vi: "Kế hoạch onboarding", path: "/hrm/onboarding", icon: "hrm_people", anyOf: ["hrm.onboarding.manage"] },
-      { key: "offboarding", en: "Offboarding", vi: "Offboarding", path: "/hrm/offboarding", icon: "hrm_people", anyOf: ["hrm.offboarding.manage", "hrm.offboarding.tasks"] },
-      { key: "retention", en: "Retention and legal holds", vi: "Lưu trữ và legal hold", path: "/hrm/retention", icon: "hrm_settings", anyOf: ["hrm.retention.manage", "hrm.retention.review", "hrm.legalhold.manage"] },
-      { key: "time", en: "Schedules and attendance", vi: "Lịch và chấm công", path: "/hrm/time", icon: "hrm_people", anyOf: ["hrm.time.manage", "hrm.time.review", "hrm.time.configure"] },
-      { key: "leave", en: "Leave policies and requests", vi: "Chính sách phép và đơn nghỉ", path: "/hrm/leave", icon: "hrm_people", anyOf: ["hrm.leave.manage", "hrm.leave.review", "hrm.leave.configure"] },
-      { key: "payroll", en: "Payroll and payslips", vi: "Payroll và phiếu lương", path: "/hrm/payroll", icon: "hrm_people", anyOf: ["hrm.payroll.read", "hrm.payroll.prepare", "hrm.payroll.configure"] },
-      { key: "service-requests", en: "HR service desk", vi: "Yêu cầu dịch vụ HR", path: "/hrm/requests", icon: "hrm_people", anyOf: ["hrm.services.manage"] },
-      { key: "assets", en: "Asset register", vi: "Quản lý tài sản", path: "/hrm/assets", icon: "hrm_people", anyOf: ["hrm.assets.manage"] },
-      { key: "benefits", en: "Benefits", vi: "Quản lý phúc lợi", path: "/hrm/benefits", icon: "hrm_people", anyOf: ["hrm.benefits.manage"] },
-      { key: "performance", en: "Performance reviews", vi: "Đánh giá hiệu suất", path: "/hrm/performance", icon: "hrm_people", anyOf: ["hrm.performance.manage", "hrm.performance.review"] },
-      { key: "training", en: "Training and certificates", vi: "Đào tạo và chứng chỉ", path: "/hrm/training", icon: "hrm_people", anyOf: ["hrm.training.manage"] },
-      { key: "report-governance", en: "Report policies and holds", vi: "Chính sách và hold báo cáo", path: "/hrm/reports/governance", icon: "hrm_settings", anyOf: ["hrm.reports.manage"] },
-      { key: "reports", en: "Reports", vi: "Báo cáo", path: "/hrm/reports", icon: "hrm_settings", anyOf: ["hrm.reports.read"] },
-      { key: "settings", en: "Settings", vi: "Thiết lập", path: "/hrm/settings", icon: "hrm_settings", anyOf: ["hrm.configure"] },
+    key: "hrm", en: "HRM", vi: "HRM", path: "/hrm", icon: "hrm", permission: "hrm.access",
+    // My own records first, then the work HR does for others, then policy
+    // and compliance, then reports and settings.
+    groups: [
+      { key: "me", en: "My HR", vi: "Của tôi" },
+      { key: "people", en: "People operations", vi: "Nghiệp vụ nhân sự" },
+      { key: "compliance", en: "Policies and compliance", vi: "Chính sách và tuân thủ" },
+      { key: "control", en: "Reports and settings", vi: "Báo cáo và thiết lập" },
+    ],
+    links: [
+      { key: "home", en: "My overview", vi: "Tổng quan của tôi", path: "/hrm", icon: "overview", group: "me" },
+      { key: "profile", en: "My profile", vi: "Hồ sơ của tôi", path: "/hrm/me", icon: "profile", group: "me", anyOf: ["hrm.profile.self"] },
+      { key: "my-documents", en: "My legal documents", vi: "Tài liệu pháp lý của tôi", path: "/hrm/me/documents", icon: "profile", group: "me", anyOf: ["hrm.legal.self"] },
+      { key: "my-coi", en: "My COI declarations", vi: "Khai báo xung đột lợi ích của tôi", path: "/hrm/me/coi", icon: "profile", group: "me", anyOf: ["hrm.coi.self"] },
+      { key: "my-onboarding", en: "Onboarding tasks", vi: "Việc cần làm khi hội nhập", path: "/hrm/me/onboarding", icon: "today", group: "me", anyOf: ["hrm.onboarding.self", "hrm.onboarding.tasks"] },
+      { key: "my-time", en: "My attendance", vi: "Công của tôi", path: "/hrm/me/time", icon: "today", group: "me", anyOf: ["hrm.time.self"] },
+      { key: "my-leave", en: "My leave", vi: "Phép của tôi", path: "/hrm/me/leave", icon: "today", group: "me", anyOf: ["hrm.leave.self"] },
+      { key: "my-payslips", en: "My payslips", vi: "Phiếu lương của tôi", path: "/hrm/me/payslips", icon: "profile", group: "me", anyOf: ["hrm.payroll.self"] },
+      { key: "my-requests", en: "My HR requests", vi: "Yêu cầu HR của tôi", path: "/hrm/me/requests", icon: "today", group: "me", anyOf: ["hrm.services.self"] },
+      { key: "my-assets", en: "My assets", vi: "Tài sản của tôi", path: "/hrm/me/assets", icon: "profile", group: "me", anyOf: ["hrm.assets.self"] },
+      { key: "my-benefits", en: "My benefits", vi: "Phúc lợi của tôi", path: "/hrm/me/benefits", icon: "profile", group: "me", anyOf: ["hrm.benefits.self"] },
+      { key: "my-performance", en: "My reviews", vi: "Đánh giá của tôi", path: "/hrm/me/performance", icon: "profile", group: "me", anyOf: ["hrm.performance.self"] },
+      { key: "my-training", en: "My training", vi: "Đào tạo của tôi", path: "/hrm/me/training", icon: "profile", group: "me", anyOf: ["hrm.training.self"] },
+      { key: "notifications", en: "Notifications", vi: "Thông báo", path: "/hrm/notifications", icon: "today", group: "me", anyOf: ["hrm.notifications.read"] },
+      { key: "people", en: "People", vi: "Nhân sự", path: "/hrm/people", icon: "hrm_people", group: "people", anyOf: ["hrm.records.manage", "hrm.team.read"] },
+      { key: "job-descriptions", en: "Job descriptions", vi: "Mô tả công việc", path: "/hrm/job-descriptions", icon: "roles", group: "people", anyOf: ["hrm.records.manage"] },
+      { key: "legal-documents", en: "Policies and documents", vi: "Chính sách và tài liệu", path: "/hrm/documents", icon: "profile", group: "compliance", anyOf: ["hrm.legal.manage"] },
+      { key: "coi-review", en: "COI review", vi: "Rà soát xung đột lợi ích", path: "/hrm/coi", icon: "profile", group: "compliance", anyOf: ["hrm.coi.review"] },
+      { key: "onboarding-manage", en: "Onboarding plans", vi: "Kế hoạch hội nhập", path: "/hrm/onboarding", icon: "hrm_people", group: "people", anyOf: ["hrm.onboarding.manage"] },
+      { key: "offboarding", en: "Offboarding", vi: "Nghỉ việc", path: "/hrm/offboarding", icon: "hrm_people", group: "people", anyOf: ["hrm.offboarding.manage", "hrm.offboarding.tasks"] },
+      { key: "retention", en: "Retention and legal holds", vi: "Lưu trữ và tạm giữ pháp lý", path: "/hrm/retention", icon: "hrm_settings", group: "compliance", anyOf: ["hrm.retention.manage", "hrm.retention.review", "hrm.legalhold.manage"] },
+      { key: "time", en: "Schedules and attendance", vi: "Lịch và chấm công", path: "/hrm/time", icon: "hrm_people", group: "people", anyOf: ["hrm.time.manage", "hrm.time.review", "hrm.time.configure"] },
+      { key: "leave", en: "Leave policies and requests", vi: "Chính sách phép và đơn nghỉ", path: "/hrm/leave", icon: "hrm_people", group: "people", anyOf: ["hrm.leave.manage", "hrm.leave.review", "hrm.leave.configure"] },
+      { key: "payroll", en: "Payroll and payslips", vi: "Bảng lương và phiếu lương", path: "/hrm/payroll", icon: "hrm_people", group: "people", anyOf: ["hrm.payroll.read", "hrm.payroll.prepare", "hrm.payroll.configure"] },
+      { key: "service-requests", en: "HR service desk", vi: "Yêu cầu dịch vụ HR", path: "/hrm/requests", icon: "hrm_people", group: "people", anyOf: ["hrm.services.manage"] },
+      { key: "assets", en: "Asset register", vi: "Quản lý tài sản", path: "/hrm/assets", icon: "hrm_people", group: "people", anyOf: ["hrm.assets.manage"] },
+      { key: "benefits", en: "Benefits", vi: "Quản lý phúc lợi", path: "/hrm/benefits", icon: "hrm_people", group: "people", anyOf: ["hrm.benefits.manage"] },
+      { key: "performance", en: "Performance reviews", vi: "Đánh giá hiệu suất", path: "/hrm/performance", icon: "hrm_people", group: "people", anyOf: ["hrm.performance.manage", "hrm.performance.review"] },
+      { key: "training", en: "Training and certificates", vi: "Đào tạo và chứng chỉ", path: "/hrm/training", icon: "hrm_people", group: "people", anyOf: ["hrm.training.manage"] },
+      { key: "report-governance", en: "Report policies and holds", vi: "Chính sách và tạm giữ báo cáo", path: "/hrm/reports/governance", icon: "hrm_settings", group: "compliance", anyOf: ["hrm.reports.manage"] },
+      { key: "reports", en: "Reports", vi: "Báo cáo", path: "/hrm/reports", icon: "hrm_settings", group: "control", anyOf: ["hrm.reports.read"] },
+      { key: "settings", en: "Settings", vi: "Thiết lập", path: "/hrm/settings", icon: "hrm_settings", group: "control", anyOf: ["hrm.configure"] },
     ],
   },
   {
@@ -112,11 +124,38 @@ export const modules: NavModule[] = [
     ],
   },
   {
-    key: "admin", en: "Admin", vi: "Quản trị", path: "/workspace/users", icon: "admin", permission: "users.manage", links: [
-      { key: "users", en: "Users and roles", vi: "Người dùng và vai trò", path: "/workspace/users", icon: "users" },
+    key: "admin", en: "Admin", vi: "Quản trị", path: "/workspace/users", icon: "admin", permission: "users.manage",
+    groups: [
+      { key: "access", en: "People and access", vi: "Người dùng và quyền" },
+      { key: "security", en: "Security and integrations", vi: "Bảo mật và tích hợp" },
+    ],
+    links: [
+      { key: "users", en: "Users", vi: "Người dùng", path: "/workspace/users", icon: "users", group: "access" },
+      { key: "roles", en: "Roles and permissions", vi: "Vai trò và quyền", path: "/workspace/roles", icon: "roles", group: "access" },
+      { key: "security", en: "Security", vi: "Bảo mật", path: "/workspace/security", icon: "security", group: "security" },
+      { key: "audit", en: "Audit log", vi: "Nhật ký kiểm toán", path: "/workspace/audit", icon: "history", group: "security" },
+      { key: "notifications", en: "Notification rules", vi: "Quy tắc thông báo", path: "/workspace/notifications", icon: "today", group: "security" },
+      { key: "webhooks", en: "Webhooks", vi: "Webhook", path: "/workspace/webhooks", icon: "apps", group: "security" },
+      { key: "agents", en: "AI agents", vi: "AI agent", path: "/workspace/agents", icon: "agents", group: "security" },
     ],
   },
 ];
+
+/**
+ * Personal settings (R-06). Reached from the account menu, not the module
+ * tabs, and open to everyone with Workspace access. Workstream 4 adds its
+ * security and notification pages here.
+ */
+export const accountModule: NavModule = {
+  key: "account", en: "My account", vi: "Tài khoản của tôi", path: "/workspace/account", icon: "account", permission: "workspace.access", links: [
+    { key: "profile", en: "Profile", vi: "Hồ sơ", path: "/workspace/account", icon: "profile" },
+    { key: "security", en: "Security", vi: "Bảo mật", path: "/workspace/account/security", icon: "security" },
+  ],
+};
+
+export function moduleByKey(key: ModuleKey): NavModule {
+  return key === "account" ? accountModule : modules.find((module) => module.key === key)!;
+}
 
 export function localized(path: string, vi: boolean): string {
   return vi ? `/vi${path}` : path;
@@ -155,6 +194,7 @@ export function moduleForPath(pathname: string): ModuleKey {
   if (path === "/finance" || path.startsWith("/finance/")) return "finance";
   if (path === "/hrm" || path.startsWith("/hrm/")) return "hrm";
   if (path === "/crm" || path.startsWith("/crm/")) return "crm";
-  if (path.startsWith("/workspace/users")) return "admin";
+  if (["/workspace/users", "/workspace/roles", "/workspace/audit", "/workspace/security", "/workspace/notifications", "/workspace/webhooks", "/workspace/agents"].some((root) => path === root || path.startsWith(`${root}/`))) return "admin";
+  if (path.startsWith("/workspace/account")) return "account";
   return "home";
 }

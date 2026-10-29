@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Trang chủ kinh doanh</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}
+.ph{padding:12px 16px;border-bottom:1px solid #E7EAF0;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.as{display:flex;gap:10px;padding:10px 16px;border-bottom:1px solid #E7EAF0;align-items:flex-start}
+</style>
+</helmet>
+<div class="root" style="min-height: 1100px">
+
+<dc-import name="TopNav" app="crm" active="Trang chủ" hint-size="100%,104px"></dc-import>
+
+<main class="page">
+<div class="split">
+<div class="main-col" style="display: flex; flex-direction: column; gap: 12px">
+<section class="panel" aria-label="Kết quả kinh doanh quý">
+<div class="ph"><h2 class="sec-h">Kết quả kinh doanh quý · Q4/2026 <span class="badge b-neutral">Dữ liệu minh họa</span></h2><button type="button" class="btn btn-sm">Đặt chỉ tiêu</button></div>
+<div style="padding: 14px 16px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px">
+<div><div class="kpi-l">Thắng</div><div class="kpi-v" style="color: #1F7A4D">1,20 tỷ ₫</div></div>
+<div><div class="kpi-l">Đang mở, xác suất ≥ 70%</div><div class="kpi-v">7,35 tỷ ₫</div></div>
+<div><div class="kpi-l">Chỉ tiêu</div><div class="kpi-v" style="color: #5E6677">[chưa đặt]</div></div>
+</div>
+<div style="padding: 0 16px 14px">
+<svg viewBox="0 0 880 220" width="100%" role="img" aria-label="Biểu đồ lũy kế Q4: Thắng 1,2 tỷ; Thắng cộng Đang mở có xác suất từ 70% đạt 8,55 tỷ vào cuối tháng 12">
+<g stroke="#E7EAF0" stroke-width="1"><line x1="56" y1="20" x2="860" y2="20"></line><line x1="56" y1="80" x2="860" y2="80"></line><line x1="56" y1="140" x2="860" y2="140"></line><line x1="56" y1="196" x2="860" y2="196" stroke="#C8D0DE"></line></g>
+<g font-family="Geist, system-ui, sans-serif" font-size="12" fill="#5E6677"><text x="48" y="24" text-anchor="end">9 tỷ</text><text x="48" y="84" text-anchor="end">6 tỷ</text><text x="48" y="144" text-anchor="end">3 tỷ</text><text x="48" y="200" text-anchor="end">0</text><text x="190" y="214" text-anchor="middle">T10</text><text x="458" y="214" text-anchor="middle">T11</text><text x="726" y="214" text-anchor="middle">T12</text></g>
+<polyline fill="none" stroke="#1F7A4D" stroke-width="3" points="56,196 180,190 250,172 860,172"></polyline>
+<polyline fill="none" stroke="#006093" stroke-width="3" stroke-dasharray="7 5" points="250,172 330,134 470,134 700,70 860,25"></polyline>
+<line x1="250" y1="20" x2="250" y2="196" stroke="#C2410C" stroke-width="2"></line>
+<text x="256" y="34" font-family="Geist, system-ui, sans-serif" font-size="12" fill="#C2410C">Hôm nay</text>
+</svg>
+<div style="display: flex; gap: 18px; font-size: 13px"><span style="display: inline-flex; gap: 6px; align-items: center"><span class="sw" style="background: #1F7A4D"></span>Thắng</span><span style="display: inline-flex; gap: 6px; align-items: center"><span class="sw" style="background: #006093"></span>Thắng + Đang mở có xác suất ≥ 70%</span></div>
+</div>
+</section>
+
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+<section class="panel" aria-label="Lịch hẹn hôm nay">
+<div class="ph"><h2 class="sec-h">Lịch hẹn hôm nay</h2><a href="CalendarWeek.dc.html" style="font-size: 13px">Mở lịch</a></div>
+<div style="padding: 12px 16px; display: flex; flex-direction: column; gap: 10px">
+<div class="tl"><span class="tl-ic" style="background: #E4F3FC; color: #006093"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18"></path></svg></span><div class="tl-b"><div class="tl-t">Khảo sát văn phòng An Phát</div><div class="tl-m">09:00–10:30 · Tầng 12, Q.1</div></div></div>
+<div class="tl"><span class="tl-ic" style="background: #E4F3FC; color: #006093"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18"></path></svg></span><div class="tl-b" style="border-bottom: 0"><div class="tl-t">Duyệt báo giá nội bộ</div><div class="tl-m">16:00–17:00</div></div></div>
+</div>
+</section>
+<section class="panel" aria-label="Công việc hôm nay">
+<div class="ph"><h2 class="sec-h">Công việc hôm nay</h2><a href="Tasks.dc.html" style="font-size: 13px">Xem tất cả</a></div>
+<div style="padding: 8px 16px; display: flex; flex-direction: column">
+<label style="display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid #E7EAF0; font-size: 14px"><input type="checkbox" class="cb">Gọi lại Smile Care<span class="badge b-info" style="margin-left: auto">Hôm nay</span></label>
+<label style="display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid #E7EAF0; font-size: 14px"><input type="checkbox" class="cb">Chuẩn bị bản vẽ An Phát<span class="badge b-info" style="margin-left: auto">Hôm nay</span></label>
+<label style="display: flex; gap: 10px; padding: 8px 0; font-size: 14px"><input type="checkbox" class="cb">Gửi biên bản nghiệm thu<span class="badge b-warn" style="margin-left: auto">Quá hạn</span></label>
+</div>
+</section>
+</div>
+
+<section class="panel" aria-label="Cơ hội có giá trị lớn nhất">
+<div class="ph"><h2 class="sec-h">Cơ hội có giá trị lớn nhất của tôi</h2><a href="DealsTable.dc.html" style="font-size: 13px">Xem tất cả</a></div>
+<div class="tbl-wrap" style="border-top: 0"><table class="tbl" style="min-width: 700px"><thead><tr><th>Tên cơ hội</th><th>Giai đoạn</th><th class="r">Giá trị</th><th>Ngày chốt dự kiến</th></tr></thead><tbody>
+<tr><td><a href="#">Showroom xe điện Tân Bình</a></td><td>Đã khởi công</td><td class="r">3.400.000.000 ₫</td><td>22/12/2026</td></tr>
+<tr><td><a href="#">Văn phòng tầng 12 – Q.1</a></td><td>Đã hẹn khảo sát</td><td class="r">860.000.000 ₫</td><td>12/11/2026</td></tr>
+<tr><td><a href="#">Spa Hoa Sen – Phú Nhuận</a></td><td>Đã duyệt báo giá</td><td class="r">780.000.000 ₫</td><td>05/11/2026</td></tr>
+<tr><td><a href="DealRecord.dc.html">Quán cà phê The Lối – Q.3</a></td><td>Đã gửi báo giá</td><td class="r">540.000.000 ₫</td><td>08/11/2026</td></tr>
+</tbody></table></div>
+</section>
+</div>
+
+<aside class="side-col" style="flex: 1 1 380px; display: flex; flex-direction: column; gap: 12px">
+<section class="panel" aria-label="Cảnh báo">
+<div class="ph"><h2 class="sec-h">Cảnh báo</h2><span class="badge b-neutral">4</span></div>
+<div class="as"><span class="kc-alert kc-alert-danger" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 1 21h22zm-1 7h2v6h-2zm0 8h2v2h-2z"></path></svg></span><div style="flex: 1"><div style="font-weight: 600; font-size: 14px">Quá Hạn cọc 1 ngày, chưa nhận cọc</div><div class="muted" style="font-size: 13px">Spa Hoa Sen – Phú Nhuận · hạn 28/10</div></div><button type="button" class="btn btn-sm">Tạo công việc nhắc cọc</button></div>
+<div class="as"><span class="kc-alert" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 1 21h22zm-1 7h2v6h-2zm0 8h2v2h-2z"></path></svg></span><div style="flex: 1"><div style="font-weight: 600; font-size: 14px">Không có hoạt động sắp tới</div><div class="muted" style="font-size: 13px">Showroom nội thất Thảo Điền</div></div><a class="btn btn-sm" href="NewEvent.dc.html">Tạo lịch hẹn</a></div>
+<div class="as"><span class="kc-alert" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 1 21h22zm-1 7h2v6h-2zm0 8h2v2h-2z"></path></svg></span><div style="flex: 1"><div style="font-weight: 600; font-size: 14px">Vượt số ngày chuẩn của giai đoạn “Đã gửi báo giá”</div><div class="muted" style="font-size: 13px">Phòng khám nha Smile Care · 9 ngày, chuẩn 7</div></div><a class="btn btn-sm" href="DealRecord.dc.html">Mở cơ hội</a></div>
+<div class="as" style="border-bottom: 0"><span class="kc-alert" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 1 21h22zm-1 7h2v6h-2zm0 8h2v2h-2z"></path></svg></span><div style="flex: 1"><div style="font-weight: 600; font-size: 14px">Ngày chốt dự kiến đã qua, cơ hội vẫn Đang mở</div><div class="muted" style="font-size: 13px">0 cơ hội</div></div></div>
+</section>
+<section class="panel" aria-label="Xem gần đây">
+<div class="ph"><h2 class="sec-h">Xem gần đây</h2></div>
+<div style="padding: 6px 16px 12px; display: flex; flex-direction: column; gap: 2px; font-size: 14px">
+<a href="DealRecord.dc.html" style="display: flex; gap: 10px; align-items: center; padding: 6px 0"><span class="rl-i" style="background: #006093">O</span>Quán cà phê The Lối – Q.3</a>
+<a href="AccountRecord.dc.html" style="display: flex; gap: 10px; align-items: center; padding: 6px 0"><span class="rl-i" style="background: #5B4FC4">A</span>The Lối Coffee</a>
+<a href="#" style="display: flex; gap: 10px; align-items: center; padding: 6px 0"><span class="rl-i" style="background: #0F7B7B">C</span>Anh Trí</a>
+<a href="#" style="display: flex; gap: 10px; align-items: center; padding: 6px 0"><span class="rl-i" style="background: #006093">O</span>Văn phòng Lumen Tech</a>
+</div>
+</section>
+</aside>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

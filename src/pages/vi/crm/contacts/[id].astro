@@ -1,0 +1,9 @@
+---
+import ContactView from "../../../../components/crm/ContactView.astro";
+import { contactRoute } from "../../../../lib/crm/routes/account";
+
+export const prerender = false;
+const result = await contactRoute(Astro, "vi");
+if (result instanceof Response) return result;
+---
+<ContactView {...result} />

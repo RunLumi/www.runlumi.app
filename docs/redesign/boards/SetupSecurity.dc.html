@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Tài khoản · Bảo mật</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="root" style="min-height: 1100px">
+<dc-import name="TopNav" app="account" active="Bảo mật" hint-size="100%,104px"></dc-import>
+<main class="page">
+<div style="display: flex; flex-direction: column; gap: 12px">
+<section class="panel" style="padding: 16px 20px">
+<ol class="crumbs" aria-label="Vị trí"><li><a href="AccountProfile.dc.html">Tài khoản của tôi</a></li><li><span aria-current="page">Bảo mật</span></li></ol>
+<h1 class="h1" style="margin-top: 6px">Bảo mật <span class="badge b-neutral" style="vertical-align: middle">Dữ liệu minh họa</span></h1>
+<p class="muted" style="margin: 6px 0 0; font-size: 14px">Tổ chức của bạn bắt buộc passkey và mã chống lừa đảo cho mọi thành viên. Xóa passkey, đổi mã và thu hồi agent đều phải xác thực lại bằng passkey.</p>
+</section>
+
+<section class="panel" aria-labelledby="pk-h" style="overflow: hidden">
+<div class="oh" style="padding-bottom: 10px; align-items: center"><h2 class="sec-h" id="pk-h">Passkey (3)</h2><button type="button" class="btn">Thêm passkey</button></div>
+<table class="mx"><thead><tr><th>Tên</th><th>Loại</th><th>Tạo lúc</th><th>Dùng gần nhất</th><th><span class="sr">Hành động</span></th></tr></thead>
+<tbody>
+<sc-for list="{{passkeys}}" as="p" hint-placeholder-count="3"><tr><td style="font-weight: 600; color: #102A43">{{p.name}}</td><td>{{p.kind}}</td><td>{{p.created}}</td><td>{{p.used}}</td><td style="text-align: right"><button type="button" class="btn btn-sm">Đổi tên</button> <button type="button" class="btn btn-sm btn-lost">Xóa</button></td></tr></sc-for>
+</tbody></table>
+<p class="muted" style="margin: 0; padding: 10px 16px; font-size: 13px">Phải còn ít nhất 1 passkey. Nên có passkey trên 2 thiết bị để không bị khóa khi mất máy.</p>
+</section>
+
+<section class="panel" aria-labelledby="apc-h" style="padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; gap: 16px">
+<div><h2 class="sec-h" id="apc-h">Mã chống lừa đảo</h2><p style="margin: 6px 0 0; font-size: 14px">Mã hiện tại: <span class="code">Mây ••••••</span> · đổi lần cuối 29/10/2026</p></div>
+<div style="display: flex; gap: 8px"><button type="button" class="btn">Hiện mã</button><button type="button" class="btn">Đổi mã</button></div>
+</section>
+
+<section class="panel" aria-labelledby="ss-h" style="overflow: hidden">
+<div class="oh" style="padding-bottom: 10px; align-items: center"><h2 class="sec-h" id="ss-h">Phiên đăng nhập (3)</h2><button type="button" class="btn btn-lost">Đăng xuất mọi phiên khác</button></div>
+<table class="mx"><thead><tr><th>Thiết bị</th><th>Vị trí gần đúng</th><th>Hoạt động gần nhất</th><th><span class="sr">Hành động</span></th></tr></thead>
+<tbody>
+<sc-for list="{{sessions}}" as="s" hint-placeholder-count="3"><tr><td><b style="color: #102A43">{{s.device}}</b> <sc-if value="{{s.current}}" hint-placeholder-val="{{false}}"><span class="badge b-info">Phiên này</span></sc-if></td><td>{{s.loc}}</td><td>{{s.last}}</td><td style="text-align: right"><sc-if value="{{s.other}}" hint-placeholder-val="{{true}}"><button type="button" class="btn btn-sm">Đăng xuất</button></sc-if></td></tr></sc-for>
+</tbody></table>
+</section>
+
+<section class="panel" aria-labelledby="ag-h" style="overflow: hidden">
+<div class="oh" style="padding-bottom: 6px; align-items: center"><h2 class="sec-h" id="ag-h">AI agent đã kết nối (2)</h2><a class="btn" href="AgentConsent.dc.html">Kết nối agent</a></div>
+<p style="margin: 0; padding: 0 20px 10px; font-size: 14px; color: #344054">Agent dùng quyền của bạn, chỉ trong các module admin cho phép. Địa chỉ MCP server: <span class="code">[địa chỉ chưa chốt]</span></p>
+<table class="mx"><thead><tr><th>Agent</th><th>Module được dùng</th><th>Kết nối lúc</th><th>Gọi gần nhất</th><th><span class="sr">Hành động</span></th></tr></thead>
+<tbody>
+<sc-for list="{{agents}}" as="a" hint-placeholder-count="2"><tr><td style="font-weight: 600; color: #102A43">{{a.name}}</td><td>{{a.mods}}</td><td>{{a.at}}</td><td>{{a.last}}</td><td style="text-align: right"><button type="button" class="btn btn-sm btn-lost">Thu hồi</button></td></tr></sc-for>
+</tbody></table>
+</section>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      passkeys: [
+        { name: 'MacBook của Minh Anh', kind: 'Touch ID · iCloud Keychain', created: '29/10/2026', used: 'Hôm nay 09:14' },
+        { name: 'iPhone của Minh Anh', kind: 'Face ID · iCloud Keychain', created: '29/10/2026', used: 'Hôm nay 07:52' },
+        { name: 'YubiKey 5C', kind: 'Khóa bảo mật USB', created: '29/10/2026', used: 'Chưa dùng' }
+      ],
+      sessions: [
+        { device: 'MacBook · Chrome', loc: 'TP.HCM, Việt Nam', last: 'Đang hoạt động', current: true, other: false },
+        { device: 'iPhone · Lumi iOS', loc: 'TP.HCM, Việt Nam', last: '12 phút trước', current: false, other: true },
+        { device: 'Windows · Lumi Desktop', loc: 'Hà Nội, Việt Nam', last: '3 ngày trước', current: false, other: true }
+      ],
+      agents: [
+        { name: 'Claude Desktop', mods: 'Công việc (đọc, ghi phải xác nhận) · Thông minh (đọc)', at: '29/10/2026', last: '10 phút trước' },
+        { name: 'Cursor', mods: 'Công việc (đọc)', at: '27/10/2026', last: 'Hôm qua' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

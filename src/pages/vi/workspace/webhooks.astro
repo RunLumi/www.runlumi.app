@@ -1,0 +1,9 @@
+---
+import Page from "../../../components/workspace/WorkspaceWebhooks.astro";
+import { webhooksPage } from "../../../lib/workspace/admin-security-pages";
+
+export const prerender = false;
+const data = await webhooksPage(Astro, "vi");
+if (data instanceof Response) return data;
+---
+<Page {...data} />

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Liên hệ</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="root" style="min-height: 900px">
+
+<dc-import name="TopNav" app="crm" active="Liên hệ" hint-size="100%,104px"></dc-import>
+
+<main class="page">
+<section class="panel" aria-label="Danh sách liên hệ" style="overflow: hidden">
+<div class="oh">
+<div class="oh-id">
+<span class="oi oi-con"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg></span>
+<div>
+<div class="eyebrow">Liên hệ <span class="badge b-neutral" style="text-transform: none; letter-spacing: 0">Dữ liệu minh họa</span></div>
+<h1 class="h1">Liên hệ của tôi <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></h1>
+</div>
+</div>
+<div class="bg"><button type="button" class="btn">Tạo</button><a class="btn" href="Import.dc.html">Nhập</a><button type="button" class="btn">Gửi email hàng loạt</button></div>
+</div>
+<div class="lv-meta"><p>8 mục · Sắp xếp theo tên · Lọc theo người phụ trách: Tôi · Cập nhật vài giây trước</p>
+<div class="tools">
+<label class="search" style="width: 240px"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><span class="sr">Tìm trong danh sách</span><input type="search" placeholder="Tìm trong danh sách này"></label>
+<button type="button" class="btn" aria-label="Hiển thị dạng bảng" aria-haspopup="menu"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M3 10h18M3 15h18M9 4v16"></path></svg><svg class="ic-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
+<button type="button" class="btn icon-btn" aria-label="Làm mới"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7L20 8"></path><path d="M20 3v5h-5"></path></svg></button>
+<button type="button" class="btn icon-btn" aria-label="bộ lọc"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 4h18l-7 8v6l-4 2v-8z"></path></svg></button>
+</div></div>
+<div class="tbl-wrap">
+<table class="tbl tbl-wide">
+<thead><tr><th class="rownum fz fzr"><span class="sr">Số dòng</span></th><th class="fz fzc"><input type="checkbox" class="cb" aria-label="Chọn tất cả"></th><th class="fz fzn fz-last" aria-sort="ascending"><span class="th-in">Tên <svg class="ic-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m6 15 6-6 6 6"></path></svg></span></th><th>Đối tác</th><th>Chức danh</th><th>Điện thoại</th><th>Zalo</th><th>Email</th><th>Hoạt động gần nhất</th><th>Người phụ trách</th><th style="width: 44px"><span class="sr">Hành động</span></th></tr></thead>
+<tbody>
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="8">
+<tr><td class="rownum fz fzr">{{r.n}}</td><td class="fz fzc"><input type="checkbox" class="cb" aria-label="Chọn {{r.name}}"></td><td class="fz fzn fz-last"><a href="#">{{r.name}}</a></td><td><a href="AccountRecord.dc.html">{{r.acc}}</a></td><td>{{r.title}}</td><td>[số điện thoại]</td><td>{{r.zalo}}</td><td>[email]</td><td>{{r.last}}</td><td>Minh Anh</td><td><button type="button" class="menu-btn" aria-label="Hành động cho {{r.name}}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></td></tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+<div class="scroll-hint"><span>Cột số dòng, ô chọn và Tên cố định khi cuộn ngang.</span><span>Bấm tên để mở trang chi tiết</span></div>
+</section>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const R = (n, name, acc, title, zalo, last) => ({ n: n, name: name, acc: acc, title: title, zalo: zalo, last: last });
+    return {
+      rows: [
+        R(1, 'Anh Hùng', 'An Phát Land', 'Trưởng phòng hành chính', 'Đã kết nối', 'lịch hẹn · 29/10'),
+        R(2, 'Anh Trí', 'The Lối Coffee', 'Chủ quán', 'Đã kết nối', 'báo giá · 27/10'),
+        R(3, 'Bác sĩ Phương', 'Smile Care', 'Giám đốc', 'Chưa kết nối', 'Cuộc gọi · 20/10'),
+        R(4, 'Chị Hạnh', 'Hoa Sen Spa', 'Chủ spa', 'Đã kết nối', 'Ghi chú · 22/10'),
+        R(5, 'Chị Lan', 'Hộ gia đình Nguyễn Lan', 'Chủ nhà', 'Đã kết nối', 'lịch hẹn · 04/11'),
+        R(6, 'Chị Vy', 'The Lối Coffee', 'Quản lý', 'Chưa kết nối', 'Email · 25/10'),
+        R(7, 'Anh Khoa', 'Lumen Tech', 'COO', 'Đã kết nối', 'lịch hẹn · 30/10'),
+        R(8, 'Anh Tuấn', 'VinaE Motors', 'Trưởng dự án', 'Đã kết nối', 'Cuộc gọi · 26/10')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

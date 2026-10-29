@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Thanh điều hướng chung</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="root" style="width: 100%">
+<header class="gh">
+<span class="gh-brand"><span class="gh-logo" aria-hidden="true">L</span>Lumi Workspace</span>
+<label class="gh-search"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><span class="sr">Tìm trong Workspace</span><input type="search" placeholder="Tìm công việc, dự án, Lead, cơ hội, người, tin nhắn…"></label>
+<div class="gh-tools">
+<button type="button" class="btn btn-ghost icon-btn btn-neutral" aria-label="Tạo mới"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></button>
+<a class="btn btn-ghost icon-btn btn-neutral" href="#" aria-label="Hướng dẫn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17h.01"></path></svg></a>
+<a class="btn btn-ghost icon-btn btn-neutral bell" href="Notifications.dc.html" aria-label="Thông báo, 4 chưa đọc"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4"></path></svg><span class="bell-n">4</span></a>
+<a class="me" href="AccountProfile.dc.html" aria-label="Tài khoản của tôi: Minh Anh">MA</a>
+</div>
+</header>
+<nav class="an" aria-label="{{appLabel}}">
+<span class="an-app">
+<a class="launch-btn" href="AppLauncher.dc.html" aria-label="Mở danh sách ứng dụng"><svg class="ic" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="5" r="2"></circle><circle cx="12" cy="5" r="2"></circle><circle cx="19" cy="5" r="2"></circle><circle cx="5" cy="12" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="19" cy="12" r="2"></circle><circle cx="5" cy="19" r="2"></circle><circle cx="12" cy="19" r="2"></circle><circle cx="19" cy="19" r="2"></circle></svg></a>
+{{appLabel}}
+</span>
+<div class="an-tabs">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="7">
+<a class="{{t.cls}}" href="{{t.href}}">{{t.label}}</a>
+</sc-for>
+</div>
+</nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"app":{"editor":"enum","options":["work","intel","crm","hub","mail","setup","account","hq"],"default":"work"},"active":{"editor":"text","default":"Hôm nay"},"$preview":{"width":1440,"height":104}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const app = this.props.app ?? 'work';
+    const active = this.props.active ?? '';
+    const T = (label, href) => [label, href];
+    const apps = {
+      work: ['Công việc', [T('Hôm nay', 'Today.dc.html'), T('Sắp tới', 'Horizon.dc.html'), T('Dự án', 'Projects.dc.html'), T('Công việc', 'WorkTasks.dc.html'), T('Định kỳ', 'Recurring.dc.html'), T('Báo cáo nhóm', 'Reports.dc.html'), T('Chấm công', 'Attendance.dc.html')]],
+      intel: ['Thông minh', [T('CEO Brief', 'Brief.dc.html'), T('Báo cáo hằng ngày', 'Pulse.dc.html'), T('Cam kết', 'Commitments.dc.html'), T('Rủi ro', 'Risks.dc.html'), T('Quyết định', 'Decisions.dc.html'), T('Theo dõi', 'FollowUps.dc.html'), T('Hộp thư tín hiệu', 'SignalInbox.dc.html'), T('Nhập liệu', 'ChaosImport.dc.html')]],
+      crm: ['Lumi CRM', [T('Trang chủ', 'Home.dc.html'), T('Lead', 'Leads.dc.html'), T('Cơ hội', 'Main.dc.html'), T('Đối tác', 'Accounts.dc.html'), T('Liên hệ', 'Contacts.dc.html'), T('Lịch', 'Calendar.dc.html'), T('Công việc', 'Tasks.dc.html'), T('Dự báo', 'Forecast.dc.html'), T('Duyệt', 'Approvals.dc.html')]],
+      hub: ['Kết nối', [T('Hub công ty', 'HubHome.dc.html'), T('Tin nhắn', 'Messages.dc.html')]],
+      mail: ['Thư', [T('Hộp thư', 'MailInbox.dc.html')]],
+      setup: ['Cài đặt tổ chức', []],
+      account: ['Tài khoản của tôi', [T('Hồ sơ', 'AccountProfile.dc.html'), T('Bảo mật', 'SetupSecurity.dc.html'), T('Thông báo', 'SetupNotifications.dc.html')]],
+      hq: ['Lumi HQ', [T('Tổ chức', 'HQOrgs.dc.html'), T('Người dùng', 'HQUsers.dc.html'), T('Hỗ trợ', 'HQSupport.dc.html'), T('Hệ thống', 'HQSystem.dc.html')]]
+    };
+    const conf = apps[app] || apps.work;
+    return {
+      appLabel: conf[0],
+      tabs: conf[1].map((t) => ({ label: t[0], href: t[1], cls: t[0] === active ? 'tab tab-on' : 'tab' }))
+    };
+  }
+}
+</script>
+</body>
+</html>

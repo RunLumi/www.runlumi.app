@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Duyệt</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="root" style="min-height: 900px">
+
+<dc-import name="TopNav" app="crm" active="Duyệt" hint-size="100%,104px"></dc-import>
+
+<main class="page">
+<div>
+<section class="panel" aria-label="Yêu cầu chờ duyệt" style="overflow: hidden">
+<div class="oh">
+<div class="oh-id">
+<span class="oi oi-task"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 12l2 2 4-4"></path><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z"></path></svg></span>
+<div><div class="eyebrow">Duyệt <span class="badge b-neutral" style="text-transform: none; letter-spacing: 0">Dữ liệu minh họa</span></div><h1 class="h1">Yêu cầu duyệt liên quan đến tôi <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></h1></div>
+</div>
+</div>
+<div class="lv-meta"><p>5 mục · 3 chờ tôi duyệt · Sắp xếp theo ngày gửi · bấm một dòng để mở yêu cầu</p></div>
+<div class="tbl-wrap">
+<table class="tbl" style="min-width: 1500px">
+<thead><tr><th class="fz" style="left: 0; min-width: 280px">Yêu cầu duyệt</th><th class="fz fz-last" style="left: 280px; min-width: 150px">Trạng thái</th><th>Loại</th><th>Liên quan đến</th><th class="r">Giá trị</th><th>Người gửi</th><th>Ngày gửi</th><th>Bước hiện tại</th><th>Chờ</th></tr></thead>
+<tbody>
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
+<tr><td class="fz" style="left: 0; min-width: 280px"><a href="ApprovalDetail.dc.html">{{r.name}}</a></td><td class="fz fz-last" style="left: 280px; min-width: 150px"><span class="{{r.stCls}}"><span class="dot"></span>{{r.st}}</span></td><td>{{r.kind}}</td><td><a href="DealRecord.dc.html">{{r.rel}}</a></td><td class="r">{{r.val}}</td><td>{{r.by}}</td><td>{{r.at}}</td><td>{{r.step}}</td><td>{{r.wait}}</td></tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+<div class="scroll-hint"><span>Cột Yêu cầu duyệt và Trạng thái cố định khi cuộn ngang.</span><span>1–5 trên 5</span></div>
+</section>
+
+
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const R = (name, st, kind, rel, val, by, at, step, wait) => ({ name: name, st: st, stCls: st === 'Chờ tôi duyệt' ? 'badge b-warn' : st === 'Đã duyệt' ? 'badge b-ok' : st === 'Từ chối' ? 'badge b-danger' : 'badge b-neutral', kind: kind, rel: rel, val: val, by: by, at: at, step: step, wait: wait });
+    return {
+      rows: [
+        R('Giảm giá 8% báo giá v2', 'Chờ tôi duyệt', 'Giảm giá', 'Quán cà phê The Lối – Q.3', '540.000.000 ₫', 'Minh Anh', '28/10/2026', 'Bước 1/2 · Trưởng kinh doanh', '23 giờ'),
+        R('Gia hạn cọc thêm 5 ngày', 'Chờ tôi duyệt', 'Điều khoản', 'Spa Hoa Sen – Phú Nhuận', '—', 'Minh Anh', '28/10/2026', 'Bước 1/1 · Trưởng kinh doanh', '1 ngày'),
+        R('Báo giá trên 3 tỷ', 'Chờ tôi duyệt', 'Báo giá', 'Showroom xe điện Tân Bình', '3.400.000.000 ₫', 'Minh Anh', '26/10/2026', 'Bước 2/2 · Giám đốc', '3 ngày'),
+        R('Giảm giá 4% hạng mục bếp', 'Đã duyệt', 'Giảm giá', 'Nhà hàng Bếp Mộc – Q.7', '2.050.000.000 ₫', 'Hải Ngân', '22/10/2026', 'Xong', '—'),
+        R('Đổi điều khoản thanh toán 3 đợt', 'Từ chối', 'Điều khoản', 'Văn phòng Lumen Tech', '—', 'Thanh Quân', '20/10/2026', 'Xong', '—')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

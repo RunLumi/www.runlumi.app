@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Kết nối AI agent</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}
+.cs{width:760px;max-width:100%;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+.cs-id{display:flex;gap:14px;align-items:center}
+.cs-lg{width:48px;height:48px;border-radius:10px;background:#102A43;color:#fff;display:flex;align-items:center;justify-content:center;font:650 18px Geist,system-ui,sans-serif;flex:none}
+.cs-link{width:28px;height:2px;background:#C8D0DE;flex:none}
+.gr td:first-child b{display:block;color:#102A43;font-weight:600}
+.gr td:first-child span{display:block;font-size:13px;color:#5E6677;margin-top:2px}
+.kv2{display:grid;grid-template-columns:160px 1fr;gap:8px 16px;padding:4px 20px 16px;font-size:14px;margin:0}
+.kv2 dt{color:#5E6677}
+.kv2 dd{margin:0;color:#172033}
+</style>
+</helmet>
+<div class="root" style="min-height: 1150px">
+<dc-import name="TopNav" app="account" active="Bảo mật" hint-size="100%,104px"></dc-import>
+<main class="page">
+<div class="cs">
+<ol class="crumbs" aria-label="Vị trí"><li><a href="AccountProfile.dc.html">Tài khoản của tôi</a></li><li><a href="SetupSecurity.dc.html">Bảo mật</a></li><li><span aria-current="page">Kết nối AI agent</span></li></ol>
+
+<section class="panel" style="padding: 20px">
+<div class="cs-id">
+<span class="cs-lg" aria-hidden="true">CD</span><span class="cs-link" aria-hidden="true"></span><span class="gh-logo" aria-hidden="true" style="width: 48px; height: 48px; line-height: 48px; border-radius: 10px; font-size: 20px">L</span>
+<div style="min-width: 0">
+<h1 class="h1">Claude Desktop muốn dùng Lumi Workspace thay bạn</h1>
+<p class="muted" style="margin: 4px 0 0; font-size: 14px">Đăng nhập là minhanh@mocgia.vn · tổ chức Mộc Gia · <span class="badge b-neutral">Dữ liệu minh họa</span></p>
+</div>
+</div>
+<p style="margin: 14px 0 0; font-size: 14px; color: #344054; line-height: 1.5">Agent làm việc bằng quyền của bạn. Nó chỉ thấy những gì bạn được thấy, và chỉ trong các module admin cho phép. Bạn thu hồi được bất cứ lúc nào ở Bảo mật.</p>
+</section>
+
+<section class="panel" aria-labelledby="gr-h" style="overflow: hidden">
+<div class="oh" style="padding-bottom: 10px; align-items: center"><h2 class="sec-h" id="gr-h">Agent sẽ nhận</h2><span class="muted" style="font-size: 13px">Giới hạn theo chính sách của tổ chức</span></div>
+<table class="mx gr"><thead><tr><th>Module</th><th>Agent xin</th><th>Agent nhận</th></tr></thead>
+<tbody>
+<sc-for list="{{grants}}" as="g" hint-placeholder-count="5">
+<tr><td><b>{{g.mod}}</b><span>{{g.note}}</span></td><td>{{g.asked}}</td><td><span class="{{g.cls}}">{{g.got}}</span></td></tr>
+</sc-for>
+</tbody></table>
+<p class="muted" style="margin: 0; padding: 10px 20px 14px; font-size: 13px">Muốn agent dùng Lumi CRM hay ghi ở Thông minh, hãy nhờ admin đổi mức ở Cài đặt tổ chức › AI agent (MCP). Agent không tự xin thêm quyền được.</p>
+</section>
+
+<section class="panel" aria-labelledby="cf-h" style="padding: 14px 20px">
+<h2 class="sec-h" id="cf-h">Bạn vẫn phải tự xác nhận</h2>
+<ul style="margin: 8px 0 0; padding-left: 18px; font-size: 14px; color: #344054; line-height: 1.6">
+<li>Mọi lần ghi: agent tạo yêu cầu, bạn xem thay đổi rồi xác nhận.</li>
+<li>Gửi ra ngoài (email, Zalo OA, Webhook), mọi việc liên quan đến tiền và mọi thao tác xóa.</li>
+<li>Yêu cầu chưa xác nhận sẽ hết hạn sau 15 phút.</li>
+</ul>
+</section>
+
+<section class="panel" aria-labelledby="ap-h" style="overflow: hidden">
+<div class="oh" style="padding-bottom: 6px"><h2 class="sec-h" id="ap-h">Thông tin kết nối</h2></div>
+<dl class="kv2">
+<dt>Ứng dụng</dt><dd>Claude Desktop · tự khai báo khi kết nối</dd>
+<dt>Trả về địa chỉ</dt><dd><span class="code">http://127.0.0.1:[cổng]/callback</span></dd>
+<dt>Địa chỉ MCP server</dt><dd><span class="code">[chưa chốt]</span></dd>
+<dt>Trang này</dt><dd><span class="code">workspace.runlumi.app</span> · kiểm tra đúng địa chỉ này trước khi chạm passkey</dd>
+<dt>Thiết bị</dt><dd>MacBook · Chrome · 113.161.42.18 · TP.HCM</dd>
+</dl>
+</section>
+
+<section class="panel" style="padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; gap: 12px">
+<span class="muted" style="font-size: 13px">Việc kết nối được ghi vào Nhật ký kiểm toán của tổ chức.</span>
+<div style="display: flex; gap: 8px"><a class="btn" href="SetupSecurity.dc.html">Từ chối</a><button type="button" class="btn btn-primary"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="8" cy="15" r="4"></circle><path d="m11 12 9-9M17 6l3 3M15 8l2 2"></path></svg>Cho phép bằng passkey</button></div>
+</section>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1150}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var G = function (mod, note, asked, got, kind) {
+      return { mod: mod, note: note, asked: asked, got: got, cls: kind === 'ok' ? 'badge b-ok' : kind === 'cut' ? 'badge b-warn' : 'badge b-neutral' };
+    };
+    return {
+      grants: [
+        G('Công việc', 'Dự án, công việc, định kỳ', 'Đọc và ghi', 'Đọc và ghi, ghi phải xác nhận', 'ok'),
+        G('Thông minh', 'CEO Brief, cam kết, rủi ro', 'Đọc và ghi', 'Chỉ đọc · admin giới hạn', 'cut'),
+        G('Lumi CRM', 'Lead, cơ hội, đối tác', 'Đọc', 'Không nhận · admin đã tắt', 'off'),
+        G('Kết nối', 'Hub công ty, tin nhắn', 'Không xin', 'Không nhận', 'off'),
+        G('Thư', 'Hộp thư của bạn', 'Đọc và ghi', 'Chỉ đọc · admin giới hạn', 'cut')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

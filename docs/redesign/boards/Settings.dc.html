@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Cấu hình CRM</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}
+.st a{display:block;padding:8px 12px;border-radius:6px;color:#172033;font-size:14px}
+.st a:hover{background:#F7F8FA;text-decoration:none}
+.st .on{background:#E4F3FC;color:#004F80;font-weight:600}
+.st-h{font:600 12px Geist,system-ui,sans-serif;color:#5E6677;text-transform:uppercase;letter-spacing:.06em;padding:12px 12px 4px}
+.lbl{display:flex;align-items:center;gap:6px;font-weight:600;color:#102A43}
+.api{font-family:"Geist Mono",ui-monospace,monospace;font-size:13px;color:#5E6677}
+.sys{font:600 12px/1 Geist,system-ui,sans-serif;padding:4px 8px;border-radius:4px;background:#102A43;color:#fff;white-space:nowrap}
+.sys-won{background:#1F7A4D}.sys-lost{background:#C2410C}.sys-open{background:#5E6677}
+.note{display:flex;gap:10px;padding:12px 14px;border-radius:8px;background:#E4F3FC;color:#004F80;font-size:14px;line-height:1.5}
+</style>
+</helmet>
+<div class="root" style="min-height: 1560px">
+
+<dc-import name="TopNav" app="setup" active="" hint-size="100%,104px"></dc-import>
+
+<main class="page">
+<div class="split">
+<aside class="panel st" aria-label="Danh mục cấu hình CRM" style="flex: 0 0 270px; padding: 8px">
+<div class="st-h">Cơ hội</div>
+<a href="#" class="on" aria-current="page">Giai đoạn &amp; Pipeline</a>
+<a href="#">Tiến trình: trường quan trọng và hướng dẫn</a>
+<a href="#">Nhóm dự báo</a>
+<a href="#">Lý do thua</a>
+<div class="st-h">Leads</div>
+<a href="#">Trạng thái Lead</a>
+<a href="#">Nguồn Lead</a>
+<a href="#">Quy tắc phân Lead</a>
+<a href="#">Quy tắc phát hiện trùng</a>
+<div class="st-h">Dữ liệu</div>
+<a href="#">Trường tùy chỉnh</a>
+<a href="#">Danh sách &amp; Kanban</a>
+<a href="Import.dc.html">Nhập dữ liệu</a>
+<div class="st-h">Người dùng</div>
+<a href="#">Bộ quyền</a>
+<a href="Approvals.dc.html">Quy trình duyệt</a>
+</aside>
+
+<div style="flex: 999 1 820px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+<section class="panel" style="overflow: hidden">
+<div class="oh" style="align-items: center">
+<div class="oh-id">
+<span class="oi oi-set"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"></path></svg></span>
+<div><div class="eyebrow">Cấu hình CRM <span class="badge b-neutral" style="text-transform: none; letter-spacing: 0">Dữ liệu minh họa</span></div><h1 class="h1">Giai đoạn &amp; Pipeline</h1></div>
+</div>
+<div class="tools">
+<span class="in in-sel" style="width: 220px; height: 36px; font-size: 14px" role="combobox" aria-label="Pipeline" aria-expanded="false" tabindex="0">Pipeline thi công<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span>
+<button type="button" class="btn">Tạo Pipeline</button>
+<button type="button" class="btn btn-primary">Thêm giai đoạn</button>
+</div>
+</div>
+<div style="padding: 0 20px 14px">
+<div class="note" role="note"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="margin-top: 3px"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v6M12 7.5v.5"></path></svg><span><b>Tên hiển thị</b> do tổ chức đặt và đổi được bất kỳ lúc nào. Kanban, tiến trình, dự báo và báo cáo dựa vào <b>mã API</b> và <b>loại hệ thống</b>, nên đổi tên hiển thị không làm thay đổi dữ liệu. Loại hệ thống do Lumi CRM quy định, không đổi được. Tên Pipeline cũng do tổ chức đặt.</span></div>
+</div>
+<div class="tbl-wrap">
+<table class="tbl" style="min-width: 1000px">
+<thead><tr><th style="width: 40px"><span class="sr">Kéo để sắp xếp</span></th><th>Tên hiển thị (tổ chức đặt)</th><th>Mã API</th><th>Loại hệ thống</th><th class="r">Xác suất</th><th class="r">Số ngày chuẩn</th><th>Trường bắt buộc để vào giai đoạn</th><th>Nhóm dự báo mặc định</th><th style="width: 44px"><span class="sr">Hành động</span></th></tr></thead>
+<tbody>
+<sc-for list="{{stages}}" as="s" hint-placeholder-count="7">
+<tr class="{{s.tr}}">
+<td><button type="button" class="pen" aria-label="Kéo để sắp xếp {{s.label}}"><svg class="ic" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.5"></circle><circle cx="15" cy="6" r="1.5"></circle><circle cx="9" cy="12" r="1.5"></circle><circle cx="15" cy="12" r="1.5"></circle><circle cx="9" cy="18" r="1.5"></circle><circle cx="15" cy="18" r="1.5"></circle></svg></button></td>
+<td><span class="lbl">{{s.label}}<button type="button" class="pen" aria-label="Đổi Label {{s.label}}"><svg class="ic-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"></path></svg></button></span></td>
+<td><span class="api">{{s.api}}</span></td>
+<td><span class="{{s.sysCls}}">{{s.sys}}</span></td>
+<td class="r">{{s.prob}}</td><td class="r">{{s.days}}</td><td>{{s.req}}</td><td>{{s.fc}}</td>
+<td><button type="button" class="menu-btn" aria-label="Hành động cho {{s.label}}: Sửa, Xóa"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+<p style="margin: 0; padding: 10px 16px; font-size: 13px; color: #5E6677; border-top: 1px solid #E7EAF0">Kanban: mỗi giai đoạn đang mở là một cột; giai đoạn loại Thắng và Thua là vùng thả ở cuối màn hình khi kéo thẻ. Xóa một giai đoạn đang có cơ hội: hệ thống yêu cầu chọn giai đoạn thay thế trước khi xóa.</p>
+</section>
+
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+<section class="panel" aria-label="Trạng thái Lead" style="overflow: hidden">
+<div class="oh" style="padding-bottom: 10px"><h2 class="sec-h">Trạng thái Lead</h2><button type="button" class="btn btn-sm">Thêm giá trị</button></div>
+<div class="tbl-wrap"><table class="tbl" style="min-width: 0">
+<thead><tr><th>Tên hiển thị (tổ chức đặt)</th><th>Mã API</th><th>Loại hệ thống</th></tr></thead>
+<tbody>
+<sc-for list="{{leadStatus}}" as="s" hint-placeholder-count="5">
+<tr><td><span class="lbl">{{s.label}}</span></td><td><span class="api">{{s.api}}</span></td><td><span class="{{s.sysCls}}">{{s.sys}}</span></td></tr>
+</sc-for>
+</tbody></table></div>
+<p style="margin: 0; padding: 10px 16px; font-size: 13px; color: #5E6677; border-top: 1px solid #E7EAF0">Lead mới nhận trạng thái Lead mặc định (Đã tiếp nhận). Chuyển Lead thành cơ hội đặt trạng thái Lead loại chuyển đổied. trạng thái Lead loại Không phù hợp yêu cầu lý do.</p>
+</section>
+<section class="panel" aria-label="Nhóm dự báo" style="overflow: hidden">
+<div class="oh" style="padding-bottom: 10px"><h2 class="sec-h">Nhóm dự báo</h2><span class="muted" style="font-size: 13px">5 loại cố định, chỉ đổi tên hiển thị</span></div>
+<div class="tbl-wrap"><table class="tbl" style="min-width: 0">
+<thead><tr><th>Tên hiển thị (tổ chức đặt)</th><th>Loại hệ thống</th><th>Tính vào dự báo</th></tr></thead>
+<tbody>
+<sc-for list="{{fc}}" as="s" hint-placeholder-count="5">
+<tr><td><span class="lbl">{{s.label}}</span></td><td><span class="sys">{{s.sys}}</span></td><td>{{s.count}}</td></tr>
+</sc-for>
+</tbody></table></div>
+</section>
+</div>
+
+<section class="panel" aria-label="Tiến trình cho giai đoạn Đã duyệt báo giá">
+<div class="oh" style="padding-bottom: 6px"><h2 class="sec-h">Tiến trình · giai đoạn “Đã duyệt báo giá” <span class="api">quote_approved</span></h2><div class="bg"><button type="button" class="btn">Hủy</button><button type="button" class="btn btn-primary">Lưu</button></div></div>
+<div style="padding: 6px 20px 20px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px">
+<div class="fld"><span class="fld-l">Trường quan trọng (tối đa 5, hiện dưới tiến trình)</span>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span class="in in-sel">Số tiền cọc <span style="display: flex; gap: 6px"><span class="badge b-neutral">Trường tùy chỉnh</span><span class="badge b-warn">Bắt buộc</span></span></span>
+<span class="in in-sel">Hạn cọc <span style="display: flex; gap: 6px"><span class="badge b-neutral">Trường tùy chỉnh</span><span class="badge b-warn">Bắt buộc</span></span></span>
+<span class="in in-sel">Ngày khởi công dự kiến <span class="badge b-neutral">Trường tùy chỉnh</span></span>
+<button type="button" class="btn btn-sm" style="align-self: flex-start">+ Thêm trường</button>
+</div></div>
+<label class="fld"><span class="fld-l">Hướng dẫn (tổ chức tự viết)</span>
+<textarea class="in" rows="6">Chốt số tiền cọc theo tỷ lệ trong hợp đồng. Gửi đề nghị thanh toán qua Zalo; khi nhận cọc, tạo lịch hẹn khởi công.</textarea></label>
+<label style="display: flex; gap: 10px; align-items: center; font-size: 14px"><input type="checkbox" class="cb" checked>Hiện tiến trình trên trang chi tiết cơ hội</label>
+<label style="display: flex; gap: 10px; align-items: center; font-size: 14px"><input type="checkbox" class="cb">Bật hiệu ứng chúc mừng khi cơ hội vào giai đoạn loại Thắng</label>
+</div>
+</section>
+</div>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1560}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const cls = { 'Đang mở': 'sys sys-open', 'Thắng': 'sys sys-won', 'Thua': 'sys sys-lost', 'chuyển đổied': 'sys sys-won', 'Không phù hợp': 'sys sys-lost' };
+    const S = (label, api, sys, prob, days, req, fc, on) => ({ label: label, api: api, sys: sys, sysCls: cls[sys], prob: prob, days: days, req: req, fc: fc, tr: on ? 'sel' : '' });
+    const L = (label, api, sys) => ({ label: label, api: api, sys: sys, sysCls: cls[sys] });
+    const C = (label, sys, count) => ({ label: label, sys: sys, count: count });
+    return {
+      stages: [
+        S('Đã hẹn khảo sát', 'survey_scheduled', 'Đang mở', '10%', '7', '—', 'Chưa chắc chốt'),
+        S('Đã gửi báo giá', 'quote_sent', 'Đang mở', '30%', '7', 'giá trị, ngày chốt dự kiến', 'Chưa chắc chốt'),
+        S('Đã duyệt báo giá', 'quote_approved', 'Đang mở', '60%', '5', 'Số tiền cọc, Hạn cọc', 'Có thể chốt', true),
+        S('Đã khởi công', 'construction_started', 'Đang mở', '80%', '30', 'Ngày khởi công', 'Chốt trong kỳ'),
+        S('Đã nghiệm thu', 'accepted', 'Đang mở', '95%', '7', 'Ngày nghiệm thu', 'Chốt trong kỳ'),
+        S('Đã bàn giao', 'handed_over', 'Thắng', '100%', '—', 'Số tiền cọc, Hạn cọc', 'Đã thắng'),
+        S('Không ký hợp đồng', 'not_signed', 'Thua', '0%', '—', 'lý do thua', 'Không tính dự báo')
+      ],
+      leadStatus: [
+        L('Đã tiếp nhận · mặc định', 'received', 'Đang mở'),
+        L('Đã liên hệ được', 'contacted', 'Đang mở'),
+        L('Hẹn liên hệ lại', 'follow_up_later', 'Đang mở'),
+        L('Không phù hợp', 'unqualified', 'Không phù hợp'),
+        L('Đã thành cơ hội', 'converted', 'chuyển đổied')
+      ],
+      fc: [
+        C('Chưa chắc chốt', 'Chưa chắc', 'Có'),
+        C('Có thể chốt', 'Có thể', 'Có'),
+        C('Chốt trong kỳ', 'Cam kết', 'Có'),
+        C('Đã thắng', 'Đã chốt', 'Có'),
+        C('Không tính dự báo', 'Loại trừ', 'Không')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

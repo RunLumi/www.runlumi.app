@@ -146,7 +146,7 @@ export async function myCoiDetailPage(astro: AstroGlobal, lang: Lang, declaratio
     }
   }
   return {
-    ...base(lang, user, lang === "vi" ? "Khai báo COI" : "COI declaration"),
+    ...base(lang, user, lang === "vi" ? "Khai báo xung đột lợi ích" : "COI declaration"),
     declaration,
     files: await listCoiEvidence(DB, user, declarationId),
     reviewers: [],
@@ -168,7 +168,7 @@ export async function coiQueuePage(astro: AstroGlobal, lang: Lang): Promise<Resp
   if (!user.can("hrm.coi.review") && !user.can("hrm.configure")) return new Response("Forbidden", { status: 403 });
   const { DB } = envFromLocals(astro.locals);
   return {
-    ...base(lang, user, lang === "vi" ? "Hàng chờ rà soát COI" : "COI review queue"),
+    ...base(lang, user, lang === "vi" ? "Hàng chờ rà soát xung đột lợi ích" : "COI review queue"),
     declarations: await listCoiReviewQueue(DB, user),
   };
 }
@@ -207,7 +207,7 @@ export async function coiReviewDetailPage(astro: AstroGlobal, lang: Lang, declar
   }
   const reviewers = user.can("hrm.configure") ? await listCoiReviewers(env.DB, env.CONTENT_DB, user) : [];
   return {
-    ...base(lang, user, lang === "vi" ? "Rà soát khai báo COI" : "Review COI declaration"),
+    ...base(lang, user, lang === "vi" ? "Rà soát khai báo xung đột lợi ích" : "Review COI declaration"),
     declaration,
     files: await listCoiEvidence(env.DB, user, declarationId),
     reviewers,

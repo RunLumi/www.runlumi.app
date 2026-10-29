@@ -7,6 +7,7 @@ import Hidden from "./Hidden.astro";
 import { label, options } from "../../lib/crm/i18n";
 import { errorFor, valueFor } from "../../lib/crm/page";
 import type { ContactsProps } from "../../lib/crm/routes/directory";
+import "../../styles/crm-sales.css";
 
 type Props = ContactsProps;
 const { ctx, state, filters, rows, total, page, pages, owners, names, accounts } = Astro.props;
@@ -32,11 +33,17 @@ const requested = Astro.url.searchParams.get("account") ?? "";
     <div>
       <DirectoryTools vi={vi} manager={actor.manager} filters={filters} owners={owners} page={page} pages={pages} position="top" searchLabel={vi ? "Tìm theo tên, số điện thoại, email, công ty" : "Search name, phone, email, company"} />
       <section class="crm-sheet" aria-label={vi ? "Danh sách người liên hệ" : "Contact list"} style="margin-top:18px">
-        {rows.length ? <ul class="crm-list">{rows.map((row) => <li class="crm-row">
-          <a class="crm-row-title" href={`${base}/accounts/${row.account_id}#contacts`}>{row.name}</a>
-          <span class="crm-row-side"><span class="crm-badge">{label(lang, "role", row.role)}</span>{row.do_not_contact || row.account_dnc ? <span class="crm-badge red">{vi ? "Không liên hệ" : "Do not contact"}</span> : <span class="crm-badge">{label(lang, "consent", row.consent_status)}</span>}</span>
-          <span class="crm-row-meta"><span>{row.account_name}</span>{row.phone && <span>{row.phone}</span>}{row.email && <span>{row.email}</span>}<span>{vi ? "Quản lý" : "Managed by"}: {manager(row.owner_id)}</span>{!row.do_not_contact && !row.account_dnc && <a class="crm-link" href={`${base}/new?contact=${row.id}`}>{vi ? "Tạo cơ hội" : "New opportunity"}</a>}</span>
-        </li>)}</ul> : <p class="crm-empty">{filters.q || filters.owner ? (vi ? "Không có người liên hệ khớp bộ lọc." : "No contacts match these filters.") : (vi ? "Chưa có người liên hệ nào bạn được xem." : "No contacts you can see yet.")}</p>}
+        {rows.length ? <div class="crm-grid-table-wrap" tabindex="0" role="region" aria-label={vi ? "Bảng người liên hệ, cuộn ngang được" : "Contact table, scrolls sideways"}><table class="crm-grid-table">
+          <thead><tr><th class="frozen frozen-1" scope="col">#</th><th class="frozen frozen-2" scope="col">{vi ? "Tên" : "Name"}</th><th scope="col">{vi ? "Công ty" : "Company"}</th><th scope="col">{vi ? "Vai trò" : "Role"}</th><th scope="col">{vi ? "Điện thoại" : "Phone"}</th><th scope="col">Email</th><th scope="col">{vi ? "Đồng ý liên hệ" : "Consent"}</th><th scope="col">{vi ? "Quản lý" : "Managed by"}</th></tr></thead>
+          <tbody>{rows.map((row, index) => <tr>
+            <td class="frozen frozen-1 rowno">{(page - 1) * 50 + index + 1}</td>
+            <td class="frozen frozen-2"><a href={`${base}/contacts/${row.id}`}>{row.name}</a></td>
+            <td class="wrap"><a class="crm-link" href={`${base}/accounts/${row.account_id}`}>{row.account_name}</a></td>
+            <td>{label(lang, "role", row.role)}</td><td>{row.phone || "—"}</td><td>{row.email || "—"}</td>
+            <td>{row.do_not_contact || row.account_dnc ? <span class="crm-badge red">{vi ? "Không liên hệ" : "Do not contact"}</span> : <span class="crm-badge">{label(lang, "consent", row.consent_status)}</span>}</td>
+            <td>{manager(row.owner_id)}</td>
+          </tr>)}</tbody>
+        </table></div> : <p class="crm-empty">{filters.q || filters.owner ? (vi ? "Không có người liên hệ khớp bộ lọc." : "No contacts match these filters.") : (vi ? "Chưa có người liên hệ nào bạn được xem." : "No contacts you can see yet.")}</p>}
         <DirectoryTools vi={vi} manager={actor.manager} filters={filters} owners={owners} page={page} pages={pages} position="bottom" searchLabel="" />
       </section>
     </div>

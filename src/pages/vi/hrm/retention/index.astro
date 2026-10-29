@@ -8,6 +8,6 @@ const user=Astro.locals.workspace;
 if(!user||(!user.can("hrm.retention.manage")&&!user.can("hrm.retention.review")&&!user.can("hrm.legalhold.manage")))return new Response("Forbidden",{status:403,headers:{"Cache-Control":"private, no-store"}});
 let data;
 try{data=await retentionPage(Astro,"vi")}
-catch(error){const status=error instanceof HrmError?error.status:500;Astro.response.status=status;data={lang:"vi",vi:true,user,title:"Lưu trữ và legal hold",error:error instanceof HrmError?error.message:"internal_error",status}}
+catch(error){const status=error instanceof HrmError?error.status:500;Astro.response.status=status;data={lang:"vi",vi:true,user,title:"Lưu trữ và tạm giữ pháp lý",error:error instanceof HrmError?error.message:"internal_error",status}}
 ---
 {"policies" in data?<HrmRetention {...data}/>:<HrmFailure data={data}/>}

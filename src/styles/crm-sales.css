@@ -1,0 +1,124 @@
+/* CRM selling surfaces (workstream 3): full-width tables with frozen leading
+   columns, Kanban boards, the stage path and the calendar. Built on the
+   crm.css tokens; no new colours. Breadcrumbs come from workstream 1's shared
+   component. */
+
+/* View switch (List · Board · Calendar). */
+.crm-views { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--crm-line); border-radius: var(--crm-radius); background: white; }
+.crm-views a { display: inline-flex; align-items: center; min-height: 36px; padding: 0 12px; border-radius: 6px; color: var(--crm-slate); font-size: 15px; font-weight: 600; text-decoration: none; }
+.crm-views a:hover { color: var(--crm-navy); }
+.crm-views a[aria-current="page"] { background: var(--crm-blue-soft); color: var(--crm-navy); }
+.crm-toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px 16px; margin: 0 0 14px; }
+
+/* Full-width table: the sheet fills the content area; the table scrolls
+   inside it and its leading columns stay put (R-03). */
+.crm-grid-table-wrap { position: relative; overflow: auto; max-width: 100%; max-block-size: min(72vh, 900px); border: 1px solid var(--crm-line); border-radius: var(--crm-radius); background: white; }
+.crm-grid-table { width: max-content; min-width: 100%; border-collapse: separate; border-spacing: 0; font-size: 15px; }
+.crm-grid-table th, .crm-grid-table td { padding: 8px 12px; border-bottom: 1px solid var(--crm-line-soft); text-align: left; vertical-align: middle; white-space: nowrap; background: white; }
+.crm-grid-table thead th { position: sticky; top: 0; z-index: 2; background: #f7f8fa; color: var(--crm-slate); font-size: var(--crm-small); font-weight: 650; letter-spacing: .06em; text-transform: uppercase; border-bottom-color: var(--crm-line); }
+.crm-grid-table .frozen { position: sticky; z-index: 1; }
+.crm-grid-table thead .frozen { z-index: 3; }
+.crm-grid-table .frozen-1 { left: 0; min-width: 3rem; }
+.crm-grid-table .frozen-2 { left: 3rem; min-width: 14rem; max-width: 22rem; white-space: normal; box-shadow: inset -1px 0 0 var(--crm-line); }
+.crm-grid-table td.frozen-2 a { color: var(--crm-navy); font-weight: 650; text-decoration: none; overflow-wrap: anywhere; }
+.crm-grid-table td.frozen-2 a:hover { color: var(--crm-blue); text-decoration: underline; }
+.crm-grid-table td.num, .crm-grid-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.crm-grid-table tbody tr:hover td { background: #fafbfc; }
+.crm-grid-table .rowno { color: var(--crm-slate); font-variant-numeric: tabular-nums; }
+.crm-grid-table .wrap { white-space: normal; min-width: 12rem; max-width: 24rem; }
+.crm-grid-table .warn { color: var(--crm-amber); font-weight: 600; }
+/* Inline edit: a cell form that saves one versioned field. */
+.crm-cell-form { display: flex; align-items: center; gap: 6px; }
+.crm-cell-form .crm-input, .crm-cell-form .crm-select { min-height: 36px; padding: 4px 8px; font-size: 15px; width: auto; max-width: 11rem; }
+.crm-cell-form button { min-height: 36px; }
+.crm-table-note { margin: 8px 0 0; color: var(--crm-slate); font-size: var(--crm-meta); }
+
+/* Kanban. Columns scroll sideways inside the board; cards are links with a
+   move form for keyboard and no-JavaScript use. */
+.crm-board { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(16rem, 1fr); gap: 12px; overflow-x: auto; padding-bottom: 8px; align-items: start; }
+.crm-col { display: grid; gap: 8px; align-content: start; min-height: 12rem; padding: 10px; border: 1px solid var(--crm-line); border-radius: var(--crm-radius); background: #f7f8fa; }
+.crm-col-head { display: grid; gap: 2px; padding: 2px 4px 6px; border-bottom: 1px solid var(--crm-line); }
+.crm-col-head h2, .crm-col-head h3 { margin: 0; color: var(--crm-navy); font-size: 15px; line-height: 1.3; }
+.crm-col-head p { margin: 0; color: var(--crm-slate); font-size: var(--crm-small); }
+.crm-col.terminal { border-style: dashed; }
+.crm-card { display: grid; gap: 6px; padding: 10px 12px; border: 1px solid var(--crm-line); border-radius: var(--crm-radius); background: white; box-shadow: var(--crm-lift); min-width: 0; }
+.crm-card[draggable="true"] { cursor: grab; }
+.crm-card.dragging { opacity: .55; }
+.crm-card a.crm-card-title { color: var(--crm-navy); font-weight: 650; text-decoration: none; overflow-wrap: anywhere; }
+.crm-card a.crm-card-title:hover { color: var(--crm-blue); text-decoration: underline; }
+.crm-card dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 2px 8px; margin: 0; font-size: var(--crm-meta); }
+.crm-card dt { color: var(--crm-slate); }
+.crm-card dd { margin: 0; color: var(--crm-ink); overflow-wrap: anywhere; }
+.crm-card-alert { margin: 0; padding: 4px 8px; border-radius: 6px; background: var(--crm-amber-soft); color: var(--crm-amber); font-size: var(--crm-small); font-weight: 650; }
+.crm-card details summary { color: var(--crm-blue); font-size: var(--crm-meta); font-weight: 600; cursor: pointer; min-height: 28px; }
+.crm-card .crm-move { display: flex; flex-wrap: wrap; gap: 6px; align-items: end; margin-top: 6px; }
+.crm-card .crm-move .crm-select { min-height: 36px; font-size: 15px; padding: 4px 8px; }
+.crm-col.drop-target { outline: 2px dashed var(--crm-blue); outline-offset: -4px; background: var(--crm-blue-soft); }
+/* Won/lost (or convert/disqualify) drop zones exist only while a card is dragged. */
+.crm-dropzones { position: sticky; bottom: 12px; z-index: 20; display: none; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: 12px; margin-top: 12px; }
+.crm-board-wrap.is-dragging .crm-dropzones { display: grid; }
+.crm-dropzone { display: grid; place-items: center; min-height: 72px; padding: 10px; border: 2px dashed var(--crm-line-strong); border-radius: var(--crm-radius); background: white; color: var(--crm-navy); font-weight: 650; text-align: center; }
+.crm-dropzone.won { border-color: var(--crm-green); color: var(--crm-green); }
+.crm-dropzone.lost { border-color: var(--crm-red); color: var(--crm-red); }
+.crm-dropzone.drop-target { background: var(--crm-blue-soft); }
+.crm-drag-status { margin: 0 0 10px; }
+
+/* Path: the playbook's stages for one opportunity, from data (R-01). */
+.crm-path { display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 16px; padding: 0; list-style: none; counter-reset: path; }
+.crm-path li { flex: 1 1 8rem; min-width: 0; }
+.crm-path span { display: flex; align-items: center; gap: 6px; min-height: 40px; padding: 6px 12px; border: 1px solid var(--crm-line); background: white; color: var(--crm-slate); font-size: 14px; font-weight: 600; clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 0 100%, 10px 50%); }
+.crm-path li:first-child span { clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 0 100%); border-radius: var(--crm-radius) 0 0 var(--crm-radius); }
+.crm-path .done span { background: #eef6fb; color: var(--crm-navy); }
+.crm-path .current span { background: var(--crm-blue); color: white; }
+.crm-path .closed-won span { background: var(--crm-green-soft); color: var(--crm-green); }
+.crm-path .closed-lost span { background: var(--crm-red-soft); color: var(--crm-red); }
+.crm-path .skipped span { text-decoration: line-through; }
+@media (forced-colors: active) { .crm-path span { clip-path: none; border: 1px solid CanvasText; } .crm-path .current span { outline: 2px solid CanvasText; } }
+
+/* Equal-height panels on one row (R-04). */
+.crm-row-panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); gap: 18px; align-items: stretch; }
+.crm-row-panels > .crm-sheet { margin: 0; height: 100%; box-sizing: border-box; }
+
+/* Conversion: three blocks (company, contact, opportunity). */
+.crm-convert { display: grid; gap: 14px; }
+.crm-convert fieldset { margin: 0; padding: 14px; border: 1px solid var(--crm-line); border-radius: var(--crm-radius); min-width: 0; }
+.crm-convert legend { padding: 0 6px; color: var(--crm-navy); font-weight: 650; }
+.crm-choice { display: grid; gap: 8px; }
+.crm-choice label { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; border: 1px solid var(--crm-line); border-radius: var(--crm-radius); }
+.crm-choice input[type="radio"] { width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--crm-blue); flex: none; }
+.crm-choice label:has(input:checked) { border-color: var(--crm-blue); background: #f7fbfe; }
+
+/* Calendar month and week. */
+.crm-cal { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.crm-cal th { padding: 6px; color: var(--crm-slate); font-size: var(--crm-small); text-transform: uppercase; letter-spacing: .06em; text-align: left; border-bottom: 1px solid var(--crm-line); }
+.crm-cal td { height: 7.5rem; padding: 4px 6px; border: 1px solid var(--crm-line-soft); vertical-align: top; background: white; }
+.crm-cal td.out { background: #f7f8fa; color: var(--crm-slate); }
+.crm-cal td.today { box-shadow: inset 0 3px 0 var(--crm-blue); }
+.crm-cal .day { display: block; margin-bottom: 4px; color: var(--crm-navy); font-size: var(--crm-meta); font-weight: 650; }
+.crm-cal ul { display: grid; gap: 3px; margin: 0; padding: 0; list-style: none; }
+.crm-cal li a { display: block; padding: 2px 6px; border-left: 3px solid var(--crm-blue); border-radius: 4px; background: var(--crm-blue-soft); color: var(--crm-navy); font-size: var(--crm-small); line-height: 1.35; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.crm-cal li a:hover { text-decoration: underline; }
+.crm-cal li.done a { border-left-color: var(--crm-line-strong); background: #f2f4f7; color: var(--crm-slate); text-decoration: line-through; }
+.crm-cal li.overdue a { border-left-color: var(--crm-red); background: var(--crm-red-soft); }
+.crm-cal li.event a { border-left-color: var(--crm-green); background: var(--crm-green-soft); }
+.crm-cal-wrap { overflow-x: auto; }
+.crm-cal-wrap .crm-cal { min-width: 42rem; }
+.crm-week { display: grid; grid-template-columns: repeat(7, minmax(9rem, 1fr)); gap: 8px; overflow-x: auto; }
+.crm-week section { min-height: 14rem; padding: 8px; border: 1px solid var(--crm-line); border-radius: var(--crm-radius); background: white; }
+.crm-week section.today { box-shadow: inset 0 3px 0 var(--crm-blue); }
+.crm-week h2 { margin: 0 0 8px; color: var(--crm-navy); font-size: 14px; }
+.crm-week ul { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.crm-week li { padding: 6px 8px; border-left: 3px solid var(--crm-blue); border-radius: 4px; background: var(--crm-blue-soft); font-size: var(--crm-meta); }
+.crm-week li.done { border-left-color: var(--crm-line-strong); background: #f2f4f7; color: var(--crm-slate); }
+.crm-week li.overdue { border-left-color: var(--crm-red); background: var(--crm-red-soft); }
+.crm-week li.event { border-left-color: var(--crm-green); background: var(--crm-green-soft); }
+.crm-week li a { color: var(--crm-navy); font-weight: 600; text-decoration: none; overflow-wrap: anywhere; }
+.crm-week li a:hover { text-decoration: underline; }
+.crm-agenda { display: none; }
+@media (max-width: 640px) {
+  .crm-cal-wrap, .crm-week { display: none; }
+  .crm-agenda { display: block; }
+  .crm-board { grid-auto-columns: minmax(80vw, 1fr); scroll-snap-type: x mandatory; }
+  .crm-col { scroll-snap-align: start; }
+}
+@media (prefers-reduced-motion: reduce) { .crm-card.dragging { opacity: .7; } }

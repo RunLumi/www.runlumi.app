@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Chi tiết Webhook</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}
+.kv{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 24px;padding:4px 20px 16px;margin:0}
+.kv div{display:flex;flex-direction:column;gap:2px;padding:10px 0;border-bottom:1px solid #E7EAF0}
+.kv dt{font:500 12px Geist,system-ui,sans-serif;color:#5E6677}
+.kv dd{margin:0;font:400 14px/1.45 Geist,system-ui,sans-serif;color:#172033}
+.evl{display:flex;flex-wrap:wrap;gap:6px;padding:4px 20px 16px}
+</style>
+</helmet>
+<div class="root" style="min-height: 1300px">
+<dc-import name="TopNav" app="setup" active="" hint-size="100%,104px"></dc-import>
+<main class="page">
+<div class="split">
+<div style="flex: 0 0 260px"><dc-import name="SetupNav" active="Webhook" hint-size="260px,820px"></dc-import></div>
+<div style="flex: 999 1 900px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+<section class="panel" style="padding: 16px 20px">
+<ol class="crumbs" aria-label="Vị trí"><li><a href="MembersTeams.dc.html">Cài đặt tổ chức</a></li><li><a href="Webhooks.dc.html">Webhook</a></li><li><span aria-current="page">URL tùy chỉnh · Hệ thống kế toán</span></li></ol>
+<div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-top: 8px">
+<div>
+<h1 class="h1">URL tùy chỉnh · Hệ thống kế toán</h1>
+<p class="muted" style="margin: 6px 0 0; font-size: 14px"><span class="badge b-danger"><span class="dot"></span>Đang lỗi</span> · tạo 12/10/2026 bởi Minh Anh · <span class="badge b-neutral">Dữ liệu minh họa</span></p>
+</div>
+<div style="display: flex; gap: 8px; flex: none"><button type="button" class="btn">Gửi thử</button><button type="button" class="btn">Tạm dừng Webhook</button><button type="button" class="btn btn-lost">Xóa Webhook</button></div>
+</div>
+</section>
+
+<section class="panel rail-danger" style="padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; gap: 16px">
+<span style="font-size: 14px; color: #344054"><b style="color: #102A43">3 lần lỗi liên tiếp từ 29/10 07:30.</b> Máy chủ đích không trả lời trong 10 giây. Lần thử lại kế tiếp lúc 09:50. Còn 7 lần lỗi nữa sẽ tự tạm dừng.</span>
+<button type="button" class="btn" style="flex: none">Gửi lại các lần lỗi</button>
+</section>
+
+<div class="split">
+<section class="panel" aria-labelledby="cf-h" style="flex: 1 1 420px; overflow: hidden">
+<div class="oh" style="padding-bottom: 0; align-items: center"><h2 class="sec-h" id="cf-h">Cấu hình</h2><button type="button" class="btn btn-sm">Sửa</button></div>
+<dl class="kv">
+<div><dt>Nền tảng</dt><dd>URL tùy chỉnh · POST, JSON</dd></div>
+<div><dt>Địa chỉ đích</dt><dd><span class="code">https://••••/lumi/su-kien</span></dd></div>
+<div><dt>Thời gian chờ</dt><dd>10 giây</dd></div>
+<div><dt>Thử lại</dt><dd>5 lần, giãn dần trong 1 giờ</dd></div>
+</dl>
+</section>
+
+<section class="panel" aria-labelledby="sk-h" style="flex: 1 1 420px; overflow: hidden">
+<div class="oh" style="padding-bottom: 0; align-items: center"><h2 class="sec-h" id="sk-h">Khóa ký</h2><button type="button" class="btn btn-sm">Đổi khóa ký</button></div>
+<dl class="kv">
+<div><dt>Tên khóa</dt><dd><span class="code">ketoan-ky-2026-10</span></dd></div>
+<div><dt>Giá trị</dt><dd><span class="code">whsec_••••••••••••</span> · không hiện lại sau khi tạo</dd></div>
+<div><dt>Tạo lúc</dt><dd>12/10/2026 · Minh Anh</dd></div>
+<div><dt>Tiêu đề chữ ký</dt><dd><span class="code">X-Lumi-Signature</span></dd></div>
+</dl>
+<p class="muted" style="margin: auto 0 0; padding: 0 20px 14px; font-size: 13px">Đổi khóa ký phải xác thực lại bằng passkey. Khóa mới chỉ hiện một lần để bạn dán sang hệ thống đích; khóa cũ còn hiệu lực 24 giờ.</p>
+</section>
+</div>
+
+<section class="panel" aria-labelledby="ev-h" style="overflow: hidden">
+<div class="oh" style="padding-bottom: 8px; align-items: center"><h2 class="sec-h" id="ev-h">Sự kiện được gửi (2)</h2><button type="button" class="btn btn-sm">Chọn sự kiện</button></div>
+<div class="evl"><span class="chip-x">Lumi CRM · Cơ hội chuyển sang Thắng</span><span class="chip-x">Lumi CRM · Ghi nhận tiền cọc</span></div>
+</section>
+
+<section class="panel" aria-labelledby="lg-h" style="overflow: hidden">
+<div class="oh" style="padding-bottom: 10px; align-items: center"><h2 class="sec-h" id="lg-h">Nhật ký gửi</h2>
+<div class="tools"><button type="button" class="chip chip-on">Tất cả</button><button type="button" class="chip">Lỗi (4)</button><span class="in in-sel" style="width: 160px; height: 30px; font-size: 13px">7 ngày qua<svg class="ic-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></div></div>
+<table class="mx"><thead><tr><th>Thời gian</th><th>Sự kiện</th><th>Bản ghi</th><th>Kết quả</th><th>Phản hồi</th><th>Lần thử</th><th>Mã gửi</th><th><span class="sr">Hành động</span></th></tr></thead>
+<tbody>
+<sc-for list="{{log}}" as="l" hint-placeholder-count="8">
+<tr><td class="num">{{l.t}}</td><td>{{l.ev}}</td><td>{{l.rec}}</td><td><span class="{{l.cls}}"><span class="dot"></span>{{l.res}}</span></td><td class="num">{{l.ms}}</td><td class="num">{{l.n}}</td><td><span class="code">{{l.id}}</span></td><td style="text-align: right"><sc-if value="{{l.failed}}" hint-placeholder-val="{{false}}"><button type="button" class="btn btn-sm">Gửi lại</button></sc-if></td></tr>
+</sc-for>
+</tbody></table>
+<p class="muted" style="margin: 0; padding: 10px 20px; font-size: 13px">Nội dung gửi đi được lưu 30 ngày. Mỗi lần gửi cũng có trong Nhật ký kiểm toán.</p>
+</section>
+</div>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1300}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var L = function (t, ev, rec, res, ms, n, id, retried) {
+      var ok = res.indexOf('200') === 0;
+      return { t: t, ev: ev, rec: rec, res: res, ms: ms, n: n, id: id, failed: !ok && !retried, cls: ok ? 'badge b-ok' : 'badge b-danger' };
+    };
+    return {
+      log: [
+        L('29/10 09:30', 'Ghi nhận tiền cọc', 'Biệt thự Thảo Điền', 'Hết thời gian chờ', '10.000 ms', '3', 'dlv_9c21'),
+        L('29/10 08:30', 'Ghi nhận tiền cọc', 'Biệt thự Thảo Điền', 'Hết thời gian chờ', '10.000 ms', '2', 'dlv_9c21'),
+        L('29/10 07:30', 'Ghi nhận tiền cọc', 'Biệt thự Thảo Điền', 'Hết thời gian chờ', '10.000 ms', '1', 'dlv_9c21'),
+        L('28/10 16:44', 'Cơ hội chuyển sang Thắng', 'Nhà hàng Bếp Mộc – Q.7', '200 OK', '412 ms', '1', 'dlv_9b87'),
+        L('27/10 11:02', 'Ghi nhận tiền cọc', 'Nhà hàng Bếp Mộc – Q.7', '200 OK', '389 ms', '1', 'dlv_9a10'),
+        L('25/10 15:18', 'Cơ hội chuyển sang Thắng', 'Biệt thự Thảo Điền', '200 OK', '455 ms', '1', 'dlv_98f3'),
+        L('24/10 10:06', 'Ghi nhận tiền cọc', 'Văn phòng Lumen Tech', '200 OK', '398 ms', '2', 'dlv_98a0'),
+        L('24/10 10:05', 'Ghi nhận tiền cọc', 'Văn phòng Lumen Tech', '500 lỗi máy chủ đích', '1.204 ms', '1', 'dlv_98a0', true)
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

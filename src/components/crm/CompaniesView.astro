@@ -7,6 +7,7 @@ import Hidden from "./Hidden.astro";
 import { options } from "../../lib/crm/i18n";
 import { errorFor, valueFor } from "../../lib/crm/page";
 import type { CompaniesProps } from "../../lib/crm/routes/directory";
+import "../../styles/crm-sales.css";
 
 type Props = CompaniesProps;
 const { ctx, state, filters, rows, total, page, pages, owners, names } = Astro.props;
@@ -31,11 +32,15 @@ const fieldLabels: Record<string, string> = vi
     <div>
       <DirectoryTools vi={vi} manager={actor.manager} filters={filters} owners={owners} page={page} pages={pages} position="top" searchLabel={vi ? "Tìm theo tên, ngành, khu vực" : "Search name, industry, area"} />
       <section class="crm-sheet" aria-label={vi ? "Danh sách công ty" : "Company list"} style="margin-top:18px">
-        {rows.length ? <ul class="crm-list">{rows.map((row) => <li class="crm-row">
-          <a class="crm-row-title" href={`${base}/accounts/${row.id}`}>{row.name}</a>
-          <span class="crm-row-side">{row.do_not_contact ? <span class="crm-badge red">{vi ? "Không liên hệ" : "Do not contact"}</span> : null}<span class="crm-badge">{vi ? `${row.contacts} liên hệ` : `${row.contacts} contacts`}</span><span class:list={["crm-badge", row.open_opportunities ? "blue" : ""]}>{vi ? `${row.open_opportunities} cơ hội mở` : `${row.open_opportunities} open`}</span></span>
-          <span class="crm-row-meta">{[row.industry, row.region].filter(Boolean).length > 0 && <span>{[row.industry, row.region].filter(Boolean).join(" · ")}</span>}<span>{vi ? "Quản lý" : "Managed by"}: {manager(row.owner_id)}</span>{!row.do_not_contact && row.contacts > 0 && <a class="crm-link" href={`${base}/new?company=${row.id}`}>{vi ? "Tạo cơ hội" : "New opportunity"}</a>}</span>
-        </li>)}</ul> : <p class="crm-empty">{filters.q || filters.owner ? (vi ? "Không có công ty khớp bộ lọc." : "No companies match these filters.") : (vi ? "Chưa có công ty nào. Tạo công ty đầu tiên ở bên cạnh." : "No companies yet. Add the first one alongside.")}</p>}
+        {rows.length ? <div class="crm-grid-table-wrap" tabindex="0" role="region" aria-label={vi ? "Bảng công ty, cuộn ngang được" : "Company table, scrolls sideways"}><table class="crm-grid-table">
+          <thead><tr><th class="frozen frozen-1" scope="col">#</th><th class="frozen frozen-2" scope="col">{vi ? "Công ty" : "Company"}</th><th scope="col">{vi ? "Ngành" : "Industry"}</th><th scope="col">{vi ? "Khu vực" : "Area"}</th><th scope="col" class="num">{vi ? "Liên hệ" : "Contacts"}</th><th scope="col" class="num">{vi ? "Cơ hội mở" : "Open"}</th><th scope="col">{vi ? "Quản lý" : "Managed by"}</th><th scope="col">{vi ? "Hành động" : "Actions"}</th></tr></thead>
+          <tbody>{rows.map((row, index) => <tr>
+            <td class="frozen frozen-1 rowno">{(page - 1) * 50 + index + 1}</td>
+            <td class="frozen frozen-2"><a href={`${base}/accounts/${row.id}`}>{row.name}</a>{row.do_not_contact ? <> <span class="crm-badge red">{vi ? "Không liên hệ" : "Do not contact"}</span></> : null}</td>
+            <td>{row.industry || "—"}</td><td>{row.region || "—"}</td><td class="num">{row.contacts}</td><td class="num">{row.open_opportunities}</td><td>{manager(row.owner_id)}</td>
+            <td>{!row.do_not_contact && row.contacts > 0 ? <a class="crm-link" href={`${base}/new?company=${row.id}`}>{vi ? "Tạo cơ hội" : "New opportunity"}</a> : "—"}</td>
+          </tr>)}</tbody>
+        </table></div> : <p class="crm-empty">{filters.q || filters.owner ? (vi ? "Không có công ty khớp bộ lọc." : "No companies match these filters.") : (vi ? "Chưa có công ty nào. Tạo công ty đầu tiên ở bên cạnh." : "No companies yet. Add the first one alongside.")}</p>}
         <DirectoryTools vi={vi} manager={actor.manager} filters={filters} owners={owners} page={page} pages={pages} position="bottom" searchLabel="" />
       </section>
     </div>

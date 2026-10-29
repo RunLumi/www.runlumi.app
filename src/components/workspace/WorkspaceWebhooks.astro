@@ -1,0 +1,57 @@
+---
+// Admin › Webhooks: the built-in Lark bot and the Slack, Discord and
+// Microsoft Teams channels admins add. URLs are credentials: shown masked.
+import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
+import DataTable from "./ui/DataTable.astro";
+import PageHeader from "./ui/PageHeader.astro";
+import Panel from "./ui/Panel.astro";
+import PanelRow from "./ui/PanelRow.astro";
+import { localized } from "../../lib/workspace/nav";
+import type { WebhooksData } from "../../lib/workspace/admin-security-pages";
+import { PAUSE_AFTER_FAILURES, platformLabels, platforms } from "../../lib/workspace/notify/destinations";
+import { dateTime } from "../../lib/workspace/format";
+
+type Props = WebhooksData;
+const { lang, vi, user, destinations, names, keyReady, larkReady, sent7d, error, saved } = Astro.props;
+const t = (en: string, viText: string) => (vi ? viText : en);
+const base = localized("/workspace/webhooks", vi);
+const status: Record<string, [string, string, string]> = { active: ["Active", "Hoạt động", "green"], paused: ["Paused", "Tạm dừng", "amber"] };
+const errors: Record<string, [string, string]> = {
+  "url:invalid": ["That is not an incoming-webhook URL for the chosen platform.", "Đây không phải địa chỉ Webhook nhận tin của nền tảng đã chọn."],
+  "name:required": ["Give the webhook a name.", "Hãy đặt tên Webhook."], "key:missing": ["The WORKSPACE_WEBHOOK_KEY secret is not set, so webhook addresses cannot be stored safely.", "Chưa đặt secret WORKSPACE_WEBHOOK_KEY nên chưa lưu an toàn được địa chỉ Webhook."],
+};
+---
+<WorkspaceShell title="Webhook" lang={lang} user={user} module="admin" current="webhooks">
+  <PageHeader vi={vi} eyebrow={t("Admin", "Quản trị")} title="Webhook" lede={t(`Send CRM events to Slack, Discord or Microsoft Teams channels next to the Lark team group. Addresses are stored encrypted and shown only in part. After ${PAUSE_AFTER_FAILURES} failures in a row, a webhook pauses itself.`, `Gửi sự kiện CRM tới kênh Slack, Discord hoặc Microsoft Teams, bên cạnh nhóm Lark. Địa chỉ được mã hóa khi lưu và chỉ hiện một phần. Sau ${PAUSE_AFTER_FAILURES} lần lỗi liên tiếp, Webhook tự tạm dừng.`)}>
+    <Fragment slot="actions"><a class="crm-button secondary" href={localized("/workspace/notifications", vi)}>{t("Notification rules", "Quy tắc thông báo")}</a></Fragment>
+  </PageHeader>
+  {saved && <div class="crm-notice good" role="status">{saved === "removed" ? t("Webhook removed.", "Đã gỡ Webhook.") : t("Saved.", "Đã lưu.")}</div>}
+  {error && <div class="crm-notice bad" role="alert">{errors[error]?.[vi ? 1 : 0] ?? error}</div>}
+  <PanelRow>
+    <Panel title={t("Lark team group (built in)", "Nhóm Lark (có sẵn)")} note={t("Receives all CRM activity under the owner's Lark rules; configured as Worker secrets, not here.", "Nhận mọi hoạt động CRM theo quy tắc Lark của chủ sở hữu; cấu hình bằng secret của Worker, không ở đây.")}>
+      <p><span class:list={["crm-badge", larkReady ? "green" : "amber"]}>{larkReady ? t("Connected", "Đã kết nối") : t("Not configured", "Chưa cấu hình")}</span></p>
+    </Panel>
+    <Panel title={t("Add a webhook", "Thêm Webhook")} note={t("Needs your passkey. The address is never shown again in full.", "Cần passkey của bạn. Địa chỉ đầy đủ không hiện lại.")}>
+      {keyReady
+        ? <form class="crm-form" method="post"><input type="hidden" name="intent" value="create" />
+            <div class="crm-field"><label for="w-platform">{t("Platform", "Nền tảng")}</label><select class="crm-input" id="w-platform" name="platform">{platforms.map((platform) => <option value={platform}>{platformLabels[platform]}</option>)}</select></div>
+            <div class="crm-field"><label for="w-name">{t("Name", "Tên")}</label><input class="crm-input" id="w-name" name="name" required maxlength="80" placeholder={t("e.g. Sales HCMC channel", "Ví dụ: Kênh kinh doanh HCM")} /></div>
+            <div class="crm-field"><label for="w-url">{t("Incoming-webhook address", "Địa chỉ Webhook nhận tin")}</label><input class="crm-input" id="w-url" name="url" type="url" required autocomplete="off" spellcheck="false" /></div>
+            <p class="crm-help">{t("Only internal channels. The message shows what the Lark card shows: no contact phone numbers or emails.", "Chỉ dùng kênh nội bộ. Nội dung giống thẻ Lark: không có số điện thoại hay email liên hệ.")}</p>
+            <button class="crm-button" type="submit">{t("Add webhook", "Thêm Webhook")}</button></form>
+        : <p class="crm-notice bad">{errors["key:missing"][vi ? 1 : 0]}</p>}
+    </Panel>
+  </PanelRow>
+  <Panel title={t("Webhooks", "Danh sách Webhook")} flush>
+    {destinations.length
+      ? <DataTable vi={vi} label="Webhook" frozen={1} widths={["15rem"]} frozenNames={t("Name", "Tên")} minWidth="980px" meta={t(`${destinations.length} webhooks`, `${destinations.length} Webhook`)}>
+          <thead><tr><th scope="col">{t("Name", "Tên")}</th><th scope="col">{t("Platform", "Nền tảng")}</th><th scope="col">{t("Address", "Địa chỉ đích")}</th><th scope="col">{t("Status", "Trạng thái")}</th><th scope="col">{t("Last send", "Gửi gần nhất")}</th><th scope="col" class="num">{t("Sent, 7 days", "Đã gửi 7 ngày")}</th><th scope="col" class="num">{t("Failures in a row", "Lỗi liên tiếp")}</th><th scope="col">{t("Added by", "Tạo bởi")}</th></tr></thead>
+          <tbody>{destinations.map((row) => { const [en, viText, tone] = status[row.status] ?? [row.status, row.status, ""]; return <tr>
+            <th scope="row"><a class="ws-row-link" href={`${base}/${row.id}`}>{row.name}</a></th><td>{platformLabels[row.platform]}</td><td><code>{row.url_hint}</code></td>
+            <td><span class:list={["crm-badge", tone]}>{vi ? viText : en}</span></td><td>{row.last_sent_at ? `${dateTime(row.last_sent_at, vi)} · ${row.last_result}` : "—"}</td>
+            <td class="num">{sent7d[row.id]?.sent ?? 0}</td><td class="num">{row.consecutive_failures}</td><td>{names[row.created_by] ?? row.created_by}</td>
+          </tr>; })}</tbody>
+        </DataTable>
+      : <p class="crm-empty">{t("No webhooks yet.", "Chưa có Webhook nào.")}</p>}
+  </Panel>
+</WorkspaceShell>

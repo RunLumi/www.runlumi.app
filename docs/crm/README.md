@@ -147,3 +147,24 @@ sharing, selected CRM viewers, sales-team access and revocable public view links
 CRM Files now uses [direct-to-R2 uploads](DIRECT_UPLOADS.md), including drag/drop,
 multiple files, progress and retained versions. File bytes bypass the CRM Worker;
 production signing secrets and bucket CORS must be configured before release.
+
+## Leads, board, table and calendar (Workspace redesign, workstream 3, 2026-10-29)
+
+**Lead object** (`crm_lead_records`, migration `0055`; `src/lib/crm/leads.ts`). A Lead is a person at a business before anyone has a company, contact or opportunity for them. It is separate from the frozen legacy `crm_leads` table.
+
+| Topic | Rule | Evidence |
+|---|---|---|
+| Sources | Signed `local.runlumi.app` enquiries (`/api/intake/local`) and referrals (`crm.refer`, consent required) now arrive as **unassigned leads**, not opportunities. People can also create leads they found themselves (visit, call, event); `inbound_web`, `referral` and `existing_customer` sources are reserved. | `tests/crm-leads.test.ts`, IT 11, workspace partner IT |
+| Scope | The team (`crm.team`) sees every lead; everyone else only leads they own. A referrer never opens the lead; they follow its status (then the opportunity stage) on *Referrals*. Others' leads are not found (404). | unit "ownership", IT 11b |
+| Statuses | Versioned data in `crm_policies` (`crm-lead-process@N`): open statuses (first = start, optional target hours) and disqualification reasons. Admins (`crm.configure`) save new versions on `/crm/admin/leads`; each lead keeps its version (R-01). | unit "lead process", IT 11b |
+| Assignment | Team only, on `/crm/admin` or the lead. A Sales Manager cannot assign an unattributed lead to themselves (it would credit them as seller). Assignment marks the enquiry handled. | unit "referral", IT 11 |
+| Conversion | Owner or team, only once the lead has an owner. Creates or reuses a company and contact **within the converter's edit scope** (duplicate hints by phone, email or name show only what they may see), opens an opportunity at the playbook's first stage with owner = seller = lead owner, and carries `source_channel`, `source_detail` and `referrer_id`. Do-not-contact or a refused consent stops it. Versioned and idempotent; a converted lead is read-only (database trigger). | unit "convert", IT 11, 11b |
+| Disqualify / reopen | A reason from the lead process is required; the lead is kept. Reopening needs a reason and is refused for a suppressed number. | unit "do-not-contact" |
+| Lark | New cards `lead_inbound`, `lead_referred`, `lead_created`, `lead_assigned`, `lead_status`, `lead_note` (masked excerpt), `lead_disqualified`, `lead_converted`. Company, status, source and owner only: never the person's phone, email or need. The digest adds "Lead chờ phân công". | unit "intake … Lark card" |
+| API / MCP | Unchanged. Leads are not exposed through `/api/crm/v1` or `/api/crm/mcp`. | — |
+
+**Pipeline views** (`/crm/pipeline?view=board|table`). *Board*: one playbook's open stages as columns with value totals (unknown values counted separately); won/lost drop zones appear only while dragging and open the record's close dialog; every card has a "Move to" form, so moves work by keyboard and without JavaScript (`src/scripts/crm-board.ts` only enhances it). A drop runs the same requirement-checked, versioned stage move; a refused move names what is missing. *Table*: full width, frozen row number and name, one-cell versioned edits of value, probability, next step and due date (`saveInline` keeps every other detail as stored).
+
+**Record pages.** The opportunity shows breadcrumbs, the playbook path from data and a close dialog (closing stages only; lost needs a reason; won ≠ paid). Companies and contacts are full-width tables; contacts have their own record page (`/crm/contacts/[id]`) with the company's edit and do-not-contact rules.
+
+**Calendar** (`/crm/calendar`, month or week, Vietnam time, Monday first). Tasks by due date, next steps of open opportunities and leads, and optionally recorded activity (kinds only, no note text), all scoped like the pipeline. A new event is a task created through the same checks as the record, do-not-contact included. It sends nothing to customers.

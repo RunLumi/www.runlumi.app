@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Leads Kanban</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="root" style="min-height: 1100px; position: relative">
+
+<dc-import name="TopNav" app="crm" active="Lead" hint-size="100%,104px"></dc-import>
+
+<main class="page">
+<section class="panel" aria-label="Danh sách Lead">
+<div class="oh">
+<div class="oh-id">
+<span class="oi" style="background: #0F7B7B"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="10" cy="8" r="4"></circle><path d="M2 21a8 8 0 0 1 13-6.2M17 14v7M13.5 17.5h7"></path></svg></span>
+<div>
+<div class="eyebrow">Leads <span class="badge b-neutral" style="text-transform: none; letter-spacing: 0">Dữ liệu minh họa</span></div>
+<h1 class="h1">Lead đang mở</h1>
+</div>
+</div>
+<div class="bg"><button type="button" class="btn">Tạo</button><a class="btn" href="Import.dc.html">Nhập</a><button type="button" class="btn">Thêm vào chiến dịch</button></div>
+</div>
+<div class="lv-meta">
+<p>9 mục · Nhóm theo trạng thái Lead · Tổng theo số Lead · Sắp xếp theo ngày tạo</p>
+<div class="tools">
+<a class="btn" href="Leads.dc.html" aria-label="Đang xem dạng Kanban; chọn để đổi sang bảng" aria-haspopup="menu"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="5" height="16" rx="1"></rect><rect x="10" y="4" width="5" height="10" rx="1"></rect><rect x="17" y="4" width="4" height="13" rx="1"></rect></svg><svg class="ic-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></a>
+<button type="button" class="btn icon-btn" aria-label="Làm mới"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7L20 8"></path><path d="M20 3v5h-5"></path></svg></button>
+<button type="button" class="btn icon-btn" aria-label="bộ lọc"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 4h18l-7 8v6l-4 2v-8z"></path></svg></button>
+</div>
+</div>
+</section>
+
+<p role="status" style="margin: 0; font-size: 14px; color: #102A43; display: flex; gap: 8px; align-items: center"><span class="badge b-info"><span class="dot"></span>Đang kéo</span>Chị Ngọc · Salon Ngọc Hair · Thả vào vùng chuyển đổi để mở hộp thoại Chuyển Lead thành cơ hội.</p>
+
+<section class="kb-scroll" aria-label="Kanban theo trạng thái Lead">
+<div style="display: grid; grid-template-columns: repeat(3, minmax(300px, 1fr)); gap: 6px">
+<sc-for list="{{columns}}" as="col" hint-placeholder-count="3">
+<div class="col">
+<div class="{{col.chevClass}}"><span class="chev-name">{{col.name}} ({{col.count}})</span></div>
+<div class="col-sum"><b>{{col.count}} Lead</b><span>{{col.hint}}</span></div>
+<div class="lane" style="min-height: 520px">
+<sc-for list="{{col.cards}}" as="c" hint-placeholder-count="3">
+<sc-if value="{{c.ghost}}" hint-placeholder-val="{{false}}"><div class="kc kc-ghost" aria-hidden="true"></div></sc-if>
+<sc-if value="{{c.real}}" hint-placeholder-val="{{true}}">
+<article class="{{c.cls}}">
+<div class="kc-top">
+<svg class="ic grip" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.5"></circle><circle cx="15" cy="6" r="1.5"></circle><circle cx="9" cy="12" r="1.5"></circle><circle cx="15" cy="12" r="1.5"></circle><circle cx="9" cy="18" r="1.5"></circle><circle cx="15" cy="18" r="1.5"></circle></svg>
+<a class="kc-title" href="LeadRecord.dc.html">{{c.name}}</a>
+<sc-if value="{{c.hasAlert}}" hint-placeholder-val="{{false}}"><button type="button" class="kc-alert" aria-label="{{c.alert}}"><svg class="ic" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2 1 21h22zm-1 7h2v6h-2zm0 8h2v2h-2z"></path></svg></button></sc-if>
+<button type="button" class="menu-btn" aria-label="Hành động cho {{c.name}}: Sửa, chuyển đổi, Đổi người phụ trách, Xóa"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
+</div>
+<dl class="kc-f">
+<dt>Công ty</dt><dd>{{c.company}}</dd>
+<dt>Nhu cầu</dt><dd>{{c.need}}</dd>
+<dt>Nguồn Lead</dt><dd>{{c.src}}</dd>
+</dl>
+<div class="kc-foot">
+<span class="av" title="{{c.ownerName}}">{{c.owner}}</span>
+<span class="muted" style="font-size: 12px">{{c.age}}</span>
+<sc-if value="{{c.hasAlert}}" hint-placeholder-val="{{false}}"><span class="badge b-warn"><span class="dot"></span>{{c.alert}}</span></sc-if>
+</div>
+</article>
+</sc-if>
+</sc-for>
+</div>
+</div>
+</sc-for>
+</div>
+</section>
+</main>
+
+<div style="position: absolute; left: 24px; right: 24px; bottom: 20px">
+<div class="drop-bar" aria-label="Vùng thả chuyển đổied và Không phù hợp">
+<div class="drop drop-won drop-hot"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 12h12M12 6l6 6-6 6"></path></svg>Đã thành cơ hội <span style="font-weight: 500">· Chuyển Lead thành cơ hội</span></div>
+<div class="drop drop-lost"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="m9 9 6 6M15 9l-6 6"></path></svg>Không phù hợp <span style="font-weight: 500">· Không phù hợp, yêu cầu lý do</span></div>
+</div>
+</div>
+
+<article class="kc kc-drag" aria-hidden="true" style="position: absolute; left: 380px; bottom: 58px; width: 300px; z-index: 8">
+<div class="kc-top"><span class="kc-title" style="color: #006093">Chị Ngọc</span></div>
+<dl class="kc-f"><dt>Công ty</dt><dd>Salon Ngọc Hair</dd><dt>Nhu cầu</dt><dd>Salon 80 m²</dd><dt>Nguồn Lead</dt><dd>Zalo OA</dd></dl>
+</article>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const C = (name, company, need, src, owner, ownerName, age, alert) => ({ name: name, company: company, need: need, src: src, owner: owner, ownerName: ownerName, age: age, hasAlert: !!alert, alert: alert || '', cls: alert ? 'kc kc-warn' : 'kc', real: true, ghost: false });
+    const G = { ghost: true, real: false, name: '', company: '', need: '', src: '', owner: '', ownerName: '', age: '', hasAlert: false, alert: '', cls: '' };
+    const col = (name, first, count, hint, cards) => ({ name: name, count: count, hint: hint, chevClass: first ? 'chev chev-first' : 'chev', cards: cards });
+    return {
+      columns: [
+        col('Đã tiếp nhận', true, 3, 'Mục tiêu: liên hệ được trong 24 giờ', [
+          C('Chị Hà', 'Hà Boutique', 'Shop 60 m²', 'Google Maps', 'HC', 'Hàng chờ chung', '26 giờ', 'Quá 24 giờ chưa liên hệ'),
+          C('Anh Đức', 'Nhà hàng Lửa Hồng', 'Nhà hàng 200 m²', 'Form web', 'HN', 'Hải Ngân', '5 giờ'),
+          C('Chị Mai', 'Tiệm bánh Mây', 'Tiệm bánh 45 m²', 'Google Maps', 'MA', 'Minh Anh', '2 giờ')
+        ]),
+        col('Đã liên hệ được', false, 4, 'Mục tiêu: có lịch hẹn khảo sát', [
+          G,
+          C('Anh Long', 'Sao Việt Logistics', 'Văn phòng 350 m²', 'Website', 'TQ', 'Thanh Quân', '3 ngày'),
+          C('Anh Phong', 'Phong Fitness', 'Phòng gym 400 m²', 'Facebook', 'TQ', 'Thanh Quân', '6 ngày', 'Không có hoạt động sắp tới'),
+          C('Bác sĩ Tâm', 'Nha khoa An Tâm', 'Phòng khám 90 m²', 'Giới thiệu', 'MA', 'Minh Anh', '1 ngày')
+        ]),
+        col('Hẹn liên hệ lại', false, 2, 'Mục tiêu: liên hệ lại đúng hẹn', [
+          C('Anh Quang', 'Quán nướng Than Hồng', 'Quán 150 m²', 'Facebook', 'MA', 'Minh Anh', '18 ngày'),
+          C('Chị Thảo', 'Hộ gia đình Phạm Thảo', 'Nhà phố 3 tầng', 'Giới thiệu', 'HN', 'Hải Ngân', '24 ngày')
+        ])
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+---
+// Summary facts across the top of a child screen: label above value, equal
+// columns, wrapping to one column on phones.
+export interface Fact { label: string; value: string }
+interface Props { facts: Fact[] }
+const { facts } = Astro.props;
+---
+<dl class="ws-facts">{facts.map((fact) => <div><dt>{fact.label}</dt><dd>{fact.value}</dd></div>)}</dl>

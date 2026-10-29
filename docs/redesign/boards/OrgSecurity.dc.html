@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Chính sách bảo mật</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}
+.pol{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:center;padding:14px 20px;border-top:1px solid #E7EAF0}
+.pol b{color:#102A43;font-weight:600;font-size:14px;display:flex;gap:8px;align-items:center}
+.pol p{margin:4px 0 0;font-size:13px;color:#5E6677;line-height:1.45}
+.pol-v{display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
+.ck{display:flex;align-items:center;gap:8px;font-size:14px;color:#172033;padding:3px 0}
+</style>
+</helmet>
+<div class="root" style="min-height: 1300px">
+<dc-import name="TopNav" app="setup" active="" hint-size="100%,104px"></dc-import>
+<main class="page">
+<div class="split">
+<div style="flex: 0 0 260px"><dc-import name="SetupNav" active="Chính sách bảo mật" hint-size="260px,820px"></dc-import></div>
+<div style="flex: 999 1 900px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+<section class="panel">
+<div class="oh" style="align-items: flex-start">
+<div>
+<ol class="crumbs" aria-label="Vị trí"><li><a href="MembersTeams.dc.html">Cài đặt tổ chức</a></li><li><span aria-current="page">Chính sách bảo mật</span></li></ol>
+<h1 class="h1" style="margin-top: 6px">Chính sách bảo mật <span class="badge b-neutral" style="vertical-align: middle">Dữ liệu minh họa</span></h1>
+<p class="muted" style="margin: 4px 0 0; font-size: 13px">Áp dụng cho mọi thành viên của Mộc Gia. Mục có nhãn “Cố định” do Lumi Workspace đặt và không đổi được. Mỗi lần đổi chính sách phải xác thực lại và được ghi vào Nhật ký kiểm toán.</p>
+</div>
+<button type="button" class="btn btn-primary" style="flex: none">Lưu chính sách</button>
+</div>
+</section>
+
+<section class="panel rail-warn" aria-labelledby="pb-h" style="overflow: hidden">
+<div class="oh" style="padding-bottom: 6px; align-items: center">
+<h2 class="sec-h" id="pb-h"><span class="badge b-warn"><span class="dot"></span>Cần xử lý</span>3 thành viên chưa có passkey thứ hai</h2>
+<button type="button" class="btn">Gửi nhắc cho cả 3 người</button>
+</div>
+<p style="margin: 0; padding: 0 20px 10px; font-size: 14px; color: #344054">Mất thiết bị duy nhất có passkey thì phải khôi phục tài khoản, cần 2 admin duyệt. Một passkey thứ hai trên thiết bị khác tránh được việc này.</p>
+<div class="tbl-wrap"><table class="tbl pb" style="min-width: 0">
+<thead><tr><th>Thành viên</th><th>Phòng ban</th><th>Vai trò</th><th>Passkey</th><th>Đăng nhập gần nhất</th><th>Nhắc gần nhất</th></tr></thead>
+<tbody>
+<sc-for list="{{missing}}" as="m" hint-placeholder-count="3">
+<tr><td><a href="MemberDetail.dc.html">{{m.name}}</a></td><td>{{m.dept}}</td><td>{{m.role}}</td><td><span class="{{m.pkCls}}">{{m.pk}}</span></td><td>{{m.last}}</td><td>{{m.nudge}}</td></tr>
+</sc-for>
+</tbody></table></div>
+</section>
+
+<section class="panel rail-danger" aria-labelledby="ad-h" style="padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; gap: 16px">
+<div><h2 class="sec-h" id="ad-h"><span class="badge b-danger"><span class="dot"></span>Cần xử lý</span>Tổ chức chỉ có 1 admin</h2>
+<p style="margin: 6px 0 0; font-size: 14px; color: #344054">Khôi phục tài khoản cần 2 admin duyệt. Hiện chỉ có Nguyễn Minh Anh, nên mọi yêu cầu khôi phục phải chờ Lumi hỗ trợ xác minh thay admin thứ hai.</p></div>
+<a class="btn" href="Roles.dc.html" style="flex: none">Chỉ định admin thứ hai</a>
+</section>
+
+<section class="panel" aria-labelledby="si-h" style="overflow: hidden">
+<div class="oh" style="padding-bottom: 12px"><h2 class="sec-h" id="si-h">Đăng nhập</h2></div>
+<div class="pol"><div><b>Passkey cho mọi thành viên <span class="badge b-neutral">Cố định</span></b><p>Lumi Workspace không có mật khẩu. Mọi thành viên, kể cả admin, đăng nhập bằng passkey.</p></div><div class="pol-v"><span class="badge b-info">Bắt buộc</span><button type="button" class="tog tog-lock" aria-label="Passkey bắt buộc, không tắt được" aria-pressed="true" disabled></button></div></div>
+<div class="pol"><div><b>Mã chống lừa đảo <span class="badge b-neutral">Cố định</span></b><p>Mỗi người tự đặt một mã. Mã hiện trong mọi email Lumi gửi tới họ; email không có mã đúng là giả mạo.</p></div><div class="pol-v"><span class="badge b-info">Bắt buộc</span><button type="button" class="tog tog-lock" aria-label="Mã chống lừa đảo bắt buộc, không tắt được" aria-pressed="true" disabled></button></div></div>
+<div class="pol"><div><b>Loại passkey được dùng</b><p>Bỏ chọn một loại sẽ không xóa passkey đã có; thành viên sẽ được nhắc thay khi đăng nhập lần sau.</p></div>
+<div style="display: flex; flex-direction: column">
+<label class="ck"><input type="checkbox" class="cb" checked>Passkey đồng bộ (iCloud Keychain, Trình quản lý mật khẩu Google)</label>
+<label class="ck"><input type="checkbox" class="cb" checked>Passkey chỉ trên thiết bị (Windows Hello)</label>
+<label class="ck"><input type="checkbox" class="cb" checked>Khóa bảo mật USB hoặc NFC</label>
+</div></div>
+<div class="pol"><div><b>Thời lượng phiên đăng nhập</b><p>Sau thời gian này không hoạt động, thành viên phải đăng nhập lại bằng passkey.</p></div><div class="pol-v"><span class="in in-sel" style="width: 200px; font-size: 14px">[chưa chốt]<svg class="ic-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></div></div>
+</section>
+
+<section class="panel" aria-labelledby="su-h" style="overflow: hidden">
+<div class="oh" style="padding-bottom: 12px"><h2 class="sec-h" id="su-h">Xác thực lại trước thao tác nhạy cảm</h2></div>
+<div class="pol"><div><b>Thời gian hiệu lực sau khi xác thực lại</b><p>Trong khoảng này, thành viên làm tiếp thao tác nhạy cảm mà không phải chạm passkey lần nữa.</p></div><div class="pol-v"><span class="in in-sel" style="width: 200px; font-size: 14px">5 phút<svg class="ic-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></div></div>
+<div class="pol"><div><b>Thao tác phải xác thực lại <span class="badge b-neutral">Cố định</span></b><p>Áp dụng trên web, ứng dụng điện thoại và khi xác nhận hành động của AI agent.</p></div>
+<div class="pol-v" style="justify-content: flex-start"><span class="chip-x">Xuất dữ liệu</span><span class="chip-x">Xóa</span><span class="chip-x">Đổi vai trò</span><span class="chip-x">Thu hồi AI agent</span><span class="chip-x">Đổi khóa ký Webhook</span><span class="chip-x">Đổi chính sách bảo mật</span></div></div>
+</section>
+
+<section class="panel" aria-labelledby="rc-h" style="overflow: hidden">
+<div class="oh" style="padding-bottom: 12px"><h2 class="sec-h" id="rc-h">Khôi phục tài khoản</h2></div>
+<div class="pol"><div><b>Cần 2 admin duyệt <span class="badge b-neutral">Cố định</span></b><p>Người mất hết passkey gửi yêu cầu khôi phục. Hai admin khác nhau phải duyệt bằng passkey của mình; người gửi không tự duyệt được. Sau khi duyệt, người đó đăng ký passkey mới và mọi phiên cũ bị đăng xuất.</p></div><div class="pol-v"><span class="badge b-danger">1 trên 2 admin</span></div></div>
+<div class="pol"><div><b>Thông báo khi có yêu cầu khôi phục</b><p>Gửi email cho mọi admin và cho chính người được khôi phục, trên mọi thiết bị còn đăng nhập.</p></div><div class="pol-v"><span class="badge b-info">Bắt buộc</span><button type="button" class="tog tog-lock" aria-label="Thông báo khôi phục bắt buộc" aria-pressed="true" disabled></button></div></div>
+</section>
+</div>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1300}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var M = function (name, dept, role, pk, last, nudge) { return { name: name, dept: dept, role: role, pk: pk, pkCls: 'badge b-warn', last: last, nudge: nudge }; };
+    return {
+      missing: [
+        M('Hải Ngân', 'Dự án', 'Thành viên', '1 passkey', 'Hôm nay 08:10', 'Chưa nhắc'),
+        M('Võ Đức Tài', 'Dự án', 'Thành viên', '1 passkey · đang chờ khôi phục', '26/10/2026', '20/10/2026'),
+        M('Đặng Quốc Bảo', 'Kinh doanh HCM', 'Thành viên', '1 passkey', '25/10/2026', 'Chưa nhắc')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Chi tiết thành viên</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}
+.av-lg{width:56px;height:56px;border-radius:28px;background:#5B4FC4;color:#fff;display:flex;align-items:center;justify-content:center;font:600 20px Geist,system-ui,sans-serif;flex:none}
+.kv{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 24px;padding:4px 20px 16px;margin:0}
+.kv div{display:flex;flex-direction:column;gap:2px;padding:10px 0;border-bottom:1px solid #E7EAF0}
+.kv dt{font:500 12px Geist,system-ui,sans-serif;color:#5E6677}
+.kv dd{margin:0;font:400 14px/1.45 Geist,system-ui,sans-serif;color:#172033}
+.tlw{padding:4px 20px 12px;display:flex;flex-direction:column;gap:12px}
+</style>
+</helmet>
+<div class="root" style="min-height: 1400px">
+<dc-import name="TopNav" app="setup" active="" hint-size="100%,104px"></dc-import>
+<main class="page">
+<div class="split">
+<div style="flex: 0 0 260px"><dc-import name="SetupNav" active="Thành viên và nhóm" hint-size="260px,820px"></dc-import></div>
+<div style="flex: 999 1 900px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+<section class="panel" style="overflow: hidden">
+<div style="padding: 16px 20px 12px">
+<ol class="crumbs" aria-label="Vị trí"><li><a href="MembersTeams.dc.html">Cài đặt tổ chức</a></li><li><a href="MembersTeams.dc.html">Thành viên và nhóm</a></li><li><span aria-current="page">Hải Ngân</span></li></ol>
+<div style="display: flex; gap: 14px; align-items: center; margin-top: 10px">
+<span class="av-lg" aria-hidden="true">HN</span>
+<div style="flex: 1; min-width: 0">
+<h1 class="h1">Hải Ngân <span class="badge b-neutral" style="vertical-align: middle">Dữ liệu minh họa</span></h1>
+<p class="muted" style="margin: 4px 0 0; font-size: 14px">haingan@mocgia.vn · Quản lý dự án · thành viên từ 04/2026</p>
+</div>
+<div class="bg" style="flex: none"><button type="button" class="btn">Đổi vai trò</button><button type="button" class="btn">Thêm vào nhóm</button><button type="button" class="btn">Tạm khóa tài khoản</button><button type="button" class="btn icon-btn" aria-label="Thêm hành động: Đăng xuất mọi phiên, Xóa khỏi tổ chức"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div>
+</div>
+</div>
+<div class="hl-row">
+<div class="hl"><span class="hl-l">Vai trò</span><span class="hl-v">Thành viên</span></div>
+<div class="hl"><span class="hl-l">Phòng ban</span><span class="hl-v">Dự án</span></div>
+<div class="hl"><span class="hl-l">Nhóm</span><span class="hl-v">Nhóm Bếp Mộc</span></div>
+<div class="hl"><span class="hl-l">Passkey</span><span class="hl-v" style="color: #9A5B00">1 · thiếu dự phòng</span></div>
+<div class="hl"><span class="hl-l">Đăng nhập gần nhất</span><span class="hl-v">Hôm nay 08:10</span></div>
+</div>
+</section>
+
+<section class="panel rail-warn" style="padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; gap: 16px">
+<span style="font-size: 14px; color: #344054"><span class="badge b-warn"><span class="dot"></span>Cần xử lý</span> Hải Ngân chỉ có 1 passkey. Nếu mất máy này, tài khoản phải khôi phục và cần 2 admin duyệt; tổ chức hiện chỉ có 1 admin.</span>
+<button type="button" class="btn" style="flex: none">Gửi nhắc thêm passkey</button>
+</section>
+
+<div class="split">
+<section class="panel" aria-labelledby="in-h" style="flex: 1 1 420px; overflow: hidden">
+<div class="oh" style="padding-bottom: 0; align-items: center"><h2 class="sec-h" id="in-h">Thông tin</h2><button type="button" class="btn btn-sm">Sửa</button></div>
+<dl class="kv">
+<div><dt>Họ và tên</dt><dd>Hải Ngân</dd></div>
+<div><dt>Tên hiển thị</dt><dd>Hải Ngân</dd></div>
+<div><dt>Chức danh</dt><dd>Quản lý dự án</dd></div>
+<div><dt>Quản lý trực tiếp</dt><dd>Thanh Quân</dd></div>
+<div><dt>Điện thoại</dt><dd>[chưa chốt]</dd></div>
+<div><dt>Dự án đang phụ trách</dt><dd>Nhà hàng Bếp Mộc – Q.7</dd></div>
+</dl>
+</section>
+
+<section class="panel" aria-labelledby="ro-h" style="flex: 1 1 420px; overflow: hidden">
+<div class="oh" style="padding-bottom: 0"><h2 class="sec-h" id="ro-h">Vai trò và quyền</h2></div>
+<dl class="kv">
+<div><dt>Vai trò</dt><dd>Thành viên · <a href="Roles.dc.html">xem quyền của vai trò</a></dd></div>
+<div><dt>Nhóm</dt><dd>Nhóm Bếp Mộc</dd></div>
+<div><dt>Ứng dụng được dùng</dt><dd>Công việc · Thông minh · Lumi CRM · Kết nối · Thư</dd></div>
+<div><dt>Mã chống lừa đảo</dt><dd>Đã đặt · đổi lần cuối 04/2026</dd></div>
+</dl>
+<p class="muted" style="margin: auto 0 0; padding: 0 20px 14px; font-size: 13px">Đổi vai trò phải xác thực lại bằng passkey và được ghi vào Nhật ký kiểm toán.</p>
+</section>
+</div>
+
+<section class="panel" aria-labelledby="pk-h" style="overflow: hidden">
+<div class="oh" style="padding-bottom: 10px; align-items: center"><h2 class="sec-h" id="pk-h">Passkey (1)</h2><span class="muted" style="font-size: 13px">Chỉ chính thành viên thêm được passkey. Admin chỉ thu hồi được.</span></div>
+<table class="mx"><thead><tr><th>Tên</th><th>Loại</th><th>Tạo lúc</th><th>Dùng gần nhất</th><th><span class="sr">Hành động</span></th></tr></thead>
+<tbody><tr><td style="font-weight: 600; color: #102A43">Laptop của Ngân</td><td>Windows Hello</td><td>04/2026</td><td>Hôm nay 08:10</td><td style="text-align: right"><button type="button" class="btn btn-sm btn-lost">Thu hồi</button></td></tr></tbody></table>
+</section>
+
+<div class="split">
+<section class="panel" aria-labelledby="ag-h" style="flex: 1 1 420px; overflow: hidden">
+<div class="oh" style="padding-bottom: 10px; align-items: center"><h2 class="sec-h" id="ag-h">AI agent (1)</h2><a class="btn btn-sm" href="OrgAgents.dc.html">Xem chính sách agent</a></div>
+<table class="mx"><thead><tr><th>Agent</th><th>Module</th><th>Gọi gần nhất</th><th><span class="sr">Hành động</span></th></tr></thead>
+<tbody><tr><td style="font-weight: 600; color: #102A43">Cursor</td><td>Công việc · Kết nối</td><td>Hôm nay 08:12</td><td style="text-align: right"><button type="button" class="btn btn-sm btn-lost">Thu hồi</button></td></tr></tbody></table>
+<p class="muted" style="margin: auto 0 0; padding: 10px 20px; font-size: 13px">1 yêu cầu chờ Hải Ngân xác nhận: xóa công việc “Bản nháp checklist”.</p>
+</section>
+
+<section class="panel" aria-labelledby="ss-h" style="flex: 1 1 420px; overflow: hidden">
+<div class="oh" style="padding-bottom: 10px; align-items: center"><h2 class="sec-h" id="ss-h">Phiên đăng nhập (2)</h2><button type="button" class="btn btn-sm btn-lost">Đăng xuất mọi phiên</button></div>
+<table class="mx"><thead><tr><th>Thiết bị</th><th>Vị trí gần đúng</th><th>Hoạt động gần nhất</th></tr></thead>
+<tbody><tr><td>Windows · Chrome</td><td>TP.HCM, Việt Nam</td><td>Hôm nay 08:12</td></tr><tr><td>Android · Lumi</td><td>TP.HCM, Việt Nam</td><td>Hôm qua</td></tr></tbody></table>
+</section>
+</div>
+
+<section class="panel" aria-labelledby="ac-h" style="overflow: hidden">
+<div class="oh" style="padding-bottom: 8px; align-items: center"><h2 class="sec-h" id="ac-h">Hoạt động gần đây</h2><a class="btn btn-sm" href="AuditLog.dc.html">Mở Nhật ký kiểm toán</a></div>
+<div class="tlw">
+<sc-for list="{{acts}}" as="a" hint-placeholder-count="4">
+<div class="tl"><span class="tl-ic" style="{{a.icStyle}}"><svg class="ic-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle></svg></span><div class="tl-b"><div class="tl-t">{{a.t}}</div><div class="tl-m">{{a.m}}</div></div></div>
+</sc-for>
+</div>
+</section>
+</div>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1400}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var A = function (t, m, tone) { return { t: t, m: m, icStyle: tone === 'warn' ? 'background:#FFF4DC;color:#9A5B00' : 'background:#E4F3FC;color:#006093' }; };
+    return {
+      acts: [
+        A('Cursor xin xóa công việc “Bản nháp checklist”', 'Hôm nay 08:12 · chờ Hải Ngân xác nhận', 'warn'),
+        A('Đăng nhập bằng passkey', 'Hôm nay 08:10 · Windows · 14.161.20.7'),
+        A('Có người thử đăng nhập bằng passkey không hợp lệ', '28/10 11:47 · Linux · 45.77.12.9 · bị từ chối', 'warn'),
+        A('Được giao công việc “Lắp quầy bar khu A”', '27/10 · bởi Minh Anh · sau đó đổi cho Thanh Quân ngày 29/10')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

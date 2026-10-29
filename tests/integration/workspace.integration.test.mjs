@@ -10,8 +10,8 @@ const S = {};
 const ids = {};
 
 const nav = (html) => [...html.matchAll(/<nav class="ws-modules"[^>]*>([\s\S]*?)<\/nav>/g)].map((match) => match[1]).join("");
-// Module pages: the horizontal bar (hiring, admin) or the grouped CRM sidebar.
-const pages = (html) => [...html.matchAll(/<nav class="(?:crm-shell ws-pages|ws-side)"[^>]*>([\s\S]*?)<\/nav>/g)].map((match) => match[1]).join("");
+// Module pages: the tab bar (hiring, account) or the grouped menu (CRM, HRM, Admin).
+const pages = (html) => [...html.matchAll(/<nav class="(?:ws-pages|ws-gmenu[^"]*)"[^>]*>([\s\S]*?)<\/nav>/g)].map((match) => match[1]).join("");
 
 test("setup: roles are granted on the users page, by email, with an audit trail", async () => {
   S.admin = await adminSession();
@@ -76,6 +76,54 @@ test("sales manager works the whole team; sales executive only their own", async
   assert.equal((await S.manager.post(`/crm/${ids.execOpp}`, { intent: "referrer", version: execVersion, referrer_id: S.manager.id })).status, 403, "managers cannot set referral credit");
   const commission = await S.manager.get("/crm/commission");
   assert.doesNotMatch(commission.html, /mô phỏng|simulated/, "managers see no commission simulation");
+});
+
+test("admin screens: users table opens a member child screen; only users.manage reaches them", async () => {
+  const list = await S.admin.get("/workspace/users");
+  assert.equal(list.status, 200);
+  assert.match(list.html, /<table class="ws-tbl" data-frozen="1"/, "the users table freezes the name column");
+  assert.match(list.html, new RegExp(`href="/workspace/users/${S.hr.id}"`), "a row opens the member's child screen");
+  // The first table on the page lists people; the second lists recent access changes.
+  const people = (html) => /<table class="ws-tbl"[\s\S]*?<\/table>/.exec(html)?.[0] ?? "";
+  const filtered = people((await S.admin.get(`/workspace/users?q=${encodeURIComponent(S.manager.email)}`)).html);
+  assert.match(filtered, new RegExp(S.manager.email.replace(/[.]/g, "\\.")));
+  assert.doesNotMatch(filtered, new RegExp(`href="/workspace/users/${S.hr.id}"`), "search narrows the table");
+  for (const path of [`/workspace/users/${S.hr.id}`, `/vi/workspace/users/${S.hr.id}`]) {
+    const page = await S.admin.get(path);
+    assert.equal(page.status, 200, path);
+    assert.match(page.html, /class="ws-crumbs"/, "child screens carry breadcrumbs");
+    assert.match(page.html, new RegExp(S.hr.email.replace(/[.]/g, "\\.")));
+  }
+  assert.equal((await S.admin.get("/workspace/users/not_a_real_user")).status, 404);
+  for (const path of ["/workspace/roles", "/vi/workspace/roles", "/workspace/users/new", "/vi/workspace/users/new"]) assert.equal((await S.admin.get(path)).status, 200, path);
+  assert.match((await S.admin.get("/workspace/roles")).html, /hiring\.applications\.delete/);
+  for (const session of [S.hr, S.manager, S.exec]) {
+    for (const path of [`/workspace/users/${S.exec.id}`, "/workspace/users/new", "/workspace/roles", "/vi/workspace/roles"]) assert.equal((await session.get(path)).status, 403, `${session.name} ${path}`);
+    assert.equal((await session.post(`/workspace/users/${S.exec.id}`, { intent: "update", user_id: S.exec.id, roles: ["sales_manager"], enabled: "1" })).status, 403, `${session.name} cannot change access`);
+  }
+  assert.equal(jobs(`SELECT role FROM workspace_roles WHERE user_id = ${q(S.exec.id)}`).map((row) => row.role).join(), "sales_executive", "a denied POST changes nothing");
+  const saved = await S.admin.post(`/workspace/users/${S.exec.id}`, { intent: "update", user_id: S.exec.id, roles: ["sales_executive"], enabled: "1" });
+  assert.equal(saved.status, 303);
+  assert.equal(saved.location, `/workspace/users/${S.exec.id}?saved=1`, "saving on the child screen returns to it");
+  const empty = await S.admin.post(`/vi/workspace/users/${S.exec.id}`, { intent: "update", user_id: S.exec.id, enabled: "1" });
+  assert.equal(empty.status, 422);
+  assert.match(empty.html, /Chọn ít nhất một vai trò/);
+});
+
+test("my account: everyone with access sees only their own identity, in both languages", async () => {
+  for (const [session, other] of [[S.hr, S.exec], [S.exec, S.hr]]) {
+    for (const path of ["/workspace/account", "/vi/workspace/account"]) {
+      const page = await session.get(path);
+      assert.equal(page.status, 200, `${session.name} ${path}`);
+      assert.match(page.html, new RegExp(session.email.replace(/[.]/g, "\\.")));
+      assert.doesNotMatch(page.html, new RegExp(other.email.replace(/[.]/g, "\\.")), "no one else's identity");
+    }
+  }
+  assert.match((await S.hr.get("/workspace/account")).html, /Personal tokens currently work with the CRM only/, "HR has no CRM tokens");
+  assert.match((await S.exec.get("/vi/workspace/account")).html, /href="\/vi\/crm\/api"/, "CRM roles reach their token page");
+  assert.equal((await S.none.get("/workspace/account")).status, 403, "no role means no account page");
+  const home = await S.hr.get("/workspace");
+  assert.match(home.html, /href="\/workspace\/account"/, "the account menu links to My account");
 });
 
 test("hiring desk: bilingual pages, real actors in history, confirmed deletes", async () => {
@@ -187,18 +235,29 @@ test("partners refer businesses, follow status only, and never record payments",
   assert.equal((await refer({})).status, 422, "consent is required");
   const sent = await refer({ consent: "1" });
   assert.equal(sent.status, 303);
-  const [row] = jobs(`SELECT id, owner_id, seller_id, referrer_id, source_channel FROM crm_opportunities WHERE title = ${q(business)}`);
-  assert.deepEqual([row.owner_id, row.seller_id, row.referrer_id, row.source_channel], [null, null, S.partner.id, "referral"]);
+  // A referral arrives as an unassigned lead; conversion later opens the opportunity.
+  assert.equal(jobs(`SELECT COUNT(*) AS n FROM crm_opportunities WHERE title = ${q(business)}`)[0].n, 0);
+  const [row] = jobs(`SELECT id, owner_id, referrer_id, source_channel, version FROM crm_lead_records WHERE company = ${q(business)}`);
+  assert.deepEqual([row.owner_id, row.referrer_id, row.source_channel], [null, S.partner.id, "referral"]);
   assert.match((await S.partner.get("/crm/referrals")).html, new RegExp(`${business}[\\s\\S]*Waiting for assignment`));
+  assert.equal((await S.partner.get(`/crm/leads/${row.id}`)).status, 404, "the referrer cannot open the lead");
 
   const ops = await S.manager.get("/crm/admin");
-  assert.match(ops.html, new RegExp(business), "managers see the referral queue");
-  assert.doesNotMatch((await S.exec.get("/crm/pipeline")).html, new RegExp(business), "executives do not see unassigned referrals");
-  const version = jobs(`SELECT version FROM crm_opportunities WHERE id = ${q(row.id)}`)[0].version;
-  assert.equal((await S.manager.post("/crm/admin", { intent: "referral_assign", opportunity_id: row.id, version, owner_id: S.exec.id })).status, 303);
-  assert.equal(jobs(`SELECT owner_id FROM crm_opportunities WHERE id = ${q(row.id)}`)[0].owner_id, S.exec.id);
-  assert.equal((await S.exec.get(`/crm/${row.id}`)).status, 200);
-  assert.equal((await S.partner.get(`/crm/${row.id}`)).status, 404, "the referrer cannot open the assigned deal");
+  assert.match(ops.html, new RegExp(business), "managers see the lead queue");
+  assert.doesNotMatch((await S.exec.get("/crm/leads")).html, new RegExp(business), "executives do not see unassigned leads");
+  assert.equal((await S.exec.get(`/crm/leads/${row.id}`)).status, 404);
+  assert.equal((await S.manager.post("/crm/admin", { intent: "lead_assign", lead_id: row.id, version: row.version, owner_id: S.manager.id })).status, 422, "a Sales Manager cannot take an unattributed lead");
+  assert.equal((await S.manager.post("/crm/admin", { intent: "lead_assign", lead_id: row.id, version: row.version, owner_id: S.exec.id })).status, 303);
+  assert.equal(jobs(`SELECT owner_id FROM crm_lead_records WHERE id = ${q(row.id)}`)[0].owner_id, S.exec.id);
+  assert.equal((await S.exec.get(`/crm/leads/${row.id}`)).status, 200);
+  assert.match((await S.partner.get("/crm/referrals")).html, /Assigned to the team/);
+  const leadVersion = jobs(`SELECT version FROM crm_lead_records WHERE id = ${q(row.id)}`)[0].version;
+  const converted = await S.exec.post(`/crm/leads/${row.id}`, { intent: "lead_convert", version: leadVersion, account_mode: "new", account_name: business, contact_mode: "new", contact_role: "owner", playbook_key: "local-preview", title: business });
+  assert.equal(converted.status, 303, `convert: ${converted.status}`);
+  const [opp] = jobs(`SELECT id, owner_id, seller_id, referrer_id, source_channel FROM crm_opportunities WHERE title = ${q(business)}`);
+  assert.deepEqual([opp.owner_id, opp.seller_id, opp.referrer_id, opp.source_channel], [S.exec.id, S.exec.id, S.partner.id, "referral"]);
+  assert.equal((await S.exec.get(`/crm/${opp.id}`)).status, 200);
+  assert.equal((await S.partner.get(`/crm/${opp.id}`)).status, 404, "the referrer cannot open the converted deal");
   assert.match((await S.partner.get("/crm/referrals")).html, /Assigned to the team/);
 
   const own = idFrom((await S.partner.post("/crm/new", { intent: "create", playbook_key: "local-preview", source_channel: "field_visit", account_name: `TEST Partner Own ${run}`, contact_name: "TEST Owner" })).location);

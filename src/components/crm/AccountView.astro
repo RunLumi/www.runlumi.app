@@ -2,6 +2,8 @@
 import CrmShell from "../../layouts/CrmShell.astro";
 import Field from "./Field.astro";
 import FormNotices from "./FormNotices.astro";
+import Crumbs from "./Crumbs.astro";
+import "../../styles/crm-sales.css";
 import Hidden from "./Hidden.astro";
 import { formatDate, label, options } from "../../lib/crm/i18n";
 import { errorFor, valueFor } from "../../lib/crm/page";
@@ -21,7 +23,7 @@ const fieldLabels: Record<string, string> = vi
   : { contact_id: "Contact", playbook_key: "Sales playbook", source_channel: "Channel", owner_id: "Owner", name: "Name", phone: "Phone", email: "Email", consent_evidence: "Consent evidence", dnc_reason: "Reason" };
 ---
 <CrmShell title={account.name} lang={lang} actor={ctx.actor} current="companies">
-  <p class="crm-eyebrow"><a class="crm-link" href={`${base}/accounts`}>{vi ? "Công ty" : "Companies"}</a></p>
+  <Crumbs vi={vi} items={[{ label: "CRM", href: base }, { label: vi ? "Công ty" : "Companies", href: `${base}/accounts` }, { label: account.name }]} />
   <div class="crm-head"><div>
     <h1 class="crm-h1">{account.name}</h1>
     <p class="crm-lede">{[account.industry, account.region, account.address].filter(Boolean).join(" · ") || (vi ? "Chưa có ngành hoặc khu vực." : "No industry or area yet.")}</p>
@@ -42,7 +44,7 @@ const fieldLabels: Record<string, string> = vi
         {!ctx.actor.manager && <p class="crm-help">{vi ? "Bạn chỉ thấy người liên hệ mình quản lý, của công ty mình quản lý, hoặc gắn với cơ hội của mình." : "You see the contacts you manage, those at companies you manage, and those on your opportunities."}</p>}
         {contacts.length === 0 && <p class="crm-empty">{vi ? "Chưa có người liên hệ nào bạn được xem." : "No contacts you can see yet."}</p>}
         {contacts.map((contact) => <article class="crm-sheet flat" style="margin-top:12px" aria-label={contact.name}>
-          <p style="margin:0"><strong>{contact.name}</strong> · {label(lang, "role", contact.role)} {contact.do_not_contact ? <span class="crm-badge red">{vi ? "Không liên hệ" : "Do not contact"}</span> : <span class="crm-badge">{label(lang, "consent", contact.consent_status)}</span>}</p>
+          <p style="margin:0" id={`contact-${contact.id}`}><a class="crm-link" href={`${base}/contacts/${contact.id}`}><strong>{contact.name}</strong></a> · {label(lang, "role", contact.role)} {contact.do_not_contact ? <span class="crm-badge red">{vi ? "Không liên hệ" : "Do not contact"}</span> : <span class="crm-badge">{label(lang, "consent", contact.consent_status)}</span>}</p>
           <p class="crm-meta" style="margin:4px 0 0">{[contact.phone, contact.zalo && `Zalo ${contact.zalo}`, contact.email].filter(Boolean).join(" · ")}{contact.contact_basis && ` · ${contact.contact_basis}`}</p>
           <p class="crm-meta" style="margin:4px 0 0">{vi ? "Quản lý" : "Managed by"}: {person(contact.owner_id)}</p>
           {contact.consent_evidence && <p class="crm-help">{vi ? "Bằng chứng đồng ý" : "Consent evidence"}: {contact.consent_evidence}</p>}

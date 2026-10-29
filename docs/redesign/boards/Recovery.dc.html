@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Khôi phục tài khoản</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="root" style="width: 1440px; height: 900px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); background: #F4F0E8">
+<main class="auth">
+<section class="auth-card" aria-labelledby="rc-h" style="width: 480px">
+<span class="gh-brand"><span class="gh-logo" aria-hidden="true">L</span>Lumi Workspace</span>
+<span class="badge b-neutral" style="align-self: flex-start">Người cần khôi phục</span>
+<h1 class="auth-h" id="rc-h">Khôi phục tài khoản</h1>
+<p style="margin: 0; font-size: 15px; line-height: 1.55; color: #344054">Bạn mất mọi passkey của <b>thanhquan@mocgia.vn</b>. Lumi không dùng mã SMS hay mã qua email để thay passkey. Hai admin của tổ chức phải xác nhận đây đúng là bạn.</p>
+<ol style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; font-size: 14px">
+<li style="display: flex; gap: 10px"><span class="badge b-ok"><span class="dot"></span>Xong</span>Đã gửi yêu cầu lúc 09:02</li>
+<li style="display: flex; gap: 10px"><span class="badge b-ok"><span class="dot"></span>Xong</span>Đã bấm link xác minh trong email (email có mã chống lừa đảo của bạn)</li>
+<li style="display: flex; gap: 10px"><span class="badge b-ok"><span class="dot"></span>Xong</span>Admin 1 (Minh Anh) đã xác nhận qua gọi video</li>
+<li style="display: flex; gap: 10px"><span class="badge b-warn"><span class="dot"></span>Đang chờ</span>Admin 2 xác nhận</li>
+<li style="display: flex; gap: 10px"><span class="badge b-neutral">Sau đó</span>Tạo passkey mới; mọi phiên cũ bị đăng xuất</li>
+</ol>
+<p class="muted" style="margin: 0; font-size: 13px; line-height: 1.5">Tổ chức chỉ có một thành viên: liên hệ bộ phận hỗ trợ của Lumi. Lumi xác minh danh tính trước khi mở lại tài khoản.</p>
+</section>
+</main>
+<aside class="auth" style="background: #E7EAF0">
+<section class="auth-card" aria-labelledby="ad-h" style="width: 520px">
+<span class="badge b-neutral" style="align-self: flex-start">Admin thứ hai duyệt</span>
+<h2 class="auth-h" id="ad-h" style="font-size: 20px">Yêu cầu khôi phục: Thanh Quân</h2>
+<div class="rgrid" style="column-gap: 20px">
+<div class="f"><div><span class="f-l">Email</span><span class="f-v">thanhquan@mocgia.vn</span></div></div>
+<div class="f"><div><span class="f-l">Vai trò</span><span class="f-v">Quản lý</span></div></div>
+<div class="f"><div><span class="f-l">Yêu cầu lúc</span><span class="f-v">29/10/2026 09:02</span></div></div>
+<div class="f"><div><span class="f-l">Admin 1</span><span class="f-v">Minh Anh · đã xác nhận</span></div></div>
+</div>
+<label style="display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.5"><input type="checkbox" class="cb" style="margin-top: 3px">Tôi đã gặp hoặc gọi video với Thanh Quân và xác nhận đúng người.</label>
+<p class="muted" style="margin: 0; font-size: 13px">Duyệt cần xác thực lại bằng passkey của bạn. Quyết định được ghi vào nhật ký kiểm toán.</p>
+<div style="display: flex; gap: 8px; justify-content: flex-end"><button type="button" class="btn btn-lost">Từ chối</button><button type="button" class="btn btn-primary">Duyệt khôi phục</button></div>
+</section>
+</aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

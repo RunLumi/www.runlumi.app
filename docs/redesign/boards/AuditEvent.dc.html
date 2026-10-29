@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Chi tiết sự kiện kiểm toán</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}
+.kv{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 24px;padding:4px 20px 16px}
+.kv div{display:flex;flex-direction:column;gap:2px;padding:10px 0;border-bottom:1px solid #E7EAF0}
+.kv dt{font:500 12px Geist,system-ui,sans-serif;color:#5E6677}
+.kv dd{margin:0;font:400 14px/1.45 Geist,system-ui,sans-serif;color:#172033}
+.old{background:#FFF1EC;color:#9A3412;border-radius:4px;padding:3px 6px;text-decoration:line-through}
+.new{background:#E9F7EF;color:#1F7A4D;border-radius:4px;padding:3px 6px}
+.steps-v{list-style:none;margin:0;padding:4px 20px 16px;display:flex;flex-direction:column}
+.steps-v li{display:grid;grid-template-columns:96px 1fr;gap:12px;padding:10px 0;border-bottom:1px solid #E7EAF0;font-size:14px}
+.steps-v li span:first-child{color:#5E6677;font-variant-numeric:tabular-nums}
+</style>
+</helmet>
+<div class="root" style="min-height: 1000px">
+<dc-import name="TopNav" app="setup" active="" hint-size="100%,104px"></dc-import>
+<main class="page">
+<div class="split">
+<div style="flex: 0 0 260px"><dc-import name="SetupNav" active="Nhật ký kiểm toán" hint-size="260px,820px"></dc-import></div>
+<div style="flex: 999 1 900px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+<section class="panel" style="padding: 16px 20px">
+<ol class="crumbs" aria-label="Vị trí"><li><a href="MembersTeams.dc.html">Cài đặt tổ chức</a></li><li><a href="AuditLog.dc.html">Nhật ký kiểm toán</a></li><li><span aria-current="page">req_7f3a91c2</span></li></ol>
+<div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-top: 8px">
+<div>
+<h1 class="h1">Claude Desktop đổi người phụ trách công việc “Lắp quầy bar khu A”</h1>
+<p class="muted" style="margin: 6px 0 0; font-size: 14px">29/10/2026 09:41:07 · thay cho Minh Anh · Công việc · <span class="badge b-ok"><span class="dot"></span>Thành công</span> <span class="badge b-neutral">Dữ liệu minh họa</span></p>
+</div>
+<div style="display: flex; gap: 8px; flex: none"><a class="btn" href="AuditLog.dc.html">Xem các sự kiện cùng phiên</a><a class="btn" href="TaskRecord.dc.html">Mở công việc</a></div>
+</div>
+</section>
+
+<div class="split">
+<section class="panel" aria-labelledby="who-h" style="flex: 1 1 420px; overflow: hidden">
+<div class="oh" style="padding-bottom: 0"><h2 class="sec-h" id="who-h">Ai thực hiện</h2></div>
+<dl class="kv">
+<div><dt>Người dùng</dt><dd>Minh Anh · Admin</dd></div>
+<div><dt>Qua</dt><dd>AI agent Claude Desktop, kết nối qua MCP ngày 29/10/2026</dd></div>
+<div><dt>Quyền của agent ở module này</dt><dd>Công việc · đọc và ghi, ghi phải xác nhận</dd></div>
+<div><dt>Xác nhận bởi</dt><dd>Minh Anh, 09:41:02, trên web</dd></div>
+<div><dt>Thiết bị</dt><dd>MacBook · Chrome</dd></div>
+<div><dt>IP · vị trí gần đúng</dt><dd>113.161.42.18 · TP.HCM</dd></div>
+</dl>
+</section>
+
+<section class="panel" aria-labelledby="chg-h" style="flex: 1 1 420px; overflow: hidden">
+<div class="oh" style="padding-bottom: 8px"><h2 class="sec-h" id="chg-h">Thay đổi (1 trường)</h2></div>
+<table class="mx"><thead><tr><th>Trường</th><th>Trước</th><th>Sau</th></tr></thead>
+<tbody>
+<tr><td>Người phụ trách</td><td><span class="old">Hải Ngân</span></td><td><span class="new">Thanh Quân</span></td></tr>
+<tr><td>Hạn</td><td>31/10/2026</td><td>31/10/2026 (không đổi)</td></tr>
+</tbody></table>
+<p class="muted" style="margin: 0; padding: 10px 20px; font-size: 13px">Đối tượng: công việc “Lắp quầy bar khu A”, dự án Nhà hàng Bếp Mộc – Q.7.</p>
+</section>
+</div>
+
+<section class="panel" aria-labelledby="tl-h" style="overflow: hidden">
+<div class="oh" style="padding-bottom: 0"><h2 class="sec-h" id="tl-h">Diễn biến của yêu cầu</h2></div>
+<ol class="steps-v">
+<li><span>09:40:51</span><span>Claude Desktop gọi công cụ MCP <span class="code">work.task.update</span> với 1 trường thay đổi.</span></li>
+<li><span>09:40:51</span><span>Kiểm tra quyền: module Công việc bật cho agent, ghi phải xác nhận. Tạo yêu cầu xác nhận.</span></li>
+<li><span>09:41:02</span><span>Minh Anh xác nhận trên web sau khi xem thay đổi.</span></li>
+<li><span>09:41:07</span><span>Đã lưu thay đổi. Gửi thông báo cho Hải Ngân và Thanh Quân theo quy tắc “Đổi người phụ trách”.</span></li>
+</ol>
+</section>
+
+<section class="panel" style="padding: 12px 20px; display: flex; justify-content: space-between; gap: 16px; align-items: center">
+<span style="font-size: 13px; color: #5E6677">Mã yêu cầu <span class="code">req_7f3a91c2</span> · mã phiên <span class="code">ses_41b2</span> · sự kiện này không sửa hay xóa được.</span>
+<button type="button" class="btn">Sao chép mã yêu cầu</button>
+</section>
+</div>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

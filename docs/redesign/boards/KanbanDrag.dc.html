@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Cơ hội Kanban · kéo thẻ</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="root" style="min-height: 1100px; position: relative">
+
+<dc-import name="TopNav" app="crm" active="Cơ hội" hint-size="100%,104px"></dc-import>
+
+<main class="page">
+<section class="panel" aria-label="Danh sách cơ hội">
+<div class="oh">
+<div class="oh-id">
+<span class="oi oi-deal"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2l3 7h7l-5.5 4.5 2 7.5L12 16.5 5.5 21l2-7.5L2 9h7z"></path></svg></span>
+<div>
+<div class="eyebrow">Cơ hội</div>
+<h1 class="h1">Đang mở · Pipeline thi công</h1>
+</div>
+</div>
+<div class="bg"><button type="button" class="btn">Tạo</button><button type="button" class="btn">Nhập</button></div>
+</div>
+<div class="lv-meta"><p>11 mục · Nhóm theo giai đoạn · Tổng theo giá trị · Sắp xếp theo ngày chốt dự kiến</p></div>
+</section>
+
+<p role="status" style="margin: 0; font-size: 14px; color: #102A43; display: flex; gap: 8px; align-items: center"><span class="badge b-info"><span class="dot"></span>Đang kéo</span>Quán cà phê The Lối – Q.3 · Thả vào một cột để đổi giai đoạn, hoặc vào vùng chốt ở cuối màn hình. Esc để hủy.</p>
+
+<section class="kb-scroll" aria-label="Kanban theo giai đoạn">
+<div class="kb">
+<sc-for list="{{columns}}" as="col" hint-placeholder-count="5">
+<div class="col">
+<div class="{{col.chevClass}}"><span class="chev-name">{{col.name}} ({{col.count}})</span></div>
+<div class="col-sum"><b>{{col.sum}}</b><span>Xác suất {{col.weighted}}</span></div>
+<div class="{{col.laneCls}}" style="min-height: 520px">
+<sc-for list="{{col.cards}}" as="c" hint-placeholder-count="2">
+<sc-if value="{{c.ghost}}" hint-placeholder-val="{{false}}">
+<div class="kc kc-ghost" aria-hidden="true"></div>
+</sc-if>
+<sc-if value="{{c.real}}" hint-placeholder-val="{{true}}">
+<article class="kc" style="opacity: .55">
+<div class="kc-top"><span class="kc-title" style="color: #006093">{{c.title}}</span></div>
+<dl class="kc-f"><dt>Đối tác</dt><dd>{{c.company}}</dd><dt>Giá trị</dt><dd>{{c.amount}}</dd><dt>Ngày chốt dự kiến</dt><dd>{{c.close}}</dd></dl>
+</article>
+</sc-if>
+</sc-for>
+</div>
+</div>
+</sc-for>
+</div>
+</section>
+</main>
+
+<div style="position: absolute; left: 24px; right: 24px; bottom: 20px">
+<div class="drop-bar" aria-label="Vùng thả Thắng và Thua">
+<div class="drop drop-won drop-hot"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"></path></svg>Đã bàn giao <span style="font-weight: 500">· Thắng</span></div>
+<div class="drop drop-lost"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="m9 9 6 6M15 9l-6 6"></path></svg>Không ký hợp đồng <span style="font-weight: 500">· Thua</span></div>
+</div>
+</div>
+
+<article class="kc kc-drag" aria-hidden="true" style="position: absolute; left: 470px; bottom: 58px; width: 262px; z-index: 8">
+<div class="kc-top"><span class="kc-title" style="color: #006093">Quán cà phê The Lối – Q.3</span></div>
+<dl class="kc-f"><dt>Đối tác</dt><dd>The Lối Coffee</dd><dt>Giá trị</dt><dd style="font-weight: 600">540.000.000 ₫</dd><dt>Ngày chốt dự kiến</dt><dd>08/11/2026</dd></dl>
+<div class="kc-foot"><span class="av">MA</span><span class="muted" style="font-size: 12px">4 ngày ở giai đoạn này</span></div>
+</article>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const c = (title, company, amount, close) => ({ title: title, company: company, amount: amount, close: close, real: true, ghost: false });
+    const g = { ghost: true, real: false, title: '', company: '', amount: '', close: '' };
+    const col = (name, first, count, sum, weighted, cards) => ({ name: name, count: count, sum: sum, weighted: weighted, chevClass: first ? 'chev chev-first' : 'chev', laneCls: 'lane', cards: cards });
+    return {
+      columns: [
+        col('Đã hẹn khảo sát', true, 3, '2.630.000.000 ₫', '10%', [c('Văn phòng tầng 12 – Q.1', 'An Phát Land', '860.000.000 ₫', '12/11/2026'), c('Showroom nội thất Thảo Điền', 'Nhà Xinh Decor', '1.450.000.000 ₫', '20/11/2026'), c('Căn hộ Vinhomes Grand Park', 'Hộ gia đình Nguyễn Lan', '320.000.000 ₫', '28/11/2026')]),
+        col('Đã gửi báo giá', false, 3, '3.960.000.000 ₫', '30%', [g, c('Phòng khám nha Smile Care', 'Smile Care', '1.120.000.000 ₫', '15/11/2026'), c('Nhà phố Thủ Đức', 'Hộ gia đình Trần Bảo', '2.300.000.000 ₫', '30/11/2026')]),
+        col('Đã duyệt báo giá', false, 2, '2.460.000.000 ₫', '60%', [c('Spa Hoa Sen – Phú Nhuận', 'Hoa Sen Spa', '780.000.000 ₫', '05/11/2026'), c('Văn phòng Lumen Tech', 'Lumen Tech', '1.680.000.000 ₫', '10/11/2026')]),
+        col('Đã khởi công', false, 2, '5.450.000.000 ₫', '80%', [c('Nhà hàng Bếp Mộc – Q.7', 'Bếp Mộc', '2.050.000.000 ₫', '18/12/2026'), c('Showroom xe điện Tân Bình', 'VinaE Motors', '3.400.000.000 ₫', '22/12/2026')]),
+        col('Đã nghiệm thu', false, 1, '1.900.000.000 ₫', '95%', [c('Biệt thự Thảo Điền', 'Hộ gia đình Lê Minh', '1.900.000.000 ₫', '02/11/2026')])
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Chi tiết cơ hội</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="root" style="min-height: 1180px">
+
+<dc-import name="TopNav" app="crm" active="Cơ hội" hint-size="100%,104px"></dc-import>
+
+<main class="page">
+<section class="panel" aria-label="Thông tin chính">
+<div class="oh">
+<div class="oh-id">
+<span class="oi oi-deal"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2l3 7h7l-5.5 4.5 2 7.5L12 16.5 5.5 21l2-7.5L2 9h7z"></path></svg></span>
+<div>
+<ol class="crumbs" aria-label="Vị trí" style="margin-bottom: 4px"><li><a href="Home.dc.html">Lumi CRM</a></li><li><a href="DealsTable.dc.html">Cơ hội</a></li><li><span aria-current="page">Quán cà phê The Lối – Q.3</span></li></ol>
+<div class="eyebrow">Cơ hội <span class="badge b-neutral" style="text-transform: none; letter-spacing: 0">Dữ liệu minh họa</span></div>
+<h1 class="h1">Quán cà phê The Lối – Q.3</h1>
+</div>
+</div>
+<div class="bg">
+<button type="button" class="btn">+ Theo dõi</button>
+<button type="button" class="btn">Sửa</button>
+<button type="button" class="btn">Tạo báo giá</button>
+<button type="button" class="btn">Đổi người phụ trách</button>
+<button type="button" class="btn icon-btn" aria-label="Thêm hành động: Nhân bản, Xóa, Gửi duyệt"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
+</div>
+</div>
+<div class="hl-row">
+<div class="hl"><span class="hl-l">Đối tác</span><a class="hl-v" href="AccountRecord.dc.html">The Lối Coffee</a></div>
+<div class="hl"><span class="hl-l">Ngày chốt dự kiến</span><span class="hl-v">08/11/2026</span></div>
+<div class="hl"><span class="hl-l">Giá trị</span><span class="hl-v">540.000.000 ₫</span></div>
+<div class="hl"><span class="hl-l">Người phụ trách</span><span class="hl-v" style="display: flex; gap: 6px; align-items: center"><span class="av">MA</span>Minh Anh</span></div>
+<div class="hl"><span class="hl-l">Nhóm dự báo</span><span class="hl-v">Có thể chốt</span></div>
+</div>
+</section>
+
+<section class="panel" aria-label="Tiến trình" style="padding: 14px 20px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; gap: 12px; align-items: center">
+<button type="button" class="btn btn-ghost icon-btn btn-sm btn-neutral" aria-label="Thu gọn trường quan trọng và hướng dẫn" aria-expanded="true"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m6 15 6-6 6 6"></path></svg></button>
+<div class="path" role="list" aria-label="Giai đoạn">
+<button type="button" class="step s-done" role="listitem" aria-label="Đã hẹn khảo sát, đã hoàn tất"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="m5 12 5 5 9-10"></path></svg></button>
+<button type="button" class="step s-cur" role="listitem" aria-current="step">Đã gửi báo giá</button>
+<button type="button" class="{{selCls}}" role="listitem">Đã duyệt báo giá</button>
+<button type="button" class="step s-todo" role="listitem">Đã khởi công</button>
+<button type="button" class="step s-todo" role="listitem">Đã nghiệm thu</button>
+<button type="button" class="step s-todo" role="listitem">Đã chốt</button>
+</div>
+<button type="button" class="btn btn-primary"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m5 12 5 5 9-10"></path></svg>{{cta}}</button>
+</div>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; border-top: 1px solid #E7EAF0; padding-top: 14px">
+<div>
+<div style="display: flex; justify-content: space-between; align-items: center"><h2 class="sec-h">Trường quan trọng · Đã gửi báo giá</h2><button type="button" class="btn btn-sm">Sửa</button></div>
+<div class="rgrid" style="column-gap: 20px">
+<div class="f"><div><span class="f-l">Giá trị</span><span class="f-v">540.000.000 ₫</span></div></div>
+<div class="f"><div><span class="f-l">Người quyết định</span><span class="f-v">Anh Trí · Chủ quán</span></div></div>
+<div class="f"><div><span class="f-l">Số tiền cọc · bắt buộc để vào “Đã duyệt báo giá”</span><span class="f-v" style="color: #9A5B00">Chưa nhập</span></div></div>
+<div class="f"><div><span class="f-l">Hạn cọc · bắt buộc để vào “Đã duyệt báo giá”</span><span class="f-v" style="color: #9A5B00">Chưa nhập</span></div></div>
+</div>
+</div>
+<div>
+<h2 class="sec-h">Hướng dẫn</h2>
+<ul style="margin: 8px 0 0; padding-left: 18px; font-size: 14px; line-height: 1.6">
+<li>Gửi báo giá có hạng mục và đơn giá; khách xác nhận qua link của báo giá.</li>
+<li>Hẹn xem mẫu vật liệu trước khi chốt cọc.</li>
+<li>Số ngày chuẩn của giai đoạn: 7 ngày. Cơ hội đang ở ngày thứ 4.</li>
+</ul>
+</div>
+</div>
+</section>
+
+<div class="split">
+<div class="main-col" style="display: flex; flex-direction: column; gap: 12px">
+<section class="panel" aria-label="Chi tiết">
+<div class="rtabs" role="tablist"><button type="button" role="tab" aria-selected="false" class="rtab">Liên quan</button><button type="button" role="tab" aria-selected="true" class="rtab rtab-on">Chi tiết</button></div>
+<div style="padding: 8px 20px 16px">
+<h2 class="sec-h" style="margin: 8px 0 2px">Thông tin cơ hội</h2>
+<div class="rgrid">
+<sc-for list="{{fields}}" as="f" hint-placeholder-count="10">
+<div class="f"><div style="min-width: 0"><span class="f-l">{{f.l}}</span><span class="f-v">{{f.v}}</span></div><button type="button" class="pen" aria-label="Sửa {{f.l}}"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"></path></svg></button></div>
+</sc-for>
+</div>
+<h2 class="sec-h" style="margin: 16px 0 2px">Thông tin hệ thống</h2>
+<div class="rgrid">
+<div class="f"><div><span class="f-l">Tạo bởi</span><span class="f-v">Minh Anh · 14/10/2026 09:12</span></div></div>
+<div class="f"><div><span class="f-l">Sửa lần cuối</span><span class="f-v">Minh Anh · 27/10/2026 16:40</span></div></div>
+</div>
+</div>
+</section>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+<section class="rl"><div class="rl-h"><span class="rl-t"><span class="rl-i" style="background: #0F7B7B">C</span>Vai trò liên hệ (2)</span><button type="button" class="btn btn-sm">Thêm</button></div>
+<div class="rl-row"><a href="#">Anh Trí</a><div class="rl-f"><span>Vai trò</span><span>Người quyết định · Chính</span></div></div>
+<div class="rl-row"><a href="#">Chị Vy</a><div class="rl-f"><span>Vai trò</span><span>Người ảnh hưởng</span></div></div>
+<div class="rl-foot"><a href="#">Xem tất cả</a></div></section>
+<section class="rl"><div class="rl-h"><span class="rl-t"><span class="rl-i" style="background: #5B4FC4">P</span>Hạng mục (3)</span><button type="button" class="btn btn-sm">Thêm hạng mục</button></div>
+<div class="rl-row"><a href="#">Quầy bar gỗ sồi</a><div class="rl-f"><span>Thành tiền</span><span>210.000.000 ₫</span></div></div>
+<div class="rl-row"><a href="#">Sàn terrazzo 120 m²</a><div class="rl-f"><span>Thành tiền</span><span>264.000.000 ₫</span></div></div>
+<div class="rl-row"><a href="#">Hệ đèn trang trí</a><div class="rl-f"><span>Thành tiền</span><span>66.000.000 ₫</span></div></div>
+<div class="rl-foot"><a href="#">Xem tất cả</a></div></section>
+<section class="rl"><div class="rl-h"><span class="rl-t"><span class="rl-i" style="background: #006093">Q</span>Báo giá (2)</span><button type="button" class="btn btn-sm">Tạo báo giá</button></div>
+<div class="rl-row"><a href="#">BG-2026-041 v2</a><div class="rl-f"><span>Trạng thái</span><span><span class="badge b-info"><span class="dot"></span>Khách đã mở</span></span></div></div>
+<div class="rl-row"><a href="#">BG-2026-041 v1</a><div class="rl-f"><span>Trạng thái</span><span>Đã thay thế</span></div></div>
+<div class="rl-foot"><a href="#">Xem tất cả</a></div></section>
+<section class="rl"><div class="rl-h"><span class="rl-t"><span class="rl-i" style="background: #9A5B00">Đ</span>Đặt cọc &amp; mốc</span><button type="button" class="btn btn-sm">Sửa</button></div>
+<div class="rl-row"><div class="rl-f"><span>Số tiền cọc</span><span>—</span></div><div class="rl-f"><span>Hạn cọc</span><span>—</span></div><div class="rl-f"><span>Khởi công</span><span>—</span></div><div class="rl-f"><span>Nghiệm thu</span><span>—</span></div></div>
+</section>
+</div>
+</div>
+
+<aside class="panel side-col" aria-label="Hoạt động" style="flex: 1 1 420px">
+<div class="rtabs" role="tablist"><button type="button" role="tab" aria-selected="true" class="rtab rtab-on">Hoạt động</button><button type="button" role="tab" aria-selected="false" class="rtab">Bình luận</button></div>
+<div style="padding: 12px 16px; display: flex; gap: 6px; flex-wrap: wrap; border-bottom: 1px solid #E7EAF0">
+<button type="button" class="btn btn-sm">Ghi cuộc gọi</button><button type="button" class="btn btn-sm">Tạo công việc</button><a class="btn btn-sm" href="NewEvent.dc.html">Tạo lịch hẹn</a><button type="button" class="btn btn-sm">Tạo ghi chú</button>
+</div>
+<div style="padding: 12px 16px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; justify-content: space-between; font-size: 13px"><span class="muted">Bộ lọc: Mọi thời gian · mọi hoạt động</span><a href="#">Mở rộng tất cả</a></div>
+<div style="font: 600 13px Geist, system-ui, sans-serif; color: #102A43">Sắp tới &amp; quá hạn</div>
+<div class="tl"><span class="tl-ic" style="background: #E4F3FC; color: #006093"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg></span><div class="tl-b"><a class="tl-t" href="CalendarWeek.dc.html">Xem mẫu vật liệu tại xưởng</a><div class="tl-m">T7 31/10 · 14:00–15:30 · Minh Anh</div></div></div>
+<div style="font: 600 13px Geist, system-ui, sans-serif; color: #102A43">Tháng 10 · 2026</div>
+<div class="tl"><span class="tl-ic" style="background: #E3F4F3; color: #0B5F5F"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"></rect><path d="m8 12 3 3 5-6"></path></svg></span><div class="tl-b"><div class="tl-t">Gửi báo giá v2 qua link xác nhận</div><div class="tl-m">27/10 · Minh Anh · Khách đã mở 2 lần</div></div></div>
+<div class="tl"><span class="tl-ic" style="background: #F2F4F7; color: #344054"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 4h4l2 5-3 2a11 11 0 0 0 5 5l2-3 5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"></path></svg></span><div class="tl-b"><div class="tl-t">Gọi anh Trí chốt hạng mục quầy bar</div><div class="tl-m">25/10 · 8 phút · Minh Anh</div></div></div>
+<div class="tl"><span class="tl-ic" style="background: #F2F4F7; color: #344054"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></span><div class="tl-b" style="border-bottom: 0"><div class="tl-t">Giai đoạn: Đã hẹn khảo sát → Đã gửi báo giá</div><div class="tl-m">24/10 · Minh Anh</div></div></div>
+</div>
+</aside>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"pathSelect":{"editor":"enum","options":["current","next"],"default":"next"},"$preview":{"width":1440,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const next = (this.props.pathSelect ?? 'next') === 'next';
+    const F = (l, v) => ({ l: l, v: v });
+    return {
+      selCls: next ? 'step s-sel' : 'step s-todo',
+      cta: next ? 'Đặt làm giai đoạn hiện tại' : 'Đánh dấu giai đoạn hoàn tất',
+      fields: [F('Tên cơ hội', 'Quán cà phê The Lối – Q.3'), F('người phụ trách', 'Minh Anh'), F('Đối tác', 'The Lối Coffee'), F('Giai đoạn', 'Đã gửi báo giá · 4 ngày'), F('Giá trị', '540.000.000 ₫'), F('Xác suất', '30%'), F('Ngày chốt dự kiến', '08/11/2026'), F('Nhóm dự báo', 'Có thể chốt'), F('Nguồn Lead', 'Giới thiệu'), F('Diện tích', '120 m²')]
+    };
+  }
+}
+</script>
+</body>
+</html>

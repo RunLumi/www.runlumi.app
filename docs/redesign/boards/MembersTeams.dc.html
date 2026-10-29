@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Thành viên và nhóm</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}
+.mt .c-n{left:44px;width:230px;min-width:230px}
+.nm{display:flex;align-items:center;gap:8px}
+</style>
+</helmet>
+<div class="root" style="min-height: 1000px">
+<dc-import name="TopNav" app="setup" active="" hint-size="100%,104px"></dc-import>
+<main class="page">
+<div class="split">
+<div style="flex: 0 0 260px"><dc-import name="SetupNav" active="Thành viên và nhóm" hint-size="260px,820px"></dc-import></div>
+<div style="flex: 999 1 900px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+<section class="panel" style="overflow: hidden">
+<div class="oh" style="align-items: flex-start">
+<div>
+<ol class="crumbs" aria-label="Vị trí"><li><a href="MembersTeams.dc.html">Cài đặt tổ chức</a></li><li><span aria-current="page">Thành viên và nhóm</span></li></ol>
+<h1 class="h1" style="margin-top: 6px">Thành viên và nhóm <span class="badge b-neutral" style="vertical-align: middle">Dữ liệu minh họa</span></h1>
+<p class="muted" style="margin: 4px 0 0; font-size: 13px">Tổ chức Mộc Gia · 8 thành viên · 4 phòng ban · 3 nhóm. Đổi vai trò phải xác thực lại bằng passkey.</p>
+</div>
+<div style="display: flex; gap: 8px; flex: none"><a class="btn" href="Roles.dc.html">Xem vai trò</a><button type="button" class="btn btn-primary">Thêm thành viên</button></div>
+</div>
+<div class="rtabs" role="tablist" aria-label="Thành viên và nhóm"><button type="button" class="rtab rtab-on" role="tab" aria-selected="true">Thành viên (8)</button><button type="button" class="rtab" role="tab" aria-selected="false">Nhóm (3)</button><button type="button" class="rtab" role="tab" aria-selected="false">Phòng ban (4)</button><button type="button" class="rtab" role="tab" aria-selected="false">Lời mời (1)</button></div>
+<div style="padding: 12px 20px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center">
+<span class="muted" style="font-size: 13px">Lọc nhanh</span>
+<button type="button" class="chip chip-on">Tất cả</button>
+<button type="button" class="chip">Thiếu passkey thứ hai (3)</button>
+<button type="button" class="chip">Chờ khôi phục (1)</button>
+<button type="button" class="chip">Chưa nhận lời mời (1)</button>
+<button type="button" class="chip">Có AI agent (5)</button>
+</div>
+</section>
+
+<section class="panel" style="overflow: hidden">
+<div class="lv-meta" style="padding-top: 12px"><p>8 thành viên · 1 đã chọn · sắp xếp theo tên · bấm một dòng để xem chi tiết</p>
+<div class="tools">
+<label class="search" style="width: 240px"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><span class="sr">Tìm thành viên</span><input type="search" placeholder="Tìm theo tên hoặc email"></label>
+<button type="button" class="btn icon-btn" aria-label="Lọc"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 4h18l-7 8v6l-4 2v-8z"></path></svg></button>
+<button type="button" class="btn">Xuất CSV</button>
+</div></div>
+<div class="bulk" role="region" aria-label="Thao tác hàng loạt"><b style="font-size: 13px">1 thành viên đã chọn</b><button type="button" class="btn">Gửi nhắc thêm passkey</button><button type="button" class="btn">Thêm vào nhóm</button><button type="button" class="btn">Đổi phòng ban</button><button type="button" class="btn">Đổi vai trò</button><button type="button" class="btn">Bỏ chọn</button></div>
+<div class="tbl-wrap"><table class="tbl mt" style="min-width: 1560px">
+<thead><tr><th class="fz fz0"><input type="checkbox" class="cb" aria-label="Chọn tất cả"></th><th class="fz c-n fz-last" aria-sort="ascending">Tên</th><th>Email</th><th>Chức danh</th><th>Phòng ban</th><th>Nhóm</th><th>Vai trò</th><th>Passkey</th><th>AI agent</th><th>Đăng nhập gần nhất</th><th>Trạng thái</th></tr></thead>
+<tbody>
+<sc-for list="{{members}}" as="m" hint-placeholder-count="8">
+<tr class="{{m.rowCls}}"><td class="fz fz0"><input type="checkbox" class="cb" aria-label="{{m.selLabel}}" checked="{{m.sel}}"></td><td class="fz c-n fz-last"><span class="nm"><span class="{{m.avCls}}" aria-hidden="true">{{m.ini}}</span><a href="MemberDetail.dc.html">{{m.name}}</a></span></td><td>{{m.email}}</td><td>{{m.title}}</td><td>{{m.dept}}</td><td>{{m.team}}</td><td>{{m.role}}</td><td><span class="{{m.pkCls}}">{{m.pk}}</span></td><td>{{m.agent}}</td><td>{{m.last}}</td><td><span class="{{m.stCls}}"><span class="dot"></span>{{m.st}}</span></td></tr>
+</sc-for>
+</tbody></table></div>
+<div class="scroll-hint"><span>Cột Tên cố định khi cuộn ngang.</span><span>1–8 trên 8</span></div>
+</section>
+</div>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var M = function (name, ini, av, email, title, dept, team, role, pk, agent, last, st, sel) {
+      return { name: name, ini: ini, avCls: 'av ' + av, email: email, title: title, dept: dept, team: team, role: role,
+        pk: pk === 0 ? 'Chưa có' : pk === 1 ? '1 · thiếu dự phòng' : String(pk),
+        pkCls: pk >= 2 ? '' : pk === 1 ? 'badge b-warn' : 'badge b-neutral',
+        agent: agent, last: last, st: st,
+        stCls: st === 'Đang hoạt động' ? 'badge b-ok' : st === 'Chờ khôi phục' ? 'badge b-danger' : 'badge b-neutral',
+        sel: !!sel, rowCls: sel ? 'sel' : '', selLabel: 'Chọn ' + name };
+    };
+    return {
+      members: [
+        M('Đặng Quốc Bảo', 'QB', 'av-b', 'quocbao@mocgia.vn', 'Nhân viên kinh doanh', 'Kinh doanh HCM', 'Nhóm Lumen Tech', 'Thành viên', 1, 'Claude Desktop', '25/10/2026', 'Đang hoạt động'),
+        M('Hải Ngân', 'HN', 'av-c', 'haingan@mocgia.vn', 'Quản lý dự án', 'Dự án', 'Nhóm Bếp Mộc', 'Thành viên', 1, 'Cursor', 'Hôm nay 08:10', 'Đang hoạt động', true),
+        M('Lê Hoàng Phúc', 'HP', 'av-a', 'hoangphuc@mocgia.vn', 'Kiến trúc sư', 'Thiết kế', 'Nhóm Thảo Điền', 'Thành viên', 2, 'Claude Desktop', '28/10/2026', 'Đang hoạt động'),
+        M('Nguyễn Minh Anh', 'MA', 'av-a', 'minhanh@mocgia.vn', 'Trưởng phòng kinh doanh', 'Kinh doanh HCM', 'Nhóm Lumen Tech', 'Admin', 3, 'Claude Desktop · Cursor', 'Hôm nay 09:14', 'Đang hoạt động'),
+        M('Phạm Thu Hà', 'TH', 'av-b', 'thuha@mocgia.vn', 'Nhân viên thiết kế', 'Thiết kế', 'Chưa có', 'Thành viên', 0, 'Không có', 'Chưa đăng nhập', 'Chưa nhận lời mời'),
+        M('Thanh Quân', 'TQ', 'av-c', 'thanhquan@mocgia.vn', 'Trưởng bộ phận thi công', 'Dự án', 'Nhóm Thảo Điền', 'Quản lý', 2, 'ChatGPT', 'Hôm qua 17:02', 'Đang hoạt động'),
+        M('Trần Bảo Ngọc', 'BN', 'av-b', 'baongoc@mocgia.vn', 'Kế toán', 'Kế toán', 'Chưa có', 'Thành viên', 2, 'Không có', '27/10/2026', 'Đang hoạt động'),
+        M('Võ Đức Tài', 'ĐT', 'av-a', 'ductai@mocgia.vn', 'Giám sát công trình', 'Dự án', 'Nhóm Bếp Mộc', 'Thành viên', 1, 'Không có', '26/10/2026', 'Chờ khôi phục')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

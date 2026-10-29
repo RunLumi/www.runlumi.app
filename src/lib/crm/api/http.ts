@@ -7,6 +7,7 @@ import { kickLark } from "../lark/kick";
 import { sha256 } from "./secret";
 import { type ApiIdentity, authenticate } from "./tokens";
 import { type Tool, type ToolContext, toolFailure } from "./tools";
+import { agentCallAudit, agentPolicy, allowed } from "../../workspace/agents";
 
 export const MAX_BODY_BYTES = 64 * 1024;
 
@@ -83,16 +84,27 @@ export async function requestKeyFor(api: ApiRequest, tool: string, args: Record<
 
 export type ToolOutcome = { ok: true; data: unknown } | { ok: false; status: number; code: string; message: string; fields?: Record<string, string> };
 
-export async function runTool(api: ApiRequest, tool: Tool, args: Record<string, unknown>, requestKey: string): Promise<ToolOutcome> {
-  if (tool.write && api.identity.token.scope !== "write") return { ok: false, status: 403, code: "read_only_token", message: "This token is read-only. Create a token with write scope to make changes." };
+export async function runTool(api: ApiRequest, tool: Tool, args: Record<string, unknown>, requestKey: string, via: "api" | "mcp" = "api"): Promise<ToolOutcome> {
+  const module = tool.module ?? "crm";
+  // Every call is audited (R-10): who, which tool and token, and the outcome. Never the arguments.
+  const audit = (outcome: "success" | "denied" | "failed", code?: string) => agentCallAudit(api.db, api.identity.actor, { tool: tool.name, module, tokenId: api.identity.token.id, via, outcome, code }).run().catch(() => {
+    console.error("agent_audit_failed", tool.name); // !# policy: console
+  });
+  if (tool.write && api.identity.token.scope !== "write") { await audit("denied", "read_only_token"); return { ok: false, status: 403, code: "read_only_token", message: "This token is read-only. Create a token with write scope to make changes." }; }
+  if (!allowed(await agentPolicy(api.db), module, tool.write)) {
+    await audit("denied", "module_not_allowed");
+    return { ok: false, status: 403, code: "module_not_allowed", message: `An admin has not allowed AI agents to ${tool.write ? "change" : "read"} this module (${module}).` };
+  }
   const ctx: ToolContext = { db: api.db, contentDb: api.contentDb, identity: api.identity, requestKey };
   try {
     const data = await tool.run(ctx, args);
     if (tool.write) kickLark();
+    await audit("success");
     return { ok: true, data };
   } catch (error) {
     const failure = toolFailure(error);
-    if (failure) return { ok: false, ...failure };
+    if (failure) { await audit(failure.status === 403 || failure.status === 404 ? "denied" : "failed", failure.code); return { ok: false, ...failure }; }
+    await audit("failed", "server_error");
     // Log without arguments: they may contain personal data.
     console.error("crm_api_failed", tool.name, error instanceof Error ? error.message : "unknown"); // !# policy: console
     return { ok: false, status: 500, code: "server_error", message: "The server could not complete this. Try again shortly." };

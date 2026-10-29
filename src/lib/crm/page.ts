@@ -8,6 +8,8 @@ import { type CrmActor, crmActor } from "./access";
 import { ConflictError, type FieldErrors, ForbiddenError, NotFoundError, ValidationError, formValues } from "./core";
 import { type Lang, base } from "./i18n";
 import { kickLark } from "./lark/kick";
+import { StepUpRequiredError } from "../workspace/passkey";
+import { stepUpRequiredResponse } from "../workspace/step-up";
 
 export interface Ctx { actor: CrmActor; db: D1Database; contentDb: D1Database; lang: Lang; vi: boolean; base: string; url: URL }
 
@@ -64,6 +66,7 @@ export async function handlePost(astro: AstroGlobal, ctx: Ctx, handlers: Record<
     if (error instanceof ConflictError) { astro.response.status = 409; return { ...state, conflict: true }; }
     if (error instanceof NotFoundError) return notFound(ctx.lang);
     if (error instanceof ForbiddenError) return forbidden(ctx.lang);
+    if (error instanceof StepUpRequiredError) return stepUpRequiredResponse({ request: astro.request, url: astro.url }, { vi: ctx.vi, next: astro.url.pathname + astro.url.search });
     // Log the failure without form contents; they may contain personal data.
     console.error("crm_action_failed", intent, error instanceof Error ? error.message : "unknown"); // !# policy: console
     astro.response.status = 500;

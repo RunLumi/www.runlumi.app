@@ -1,40 +1,32 @@
 ---
 import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
-import { localized, modules } from "../../lib/workspace/nav";
+import PageHeader from "./ui/PageHeader.astro";
+import Panel from "./ui/Panel.astro";
+import PanelRow from "./ui/PanelRow.astro";
+import { localized, moduleByKey } from "../../lib/workspace/nav";
 import type { homePage } from "../../lib/workspace/pages";
-import { roleDescriptions, roleLabel } from "../../lib/workspace/roles";
+import { roleLabel } from "../../lib/workspace/roles";
+import { moduleSummaries } from "../../lib/workspace/summaries";
 
 type Props = Awaited<ReturnType<typeof homePage>>;
 const { lang, vi, user, cards } = Astro.props;
-const held = user.admin ? (["admin"] as const) : [...user.roles];
-const intro: Record<string, [string, string]> = {
-  hiring: ["Roles, application tests and candidates.", "Vị trí, bài test và ứng viên."],
-  crm: ["Opportunities, quotes, payments, delivery and commission.", "Cơ hội, báo giá, thanh toán, bàn giao và hoa hồng."],
-  hrm: ["Employee records and requests in your permitted scope.", "Hồ sơ và yêu cầu nhân sự trong phạm vi quyền của bạn."],
-  finance: ["Monthly plans, actuals, cash and financial statements.", "Kế hoạch, thực tế tháng, dòng tiền và báo cáo tài chính."],
-  admin: ["Who can sign in, and with which roles.", "Ai được đăng nhập và với vai trò nào."],
-};
+const held = user.admin ? [roleLabel("admin", vi)] : [...user.roles].map((role) => roleLabel(role, vi));
 ---
 <WorkspaceShell title={vi ? "Tổng quan" : "Overview"} lang={lang} user={user} module="home">
-  <div class="crm-head"><div>
-    <p class="crm-eyebrow">Lumi Workspace</p>
-    <h1 class="crm-h1">{vi ? `Chào ${user.name}.` : `Hello, ${user.name}.`}</h1>
-    <p class="crm-lede">{vi ? "Mỗi phân hệ chỉ hiện khi vai trò của bạn cho phép." : "Each module appears only when your role allows it."}</p>
-  </div></div>
-  <div class="crm-grid cols">
-    {cards.map((card) => { const module = modules.find((item) => item.key === card.module)!; return <section class="crm-sheet crm-lane calm" aria-labelledby={`m-${card.module}`}>
-      <h2 class="crm-h2" id={`m-${card.module}`}><a class="crm-link" href={localized(module.path, vi)}>{vi ? module.vi : module.en}</a></h2>
-      <p class="crm-help">{intro[card.module][vi ? 1 : 0]}</p>
-      <dl class="crm-facts">{card.figures.map((figure) => <div><dt>{figure.label[vi ? 1 : 0]}</dt><dd class="crm-figure"><a class="crm-link" href={localized(figure.href, vi)}>{figure.value}</a></dd></div>)}</dl>
-    </section>; })}
-  </div>
-  {user.admin && user.can("finance.configure") && user.financeEnabled !== true && <section class="crm-sheet" style="margin-top:18px">
-    <h2 class="crm-h2">{vi ? "Thiết lập Tài chính" : "Set up Finance"}</h2>
-    <p class="crm-help">{vi ? "Xác nhận phạm vi báo cáo, tiền tệ và kỳ bắt đầu trước khi nhập số liệu." : "Confirm the reporting entity, currency and opening period before entering figures."}</p>
+  <PageHeader vi={vi} eyebrow={vi ? "Tổng quan" : "Overview"} title={vi ? `Chào ${user.name}.` : `Hello, ${user.name}.`} lede={vi ? "Số liệu dưới đây lấy trực tiếp từ các phân hệ bạn được mở. Bấm vào một số để xem danh sách." : "These figures come straight from the modules you can open. Select a number to see the list."} />
+  {cards.length > 0
+    ? <PanelRow min="280px" label={vi ? "Phân hệ của bạn" : "Your modules"}>
+        {cards.map((card) => { const module = moduleByKey(card.module); return <Panel title={vi ? module.vi : module.en} titleHref={localized(module.path, vi)} note={moduleSummaries[card.module][vi ? 1 : 0]} data-module={card.module}>
+          <dl class="ws-home-figures">{card.figures.map((figure) => <div><dt>{figure.label[vi ? 1 : 0]}</dt><dd><a href={localized(figure.href, vi)}>{figure.value}</a></dd></div>)}</dl>
+          <a slot="foot" class="crm-button secondary small" href={localized(module.path, vi)}>{vi ? `Mở ${module.vi}` : `Open ${module.en}`}</a>
+        </Panel>; })}
+      </PanelRow>
+    : <p class="crm-empty">{vi ? "Vai trò của bạn chưa mở phân hệ nào có số liệu ở đây." : "Your roles do not open a module with figures here yet."}</p>}
+  {user.admin && user.can("finance.configure") && user.financeEnabled !== true && <Panel title={vi ? "Thiết lập Tài chính" : "Set up Finance"} note={vi ? "Xác nhận phạm vi báo cáo, tiền tệ và kỳ bắt đầu trước khi nhập số liệu." : "Confirm the reporting entity, currency and opening period before entering figures."}>
     <a class="crm-button secondary" href={localized("/finance/settings", vi)}>{vi ? "Mở thiết lập" : "Open settings"}</a>
-  </section>}
-  <section class="crm-sheet" style="margin-top:18px" aria-labelledby="roles-h">
-    <h2 class="crm-h2" id="roles-h">{vi ? "Vai trò của bạn" : "Your roles"}</h2>
-    <ul class="crm-list">{held.map((role) => <li class="crm-row"><strong>{roleLabel(role, vi)}</strong><span class="crm-row-meta"><span>{roleDescriptions[role][vi ? 1 : 0]}</span></span></li>)}</ul>
-  </section>
+  </Panel>}
+  <Panel title={vi ? "Vai trò của bạn" : "Your roles"}>
+    <p class="ws-home-roles">{held.join(" · ")}</p>
+    <a slot="foot" class="crm-link" href={localized("/workspace/account", vi)}>{vi ? "Xem quyền chi tiết trong Tài khoản của tôi" : "See what they allow in My account"}</a>
+  </Panel>
 </WorkspaceShell>

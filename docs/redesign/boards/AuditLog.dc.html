@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Nhật ký kiểm toán</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}
+.al .c-t{left:0;width:150px;min-width:150px}
+.al .c-a{left:150px;width:210px;min-width:210px}
+.al td.wrap{white-space:normal;min-width:300px}
+</style>
+</helmet>
+<div class="root" style="min-height: 1000px">
+<dc-import name="TopNav" app="setup" active="" hint-size="100%,104px"></dc-import>
+<main class="page">
+<div class="split">
+<div style="flex: 0 0 260px"><dc-import name="SetupNav" active="Nhật ký kiểm toán" hint-size="260px,820px"></dc-import></div>
+<div style="flex: 999 1 900px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+<section class="panel">
+<div class="oh" style="align-items: flex-start">
+<div>
+<ol class="crumbs" aria-label="Vị trí"><li><a href="MembersTeams.dc.html">Cài đặt tổ chức</a></li><li><span aria-current="page">Nhật ký kiểm toán</span></li></ol>
+<h1 class="h1" style="margin-top: 6px">Nhật ký kiểm toán <span class="badge b-neutral" style="vertical-align: middle">Dữ liệu minh họa</span></h1>
+<p class="muted" style="margin: 4px 0 0; font-size: 13px">Chỉ ghi thêm: không ai sửa hay xóa được sự kiện, kể cả chủ sở hữu tổ chức. Thời gian lưu: [chưa chốt]. Chỉ admin xem được trang này.</p>
+</div>
+<button type="button" class="btn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 11V8a4 4 0 0 1 8 0v3M6 11h12v9H6z"></path></svg>Xuất CSV</button>
+</div>
+<div style="padding: 0 20px 12px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center">
+<span class="muted" style="font-size: 13px">Lọc nhanh</span>
+<button type="button" class="chip chip-on">Tất cả</button>
+<button type="button" class="chip">Sự kiện bảo mật</button>
+<button type="button" class="chip">Hành động của AI agent</button>
+<button type="button" class="chip">Thay đổi quyền</button>
+<button type="button" class="chip">Bị từ chối</button>
+</div>
+<div style="padding: 0 20px 14px; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px">
+<label class="fld"><span class="fld-l">Thời gian</span><span class="in in-sel" style="font-size: 14px">7 ngày qua<svg class="ic-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></label>
+<label class="fld"><span class="fld-l">Người thực hiện</span><span class="in in-sel" style="font-size: 14px">Mọi người và agent<svg class="ic-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></label>
+<label class="fld"><span class="fld-l">Module</span><span class="in in-sel" style="font-size: 14px">Tất cả<svg class="ic-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></label>
+<label class="fld"><span class="fld-l">Loại sự kiện</span><span class="in in-sel" style="font-size: 14px">Tất cả<svg class="ic-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></label>
+<label class="fld"><span class="fld-l">Kết quả</span><span class="in in-sel" style="font-size: 14px">Tất cả<svg class="ic-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></label>
+</div>
+</section>
+
+<section class="panel" style="overflow: hidden">
+<div class="lv-meta" style="padding-top: 12px"><p>10 sự kiện · 7 ngày qua · mới nhất trước · bấm một dòng để xem chi tiết</p></div>
+<div class="tbl-wrap"><table class="tbl al" style="min-width: 1560px">
+<thead><tr><th class="fz c-t">Thời gian</th><th class="fz c-a fz-last">Người thực hiện</th><th>Qua</th><th>Module</th><th>Loại sự kiện</th><th>Hành động</th><th>Kết quả</th><th>Thiết bị · IP</th><th>Mã yêu cầu</th></tr></thead>
+<tbody>
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="10">
+<tr><td class="fz c-t"><a href="AuditEvent.dc.html">{{r.t}}</a></td><td class="fz c-a fz-last"><b style="color: #102A43">{{r.actor}}</b></td><td>{{r.via}}</td><td>{{r.mod}}</td><td>{{r.kind}}</td><td class="wrap">{{r.act}}</td><td><span class="{{r.resCls}}"><span class="dot"></span>{{r.res}}</span></td><td>{{r.dev}}</td><td><span class="code">{{r.req}}</span></td></tr>
+</sc-for>
+</tbody></table></div>
+<div class="scroll-hint"><span>Cột Thời gian và Người thực hiện cố định khi cuộn ngang.</span><span>1–10 trên 10</span></div>
+</section>
+</div>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const R = (t, actor, via, mod, kind, act, res, dev, req) => ({ t: t, actor: actor, via: via, mod: mod, kind: kind, act: act, res: res, dev: dev, req: req, resCls: res === 'Thành công' ? 'badge b-ok' : res === 'Chờ xác nhận' ? 'badge b-warn' : 'badge b-danger' });
+    return {
+      rows: [
+        R('29/10 09:41', 'Minh Anh', 'Claude Desktop', 'Công việc', 'Hành động của AI agent', 'Đổi người phụ trách công việc “Lắp quầy bar khu A”', 'Thành công', 'MacBook · 113.161.42.18', 'req_7f3a91c2'),
+        R('29/10 09:35', 'Minh Anh', 'Claude Desktop', 'Lumi CRM', 'Hành động của AI agent', 'Đọc cơ hội “Văn phòng Lumen Tech”', 'Bị từ chối: CRM chưa bật cho agent', 'MacBook · 113.161.42.18', 'req_7f3a8e10'),
+        R('29/10 09:20', 'Minh Anh', 'Web', 'Lumi CRM', 'Xuất dữ liệu', 'Xuất 11 cơ hội ra CSV sau khi xác thực lại', 'Thành công', 'MacBook · 113.161.42.18', 'req_7f3a7b44'),
+        R('29/10 08:12', 'Hải Ngân', 'Cursor', 'Công việc', 'Hành động của AI agent', 'Xóa công việc “Bản nháp checklist”', 'Chờ xác nhận', 'Windows · 14.161.20.7', 'req_7f3a5521'),
+        R('29/10 07:52', 'Minh Anh', 'iPhone', 'Tài khoản', 'Sự kiện bảo mật', 'Thêm passkey “iPhone của Minh Anh”', 'Thành công', 'iPhone · 113.161.42.18', 'req_7f3a4c07'),
+        R('28/10 17:02', 'Thanh Quân', 'ChatGPT', 'Thông minh', 'Hành động của AI agent', 'Tạo cam kết “Gửi báo giá trước thứ 6”', 'Bị từ chối: Thông minh chỉ cho đọc', 'MacBook · 113.161.42.30', 'req_7f39ff12'),
+        R('28/10 16:20', 'Minh Anh', 'Claude Desktop', 'Thư', 'Hành động của AI agent', 'Gửi email cho khách anh Trí', 'Bị từ chối: gửi ra ngoài phải do người gửi', 'MacBook · 113.161.42.18', 'req_7f39f0a8'),
+        R('28/10 14:05', 'Minh Anh', 'Web', 'Cài đặt tổ chức', 'Thay đổi quyền', 'Cấp vai trò Quản lý cho Thanh Quân', 'Thành công', 'MacBook · 113.161.42.18', 'req_7f39d311'),
+        R('28/10 11:47', 'Không rõ', 'Web', 'Tài khoản', 'Sự kiện bảo mật', 'Đăng nhập bằng passkey không hợp lệ cho haingan@mocgia.vn', 'Bị từ chối: passkey không khớp', 'Linux · 45.77.12.9', 'req_7f39b8e5'),
+        R('27/10 10:30', 'Minh Anh', 'Web', 'Cài đặt tổ chức', 'Thay đổi tích hợp', 'Tạo webhook “Lark · Nhóm kinh doanh”', 'Thành công', 'MacBook · 113.161.42.18', 'req_7f3920c4')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

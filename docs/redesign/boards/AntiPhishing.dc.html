@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Đặt mã chống lừa đảo</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="root" style="width: 1440px; height: 900px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; background: #F4F0E8">
+<span class="gh-brand"><span class="gh-logo" aria-hidden="true">L</span>Lumi Workspace</span>
+<ol class="steps" aria-label="Các bước thiết lập bảo mật" style="width: 640px">
+<li class="st-s st-done"><span class="st-n"><svg class="ic-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="m5 12 5 5 9-10"></path></svg></span>Xác minh email</li>
+<li class="st-line st-line-done" aria-hidden="true"></li>
+<li class="st-s st-done"><span class="st-n"><svg class="ic-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="m5 12 5 5 9-10"></path></svg></span>Tạo passkey</li>
+<li class="st-line st-line-done" aria-hidden="true"></li>
+<li class="st-s st-cur" aria-current="step"><span class="st-n">3</span>Đặt mã chống lừa đảo</li>
+</ol>
+<div style="display: grid; grid-template-columns: 480px 520px; gap: 20px; align-items: start">
+<section class="auth-card" style="width: auto" aria-labelledby="ap-h">
+<h1 class="auth-h" id="ap-h">Đặt mã chống lừa đảo</h1>
+<p style="margin: 0; font-size: 15px; line-height: 1.55; color: #344054">Lumi in mã này ở đầu mọi email gửi cho bạn. Kẻ gian không biết mã, nên email giả sẽ thiếu nó.</p>
+<label class="fld"><span class="fld-l">Mã chống lừa đảo <span class="req">*</span></span><input class="in" value="Mây Xanh 7" aria-describedby="ap-hint"><span id="ap-hint" class="muted" style="font-size: 13px">4–20 ký tự: chữ, số, khoảng trắng. Đừng dùng mật khẩu hay thông tin cá nhân.</span></label>
+<button type="button" class="btn btn-primary btn-lg btn-block">Lưu mã và vào Lumi Workspace</button>
+<p class="muted" style="margin: 0; font-size: 13px; line-height: 1.5">Đổi mã sau trong Tài khoản của tôi › Bảo mật; khi đổi, Lumi yêu cầu xác thực lại bằng passkey.</p>
+</section>
+<section aria-label="Xem trước email có mã" style="display: flex; flex-direction: column; gap: 8px">
+<span class="eyebrow">Xem trước: email từ Lumi</span>
+<div class="mail">
+<div class="mail-h"><span>Từ</span><span>Lumi Workspace &lt;no-reply@runlumi.app&gt;</span><span>Tới</span><span>minhanh@mocgia.vn</span><span>Chủ đề</span><span style="color: #102A43; font-weight: 600">Công việc “Gửi biên bản nghiệm thu” quá hạn 1 ngày</span></div>
+<div class="apc" role="note"><span>Mã chống lừa đảo của bạn</span><b>Mây Xanh 7</b></div>
+<div style="padding: 0 16px 16px; font-size: 14px; line-height: 1.6; color: #172033">
+<p style="margin: 0 0 8px">Chào Minh Anh,</p>
+<p style="margin: 0 0 12px">Công việc “Gửi biên bản nghiệm thu cho anh Minh” đến hạn ngày 28/10/2026 và chưa hoàn tất.</p>
+<a class="btn btn-primary btn-sm" href="TaskRecord.dc.html">Mở công việc</a>
+</div>
+</div>
+<p class="muted" style="margin: 0; font-size: 13px">Email không có đúng mã này: đừng bấm link, chuyển tiếp cho admin của tổ chức.</p>
+</section>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,81 @@
+---
+// Tài khoản của tôi › Bảo mật. The person's own EmDash passkeys and their own
+// anti-phishing code; both are mandatory (R-08). Changing an existing code or
+// adding a second passkey needs a passkey check from the last five minutes.
+import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
+import type { AccountSecurityData } from "../../lib/workspace/security-pages";
+import { verifyPath } from "../../lib/workspace/passkey";
+import { renderEmail } from "../../lib/workspace/email";
+
+type Props = AccountSecurityData;
+const { lang, vi, user, passkeys, code, codeUpdated, setup, next, error, typed, saved, stepUpSeconds } = Astro.props;
+const t = (en: string, viText: string) => (vi ? viText : en);
+const when = (value: string | null) => value ? new Date(value).toLocaleString(vi ? "vi-VN" : "en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Ho_Chi_Minh" }) : "—";
+const errors: Record<string, [string, string]> = {
+  required: ["Enter a code.", "Hãy nhập mã."],
+  length: ["Use 4 to 20 characters.", "Dùng từ 4 đến 20 ký tự."],
+  characters: ["Use only letters, numbers and spaces.", "Chỉ dùng chữ, số và khoảng trắng."],
+  personal: ["Do not use your name or email address.", "Đừng dùng tên hoặc địa chỉ email của bạn."],
+};
+const self = Astro.url.pathname + Astro.url.search;
+const preview = renderEmail({ id: user.id, email: user.email, name: user.name, vi }, code ?? (vi ? "Mã của bạn" : "Your code"), {
+  subject: t("Task overdue: send the acceptance record", "Công việc quá hạn: gửi biên bản nghiệm thu"),
+  lines: [t("This is how every email from Lumi Workspace starts.", "Mọi email từ Lumi Workspace đều bắt đầu như thế này.")],
+});
+const messages = {
+  "data-msg-working": t("Waiting for your device…", "Đang chờ thiết bị của bạn…"),
+  "data-msg-done": t("Passkey added.", "Đã thêm passkey."),
+  "data-msg-failed": t("EmDash did not add the passkey. If you already have one, verify with it first.", "EmDash chưa thêm passkey. Nếu bạn đã có passkey, hãy xác thực bằng passkey đó trước."),
+  "data-msg-cancelled": t("No passkey was created.", "Chưa tạo passkey nào."),
+  "data-msg-unsupported": t("This browser cannot create passkeys.", "Trình duyệt này không tạo được passkey."),
+};
+---
+<WorkspaceShell title={t("Security", "Bảo mật")} lang={lang} user={user} module="account" current="security">
+  <div class="crm-head"><div>
+    <p class="crm-eyebrow">{t("My account", "Tài khoản của tôi")}</p>
+    <h1 class="crm-h1">{t("Security", "Bảo mật")}</h1>
+    <p class="crm-lede">{t("Passkeys and an anti-phishing code are required for every Workspace account. Your EmDash account owns the passkeys; the code is yours to choose.", "Passkey và mã chống lừa đảo là bắt buộc với mọi tài khoản Workspace. Passkey thuộc tài khoản EmDash của bạn; mã do bạn tự chọn.")}</p>
+  </div></div>
+  {setup && !code && <div class="crm-notice" role="status">{t("One more step: set your anti-phishing code to open the Workspace.", "Còn một bước: đặt mã chống lừa đảo để vào Workspace.")}</div>}
+  {saved && <div class="crm-notice good" role="status">{t("Code saved.", "Đã lưu mã.")}</div>}
+  {error && <div class="crm-notice bad" role="alert">{errors[error]?.[vi ? 1 : 0] ?? error}</div>}
+
+  <div class="crm-grid cols">
+    <section class="crm-sheet" aria-labelledby="code-h">
+      <h2 class="crm-h2" id="code-h">{t("Anti-phishing code", "Mã chống lừa đảo")}</h2>
+      <p class="crm-help">{t("Lumi prints this code at the top of every email it sends you. Someone faking a Lumi email does not know it.", "Lumi in mã này ở đầu mọi email gửi cho bạn. Kẻ giả mạo email Lumi không biết mã này.")}</p>
+      {code && <p class="crm-help">{t("Current code", "Mã hiện tại")}: <strong>{code}</strong> · {t("changed", "đổi lúc")} {when(codeUpdated)}</p>}
+      <form class="crm-form" method="post">
+        <input type="hidden" name="intent" value="code" />
+        <div class="crm-field"><label for="code">{code ? t("New code", "Mã mới") : t("Code", "Mã")} *</label>
+          <input class="crm-input" id="code" name="code" required minlength="4" maxlength="20" autocomplete="off" spellcheck="false" value={typed} aria-invalid={error ? "true" : undefined} aria-describedby="code-hint" />
+          <p class="crm-help" id="code-hint">{t("4–20 characters: letters, numbers and spaces. Not a password, your name or your email.", "4–20 ký tự: chữ, số, khoảng trắng. Không dùng mật khẩu, tên hay email.")}</p></div>
+        {code && stepUpSeconds === 0 && <p class="crm-help">{t("Changing the code asks for your passkey first.", "Đổi mã cần xác thực passkey trước.")}</p>}
+        <div class="crm-actions"><button class="crm-button" type="submit">{code ? t("Change code", "Đổi mã") : setup ? t("Save code and open the Workspace", "Lưu mã và vào Workspace") : t("Save code", "Lưu mã")}</button></div>
+      </form>
+    </section>
+    <section class="crm-sheet" aria-labelledby="preview-h">
+      <h2 class="crm-h2" id="preview-h">{t("Preview: an email from Lumi", "Xem trước: email từ Lumi")}</h2>
+      <dl class="crm-facts"><div><dt>{t("Subject", "Tiêu đề")}</dt><dd>{preview.subject}</dd></div></dl>
+      <pre class="crm-help" style="white-space:pre-wrap;font:inherit">{preview.text}</pre>
+    </section>
+  </div>
+
+  <section class="crm-sheet" aria-labelledby="keys-h" style="margin-top:18px">
+    <h2 class="crm-h2" id="keys-h">{t("Passkeys", "Passkey")}<span class="crm-count">{passkeys.length}</span></h2>
+    <ul class="crm-list">{passkeys.map((key) => <li class="crm-row"><strong>{key.name || t("Unnamed passkey", "Passkey chưa đặt tên")}</strong><span class="crm-row-meta"><span>{t("Added", "Thêm lúc")} {when(key.created_at)}</span><span>{t("Last used", "Dùng gần nhất")} {when(key.last_used_at)}</span></span></li>)}</ul>
+    <p class="crm-help">{t("Add a passkey on a second device so losing one device does not lock you out.", "Thêm passkey trên thiết bị thứ hai để mất một máy không bị khóa tài khoản.")}</p>
+    {passkeys.length > 0 && stepUpSeconds === 0
+      ? <p><a class="crm-button secondary" href={verifyPath(vi, self)}>{t("Verify to add another passkey", "Xác thực để thêm passkey")}</a></p>
+      : <form method="post" data-passkey="enrol" {...messages}>
+          <div class="crm-field"><label for="passkey_name">{t("Name for the new passkey", "Tên passkey mới")}</label><input class="crm-input" id="passkey_name" name="passkey_name" maxlength="80" autocomplete="off" /></div>
+          <div class="crm-actions"><button class="crm-button secondary" type="submit">{t("Add a passkey on this device", "Thêm passkey trên thiết bị này")}</button></div>
+          <p class="crm-help" data-passkey-status role="status" aria-live="polite" hidden></p>
+        </form>}
+    <p class="crm-help">{t("Rename or remove passkeys in your EmDash account settings.", "Đổi tên hoặc xóa passkey trong phần cài đặt tài khoản EmDash.")}</p>
+  </section>
+  {setup && code && <p><a class="crm-button" href={next}>{t("Open the Workspace", "Vào Workspace")}</a></p>}
+</WorkspaceShell>
+<script>
+  import "../../scripts/workspace-passkey";
+</script>

@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Nhập dữ liệu</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}
+.wz{display:flex;align-items:center;gap:0;padding:16px 20px;border-bottom:1px solid #E7EAF0}
+.wz-s{display:flex;align-items:center;gap:8px;font:500 14px Geist,system-ui,sans-serif;color:#5E6677;flex:none}
+.wz-n{width:28px;height:28px;border-radius:14px;border:2px solid #C8D0DE;display:flex;align-items:center;justify-content:center;font-weight:600;background:#fff}
+.wz-done .wz-n{background:#006093;border-color:#006093;color:#fff}
+.wz-cur{color:#102A43;font-weight:600}
+.wz-cur .wz-n{border-color:#006093;color:#006093}
+.wz-line{flex:1;height:2px;background:#C8D0DE;margin:0 12px;min-width:40px}
+.wz-line-done{background:#006093}
+</style>
+</helmet>
+<div class="root" style="min-height: 900px">
+
+<dc-import name="TopNav" app="setup" active="" hint-size="100%,104px"></dc-import>
+
+<main class="page" style="max-width: 1200px">
+<section class="panel" style="overflow: hidden">
+<div class="oh" style="align-items: center">
+<div class="oh-id">
+<span class="oi oi-set"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"></path></svg></span>
+<div><div class="eyebrow">Nhập dữ liệu</div><h1 class="h1">Nhập đối tác &amp; liên hệ từ file CSV</h1></div>
+</div>
+<span class="muted" style="font-size: 13px">Hoặc nhờ AI agent của bạn (qua MCP) đề xuất cách ghép cột; bạn xác nhận trước khi nhập.</span>
+</div>
+<ol class="wz" aria-label="Các bước" style="margin: 0; list-style: none">
+<li class="wz-s wz-done"><span class="wz-n"><svg class="ic-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><path d="m5 12 5 5 9-10"></path></svg></span>Chọn dữ liệu</li>
+<li class="wz-line wz-line-done" aria-hidden="true"></li>
+<li class="wz-s wz-cur" aria-current="step"><span class="wz-n">2</span>Ánh xạ trường</li>
+<li class="wz-line" aria-hidden="true"></li>
+<li class="wz-s"><span class="wz-n">3</span>Xem lại &amp; bắt đầu</li>
+</ol>
+<div style="padding: 14px 20px; display: flex; gap: 24px; flex-wrap: wrap; font-size: 14px; border-bottom: 1px solid #E7EAF0">
+<span><span class="muted">File:</span> danh-sach-khach-T10.csv · 48 dòng</span>
+<span><span class="muted">Đối tượng:</span> đối tác &amp; liên hệ</span>
+<span><span class="muted">Cách nhập:</span> Thêm mới và cập nhật</span>
+<span><span class="muted">So khớp bản ghi trùng theo:</span> số điện thoại</span>
+</div>
+<div class="tbl-wrap" style="border-top: 0">
+<table class="tbl" style="min-width: 900px">
+<thead><tr><th>Cột trong file</th><th>Ví dụ</th><th>Trường trong Lumi CRM</th><th>Trạng thái</th></tr></thead>
+<tbody>
+<sc-for list="{{maps}}" as="m" hint-placeholder-count="7">
+<tr><td style="font-weight: 600; color: #102A43">{{m.col}}</td><td class="muted">{{m.ex}}</td><td><span class="in in-sel" style="height: 34px; width: 260px; font-size: 14px">{{m.field}}<svg class="ic-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></td><td><span class="{{m.cls}}"><span class="dot"></span>{{m.st}}</span></td></tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+<div class="dlg-f" style="justify-content: space-between"><span style="font-size: 13px; color: #9A5B00; align-self: center">1 cột chưa map: cột này sẽ không được nhập</span><div style="display: flex; gap: 8px"><button type="button" class="btn">Quay lại</button><button type="button" class="btn btn-primary">Tiếp: Xem lại</button></div></div>
+</section>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const M = (col, ex, field, st) => ({ col: col, ex: ex, field: field, st: st === 'ok' ? 'Đã map' : st === 'skip' ? 'Chưa map' : 'Lumi đề xuất, cần xác nhận', cls: st === 'ok' ? 'badge b-ok' : st === 'skip' ? 'badge b-warn' : 'badge b-info' });
+    return {
+      maps: [
+        M('Ten cong ty', 'The Lối Coffee', 'đối tác: tên đối tác', 'ok'),
+        M('Nguoi lien he', 'Anh Trí', 'Liên hệ: họ tên', 'ok'),
+        M('SDT', '[số điện thoại]', 'liên hệ: số điện thoại', 'ok'),
+        M('Zalo', 'có', 'liên hệ: Zalo (trường tùy chỉnh)', 'guess'),
+        M('Dia chi', '[địa chỉ], Q.3', 'đối tác: địa chỉ', 'ok'),
+        M('Nganh', 'Cà phê', 'đối tác: ngành', 'guess'),
+        M('Ghi chu sale', '…', 'Chọn trường…', 'skip')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
