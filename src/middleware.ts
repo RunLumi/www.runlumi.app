@@ -9,6 +9,7 @@ import { restoreBlocksPath, restoreMaintenanceResponse } from "./lib/workspace/r
 
 /** Private areas and the permission each needs. The first match wins. */
 const areas: { test: (path: string) => boolean; permission: Permission; api?: boolean }[] = [
+  { test: (path) => path.startsWith("/api/workspace/"), permission: "workspace.access", api: true },
   { test: (path) => path.startsWith("/api/hrm/"), permission: "hrm.access", api: true },
   { test: (path) => under(path, "/hrm"), permission: "hrm.access" },
   { test: (path) => path.startsWith("/api/admin/"), permission: "hiring.access", api: true },
