@@ -12,7 +12,9 @@ const { ctx, state, playbooks, referrals, stageNames } = Astro.props;
 const { lang, vi, base } = ctx;
 const v = (name: string, fallback = "") => valueFor(state, "refer", name, fallback);
 const e = (name: string) => errorFor(state, "refer", name);
-const stageOf = (row: { playbook_id: string; stage_id: string }) => stageNames[`${row.playbook_id.split("@")[0]}:${row.stage_id}`] ?? row.stage_id;
+const stageOf = (row: (typeof referrals)[number]) => row.kind === "lead"
+  ? (row.lead_state === "disqualified" ? (vi ? "Không tiếp tục" : "Not continued") : `Lead · ${stageNames[`lead:${row.lead_process_id}:${row.lead_status_id}`] ?? row.lead_status_id}`)
+  : stageNames[`${row.playbook_id.split("@")[0]}:${row.stage_id}`] ?? row.stage_id;
 const tone: Record<string, string> = { open: "blue", won: "green", lost: "", paused: "amber" };
 const fieldLabels: Record<string, string> = vi
   ? { business: "Doanh nghiệp", contact_name: "Người liên hệ", phone: "Điện thoại / Zalo", email: "Email", need: "Nhu cầu", playbook_key: "Loại nhu cầu", consent: "Xác nhận đồng ý liên hệ" }
@@ -30,7 +32,7 @@ const fieldLabels: Record<string, string> = vi
       <h2 class="crm-h2" id="mine-h">{vi ? "Khách tôi đã giới thiệu" : "Businesses I referred"}<span class="crm-count">{referrals.length}</span></h2>
       {referrals.length ? <ul class="crm-list">{referrals.map((row) => <li class="crm-row">
         <strong>{row.title}</strong>
-        <span class="crm-row-side"><span class="crm-badge blue">{stageOf(row)}</span><span class:list={["crm-badge", tone[row.outcome]]}>{label(lang, "outcome", row.outcome)}</span></span>
+        <span class="crm-row-side"><span class="crm-badge blue">{stageOf(row)}</span>{row.kind === "opportunity" && <span class:list={["crm-badge", tone[row.outcome]]}>{label(lang, "outcome", row.outcome)}</span>}</span>
         <span class="crm-row-meta"><span>{formatDate(row.created_at, lang)}</span><span>{row.assigned ? (vi ? "Đã có người phụ trách" : "Assigned to the team") : (vi ? "Chờ phân công" : "Waiting for assignment")}</span></span>
       </li>)}</ul> : <p class="crm-empty">{vi ? "Bạn chưa giới thiệu khách nào." : "You have not referred anyone yet."}</p>}
       <p class="crm-help">{vi ? "Để bảo vệ khách hàng, sau khi giao cho người phụ trách bạn chỉ thấy giai đoạn và kết quả, không thấy ghi chú hay thanh toán." : "To protect customers, once assigned you see the stage and outcome only, not notes or payments."}</p>

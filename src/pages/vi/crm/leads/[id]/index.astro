@@ -1,0 +1,9 @@
+---
+import LeadView from "../../../../../components/crm/LeadView.astro";
+import { leadRoute } from "../../../../../lib/crm/routes/leads";
+
+export const prerender = false;
+const result = await leadRoute(Astro, "vi", Astro.params.id ?? "");
+if (result instanceof Response) return result;
+---
+<LeadView {...result} />

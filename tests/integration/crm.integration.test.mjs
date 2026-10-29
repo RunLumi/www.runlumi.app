@@ -306,14 +306,66 @@ test("11. intake from Lumi Local: signed, idempotent, queued for assignment", as
   assert.equal((await signedIntake(intakeSecret, body, { timestamp: Math.floor(Date.now() / 1000) - 900 })).status, 401);
   assert.equal((await signedIntake(intakeSecret, { ...body, context: { ...body.context, offer_interest: "trust-kit" } })).status, 422, "forged context is rejected");
   assert.equal(jobs(`SELECT COUNT(*) AS n FROM crm_inbound WHERE idempotency_key = ${q(idem)}`)[0].n, 1);
-  const opp = jobs(`SELECT o.id, o.owner_id, o.source_channel, o.stage_id FROM crm_inbound i JOIN crm_opportunities o ON o.id = i.opportunity_id WHERE i.id = ${q(firstJson.id)}`)[0];
-  assert.deepEqual([opp.owner_id, opp.source_channel, opp.stage_id], [null, "inbound_web", "new"]);
-  assert.equal(jobs(`SELECT COUNT(*) AS n FROM crm_ledger WHERE opportunity_id = ${q(opp.id)}`)[0].n, 0, "an enquiry is not a payment");
+  // The enquiry is an unassigned lead, not an opportunity, company or payment.
+  const lead = jobs(`SELECT l.id, l.owner_id, l.source_channel, l.status_id, l.version FROM crm_inbound i JOIN crm_lead_records l ON l.id = i.lead_id WHERE i.id = ${q(firstJson.id)}`)[0];
+  assert.deepEqual([lead.owner_id, lead.source_channel, lead.status_id], [null, "inbound_web", "received"]);
+  assert.equal(jobs(`SELECT opportunity_id FROM crm_inbound WHERE id = ${q(firstJson.id)}`)[0].opportunity_id, null);
   assert.match((await S.admin.get("/crm/admin")).html, /TEST Inbound Garage/);
-  assert.equal((await S.a.get(`/crm/${opp.id}`)).status, 404);
-  await S.admin.post("/crm/admin", { intent: "inbound_assign", inbound_id: firstJson.id, owner_id: S.a.id });
+  assert.equal((await S.a.get(`/crm/leads/${lead.id}`)).status, 404);
+  assert.equal((await S.admin.post("/crm/admin", { intent: "lead_assign", lead_id: lead.id, version: lead.version, owner_id: S.a.id })).status, 303);
+  assert.equal(jobs(`SELECT status FROM crm_inbound WHERE id = ${q(firstJson.id)}`)[0].status, "assigned");
+  const page = await S.a.get(`/crm/leads/${lead.id}`);
+  assert.equal(page.status, 200);
+  assert.match(page.html, /\/nganh\/garage\//);
+  const converted = await S.a.post(`/crm/leads/${lead.id}`, { intent: "lead_convert", version: version(page.html), account_mode: "new", account_name: body.business, contact_mode: "new", contact_role: "owner", playbook_key: "local-preview", title: body.business });
+  assert.equal(converted.status, 303);
+  const opp = jobs(`SELECT o.id, o.owner_id, o.seller_id, o.source_channel, o.stage_id FROM crm_inbound i JOIN crm_opportunities o ON o.id = i.opportunity_id WHERE i.id = ${q(firstJson.id)}`)[0];
+  assert.deepEqual([opp.owner_id, opp.seller_id, opp.source_channel, opp.stage_id], [S.a.id, S.a.id, "inbound_web", "new"]);
+  assert.equal(jobs(`SELECT COUNT(*) AS n FROM crm_ledger WHERE opportunity_id = ${q(opp.id)}`)[0].n, 0, "an enquiry is not a payment");
   assert.equal((await S.a.get(`/crm/${opp.id}`)).status, 200);
-  assert.match((await S.a.get(`/crm/${opp.id}`)).html, /\/nganh\/garage\//);
+  assert.equal((await S.b.get(`/crm/${opp.id}`)).status, 404);
+});
+
+test("11b. leads: pages, board move, settings and conversion are allowed and denied per role", async () => {
+  for (const path of ["/crm/leads", "/vi/crm/leads", "/crm/leads?view=board", "/vi/crm/admin/leads"]) assert.equal((await S.outsider.get(path)).status, 403, `${path} needs CRM access`);
+  for (const path of ["/crm/leads", "/vi/crm/leads", "/crm/leads?view=board", "/vi/crm/leads?view=board"]) assert.equal((await S.a.get(path)).status, 200, path);
+  for (const path of ["/crm/admin/leads", "/vi/crm/admin/leads"]) {
+    assert.equal((await S.a.get(path)).status, 403, `${path} needs crm.configure`);
+    assert.equal((await S.admin.get(path)).status, 200);
+  }
+  const bad = await S.a.post("/crm/leads", { intent: "lead_create", name: "", company: "TEST Kept Lead Co", source_channel: "field_visit" });
+  assert.equal(bad.status, 422);
+  assert.match(bad.html, /value="TEST Kept Lead Co"/);
+  const made = await S.a.post("/crm/leads", { intent: "lead_create", name: "TEST Lead Person", company: `TEST Lead Co ${run}`, phone: phone(), source_channel: "field_visit" });
+  assert.equal(made.status, 303);
+  const id = /\/crm\/leads\/(lead_[a-f0-9]+)/.exec(made.location)[1];
+  assert.equal((await S.b.get(`/crm/leads/${id}`)).status, 404, "another seller's lead is hidden");
+  assert.equal((await S.b.post(`/crm/leads/${id}`, { intent: "lead_note", note: "TEST probe" })).status, 404);
+  assert.equal((await S.fin.get(`/vi/crm/leads/${id}`)).status, 404, "finance gets no lead access");
+  const board = await S.a.get("/crm/leads?view=board");
+  assert.match(board.html, new RegExp(`data-card="${id}"`), "the owner's card is draggable");
+  assert.match(board.html, /name="status_id"[^>]*data-move-to/, "every card has a keyboard move control");
+  assert.equal((await S.a.post("/crm/leads?view=board", { intent: "lead_status", lead_id: id, version: 1, status_id: "reached" })).status, 303);
+  assert.equal(jobs(`SELECT status_id FROM crm_lead_records WHERE id = ${q(id)}`)[0].status_id, "reached");
+  assert.equal((await S.a.post("/crm/leads", { intent: "lead_status", lead_id: id, version: 1, status_id: "callback" })).status, 409, "a stale move keeps the newer status");
+  assert.equal((await S.b.post("/crm/leads", { intent: "lead_status", lead_id: id, version: 2, status_id: "callback" })).status, 404);
+  assert.equal((await S.a.get(`/crm/leads/${id}/converted`)).status, 303, "the summary exists only after conversion");
+  // Admin saves lead process v2; existing leads keep their version's labels.
+  const saved = await S.admin.post("/crm/admin/leads", { intent: "lead_process", "status.0.id": "received", "status.0.en": "New", "status.0.vi": "Mới", "status.1.id": "reached", "status.1.en": "Reached", "status.1.vi": "Đã liên hệ", "reason.0.id": "not_fit", "reason.0.en": "Not a fit", "reason.0.vi": "Không phù hợp" });
+  assert.equal(saved.status, 303);
+  assert.equal(jobs("SELECT MAX(version) AS v FROM crm_policies WHERE policy_key = 'crm-lead-process'")[0].v >= 2, true);
+  assert.equal((await S.a.post("/crm/admin/leads", { intent: "lead_process", "status.0.id": "x1", "status.0.en": "X", "status.0.vi": "X", "reason.0.id": "y1", "reason.0.en": "Y", "reason.0.vi": "Y" })).status, 403);
+  const page = await S.a.get(`/crm/leads/${id}?convert=1`);
+  const converted = await S.a.post(`/crm/leads/${id}`, { intent: "lead_convert", version: version(page.html), account_mode: "new", account_name: `TEST Lead Co ${run}`, contact_mode: "new", contact_role: "owner", playbook_key: "lumi-solution", title: `TEST Lead Co ${run}` });
+  assert.equal(converted.status, 303);
+  assert.match(converted.location, new RegExp(`/crm/leads/${id}/converted`));
+  const summary = await S.a.get(`/vi/crm/leads/${id}/converted`);
+  assert.equal(summary.status, 200);
+  assert.match(summary.html, /Đã chuyển Lead thành cơ hội/);
+  assert.equal((await S.b.get(`/crm/leads/${id}/converted`)).status, 404);
+  const oppId = jobs(`SELECT converted_opportunity_id AS id FROM crm_lead_records WHERE id = ${q(id)}`)[0].id;
+  assert.match((await S.a.get(`/crm/${oppId}`)).html, /From lead: TEST Lead Person/);
+  assert.equal((await S.a.post(`/crm/leads/${id}`, { intent: "lead_note", note: "TEST after conversion" })).status, 403, "a converted lead is read-only");
 });
 
 test("12. conflicts keep the user's edit; double submits write once", async () => {

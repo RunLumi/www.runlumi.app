@@ -1,0 +1,55 @@
+---
+import CrmShell from "../../layouts/CrmShell.astro";
+import Crumbs from "./Crumbs.astro";
+import FormNotices from "./FormNotices.astro";
+import Hidden from "./Hidden.astro";
+import { formatDateTime } from "../../lib/crm/i18n";
+import type { LeadSettingsProps } from "../../lib/crm/routes/leads";
+import "../../styles/crm-sales.css";
+
+type Props = LeadSettingsProps;
+const { ctx, state, versions } = Astro.props;
+const { lang, vi, base } = ctx;
+const current = versions[0];
+const posted = state.intent === "lead_process" ? state.values : null;
+// Existing rows plus blank rows for additions; a re-rendered form keeps what was typed.
+const rows = (prefix: "status" | "reason", items: { id: string; en: string; vi: string; target_hours?: number }[]) => {
+  const count = Math.min(20, Math.max(items.length + 3, 4));
+  return Array.from({ length: count }, (_, index) => {
+    const item = items[index];
+    const value = (name: string, stored: string | number | undefined) => posted ? (posted[`${prefix}.${index}.${name}`] ?? "") : (stored === undefined ? "" : String(stored));
+    return { index, id: value("id", item?.id), en: value("en", item?.en), vi: value("vi", item?.vi), hours: value("target_hours", item?.target_hours) };
+  });
+};
+---
+<CrmShell title={vi ? "Thiết lập Lead" : "Lead settings"} lang={lang} actor={ctx.actor} current="playbooks">
+  <Crumbs label={vi ? "Đường dẫn" : "Breadcrumb"} items={[{ label: "CRM", href: base }, { label: "Playbook", href: `${base}/admin/playbooks` }, { label: vi ? "Thiết lập Lead" : "Lead settings" }]} />
+  <div class="crm-head"><div>
+    <p class="crm-eyebrow">{vi ? "Cấu hình" : "Setup"}</p>
+    <h1 class="crm-h1">{vi ? "Trạng thái Lead và lý do không tiếp tục." : "Lead statuses and disqualification reasons."}</h1>
+    <p class="crm-lede">{vi ? "Tên trạng thái và lý do là dữ liệu của tổ chức. Mỗi lần lưu tạo phiên bản mới; Lead đã có giữ phiên bản lúc tạo. Trạng thái đầu tiên là nơi Lead mới bắt đầu." : "Status and reason names are your organisation's data. Each save creates a new version; existing leads keep the version they were created with. New leads start at the first status."}</p>
+  </div></div>
+  <FormNotices state={state} lang={lang} saved={Astro.url.searchParams.get("saved")} fieldLabels={vi ? { statuses: "Trạng thái", disqualify_reasons: "Lý do" } : { statuses: "Statuses", disqualify_reasons: "Reasons" }} />
+  <form class="crm-form" method="post">
+    <Hidden intent="lead_process" state={state} />
+    {([["status", vi ? "Trạng thái Lead đang mở" : "Open lead statuses", current?.def.statuses ?? []], ["reason", vi ? "Lý do không tiếp tục" : "Disqualification reasons", current?.def.disqualify_reasons ?? []]] as const).map(([prefix, title, items]) => <section class="crm-sheet" aria-labelledby={`${prefix}-h`}>
+      <h2 class="crm-h2" id={`${prefix}-h`}>{title}</h2>
+      <p class="crm-help">{vi ? "Mã: chữ thường, số và dấu gạch dưới (vd. reached). Để trống cả dòng để bỏ." : "Key: lower-case letters, digits and underscores (e.g. reached). Leave a whole row blank to remove it."}</p>
+      <div class="crm-grid-table-wrap"><table class="crm-grid-table">
+        <thead><tr><th scope="col">#</th><th scope="col">{vi ? "Mã" : "Key"}</th><th scope="col">English</th><th scope="col">Tiếng Việt</th>{prefix === "status" && <th scope="col">{vi ? "Mục tiêu (giờ)" : "Target (hours)"}</th>}</tr></thead>
+        <tbody>{rows(prefix, items).map((row) => <tr>
+          <td class="rowno">{row.index + 1}</td>
+          <td><label class="crm-sr" for={`${prefix}-${row.index}-id`}>{vi ? `Mã dòng ${row.index + 1}` : `Key, row ${row.index + 1}`}</label><input class="crm-input" id={`${prefix}-${row.index}-id`} name={`${prefix}.${row.index}.id`} value={row.id} maxlength="40" pattern="[a-z][a-z0-9_]{1,39}" /></td>
+          <td><label class="crm-sr" for={`${prefix}-${row.index}-en`}>{`English, row ${row.index + 1}`}</label><input class="crm-input" id={`${prefix}-${row.index}-en`} name={`${prefix}.${row.index}.en`} value={row.en} maxlength="60" /></td>
+          <td><label class="crm-sr" for={`${prefix}-${row.index}-vi`}>{`Tiếng Việt, dòng ${row.index + 1}`}</label><input class="crm-input" id={`${prefix}-${row.index}-vi`} name={`${prefix}.${row.index}.vi`} value={row.vi} maxlength="60" lang="vi" /></td>
+          {prefix === "status" && <td><label class="crm-sr" for={`${prefix}-${row.index}-h`}>{vi ? `Mục tiêu giờ, dòng ${row.index + 1}` : `Target hours, row ${row.index + 1}`}</label><input class="crm-input" id={`${prefix}-${row.index}-h`} name={`${prefix}.${row.index}.target_hours`} value={row.hours} inputmode="numeric" maxlength="3" /></td>}
+        </tr>)}</tbody>
+      </table></div>
+    </section>)}
+    <div class="crm-actions"><button class="crm-button" type="submit">{vi ? "Lưu phiên bản mới" : "Save a new version"}</button></div>
+  </form>
+  <section class="crm-sheet" aria-labelledby="ver-h" style="margin-top:18px">
+    <h2 class="crm-h2" id="ver-h">{vi ? "Các phiên bản" : "Versions"}</h2>
+    <ul class="crm-list">{versions.map((item) => <li class="crm-row"><strong>v{item.version}</strong><span class="crm-row-meta"><span>{formatDateTime(item.created_at, lang)}</span><span>{item.def.statuses.map((status) => vi ? status.vi : status.en).join(" → ")}</span></span></li>)}</ul>
+  </section>
+</CrmShell>

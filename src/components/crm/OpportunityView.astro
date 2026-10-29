@@ -26,6 +26,7 @@ const saved = Astro.url.searchParams.get("saved");
     <div>
       <h1 class="crm-h1">{opp.title}</h1>
       <p class="crm-lede"><a class="crm-link" href={`${base}/accounts/${opp.account_id}`}>{opp.account_name}</a>{opp.region ? ` · ${opp.region}` : ""}{opp.industry ? ` · ${opp.industry}` : ""}</p>
+      {p.fromLead && <p class="crm-meta"><a class="crm-link" href={`${base}/leads/${p.fromLead.id}`}>{vi ? `Từ Lead: ${p.fromLead.name}` : `From lead: ${p.fromLead.name}`}</a></p>}
     </div>
     <dl class="crm-facts" style="min-width:min(100%,420px)" aria-label={vi ? "Trạng thái độc lập" : "Independent statuses"}>
       <div><dt>{vi ? "Bán hàng" : "Sales"}</dt><dd><span class="crm-badge blue">{stageLabel(playbook.def, opp.stage_id, vi)}</span></dd></div>

@@ -1,4 +1,5 @@
 import type { AstroGlobal } from "astro";
+import { sourceLead } from "../leads";
 import { type OwnerOption, displayNames, ownerOptions } from "../access";
 import {
   type LedgerRow, type Quote, acceptQuote, createQuote, creditFor, opportunityLedger, opportunityQuotes, recordPayment, recordReceivable, recordRefund, reviewPayment, voidEntry, withdrawQuote,
@@ -25,6 +26,7 @@ export interface OppProps {
   related: Opportunity[]; events: { id: string; actor_name: string; kind: string; body: string; created_at: string }[];
   names: Record<string, { name: string; active: boolean }>; owners: OwnerOption[]; cohorts: string[];
   linkPlaybooks: Playbook[]; allVersions: Playbook[]; playbookNames: Record<string, string>;
+  fromLead: { id: string; name: string; company: string; converted_at: string | null } | null;
 }
 
 export async function opportunityRoute(astro: AstroGlobal, lang: Lang): Promise<OppProps | Response> {
@@ -93,7 +95,9 @@ export async function opportunityRoute(astro: AstroGlobal, lang: Lang): Promise<
   const summary = summarizeLedger(ledger);
   const people = [opportunity.owner_id, opportunity.seller_id, opportunity.referrer_id, opportunity.created_by, ...ledger.flatMap((entry) => [entry.recorded_by, entry.confirmed_by]), fulfillment?.assignee_id].filter((id): id is string => !!id && !id.includes(":"));
   const latest = await latestPlaybooks(ctx.db, { activeOnly: true });
+  const fromLead = await sourceLead(ctx.db, ctx.actor, access.opportunity.id);
   return {
+    fromLead,
     ctx, state: posted ?? emptyState, access, playbook, transitions, offers, quoteOffers, quotes, ledger, summary, payment: paymentState(summary), credit,
     fulfillment, tasks, costs, contacts, related, events, names: await displayNames(ctx.contentDb, people),
     owners: ctx.actor.manager ? await ownerOptions(ctx.db, ctx.contentDb, ctx.actor) : [],
