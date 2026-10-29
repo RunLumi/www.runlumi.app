@@ -13,7 +13,7 @@ if (d.department) exportQuery.set("department", d.department);
 if (vi) exportQuery.set("lang", "vi");
 const exportAction = `/api/hrm/reports/export?${exportQuery.toString()}`;
 const savedMessages: Record<string, [string, string]> = {
-  report_snapshot_saved: ["Report snapshot saved.", "Đã lưu snapshot báo cáo."],
+  report_snapshot_saved: ["Report snapshot saved.", "Đã lưu bản chốt báo cáo."],
   report_schedule_created: ["Report schedule created.", "Đã tạo lịch báo cáo."],
   report_schedule_paused: ["Report schedule paused.", "Đã tạm dừng lịch báo cáo."],
   report_schedule_resumed: ["Report schedule resumed.", "Đã tiếp tục lịch báo cáo."],
@@ -28,11 +28,11 @@ const errorMessages: Record<string, [string, string]> = {
   report_schedule_cadence_invalid: ["Choose a valid schedule frequency.", "Hãy chọn tần suất hợp lệ."],
   report_schedule_duplicate: ["An active schedule already exists for this frequency and department.", "Đã có lịch đang chạy cho tần suất và phòng ban này."],
   report_schedule_limit: ["The limit of 20 active report schedules has been reached.", "Đã đạt giới hạn 20 lịch báo cáo đang chạy."],
-  report_snapshot_too_large: ["The aggregate snapshot is too large to store.", "Snapshot tổng hợp quá lớn để lưu."],
+  report_snapshot_too_large: ["The aggregate snapshot is too large to store.", "Bản chốt tổng hợp quá lớn để lưu."],
   report_entity_changed: ["The legal entity changed; pause and recreate this schedule.", "Pháp nhân đã đổi; hãy tạm dừng và tạo lại lịch."],
   forbidden: ["You do not have permission for this report action.", "Bạn không có quyền thực hiện thao tác báo cáo này."],
   conflict: ["The report changed. Reload and try again.", "Báo cáo đã thay đổi. Hãy tải lại và thử lại."],
-  not_found: ["That saved snapshot is unavailable.", "Snapshot đã lưu không còn khả dụng."],
+  not_found: ["That saved snapshot is unavailable.", "Bản chốt đã lưu không còn khả dụng."],
 };
 const sourceLabel = (value: string) => value === "scheduled" ? (vi ? "Theo lịch" : "Scheduled") : (vi ? "Thủ công" : "Manual");
 const cadenceLabel = (value: string) => value === "daily" ? (vi ? "Hằng ngày" : "Daily") : value === "weekly" ? (vi ? "Thứ Hai hằng tuần" : "Every Monday") : (vi ? "Ngày đầu mỗi tháng" : "First day of month");
@@ -46,22 +46,22 @@ const pageUrl = (key: string, page: number) => {
 <HrmPage data={d}>
   <section class="crm-notice" role="note">
     <strong>{vi ? "Báo cáo tổng hợp theo pháp nhân" : "Legal-entity aggregate report"}</strong>
-    <p>{vi ? "Báo cáo chỉ hiển thị số lượng; không có tên, CCCD, lương, lý do nghỉ hay nội dung hồ sơ HR riêng tư. Nhân sự, tài sản, phúc lợi và quá hạn đào tạo là ảnh chụp hiện tại; công, nghỉ phép, yêu cầu HR, onboarding và hạn đào tạo được tính theo kỳ đã chọn. Phòng ban lấy từ trường phòng ban trên hồ sơ đợt làm việc; sổ tài sản vẫn là số toàn pháp nhân." : "Reports show aggregate counts only; they omit names, IDs, pay, private leave reasons and HR case text. Employment, assets, benefits and overdue training are current snapshots. Attendance, leave, HR requests, onboarding and training deadlines use the selected period. Department comes from the department stored on each employment record; asset inventory remains company-wide."}</p>
+    <p>{vi ? "Báo cáo chỉ hiển thị số lượng; không có tên, CCCD, lương, lý do nghỉ hay nội dung hồ sơ HR riêng tư. Nhân sự, tài sản, phúc lợi và quá hạn đào tạo là ảnh chụp hiện tại; công, nghỉ phép, yêu cầu HR, hội nhập và hạn đào tạo được tính theo kỳ đã chọn. Phòng ban lấy từ trường phòng ban trên hồ sơ đợt làm việc; sổ tài sản vẫn là số toàn pháp nhân." : "Reports show aggregate counts only; they omit names, IDs, pay, private leave reasons and HR case text. Employment, assets, benefits and overdue training are current snapshots. Attendance, leave, HR requests, onboarding and training deadlines use the selected period. Department comes from the department stored on each employment record; asset inventory remains company-wide."}</p>
     <p class="crm-meta">{d.legalEntity} · {vi ? "Tạo lúc" : "Generated"} {d.generatedAt}</p>
   </section>
 
-  {d.user.can("hrm.reports.manage")&&<a class="crm-button secondary" href={`${prefix}/hrm/reports/governance`}>{vi?"Chính sách và hold báo cáo":"Report policies and holds"}</a>}
+  {d.user.can("hrm.reports.manage")&&<a class="crm-button secondary" href={`${prefix}/hrm/reports/governance`}>{vi?"Chính sách và tạm giữ báo cáo":"Report policies and holds"}</a>}
   {d.saved && savedMessages[d.saved] && <p class="crm-notice good" role="status">{savedMessages[d.saved][vi ? 1 : 0]}</p>}
   {d.error && <p class="crm-notice bad" role="alert">{errorMessages[d.error]?.[vi ? 1 : 0] ?? (vi ? "Không thể hoàn tất yêu cầu báo cáo." : "The report request could not be completed.")}</p>}
 
   {d.selectedSnapshot && <section class="crm-sheet" aria-labelledby="saved-snapshot-heading">
-    <h2 class="crm-h2" id="saved-snapshot-heading">{vi ? "Snapshot đã lưu" : "Saved report snapshot"}</h2>
+    <h2 class="crm-h2" id="saved-snapshot-heading">{vi ? "Bản chốt đã lưu" : "Saved report snapshot"}</h2>
     <p class="crm-meta">{sourceLabel(d.selectedSnapshot.source)} · {d.selectedSnapshot.legal_entity} · {d.selectedSnapshot.period} · {d.selectedSnapshot.department ?? (vi ? "Tất cả phòng ban" : "All departments")} · {d.selectedSnapshot.generated_at}</p>
     <p class="crm-meta">{vi?"Chụp xong":"Capture completed"}: {d.selectedSnapshot.created_at} · {vi?"Lịch dự kiến":"Nominal schedule"}: {d.selectedSnapshot.scheduled_for??"—"}</p>
     <p class="crm-meta">{vi ? "Giữ đến" : "Retained through"} {d.selectedSnapshot.expires_on}{d.selectedSnapshot.retention_basis ? ` · ${vi ? "Căn cứ" : "Basis"}: ${d.selectedSnapshot.retention_basis}` : ""}</p>
     {d.user.can("hrm.reports.export") && <form method="post" action="/api/hrm/reports/snapshots/export" class="crm-actions">
       <input type="hidden" name="snapshot_ref" value={d.selectedSnapshot.snapshot_ref}/><input type="hidden" name="lang" value={vi ? "vi" : "en"}/><input type="hidden" name="request_key" value={crypto.randomUUID()}/>
-      <button class="crm-button secondary" type="submit">{vi ? "Tải CSV snapshot" : "Download snapshot CSV"}</button>
+      <button class="crm-button secondary" type="submit">{vi ? "Tải CSV bản chốt" : "Download snapshot CSV"}</button>
     </form>}
     <div class="crm-list">{d.selectedSnapshot.report.groups.map(group => <section class="crm-sheet">
       <h3 class="crm-h3">{vi ? group.title_vi : group.title_en}</h3>
@@ -83,12 +83,12 @@ const pageUrl = (key: string, page: number) => {
   {!d.error && d.user.can("hrm.reports.export") && <form method="post" action={exportAction} class="crm-actions"><button class="crm-button secondary" type="submit">{vi ? "Tải CSV tổng hợp" : "Download aggregate CSV"}</button></form>}
 
   {d.user.can("hrm.reports.manage") && !d.error && <section class="crm-sheet">
-    <h2 class="crm-h2">{vi ? "Lưu snapshot tổng hợp" : "Save aggregate snapshot"}</h2>
-    <p class="crm-help">{vi ? "Chọn chính sách đã duyệt và còn hiệu lực cho loại chụp, pháp nhân và phòng ban. Số liệu tổng hợp không được coi là đã ẩn danh. Thời hạn tính từ khi chụp xong; hold có thể hoãn xóa nhưng không gia hạn quyền đọc." : "Choose a reviewed, active policy matching the capture kind, entity and department. Aggregate counts are not assumed anonymous. Retention starts at capture completion; a hold can defer purge without extending ordinary access."}</p>
+    <h2 class="crm-h2">{vi ? "Lưu bản chốt tổng hợp" : "Save aggregate snapshot"}</h2>
+    <p class="crm-help">{vi ? "Chọn chính sách đã duyệt và còn hiệu lực cho loại chụp, pháp nhân và phòng ban. Số liệu tổng hợp không được coi là đã ẩn danh. Thời hạn tính từ khi chụp xong; tạm giữ có thể hoãn xóa nhưng không gia hạn quyền đọc." : "Choose a reviewed, active policy matching the capture kind, entity and department. Aggregate counts are not assumed anonymous. Retention starts at capture completion; a hold can defer purge without extending ordinary access."}</p>
     <form class="crm-form" method="post" action="/api/hrm/reports/snapshots">
       <input type="hidden" name="request_key" value={crypto.randomUUID()}/><input type="hidden" name="return_to" value={currentUrl}/><input type="hidden" name="period" value={d.period}/><input type="hidden" name="department" value={d.department ?? ""}/>
       <label class="crm-field"><span>{vi?"Chính sách đã duyệt":"Reviewed policy"}</span><select class="crm-input" name="policy_ref" required><option value="">{vi?"Chọn chính sách; chưa có thì chuẩn bị trước":"Choose a policy; prepare one if none exists"}</option>{availablePolicies.filter(p=>p.capture_kind==="manual"&&(p.department===null||p.department===d.department)).map(p=><option value={p.policy_ref}>{vi?p.title_vi:p.title_en} · v{p.version_number} · {p.retention_days} {vi?"ngày":"days"}</option>)}</select></label>
-      <button class="crm-button">{vi ? "Lưu snapshot" : "Save snapshot"}</button>
+      <button class="crm-button">{vi ? "Lưu bản chốt" : "Save snapshot"}</button>
     </form>
   </section>}
 
@@ -98,18 +98,18 @@ const pageUrl = (key: string, page: number) => {
   </section>)}</div>
 
   <section class="crm-sheet">
-    <h2 class="crm-h2">{vi ? "Snapshot đã lưu" : "Saved snapshots"}</h2>
-    {d.snapshots.length === 0 ? <p class="crm-empty">{vi ? "Chưa lưu snapshot nào." : "No report snapshots have been saved."}</p> : <div class="crm-list">{d.snapshots.map(snapshot => <article class="crm-row">
-      <div><strong>{snapshot.period} · {snapshot.department ?? (vi ? "Tất cả phòng ban" : "All departments")}</strong><p class="crm-meta">{sourceLabel(snapshot.source)} · {snapshot.generated_at} · {vi ? "Giữ đến" : "Retained through"} {snapshot.expires_on}{snapshot.retention_basis ? ` · ${vi ? "Căn cứ" : "Basis"}: ${snapshot.retention_basis}` : ""}</p>{snapshot.state === "expired" && <p class="crm-meta">{vi ? "Đã hết hạn đọc thông thường. Nội dung được bảo toàn chỉ xuất qua quyền hold riêng." : "Ordinary access has expired. Preserved content requires a separately authorized hold export."}</p>}</div>
-      {snapshot.hold_active===1&&d.user.can("hrm.reports.holds.read")&&<form method="post" action="/api/hrm/reports/snapshots/export" class="crm-form"><input type="hidden" name="held_access" value="1"/><input type="hidden" name="snapshot_ref" value={snapshot.snapshot_ref}/><input type="hidden" name="request_key" value={crypto.randomUUID()}/><input type="hidden" name="lang" value={vi?"vi":"en"}/><label class="crm-field"><span>{vi?"Căn cứ truy cập nội dung hold":"Held-content access reason"}</span><input class="crm-input" name="reason" maxlength="500" required/></label><button class="crm-button secondary">{vi?"Xuất CSV hold có ghi nhận truy cập":"Export held CSV with access audit"}</button></form>}
-      {snapshot.state === "active" && <a class="crm-button secondary small" href={`${prefix}/hrm/reports?snapshot=${encodeURIComponent(snapshot.snapshot_ref)}&snapshot_page=${d.snapshotPage}`}>{vi ? "Xem snapshot" : "View snapshot"}</a>}
+    <h2 class="crm-h2">{vi ? "Bản chốt đã lưu" : "Saved snapshots"}</h2>
+    {d.snapshots.length === 0 ? <p class="crm-empty">{vi ? "Chưa lưu bản chốt nào." : "No report snapshots have been saved."}</p> : <div class="crm-list">{d.snapshots.map(snapshot => <article class="crm-row">
+      <div><strong>{snapshot.period} · {snapshot.department ?? (vi ? "Tất cả phòng ban" : "All departments")}</strong><p class="crm-meta">{sourceLabel(snapshot.source)} · {snapshot.generated_at} · {vi ? "Giữ đến" : "Retained through"} {snapshot.expires_on}{snapshot.retention_basis ? ` · ${vi ? "Căn cứ" : "Basis"}: ${snapshot.retention_basis}` : ""}</p>{snapshot.state === "expired" && <p class="crm-meta">{vi ? "Đã hết hạn đọc thông thường. Nội dung được bảo toàn chỉ xuất qua quyền tạm giữ riêng." : "Ordinary access has expired. Preserved content requires a separately authorized hold export."}</p>}</div>
+      {snapshot.hold_active===1&&d.user.can("hrm.reports.holds.read")&&<form method="post" action="/api/hrm/reports/snapshots/export" class="crm-form"><input type="hidden" name="held_access" value="1"/><input type="hidden" name="snapshot_ref" value={snapshot.snapshot_ref}/><input type="hidden" name="request_key" value={crypto.randomUUID()}/><input type="hidden" name="lang" value={vi?"vi":"en"}/><label class="crm-field"><span>{vi?"Căn cứ truy cập nội dung tạm giữ":"Held-content access reason"}</span><input class="crm-input" name="reason" maxlength="500" required/></label><button class="crm-button secondary">{vi?"Xuất CSV tạm giữ có ghi nhận truy cập":"Export held CSV with access audit"}</button></form>}
+      {snapshot.state === "active" && <a class="crm-button secondary small" href={`${prefix}/hrm/reports?snapshot=${encodeURIComponent(snapshot.snapshot_ref)}&snapshot_page=${d.snapshotPage}`}>{vi ? "Xem bản chốt" : "View snapshot"}</a>}
     </article>)}</div>}
-    {(d.snapshotPage > 1 || d.hasMoreSnapshots) && <nav class="crm-actions" aria-label={vi ? "Trang snapshot đã lưu" : "Saved snapshot pages"}>{d.snapshotPage > 1 && <a class="crm-button secondary small" href={pageUrl("snapshot_page", d.snapshotPage - 1)}>{vi ? "Snapshot trước" : "Previous snapshots"}</a>}{d.hasMoreSnapshots && <a class="crm-button secondary small" href={pageUrl("snapshot_page", d.snapshotPage + 1)}>{vi ? "Snapshot tiếp" : "Next snapshots"}</a>}</nav>}
+    {(d.snapshotPage > 1 || d.hasMoreSnapshots) && <nav class="crm-actions" aria-label={vi ? "Trang bản chốt đã lưu" : "Saved snapshot pages"}>{d.snapshotPage > 1 && <a class="crm-button secondary small" href={pageUrl("snapshot_page", d.snapshotPage - 1)}>{vi ? "Bản chốt trước" : "Previous snapshots"}</a>}{d.hasMoreSnapshots && <a class="crm-button secondary small" href={pageUrl("snapshot_page", d.snapshotPage + 1)}>{vi ? "Bản chốt tiếp" : "Next snapshots"}</a>}</nav>}
   </section>
 
   {d.user.can("hrm.reports.manage") && <section class="crm-sheet">
-    <h2 class="crm-h2">{vi ? "Lịch snapshot" : "Snapshot schedules"}</h2>
-    <p class="crm-help">{vi ? "Lịch chạy lúc 08:40 giờ Việt Nam. Hằng ngày và hằng tuần lưu tháng hiện tại; lịch tháng chạy ngày đầu tháng và lưu tháng vừa kết thúc. Snapshot không gửi email, Lark hoặc kênh ngoài. Hãy cấu hình rõ thời hạn và căn cứ lưu trữ. Có tối đa 20 lịch đang chạy." : "Schedules run at 08:40 Asia/Ho_Chi_Minh. Daily and weekly schedules capture the current month; monthly schedules run on the first and capture the previous complete month. No email, Lark or external channel is used. Enter explicit retention days and basis. Up to 20 schedules may be active."}</p>
+    <h2 class="crm-h2">{vi ? "Lịch bản chốt" : "Snapshot schedules"}</h2>
+    <p class="crm-help">{vi ? "Lịch chạy lúc 08:40 giờ Việt Nam. Hằng ngày và hằng tuần lưu tháng hiện tại; lịch tháng chạy ngày đầu tháng và lưu tháng vừa kết thúc. Bản chốt không gửi email, Lark hoặc kênh ngoài. Hãy cấu hình rõ thời hạn và căn cứ lưu trữ. Có tối đa 20 lịch đang chạy." : "Schedules run at 08:40 Asia/Ho_Chi_Minh. Daily and weekly schedules capture the current month; monthly schedules run on the first and capture the previous complete month. No email, Lark or external channel is used. Enter explicit retention days and basis. Up to 20 schedules may be active."}</p>
     <form class="crm-form" method="post" action="/api/hrm/reports/schedules">
       <input type="hidden" name="intent" value="create_schedule"/><input type="hidden" name="request_key" value={crypto.randomUUID()}/><input type="hidden" name="return_to" value={currentUrl}/>
       <div class="crm-form-grid">
@@ -123,6 +123,6 @@ const pageUrl = (key: string, page: number) => {
       <div><strong>{cadenceLabel(schedule.cadence)} · {schedule.department ?? (vi ? "Tất cả phòng ban" : "All departments")} · {scheduleStateLabel(schedule.state)}</strong><p class="crm-meta">{vi ? "Giữ" : "Retention"} {schedule.retention_days} {vi ? "ngày" : "days"} · {vi ? "Căn cứ" : "Basis"}: {schedule.retention_basis} · {schedule.last_run_on ? `${vi ? "Lần chạy cuối" : "Last run"} ${schedule.last_run_on} · ${schedule.last_run_state}${schedule.last_error_code ? ` (${schedule.last_error_code})` : ""}` : (vi ? "Chưa chạy" : "No run recorded")}</p></div>
       {schedule.state !== "retired" && <form method="post" action="/api/hrm/reports/schedules"><input type="hidden" name="intent" value="set_schedule_state"/><input type="hidden" name="request_key" value={crypto.randomUUID()}/><input type="hidden" name="return_to" value={currentUrl}/><input type="hidden" name="schedule_ref" value={schedule.schedule_ref}/><input type="hidden" name="version" value={schedule.version}/><div class="crm-actions"><button class="crm-button secondary small" name="action" value={schedule.state === "active" ? "pause" : "resume"}>{schedule.state === "active" ? (vi ? "Tạm dừng" : "Pause") : (vi ? "Tiếp tục" : "Resume")}</button><button class="crm-button danger small" name="action" value="retire">{vi ? "Kết thúc" : "Retire"}</button></div></form>}
     </article>)}</div>}
-    {(d.schedulePage > 1 || d.hasMoreSchedules) && <nav class="crm-actions" aria-label={vi ? "Trang lịch snapshot" : "Snapshot schedule pages"}>{d.schedulePage > 1 && <a class="crm-button secondary small" href={pageUrl("schedule_page", d.schedulePage - 1)}>{vi ? "Lịch trước" : "Previous schedules"}</a>}{d.hasMoreSchedules && <a class="crm-button secondary small" href={pageUrl("schedule_page", d.schedulePage + 1)}>{vi ? "Lịch tiếp" : "Next schedules"}</a>}</nav>}
+    {(d.schedulePage > 1 || d.hasMoreSchedules) && <nav class="crm-actions" aria-label={vi ? "Trang lịch bản chốt" : "Snapshot schedule pages"}>{d.schedulePage > 1 && <a class="crm-button secondary small" href={pageUrl("schedule_page", d.schedulePage - 1)}>{vi ? "Lịch trước" : "Previous schedules"}</a>}{d.hasMoreSchedules && <a class="crm-button secondary small" href={pageUrl("schedule_page", d.schedulePage + 1)}>{vi ? "Lịch tiếp" : "Next schedules"}</a>}</nav>}
   </section>}
 </HrmPage>

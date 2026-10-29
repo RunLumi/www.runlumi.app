@@ -44,7 +44,7 @@ export async function onboardingManagePage(astro:AstroGlobal,lang:Lang):Promise<
   let preview:OnboardingManagePage["preview"],error=astro.url.searchParams.get("error")??undefined;
   const previewPlan=astro.url.searchParams.get("preview_plan")??"",previewStart=astro.url.searchParams.get("preview_start")??"";
   if(previewPlan&&previewStart)try{preview=await previewOnboardingReschedule(env.DB,user,previewPlan,date(previewStart)!)}catch(cause){error=cause instanceof HrmError?cause.message:"internal_error";if(cause instanceof HrmError)astro.response.status=cause.status;}
-  return {...base(lang,user,lang==="vi"?"Kế hoạch onboarding":"Onboarding plans"),templates,versions,plans,candidates,tasks,reassignment,members,selectedTemplate,saved:astro.url.searchParams.get("saved")??"",error,preview};
+  return {...base(lang,user,lang==="vi"?"Kế hoạch hội nhập":"Onboarding plans"),templates,versions,plans,candidates,tasks,reassignment,members,selectedTemplate,saved:astro.url.searchParams.get("saved")??"",error,preview};
 }
 
 export interface OnboardingSelfPage extends PageBase {tasks:OnboardingTaskRow[];saved:string;error?:string}

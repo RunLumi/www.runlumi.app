@@ -197,7 +197,7 @@ test("one hired candidate completes the same-employment HRM journey through payr
  let specificHold=row(`SELECT * FROM hrm_closeout_file_holds WHERE file_id=${q(financialProof.id)} AND state='active'`);
  assert.equal(specificHold.placed_by,admin.id);assert.match(specificHold.placed_at,/Z$/);
  const selfRelease=await admin.post("/api/hrm/closeout",{intent:"release_file_hold",case_id:exitCase.id,hold_id:specificHold.id,version:specificHold.version,reason,request_key:key()});assert.equal(new URL(selfRelease.location,BASE).searchParams.get("error"),"self_approval");
- await audit("financial-file-hold",system,`/hrm/offboarding/${exitCase.id}`,`/vi/hrm/offboarding/${exitCase.id}`,"Active file legal hold","Legal hold đang áp dụng",true,`#financial-file-${financialProof.id}`);
+ await audit("financial-file-hold",system,`/hrm/offboarding/${exitCase.id}`,`/vi/hrm/offboarding/${exitCase.id}`,"Active file legal hold","Tạm giữ pháp lý đang áp dụng",true,`#financial-file-${financialProof.id}`);
  await post(system,"/api/hrm/closeout",{intent:"release_file_hold",case_id:exitCase.id,hold_id:specificHold.id,version:specificHold.version,reason:"TEST independent matter closure",lang:"vi"});
  specificHold=byId("hrm_closeout_file_holds",specificHold.id);assert.equal(specificHold.state,"released");assert.equal(specificHold.released_by,systemId);assert.equal(byId("hrm_closeout_files",financialProof.id).legal_hold,1,"person hold survives file hold release");
  financialProof=byId("hrm_closeout_files",financialProof.id);
