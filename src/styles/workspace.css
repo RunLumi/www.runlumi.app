@@ -104,3 +104,99 @@
 .ws-gmenu.cols { grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); gap: 14px 20px; }
 @media (max-width: 1023px) { .ws-gmenu a { min-height: 44px; } }
 @media (forced-colors: active) { .ws-gmenu a[aria-current="page"] { outline: 2px solid CanvasText; } }
+
+/* Shell: row 1 (brand, modules, account), row 2 (current module and its pages). */
+.ws .ws-wide { width: min(calc(100% - 2 * var(--crm-gutter)), 1480px); margin-inline: auto; }
+.ws .ws-header { position: sticky; top: 0; z-index: 30; background: #f9f7f2; border-bottom: 1px solid var(--crm-line); backdrop-filter: none; }
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .ws .ws-header { background: rgba(249, 247, 242, .9); -webkit-backdrop-filter: blur(16px) saturate(1.2); backdrop-filter: blur(16px) saturate(1.2); }
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) { .ws .ws-header { background: #f9f7f2; -webkit-backdrop-filter: none; backdrop-filter: none; } }
+.ws .ws-bar { display: flex; align-items: center; gap: 8px 16px; min-height: 60px; flex-wrap: nowrap; padding-block: 6px; }
+.ws .ws-modules { display: flex; gap: 2px; flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.ws .ws-modules::-webkit-scrollbar { display: none; }
+.ws .ws-account { display: flex; align-items: center; gap: 4px; margin-left: auto; flex: none; }
+
+/* Pop-overs built on <details>: they work without script and close on a second click. */
+.ws details.ws-launcher, .ws details.ws-me { position: relative; }
+.ws-launcher > summary, .ws-me > summary { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; min-width: 44px; justify-content: center; padding: 0 6px; border-radius: 8px; color: var(--crm-navy); cursor: pointer; list-style: none; }
+.ws-launcher > summary::-webkit-details-marker, .ws-me > summary::-webkit-details-marker { display: none; }
+.ws-launcher > summary:hover, .ws-me > summary:hover, .ws-launcher[open] > summary, .ws-me[open] > summary { background: rgba(16, 42, 67, .06); }
+.ws-pop { position: absolute; top: calc(100% + 6px); z-index: 40; display: grid; gap: 8px; padding: 14px; border: 1px solid var(--crm-line); border-radius: 12px; background: var(--crm-sheet); box-shadow: 0 1px 2px -1px rgba(16, 42, 67, .1), 0 18px 40px -18px rgba(16, 42, 67, .32); }
+.ws-pop ul { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.ws-pop a { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px 10px; border-radius: 8px; color: var(--crm-ink); text-decoration: none; }
+.ws-pop a:hover { background: rgba(16, 42, 67, .05); }
+.ws-pop a[aria-current="page"] { background: var(--crm-blue-soft); color: var(--crm-navy); }
+.ws-pop a .ws-icon { color: var(--crm-slate); }
+.ws-launcher-pop { left: 0; width: min(360px, calc(100vw - 32px)); }
+.ws-launcher-pop a > span { display: grid; gap: 2px; }
+.ws-launcher-pop a strong { color: var(--crm-navy); font-weight: 650; }
+.ws-launcher-pop a span span { color: var(--crm-slate); font-size: var(--crm-meta); line-height: 1.35; }
+.ws-me-pop { right: 0; width: min(300px, calc(100vw - 32px)); }
+.ws-me-id { display: grid; gap: 2px; margin: 0 0 4px; padding: 0 2px 10px; border-bottom: 1px solid var(--crm-line-soft); }
+.ws-me-id strong { color: var(--crm-navy); overflow-wrap: anywhere; }
+.ws-me-id span { color: var(--crm-slate); font-size: var(--crm-meta); overflow-wrap: anywhere; }
+.ws-me-pop form { margin: 4px 0 0; padding-top: 8px; border-top: 1px solid var(--crm-line-soft); }
+.ws-me-pop button { width: 100%; min-height: 44px; padding: 0 10px; border: 0; border-radius: 8px; background: none; color: var(--crm-ink); font: inherit; text-align: left; cursor: pointer; }
+.ws-me-pop button:hover { background: rgba(16, 42, 67, .05); }
+.ws-avatar { display: inline-grid; place-items: center; inline-size: 34px; block-size: 34px; flex: none; border-radius: 999px; background: var(--crm-navy); color: white; font-size: 13px; font-weight: 650; letter-spacing: .02em; }
+.ws .ws-user { display: grid; line-height: 1.2; max-width: 200px; text-align: left; }
+
+/* Row 2. */
+.ws-appbar { border-top: 1px solid var(--crm-line-soft); background: rgba(255, 255, 255, .55); }
+.ws-appbar-in { display: flex; align-items: center; gap: 4px 20px; min-height: 48px; }
+.ws-app-name { display: inline-flex; align-items: center; gap: 8px; flex: none; padding-right: 16px; border-right: 1px solid var(--crm-line); color: var(--crm-navy); font-size: 16px; font-weight: 700; letter-spacing: -.01em; text-decoration: none; }
+.ws-app-name .ws-icon { color: var(--crm-blue); }
+.ws .ws-pages { display: flex; gap: 2px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.ws .ws-pages a { min-height: 48px; border-radius: 0; }
+.ws .ws-menu { flex: 1 1 auto; min-width: 0; }
+.ws .ws-menu > summary { min-height: 48px; }
+.ws .ws-menu .ws-gmenu { padding-block: 12px 16px; max-block-size: calc(100vh - 160px); overflow: auto; }
+.ws .ws-side { position: sticky; top: 118px; max-block-size: calc(100vh - 118px); overflow: auto; padding-block: 24px; scrollbar-width: thin; }
+.ws .ws-frame { width: min(calc(100% - 2 * var(--crm-gutter)), 1480px); grid-template-columns: 15.5rem minmax(0, 1fr); }
+.ws .crm-footer-in { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
+
+/* Wide screens show the module tabs; narrow ones use the launcher. */
+@media (min-width: 1024px) { .ws .ws-launcher { display: none; } }
+@media (max-width: 1023px) {
+  .ws .ws-modules { display: none; }
+  .ws .ws-user { display: none; }
+  .ws .ws-side { display: none; }
+}
+@media (max-width: 640px) {
+  .ws .ws-header { position: static; }
+  .ws .crm-brand img { width: 64px; height: auto; }
+  .ws .crm-brand span { display: none; }
+  .ws-appbar-in { flex-wrap: wrap; gap: 0 12px; }
+  .ws-app-name { border-right: 0; padding-block: 10px 0; }
+  .ws .ws-pages { flex-basis: 100%; }
+}
+@media (forced-colors: active) { .ws-pop { border: 1px solid CanvasText; } .ws-avatar { border: 1px solid CanvasText; } }
+
+/* Overview figures: each number links to the list it counts. */
+.ws-home-figures { display: grid; gap: 0; margin: 0; }
+.ws-home-figures > div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--crm-line-soft); }
+.ws-home-figures > div:last-child { border-bottom: 0; }
+.ws-home-figures dt { color: var(--crm-ink); font-size: 15px; }
+.ws-home-figures dd { margin: 0; }
+.ws-home-figures a { display: inline-block; min-width: 44px; padding: 2px 0; color: var(--crm-navy); font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.02em; text-align: right; text-decoration: none; }
+.ws-home-figures a:hover { color: var(--crm-blue); text-decoration: underline; }
+.ws-home-roles { margin: 0; color: var(--crm-navy); font-weight: 600; }
+.ws-badges { display: inline-flex; flex-wrap: wrap; gap: 4px 6px; }
+.ws-role-areas { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 16px 24px; align-items: start; }
+.ws-role-area { display: grid; gap: 10px; margin: 0; }
+.ws-role-check { align-items: flex-start; }
+.ws-role-check > span { display: grid; gap: 2px; }
+.ws-role-check strong { color: var(--crm-navy); font-weight: 600; }
+.ws-member-id { display: flex; align-items: center; gap: 14px; }
+.ws-member-id .ws-avatar { inline-size: 52px; block-size: 52px; font-size: 18px; }
+.ws-list { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+.ws-list > li { display: grid; gap: 2px; padding: 10px 0; border-bottom: 1px solid var(--crm-line-soft); }
+.ws-list > li:last-child { border-bottom: 0; }
+.ws-list strong { color: var(--crm-navy); }
+.ws-list .crm-help { margin: 0; }
+.ws-tbl th.ws-mx-col { white-space: normal; min-width: 104px; text-transform: none; letter-spacing: 0; font-size: 13px; }
+.ws-tbl td.ws-mx { text-align: center; color: var(--crm-green); font-weight: 700; }
+.ws-tbl td.ws-mx.none { color: var(--crm-line-strong); }
+.ws-tbl td.ws-mx.none::before { content: "·"; }
+.ws-tbl tbody th code { font-size: 13.5px; font-weight: 500; color: var(--crm-ink); overflow-wrap: anywhere; }

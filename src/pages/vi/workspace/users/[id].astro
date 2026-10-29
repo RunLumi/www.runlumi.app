@@ -1,0 +1,9 @@
+---
+import WorkspaceMember from "../../../../components/workspace/WorkspaceMember.astro";
+import { memberPage } from "../../../../lib/workspace/pages";
+
+export const prerender = false;
+const data = await memberPage(Astro, "vi");
+if (data instanceof Response) return data;
+---
+<WorkspaceMember {...data} />

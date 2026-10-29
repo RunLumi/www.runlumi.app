@@ -1,78 +1,87 @@
 ---
+// Admin › Users. One full-width table of everyone with access (R-03); a row
+// opens the member's child screen, where roles are changed.
 import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
+import DataTable from "./ui/DataTable.astro";
+import PageHeader from "./ui/PageHeader.astro";
+import Panel from "./ui/Panel.astro";
+import { localized } from "../../lib/workspace/nav";
 import type { usersPage } from "../../lib/workspace/pages";
-import { ROLE_PERMISSIONS, roleDescriptions, roleLabel, roles } from "../../lib/workspace/roles";
+import { accessErrors, auditActions, modulesFor } from "../../lib/workspace/access";
+import { roleLabel, type Role } from "../../lib/workspace/roles";
+import { shortDate, dateTime } from "../../lib/workspace/format";
 
 type Props = Exclude<Awaited<ReturnType<typeof usersPage>>, Response>;
-const { lang, vi, user, members, accounts, audit, names, state, withTerms } = Astro.props;
+const { lang, vi, user, rows, shown, filter, query, audit, names, state } = Astro.props;
+const t = (en: string, viText: string) => vi ? viText : en;
+const base = localized("/workspace/users", vi);
 const saved = Astro.url.searchParams.get("saved");
-const memberIds = new Set(members.map((member) => member.user_id));
-const admins = accounts.filter((account) => account.role === 50);
-const candidates = accounts.filter((account) => account.role !== 50 && !memberIds.has(account.id));
-const errors: Record<string, [string, string]> = {
-  not_found: ["No active EmDash account matches. Create or invite it in EmDash first.", "Không có tài khoản EmDash đang hoạt động khớp. Hãy tạo hoặc mời trong EmDash trước."],
-  already_admin: ["EmDash admins already have every permission.", "Admin EmDash đã có mọi quyền."],
-  disabled_account: ["That EmDash account is disabled.", "Tài khoản EmDash đó đang bị vô hiệu."],
-  required: ["Choose at least one role.", "Chọn ít nhất một vai trò."],
-  self: ["You cannot change your own access.", "Không thể tự đổi quyền của chính mình."],
-};
 const error = Object.values(state.errors)[0];
-const actions: Record<string, [string, string]> = { access_saved: ["Access saved", "Lưu quyền"], access_revoked: ["Access revoked", "Thu hồi quyền"] };
-const permissionCount = (role: typeof roles[number]) => ROLE_PERMISSIONS[role].length;
+const count = (test: (row: typeof rows[number]) => boolean) => rows.filter(test).length;
+const chips: { key: typeof filter; label: string; n: number }[] = [
+  { key: "all", label: t("All", "Tất cả"), n: rows.length },
+  { key: "active", label: t("Active", "Đang hoạt động"), n: count((row) => row.enabled && row.active) },
+  { key: "revoked", label: t("Revoked or disabled", "Đã thu hồi hoặc bị khóa"), n: count((row) => !row.enabled || !row.active) },
+  { key: "admins", label: t("System Super Admins", "Siêu quản trị"), n: count((row) => row.admin) },
+  { key: "terms", label: t("Partners without seller terms", "Cộng tác viên chưa khai báo loại người bán"), n: count((row) => row.sellerTermsMissing) },
+];
+const href = (next: typeof filter) => `${base}${next === "all" && !query ? "" : `?${new URLSearchParams({ ...(next !== "all" ? { filter: next } : {}), ...(query ? { q: query } : {}) })}`}`;
+const status = (row: typeof rows[number]): [string, string] => !row.enabled ? ["red", t("Revoked", "Đã thu hồi")] : row.active ? ["green", t("Active", "Đang hoạt động")] : ["red", t("EmDash disabled", "EmDash đã khóa")];
 ---
-<WorkspaceShell title={vi ? "Người dùng và vai trò" : "Users and roles"} lang={lang} user={user} module="admin" current="users">
-  <div class="crm-head"><div>
-    <p class="crm-eyebrow">{vi ? "Quản trị" : "Admin"}</p>
-    <h1 class="crm-h1">{vi ? "Ai được vào, với vai trò nào." : "Who gets in, and with which role."}</h1>
-    <p class="crm-lede">{vi ? "Danh tính và đăng nhập do EmDash quản lý. Ở đây chỉ cấp vai trò cho tài khoản EmDash đã tồn tại. Thu hồi có hiệu lực từ yêu cầu kế tiếp; hồ sơ họ phụ trách vẫn giữ nguyên." : "EmDash owns identity and sign-in. Here you grant roles to existing EmDash accounts. Revoking takes effect on the next request; their records stay."}</p>
-  </div></div>
-  {saved && <div class="crm-notice good" role="status">{vi ? "Đã lưu." : "Saved."}</div>}
-  {error && <div class="crm-notice bad" role="alert">{errors[error]?.[vi ? 1 : 0] ?? error}</div>}
+<WorkspaceShell title={t("Users", "Người dùng")} lang={lang} user={user} module="admin" current="users">
+  <PageHeader vi={vi} eyebrow={t("Admin", "Quản trị")} title={t("Users", "Người dùng")} lede={t("EmDash owns identity and sign-in. Here you grant Workspace roles to existing EmDash accounts. Revoking takes effect on the next request; the person's records stay.", "EmDash quản lý danh tính và đăng nhập. Ở đây bạn cấp vai trò Workspace cho tài khoản EmDash đã có. Thu hồi có hiệu lực từ yêu cầu kế tiếp; hồ sơ người đó phụ trách vẫn được giữ.")}>
+    <Fragment slot="actions">
+      <a class="crm-button secondary" href={localized("/workspace/roles", vi)}>{t("Roles and permissions", "Vai trò và quyền")}</a>
+      <a class="crm-button" href={`${base}/new`}>{t("Grant access", "Cấp quyền")}</a>
+    </Fragment>
+  </PageHeader>
+  {saved && <div class="crm-notice good" role="status">{t("Saved.", "Đã lưu.")}</div>}
+  {error && <div class="crm-notice bad" role="alert">{accessErrors[error]?.[vi ? 1 : 0] ?? error}</div>}
 
-  <section class="crm-sheet" aria-labelledby="matrix-h">
-    <h2 class="crm-h2" id="matrix-h">{vi ? "Vai trò" : "Roles"}</h2>
-    <div class="crm-table-wrap"><table class="crm-table">
-      <thead><tr><th>{vi ? "Vai trò" : "Role"}</th><th>{vi ? "Được làm gì" : "What it allows"}</th></tr></thead>
-      <tbody>
-        <tr><td><strong>{roleLabel("admin", vi)}</strong></td><td>{roleDescriptions.admin[vi ? 1 : 0]}</td></tr>
-        {roles.map((role) => <tr><td><strong>{roleLabel(role, vi)}</strong><span class="crm-meta"><br />{permissionCount(role)} {vi ? "quyền" : "permissions"}</span></td><td>{roleDescriptions[role][vi ? 1 : 0]}</td></tr>)}
-      </tbody>
-    </table></div>
-    <p class="crm-help">{vi ? "Có thể kết hợp nhiều vai trò, ví dụ Nhân viên bán hàng + Bàn giao. Vai trò CRM không mở được hồ sơ ứng viên. Với Cộng tác viên, hãy khai báo loại người bán (bán trọn hoặc giới thiệu) ở trang Hoa hồng để tính hoa hồng." : "Roles combine, for example Sales Executive + Fulfillment. CRM roles never open candidate records. For Partners, declare seller terms (full-cycle or referral) on the Commission page so commission can be calculated."}</p>
-  </section>
+  <Panel title={t("People with access", "Người có quyền")} note={t(`${shown.length} of ${rows.length} shown. Select a name to see details and change roles.`, `Đang hiện ${shown.length}/${rows.length}. Bấm vào tên để xem chi tiết và đổi vai trò.`)} flush>
+    <div class="ws-toolbar">
+      <ul class="ws-chips" aria-label={t("Quick filters", "Lọc nhanh")}>
+        {chips.filter((chip) => chip.key === "all" || chip.n > 0 || chip.key === filter).map((chip) => <li><a href={href(chip.key)} aria-current={chip.key === filter ? "true" : undefined}>{chip.label} <span class="crm-count">{chip.n}</span></a></li>)}
+      </ul>
+      <form class="ws-search" method="get" role="search">
+        {filter !== "all" && <input type="hidden" name="filter" value={filter} />}
+        <label class="crm-sr" for="q">{t("Search by name or email", "Tìm theo tên hoặc email")}</label>
+        <input class="crm-input" id="q" name="q" type="search" value={query} maxlength="100" placeholder={t("Name or email", "Tên hoặc email")} />
+        <button class="crm-button secondary" type="submit">{t("Search", "Tìm")}</button>
+      </form>
+    </div>
+    {shown.length
+      ? <DataTable vi={vi} label={t("People with access", "Người có quyền")} frozen={1} widths={["17rem"]} frozenNames={t("Name", "Tên")} minWidth="980px" meta={t(`${shown.length} people`, `${shown.length} người`)}>
+          <thead><tr>
+            <th scope="col">{t("Name", "Tên")}</th><th scope="col">{t("Roles", "Vai trò")}</th><th scope="col">{t("Modules", "Phân hệ")}</th>
+            <th scope="col" class="num">Passkey</th><th scope="col" class="num">{t("AI agent tokens", "Token AI agent")}</th>
+            <th scope="col">{t("Status", "Trạng thái")}</th><th scope="col">{t("Last change", "Thay đổi gần nhất")}</th>
+          </tr></thead>
+          <tbody>{shown.map((row) => { const [tone, label] = status(row); return <tr>
+            <th scope="row"><a class="ws-row-link" href={`${base}/${encodeURIComponent(row.user_id)}`}>{row.name || t("EmDash account unavailable", "Không còn tài khoản EmDash")}</a><span class="ws-sub">{row.email}</span></th>
+            <td>{row.admin ? roleLabel("admin", vi) : row.roles.map((role: Role) => roleLabel(role, vi)).join(", ") || "—"}</td>
+            <td>{modulesFor(row.admin, row.roles).map((module) => vi ? module.vi : module.en).join(", ") || "—"}</td>
+            <td class="num">{row.passkeys ?? "—"}</td>
+            <td class="num">{row.tokens}</td>
+            <td><span class="ws-badges"><span class:list={["crm-badge", tone]}>{label}</span>{row.admin && <span class="crm-badge blue">{t("from EmDash", "do EmDash cấp")}</span>}{row.sellerTermsMissing && <a class="crm-badge amber" href={localized("/crm/commission#terms", vi)}>{t("Seller terms not set", "Chưa khai báo loại người bán")}</a>}</span></td>
+            <td class="nowrap">{row.updated_at ? shortDate(row.updated_at, vi) : "—"}</td>
+          </tr>; })}</tbody>
+        </DataTable>
+      : <p class="ws-table-empty">{query ? t(`Nobody matches “${query}”.`, `Không có ai khớp “${query}”.`) : t("Nobody in this view.", "Không có ai trong mục này.")}</p>}
+  </Panel>
 
-  <section class="crm-sheet" aria-labelledby="grant-h">
-    <h2 class="crm-h2" id="grant-h">{vi ? "Cấp quyền" : "Grant access"}</h2>
-    <form class="crm-form" method="post">
-      <input type="hidden" name="intent" value="grant" />
-      <div class="crm-field"><label for="email">{vi ? "Email tài khoản EmDash" : "EmDash account email"}</label><input class="crm-input" id="email" name="email" type="email" required maxlength="254" autocomplete="off" list="accounts" value={state.intent === "grant" ? state.values.email : ""} aria-invalid={state.intent === "grant" && state.errors.email ? "true" : undefined} /></div>
-      <datalist id="accounts">{candidates.map((account) => <option value={account.email}>{account.name ?? ""}</option>)}</datalist>
-      <fieldset class="crm-fieldset"><legend>{vi ? "Vai trò" : "Roles"}</legend><div class="crm-actions">{roles.map((role) => <label class="crm-check"><input type="checkbox" name="roles" value={role} /><span>{roleLabel(role, vi)}</span></label>)}</div></fieldset>
-      <div class="crm-actions"><button class="crm-button" type="submit">{vi ? "Cấp quyền" : "Grant access"}</button></div>
-    </form>
-  </section>
-
-  <section class="crm-sheet" aria-labelledby="members-h">
-    <h2 class="crm-h2" id="members-h">{vi ? "Người có quyền" : "People with access"}<span class="crm-count">{members.filter((member) => member.enabled).length}</span></h2>
-    <ul class="crm-list">
-      {admins.map((account) => <li class="crm-row"><span><strong>{account.name || account.email}</strong><br /><span class="crm-meta">{account.email}</span></span><span class="crm-row-side"><span class="crm-badge green">{roleLabel("admin", vi)}</span><span class="crm-meta">{vi ? "do EmDash cấp" : "from EmDash"}</span></span></li>)}
-      {members.map((member) => <li class="crm-row">
-        <span><strong>{member.name || member.email || (vi ? "Tài khoản EmDash không còn" : "EmDash account unavailable")}</strong><br /><span class="crm-meta">{member.email}</span></span>
-        <span class="crm-row-side">{member.enabled && member.roles.includes("partner") && !withTerms.has(member.user_id) && <a class="crm-badge amber" href={vi ? "/vi/crm/commission#terms" : "/crm/commission#terms"}>{vi ? "Chưa khai báo loại người bán" : "Seller terms not set"}</a>}<span class:list={["crm-badge", member.enabled && member.active ? "green" : "red"]}>{!member.enabled ? (vi ? "Đã thu hồi" : "Revoked") : member.active ? (vi ? "Đang hoạt động" : "Active") : (vi ? "EmDash bị vô hiệu" : "EmDash disabled")}</span></span>
-        <form class="crm-form" method="post" aria-label={`${vi ? "Vai trò của" : "Roles for"} ${member.name || member.email}`}>
-          <input type="hidden" name="intent" value="update" /><input type="hidden" name="user_id" value={member.user_id} />
-          <div class="crm-actions">{roles.map((role) => <label class="crm-check"><input type="checkbox" name="roles" value={role} checked={member.roles.includes(role)} /><span>{roleLabel(role, vi)}</span></label>)}</div>
-          <div class="crm-actions">
-            <button class="crm-button small" type="submit" name="enabled" value="1">{member.enabled ? (vi ? "Lưu vai trò" : "Save roles") : (vi ? "Khôi phục với các vai trò này" : "Restore with these roles")}</button>
-            {member.enabled && <button class="crm-button small danger" type="submit" name="enabled" value="0">{vi ? "Thu hồi quyền" : "Revoke access"}</button>}
-          </div>
-        </form>
-      </li>)}
-    </ul>
-  </section>
-
-  <section class="crm-sheet" aria-labelledby="audit-h">
-    <h2 class="crm-h2" id="audit-h">{vi ? "Nhật ký thay đổi quyền" : "Access changes"}</h2>
-    {audit.length ? <ol class="crm-activity">{audit.map((row) => { const detail = JSON.parse(row.detail || "{}") as { roles_after?: string[] }; return <li><strong>{actions[row.action]?.[vi ? 1 : 0] ?? row.action}: {names[row.target_user_id] ?? row.target_user_id}</strong><p>{(detail.roles_after ?? []).map((role) => roleLabel(role as typeof roles[number], vi)).join(", ") || "—"}</p><span class="crm-meta">{row.actor_name} · {new Date(row.created_at).toLocaleString(vi ? "vi-VN" : "en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Ho_Chi_Minh" })}</span></li>; })}</ol> : <p class="crm-empty">{vi ? "Chưa có thay đổi." : "No changes yet."}</p>}
-  </section>
+  <Panel title={t("Recent access changes", "Thay đổi quyền gần đây")} note={t("The last ten grants and revocations. Each person's full history is on their page.", "Mười lần cấp hoặc thu hồi gần nhất. Lịch sử đầy đủ nằm trên trang của từng người.")} flush>
+    {audit.length
+      ? <DataTable vi={vi} label={t("Recent access changes", "Thay đổi quyền gần đây")} frozen={1} widths={["15rem"]} frozenNames={t("Person", "Người")} minWidth="760px">
+          <thead><tr><th scope="col">{t("Person", "Người")}</th><th scope="col">{t("Change", "Thay đổi")}</th><th scope="col">{t("Roles after", "Vai trò sau đó")}</th><th scope="col">{t("By", "Người thực hiện")}</th><th scope="col">{t("When", "Thời điểm")}</th></tr></thead>
+          <tbody>{audit.map((row) => { const detail = JSON.parse(row.detail || "{}") as { roles_after?: Role[] }; return <tr>
+            <th scope="row"><a class="ws-row-link" href={`${base}/${encodeURIComponent(row.target_user_id)}`}>{names.get(row.target_user_id) ?? row.target_user_id}</a></th>
+            <td>{auditActions[row.action]?.[vi ? 1 : 0] ?? row.action}</td>
+            <td>{(detail.roles_after ?? []).map((role) => roleLabel(role, vi)).join(", ") || "—"}</td>
+            <td>{row.actor_name}</td>
+            <td class="nowrap">{dateTime(row.created_at, vi)}</td>
+          </tr>; })}</tbody>
+        </DataTable>
+      : <p class="ws-table-empty">{t("No changes yet.", "Chưa có thay đổi.")}</p>}
+  </Panel>
 </WorkspaceShell>

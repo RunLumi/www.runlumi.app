@@ -1,0 +1,37 @@
+---
+// Admin › Users › Grant access: give Workspace roles to an existing EmDash account.
+import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
+import RoleChecks from "./RoleChecks.astro";
+import PageHeader from "./ui/PageHeader.astro";
+import Panel from "./ui/Panel.astro";
+import { localized } from "../../lib/workspace/nav";
+import type { newMemberPage } from "../../lib/workspace/pages";
+import { accessErrors } from "../../lib/workspace/access";
+
+type Props = Exclude<Awaited<ReturnType<typeof newMemberPage>>, Response>;
+const { lang, vi, user, candidates, state } = Astro.props;
+const t = (en: string, viText: string) => vi ? viText : en;
+const base = localized("/workspace/users", vi);
+const error = Object.values(state.errors)[0];
+const title = t("Grant access", "Cấp quyền");
+---
+<WorkspaceShell title={title} lang={lang} user={user} module="admin" current="users">
+  <PageHeader vi={vi} title={title} crumbs={[{ label: t("Admin", "Quản trị"), href: base }, { label: t("Users", "Người dùng"), href: base }, { label: title }]} lede={t("The account must already exist in EmDash. Create or invite it there first; Workspace never creates logins.", "Tài khoản phải có sẵn trong EmDash. Hãy tạo hoặc mời trong EmDash trước; Workspace không tạo tài khoản đăng nhập.")} />
+  {error && <div class="crm-notice bad" role="alert">{accessErrors[error]?.[vi ? 1 : 0] ?? error}</div>}
+  <Panel title={t("Account and roles", "Tài khoản và vai trò")}>
+    <form class="crm-form" method="post" id="grant-form">
+      <input type="hidden" name="intent" value="grant" />
+      <div class="crm-field" data-invalid={state.errors.email ? "" : undefined}>
+        <label for="email">{t("EmDash account email", "Email tài khoản EmDash")}</label>
+        <input class="crm-input" id="email" name="email" type="email" required maxlength="254" autocomplete="off" list="accounts" value={state.values.email ?? ""} aria-invalid={state.errors.email ? "true" : undefined} aria-describedby="email-help" />
+        <span class="crm-help" id="email-help">{candidates.length ? t(`${candidates.length} active EmDash accounts have no Workspace access yet; start typing to pick one.`, `${candidates.length} tài khoản EmDash đang hoạt động chưa có quyền Workspace; gõ để chọn.`) : t("Every active EmDash account already has access.", "Mọi tài khoản EmDash đang hoạt động đều đã có quyền.")}</span>
+      </div>
+      <datalist id="accounts">{candidates.map((account) => <option value={account.email}>{account.name ?? ""}</option>)}</datalist>
+      <RoleChecks vi={vi} idPrefix="grant" />
+    </form>
+    <Fragment slot="foot">
+      <button class="crm-button" type="submit" form="grant-form">{title}</button>
+      <a class="crm-button secondary" href={base}>{t("Cancel", "Hủy")}</a>
+    </Fragment>
+  </Panel>
+</WorkspaceShell>

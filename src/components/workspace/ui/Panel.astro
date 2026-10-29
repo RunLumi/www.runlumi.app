@@ -1,14 +1,14 @@
 ---
 // A white evidence sheet with a heading, an optional note, a body and a foot
 // that sits at the bottom of the panel, so actions line up across a PanelRow.
-interface Props { title: string; id?: string; note?: string; flush?: boolean; tone?: "warn" | "bad"; level?: 2 | 3 }
-const { title, note, flush = false, tone, level = 2 } = Astro.props;
+interface Props { title: string; id?: string; note?: string; flush?: boolean; tone?: "warn" | "bad"; level?: 2 | 3; titleHref?: string; [attribute: `data-${string}`]: string | undefined }
+const { title, note, flush = false, tone, level = 2, titleHref, id: _id, ...rest } = Astro.props;
 const id = Astro.props.id ?? `p-${title.toLowerCase().normalize("NFD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40)}`;
 const Heading = level === 3 ? "h3" : "h2";
 ---
-<section class:list={["ws-panel", tone && `rail-${tone}`]} aria-labelledby={id}>
+<section class:list={["ws-panel", tone && `rail-${tone}`]} aria-labelledby={id} {...rest}>
   <div class="ws-panel-head">
-    <Heading class="crm-h2" id={id}>{title}</Heading>
+    <Heading class="crm-h2" id={id}>{titleHref ? <a class="crm-link" href={titleHref}>{title}</a> : title}</Heading>
     {Astro.slots.has("actions") && <div class="ws-page-actions"><slot name="actions" /></div>}
     {note && <p>{note}</p>}
   </div>
