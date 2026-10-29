@@ -27,13 +27,16 @@ Run on this branch. Synthetic data only, local Worker and D1 only.
 |---|---|
 | `npm run lint` | ok (check-src) |
 | `npm test` | 417 pass, 0 fail. This includes new `tests/crm-leads.test.ts` and `tests/crm-calendar.test.ts`, which run against real SQLite with every migration applied (`tests/fixtures/d1-sqlite.ts`). |
-| `npm run db:migrate:local` | see "Gate log" below |
+| `npm run db:migrate:local` | applied 0001–0050 and `0052_crm_lead_records.sql` |
 | `RUNLUMI_INTEGRATION_SCOPE=crm npm run test:integration` | 18 pass, 0 fail. New blocks: 11 (rewritten for leads), 11b, 15, 16 and 17, with allowed and denied cases for every new route. |
-| Other integration scopes | see "Gate log" below |
-| `npm run build` | see "Gate log" below |
-| Visual review (320, 430, 1280 px; VI and EN; keyboard focus) | see "Visual review" below |
+| Scoped regressions (before merging the integration branch) | workspace 10/10, directory 7/7, api 7/7, dashboard 5/5, files 6/6, sales-process 12/12, business-model 5/5 |
+| Full `npm run test:integration` after merging `claude/loving-pasteur-z7ly65` (18bec37) | FULL_RESULT |
+| `npm run build` | passed before the merge; after the merge: BUILD_RESULT |
+| Visual review | Playwright against a local Worker with synthetic data. 17 pages (VI, plus EN for the board, Leads and Calendar) × 320, 430 and 1280 px: every page returns 200 with no page-level horizontal overflow, after one fix (hidden table labels widened phone pages on the table, assignment and lead-settings pages). With the keyboard, Tab reaches each card's "Move to" control on the board. Reduced motion: the board has no animation, and the drag script adds none. Measured contrast: not re-measured; only existing crm.css tokens are used. |
 
 ## Open
+
+- **Phones: long filter form above the board.** On 320–430 px the pipeline filters push the board below the fold. It works, but a collapsible filter panel would help.
 
 - **Step-up (rd4).** Not needed by this workstream's actions. Lead conversion, stage moves, inline edits and calendar events are none of exports, deletes, access changes or token creation. If the founder wants step-up on conversion, it becomes a follow-up once `claude/rd4-security` lands.
 - **Shared components (rd1).** See "Merge with workstream 1" below.
