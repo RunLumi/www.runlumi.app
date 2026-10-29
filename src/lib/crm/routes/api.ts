@@ -3,6 +3,7 @@ import { displayNames } from "../access";
 import { type ApiToken, createToken, listTokens, revokeToken } from "../api/tokens";
 import { tools } from "../api/tools";
 import type { Lang } from "../i18n";
+import { requireStepUp } from "../../workspace/passkey";
 import { type Ctx, type FormState, context, emptyState, handlePost } from "../page";
 
 export interface ApiTokensProps {
@@ -16,7 +17,8 @@ export async function apiTokensRoute(astro: AstroGlobal, lang: Lang): Promise<Ap
   if (ctx instanceof Response) return ctx;
   let created: ApiTokensProps["created"] = null;
   const posted = await handlePost(astro, ctx, {
-    token_create: async (form) => { created = { secret: (await createToken(ctx.db, ctx.actor, form)).secret }; },
+    // Creating a token needs a passkey check from the last five minutes.
+    token_create: async (form) => { await requireStepUp(astro.session, ctx.actor.id); created = { secret: (await createToken(ctx.db, ctx.actor, form)).secret }; },
     token_revoke: async (form) => { await revokeToken(ctx.db, ctx.actor, form); return `${astro.url.pathname}#tokens`; },
   });
   // The secret is rendered in this response instead of redirecting, so it

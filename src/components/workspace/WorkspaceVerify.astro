@@ -1,0 +1,58 @@
+---
+// The passkey check: once per EmDash session to enter the Workspace (R-08),
+// and again before sensitive actions when the last check is older than five
+// minutes. Passkeys belong to EmDash; adding one uses EmDash's own endpoints.
+import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
+import type { VerifyPageData } from "../../lib/workspace/security-pages";
+
+type Props = VerifyPageData;
+const { lang, vi, user, reason, next, passkeys, sessionVerified, stepUpSeconds, windowMinutes } = Astro.props;
+const t = (en: string, viText: string) => (vi ? viText : en);
+const when = (value: string | null) => value ? new Date(value).toLocaleString(vi ? "vi-VN" : "en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Ho_Chi_Minh" }) : "—";
+const messages = {
+  "data-msg-working": t("Waiting for your device…", "Đang chờ thiết bị của bạn…"),
+  "data-msg-done": t("Verified. Taking you back…", "Đã xác thực. Đang quay lại…"),
+  "data-msg-failed": t("That passkey could not be verified. Try again, or use another of your passkeys.", "Không xác thực được passkey này. Thử lại hoặc dùng passkey khác của bạn."),
+  "data-msg-cancelled": t("No passkey was used. Try again when you are ready.", "Chưa dùng passkey nào. Thử lại khi bạn sẵn sàng."),
+  "data-msg-none": t("This account has no passkey yet. Add one below.", "Tài khoản chưa có passkey. Hãy thêm ở dưới."),
+  "data-msg-unsupported": t("This browser cannot use passkeys. Open the Workspace in a current version of Chrome, Edge, Firefox or Safari.", "Trình duyệt này không dùng được passkey. Hãy mở Workspace bằng bản mới của Chrome, Edge, Firefox hoặc Safari."),
+};
+---
+<WorkspaceShell title={t("Verify with your passkey", "Xác thực bằng passkey")} lang={lang} user={user} module="home">
+  <div class="crm-head"><div>
+    <p class="crm-eyebrow">{t("Security", "Bảo mật")}</p>
+    <h1 class="crm-h1">{reason === "session" ? t("Verify with your passkey to open the Workspace.", "Xác thực bằng passkey để vào Workspace.") : t("Verify again before this action.", "Xác thực lại trước thao tác này.")}</h1>
+    <p class="crm-lede">{reason === "session"
+      ? t("Every Workspace session needs one passkey check, whichever way you signed in to EmDash. It lasts for this session, up to 12 hours.", "Mỗi phiên Workspace cần một lần xác thực passkey, dù bạn đăng nhập EmDash bằng cách nào. Lần xác thực có hiệu lực trong phiên này, tối đa 12 giờ.")
+      : t(`Exports, deletions, access changes and new API tokens need a passkey check from the last ${windowMinutes} minutes. Failed attempts are recorded in the audit log.`, `Xuất dữ liệu, xóa, đổi quyền và tạo API token cần một lần xác thực passkey trong ${windowMinutes} phút gần nhất. Lần thử thất bại được ghi vào nhật ký kiểm toán.`)}</p>
+  </div></div>
+
+  {reason === "step_up" && stepUpSeconds > 0 && <div class="crm-notice good" role="status">{t(`Verified. Sensitive actions stay open for about ${Math.ceil(stepUpSeconds / 60)} more min.`, `Đã xác thực. Thao tác nhạy cảm còn mở khoảng ${Math.ceil(stepUpSeconds / 60)} phút nữa.`)} <a class="crm-link" href={next}>{t("Continue", "Tiếp tục")}</a></div>}
+  {reason === "session" && sessionVerified && <div class="crm-notice good" role="status">{t("This session is already verified.", "Phiên này đã được xác thực.")} <a class="crm-link" href={next}>{t("Continue", "Tiếp tục")}</a></div>}
+
+  {passkeys.length > 0 && <section class="crm-sheet" aria-labelledby="verify-h">
+    <h2 class="crm-h2" id="verify-h">{t("Use one of your passkeys", "Dùng một passkey của bạn")}</h2>
+    <form method="post" data-passkey="verify" data-purpose={reason} data-next={next} {...messages}>
+      <p class="crm-help">{t("Your device asks for Face ID, a fingerprint, your screen lock or a security key. Lumi never sees the private key.", "Thiết bị sẽ hỏi Face ID, vân tay, mã khóa màn hình hoặc khóa bảo mật. Lumi không bao giờ thấy khóa bí mật.")}</p>
+      <div class="crm-actions"><button class="crm-button" type="submit">{t("Verify with passkey", "Xác thực bằng passkey")}</button><a class="crm-button secondary" href={next}>{t("Cancel", "Hủy")}</a></div>
+      <p class="crm-help" data-passkey-status role="status" aria-live="polite" hidden></p>
+      <noscript><p class="crm-notice bad">{t("Passkeys need JavaScript. Turn it on for runlumi.app and reload.", "Passkey cần JavaScript. Hãy bật cho runlumi.app rồi tải lại trang.")}</p></noscript>
+    </form>
+  </section>}
+
+  <section class="crm-sheet" aria-labelledby="keys-h" style="margin-top:18px">
+    <h2 class="crm-h2" id="keys-h">{t("Your passkeys", "Passkey của bạn")}<span class="crm-count">{passkeys.length}</span></h2>
+    {passkeys.length
+      ? <ul class="crm-list">{passkeys.map((key) => <li class="crm-row"><strong>{key.name || t("Unnamed passkey", "Passkey chưa đặt tên")}</strong><span class="crm-row-meta"><span>{t("Added", "Thêm lúc")} {when(key.created_at)}</span><span>{t("Last used", "Dùng gần nhất")} {when(key.last_used_at)}</span></span></li>)}</ul>
+      : <p class="crm-help">{t("Every Workspace account must have a passkey (no opt-out). Add one on this device; you can add a second device later so losing one device does not lock you out.", "Mọi tài khoản Workspace phải có passkey, không có ngoại lệ. Hãy thêm passkey trên thiết bị này; sau đó nên thêm thiết bị thứ hai để mất một máy không bị khóa tài khoản.")}</p>}
+    <form method="post" data-passkey="enrol" {...messages} data-msg-done={t("Passkey added.", "Đã thêm passkey.")}>
+      <div class="crm-field"><label for="passkey_name">{t("Name for this passkey", "Tên passkey")}</label><input class="crm-input" id="passkey_name" name="passkey_name" maxlength="80" autocomplete="off" placeholder={t("e.g. Work laptop", "Ví dụ: Laptop công ty")} /></div>
+      <div class="crm-actions"><button class={passkeys.length ? "crm-button secondary" : "crm-button"} type="submit">{t("Add a passkey on this device", "Thêm passkey trên thiết bị này")}</button></div>
+      <p class="crm-help" data-passkey-status role="status" aria-live="polite" hidden></p>
+    </form>
+    <p class="crm-help">{t("Lost every passkey? An EmDash System Super Admin can restore access; recovery is never by SMS or an emailed code.", "Mất hết passkey? Siêu quản trị hệ thống trong EmDash có thể khôi phục quyền truy cập; không khôi phục bằng SMS hay mã gửi qua email.")}</p>
+  </section>
+</WorkspaceShell>
+<script>
+  import "../../scripts/workspace-passkey";
+</script>

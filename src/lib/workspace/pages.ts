@@ -6,6 +6,7 @@ import { vnDate } from "../crm/money";
 import { RETENTION_STATUSES, retentionCutoff } from "../hiring/interviews";
 import { type AuditRow, AccessError, type MemberRow, parseRoles, recentAudit, saveMember, workspaceMembers } from "./members";
 import type { WorkspaceUser } from "./roles";
+import { stepUpGuard } from "./step-up";
 
 export type Lang = "en" | "vi";
 
@@ -75,6 +76,9 @@ export async function usersPage(astro: AstroGlobal, lang: Lang): Promise<Respons
   if (astro.request.method === "POST") {
     if (!user.can("users.manage")) return new Response("Forbidden", { status: 403 });
     if (!sameOrigin(astro.request)) return new Response("Invalid request origin.", { status: 400 });
+    // Access changes need a passkey check from the last five minutes.
+    const stepUp = await stepUpGuard({ session: astro.session, locals: astro.locals, request: astro.request, url: astro.url }, { vi: lang === "vi", next: astro.url.pathname });
+    if (stepUp) return stepUp;
     const form = await astro.request.formData().catch(() => null);
     if (!form) return new Response("Invalid form body.", { status: 400 });
     const intent = String(form.get("intent") ?? "");

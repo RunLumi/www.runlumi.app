@@ -1,0 +1,8 @@
+---
+import WorkspaceVerify from "../../components/workspace/WorkspaceVerify.astro";
+import { verifyPage } from "../../lib/workspace/security-pages";
+
+export const prerender = false;
+const data = await verifyPage(Astro, "en");
+---
+<WorkspaceVerify {...data} />

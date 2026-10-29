@@ -9,6 +9,7 @@ import { FinanceValidationError } from "./model";
 import { financeCommandRedirect, financeErrorCode, financeErrorStatus } from "./pages";
 import { financeReportView } from "./reports";
 import { executeFinanceCommand, loadFinance, type FinanceCommand, type FinanceSelection } from "./store";
+import { stepUpGuard } from "../workspace/step-up";
 
 function exportCommand(fields: FinanceFields): FinanceCommand {
   const allowed = new Set(["intent", "request_key", "return_to", "report", "period", "fiscal_year", "plan_id", "actual_revision_id", "range", "segment_code", "lang"]);
@@ -58,6 +59,8 @@ export async function financeApi(context: APIContext): Promise<Response> {
     if (method !== "POST") return financeJson({ error: "method_not_allowed" }, 405);
     if (!["commands", "exports"].includes(path)) return financeJson({ error: "not_found" }, 404);
     if (!financeSameOrigin(context.request)) return financeJson({ error: "invalid_origin" }, 403);
+    // Exports need a passkey check from the last five minutes (workspace step-up).
+    if (path === "exports") { const stepUp = await stepUpGuard(context, { vi }); if (stepUp) return financePrivate(stepUp); }
     const contentType = context.request.headers.get("Content-Type")?.split(";")[0].trim().toLowerCase();
     let command: FinanceCommand, requestKey: string, fields: FinanceFields | undefined;
     if (contentType === "application/json") {
