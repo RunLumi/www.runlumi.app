@@ -17,9 +17,24 @@ Status: **interface slice finished; open items below.** Interface only. No chang
 
 Shared components come from workstream 1 (`components/workspace/ui`: `PageHeader`, `Breadcrumbs`, `DataTable`). `claude/rd1-shell` is merged into this branch. The temporary module components were removed.
 
-## Gates (results are in the PR/merge commit message for the tested revision)
+## Gates
 
-See "Gate results" at the end of this file.
+Tested revision `0e85605`: `claude/rd1-shell` and `claude/loving-pasteur-z7ly65` merged in, including the integrator's P4 test fix `18bec37`.
+
+| Gate | Result |
+|---|---|
+| `npm run lint` | ok (518 source files) |
+| `npm test` | 410 pass, 0 fail |
+| `npm run db:migrate:local` | all migrations applied (no new migrations in this branch) |
+| `npm run build` | astro check 0 errors; build complete |
+| `npm run test:integration`: HRM P1, P3, P4 | pass (full run). On this host the full run hits the runner's 30-minute cap during P5, after P1–P4 took 17 minutes. |
+| `RUNLUMI_INTEGRATION_SCOPE=hrm-p5` | pass |
+| Regressions, scoped: workspace 12, finance 9, crm 14, directory 7, api 7, dashboard 5, files 6, sales-process 12, business-model 5, hrm-journey 1 | all pass on `0a5deb7`. The only change since then is the P4 test fix and this file. |
+| Browser QA, finance (`FINANCE_BROWSER_BINARY`) | pass at 320/430/1280/1920 px; screenshots reviewed |
+| Browser QA, HRM (`HRM_BROWSER_BINARY`, P1–P3) | pass at 320/430/1280 px: no horizontal overflow, works without JavaScript, reduced motion, keyboard focus |
+| Hiring visual review (synthetic roles and applications, EN/VI, 375 and 1280 px) | 200, no horizontal overflow; screenshots reviewed |
+
+Before the P4 fix, HRM P4 failed at `hrm.integration.test.mjs:861` (`published` ≠ `closed`). The integrator confirmed it was a date-dependent, pre-existing test issue, and `18bec37` fixes it. This branch changes no HRM server code.
 
 ## Open
 
