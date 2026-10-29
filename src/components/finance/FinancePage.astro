@@ -1,6 +1,9 @@
 ---
 import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
 import "../../styles/finance.css";
+import "../../styles/modules.css";
+import Breadcrumbs from "../modules/Breadcrumbs.astro";
+import { modules } from "../../lib/workspace/nav";
 import type { FinancePageData } from "./types";
 import CommandFields from "./CommandFields.astro";
 import FinanceOverview from "./FinanceOverview.astro";
@@ -19,12 +22,18 @@ const segmented = ["pnl", "revenue", "costs", "overview"].includes(page);
 const selected = selectedPlan(data), revision = selectedRevision(data);
 const reportEnd = reporting && data.range && data.range !== "month" ? data.comparisonPeriods?.at(-1) : undefined;
 const reportRevision = reportEnd ? state.actualRevisions.find(item => item.id === state.periods.find(period => period.period === reportEnd)?.authoritativeClosedRevisionId) : revision;
+// Breadcrumbs: Finance, then the menu group, then this page (R-03).
+const financeNav = modules.find(item => item.key === "finance")!;
+const navLink = financeNav.links.find(link => link.key === page);
+const navGroup = financeNav.groups?.find(group => group.key === navLink?.group);
+const crumbs = [{ label: vi ? "Tài chính" : "Finance", href: localized("/finance", vi) }, ...(navGroup && page !== "overview" ? [{ label: vi ? navGroup.vi : navGroup.en }] : []), { label: title }];
 const scopeBook = (page === "plans" ? selected?.reportingSnapshot?.book : reporting || page === "actuals" ? reportRevision?.reportingSnapshot?.book : undefined) ?? state.book;
 ---
 <WorkspaceShell title={title} lang={lang} user={data.user} module="finance" current={page}>
-  <div class="finance">
+  <div class="finance md-scope">
+    <Breadcrumbs vi={vi} items={crumbs} />
     <header class="fn-heading">
-      <div><p class="fn-eyebrow">{vi ? "Finance · Chỉ Super Admin" : "Finance · Super Admin only"}</p><h1>{title}</h1><p class="fn-lede">{tr(vi, copy.description)}</p></div>
+      <div><p class="fn-eyebrow">{vi ? "Chỉ System Super Admin" : "System Super Admin only"}</p><h1>{title}</h1><p class="fn-lede">{tr(vi, copy.description)}</p></div>
       <div class="fn-heading-actions">
         {reporting && state.book && <><a class="fn-button secondary" href={financeLink(data, "actuals")}>{vi ? "Nhập số thực tế" : "Enter actuals"}</a>
           <form method="post" action="/api/finance/exports">
@@ -41,7 +50,7 @@ const scopeBook = (page === "plans" ? selected?.reportingSnapshot?.book : report
       <div class="fn-field"><label for="finance-period">{vi ? "Tháng" : "Month"}</label><input class="fn-input" id="finance-period" type="month" name="period" value={data.period} required /></div>
       {state.plans.length > 0 && <div class="fn-field fn-grow"><label for="finance-plan">{vi ? "Kế hoạch đối chiếu" : "Comparison plan"}</label><select class="fn-select" id="finance-plan" name="plan"><option value="">{vi ? "Chọn kế hoạch" : "Select a plan"}</option>{state.plans.map(plan => <option value={plan.id} selected={plan.id === data.selectedPlanId}>{plan.label} · {stateLabel(plan.kind, vi)}{plan.baseline ? ` · ${vi ? "Kế hoạch gốc" : "Baseline"}` : ""}</option>)}</select></div>}
       {reporting && <div class="fn-field"><label for="finance-range">{vi ? "Khoảng báo cáo" : "Report range"}</label><select class="fn-select" id="finance-range" name="range"><option value="month" selected={!data.range || data.range === "month"}>{vi ? "Tháng được chọn" : "Selected month"}</option><option value="quarter" selected={data.range === "quarter"}>{vi ? "Quý tài chính" : "Fiscal quarter"}</option><option value="ytd" selected={data.range === "ytd"}>{vi ? "Từ đầu năm tài chính" : "Fiscal year to date"}</option><option value="year" selected={data.range === "year"}>{vi ? "Cả năm tài chính" : "Full fiscal year"}</option></select></div>}
-      {segmented && state.segments.length > 0 && <div class="fn-field"><label for="finance-segment">{vi ? "Phân khúc P&L" : "P&L segment"}</label><select class="fn-select" id="finance-segment" name="segment"><option value="all">{vi ? "Tất cả phân khúc" : "All segments"}</option>{state.segments.map(segment => <option value={segment.code} selected={segment.code === data.segmentCode}>{vi ? segment.labelVi : segment.labelEn}</option>)}</select></div>}
+      {segmented && state.segments.length > 0 && <div class="fn-field"><label for="finance-segment">{vi ? "Phân khúc lãi lỗ" : "P&L segment"}</label><select class="fn-select" id="finance-segment" name="segment"><option value="all">{vi ? "Tất cả phân khúc" : "All segments"}</option>{state.segments.map(segment => <option value={segment.code} selected={segment.code === data.segmentCode}>{vi ? segment.labelVi : segment.labelEn}</option>)}</select></div>}
       <button class="fn-button" type="submit">{vi ? "Xem" : "Apply"}</button>
     </form>}
     <p class="fn-print-meta">{scopeBook?.entityName} · {scopeBook?.currency} · {monthLabel(data.period, vi)} · {selected?.label ?? (vi ? "Chưa chọn kế hoạch" : "No selected plan")} · {revision ? `${stateLabel(revision.state, vi)} ${revision.id}` : (vi ? "Chưa có phiên bản thực tế" : "No actual revision")} · {timestamp(data.generatedAt, vi, scopeBook?.timezone)}</p>

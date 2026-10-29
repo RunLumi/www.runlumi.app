@@ -57,6 +57,9 @@
 .md-scope .crm-grid > :is(div, aside):not(.crm-sheet) { align-content: start; }
 .md-scope .crm-grid > .crm-sheet { display: flex; flex-direction: column; }
 .md-scope .crm-grid > .crm-sheet > :last-child:is(.crm-actions, a.crm-button) { margin-top: auto; }
+.md-scope .fn-layout { align-items: stretch; }
+.md-scope .fn-layout > :is(.fn-sheet, form) { margin: 0; }
+.md-scope .fn-layout > :not(.fn-sheet, form) { align-self: start; }
 .md-panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 18px; align-items: stretch; margin-bottom: 18px; }
 .md-panels > * { margin: 0; min-width: 0; }
 
