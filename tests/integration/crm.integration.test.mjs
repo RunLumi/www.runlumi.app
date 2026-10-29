@@ -359,6 +359,10 @@ test("11b. leads: pages, board move, settings and conversion are allowed and den
   const converted = await S.a.post(`/crm/leads/${id}`, { intent: "lead_convert", version: version(page.html), account_mode: "new", account_name: `TEST Lead Co ${run}`, contact_mode: "new", contact_role: "owner", playbook_key: "lumi-solution", title: `TEST Lead Co ${run}` });
   assert.equal(converted.status, 303);
   assert.match(converted.location, new RegExp(`/crm/leads/${id}/converted`));
+  const again = await S.a.post(`/crm/leads/${id}`, { intent: "lead_convert", version: version(page.html), account_mode: "new", account_name: `TEST Lead Co ${run}`, contact_mode: "new", contact_role: "owner", playbook_key: "lumi-solution", title: `TEST Lead Co ${run}` });
+  assert.equal(again.status, 303, "a repeated convert goes to the summary");
+  assert.match(again.location, new RegExp(`/crm/leads/${id}/converted`));
+  assert.equal(jobs(`SELECT COUNT(*) AS n FROM crm_opportunities WHERE title = ${q(`TEST Lead Co ${run}`)}`)[0].n, 1, "and creates nothing");
   const summary = await S.a.get(`/vi/crm/leads/${id}/converted`);
   assert.equal(summary.status, 200);
   assert.match(summary.html, /Đã chuyển Lead thành cơ hội/);

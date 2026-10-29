@@ -113,11 +113,17 @@ export async function saveLeadProcessVersion(db: D1Database, actor: CrmActor, fo
   const id = `${LEAD_PROCESS_KEY}@${version}`;
   const now = nowIso();
   const key = typeof form.get("request_key") === "string" ? String(form.get("request_key")) : "";
-  await once(db, actor, key, "lead_process", id, [
-    db.prepare("INSERT INTO crm_policies (id, policy_key, version, body, source_ref, effective_from, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
-      .bind(id, LEAD_PROCESS_KEY, version, JSON.stringify(def), `Saved in the CRM by ${actor.name}`, now.slice(0, 10), actor.id, now),
-    leadEvent(db, actor, "lead_process_saved", { version }, null, null),
-  ]);
+  try {
+    await once(db, actor, key, "lead_process", id, [
+      db.prepare("INSERT INTO crm_policies (id, policy_key, version, body, source_ref, effective_from, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+        .bind(id, LEAD_PROCESS_KEY, version, JSON.stringify(def), `Saved in the CRM by ${actor.name}`, now.slice(0, 10), actor.id, now),
+      leadEvent(db, actor, "lead_process_saved", { version }, null, null),
+    ]);
+  } catch (error) {
+    // Someone saved the same next version first: report a conflict, keep the form.
+    if (error instanceof Error && /UNIQUE|constraint/i.test(error.message)) throw new ConflictError();
+    throw error;
+  }
   return id;
 }
 
@@ -401,8 +407,9 @@ export async function reopenLead(db: D1Database, actor: CrmActor, access: LeadAc
   const guard = guardFor(lead, version, actor);
   const result = await onceGuarded(db, actor, requestKey(form), "lead_reopen", lead.id, guard, [
     leadEvent(db, actor, "lead_reopened", { reason }, lead.id, null, guard),
-    db.prepare("UPDATE crm_lead_records SET state = 'open', status_id = ?, disqualify_reason_id = '', disqualify_note = '', version = version + 1, updated_at = ? WHERE id = ? AND version = ? AND state = 'disqualified'")
-      .bind(process.def.statuses[0].id, nowIso(), lead.id, version),
+    // A reopened lead moves to the current lead process, so its status and labels come from the same version.
+    db.prepare("UPDATE crm_lead_records SET state = 'open', status_id = ?, process_id = ?, disqualify_reason_id = '', disqualify_note = '', version = version + 1, updated_at = ? WHERE id = ? AND version = ? AND state = 'disqualified'")
+      .bind(process.def.statuses[0].id, process.id, nowIso(), lead.id, version),
   ]);
   if (!result.changed) throw new ConflictError();
 }
@@ -449,6 +456,12 @@ export interface ConversionResult { accountId: string; contactId: string; opport
  * lead version so a stale or repeated conversion writes nothing.
  */
 export async function convertLead(db: D1Database, actor: CrmActor, access: LeadAccess, form: FormData): Promise<ConversionResult> {
+  // A repeated submit after the conversion committed (double click, retry)
+  // returns what was created; nothing is written twice.
+  if (access.lead.state === "converted" && (actor.manager || access.lead.owner_id === actor.id)
+    && access.lead.converted_account_id && access.lead.converted_contact_id && access.lead.converted_opportunity_id) {
+    return { accountId: access.lead.converted_account_id, contactId: access.lead.converted_contact_id, opportunityId: access.lead.converted_opportunity_id, reusedAccount: false, reusedContact: false };
+  }
   const lead = requireOpen(access);
   const version = parseVersion(form);
   if (!lead.owner_id) fail("owner_id", "required");

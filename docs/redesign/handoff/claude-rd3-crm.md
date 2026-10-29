@@ -38,6 +38,8 @@ Run on this branch. Synthetic data only, local Worker and D1 only.
 
 ## Open
 
+- **Review fixes (integrator pre-release review).** Today now lists only the person's own leads, managers included. A reopened lead moves to the current lead-process version. A repeated convert returns to the summary and writes nothing. Two concurrent lead-process saves give a 409 conflict instead of a 500. Each fix has a real-SQLite unit test that fails on the earlier code.
+
 - **Phones: long filter form above the board.** On 320–430 px the pipeline filters push the board below the fold. It works, but a collapsible filter panel would help.
 
 - **Step-up (rd4).** Not needed by this workstream's actions. Lead conversion, stage moves, inline edits and calendar events are none of exports, deletes, access changes or token creation. If the founder wants step-up on conversion, it becomes a follow-up once `claude/rd4-security` lands.
@@ -54,3 +56,4 @@ Run on this branch. Synthetic data only, local Worker and D1 only.
 2. **Lead statuses v1** are taken from the boards: *Đã tiếp nhận* (target 24 h), *Đã liên hệ được*, *Hẹn liên hệ lại*. Reasons: *Không phù hợp*, *Không phản hồi*, *Trùng lặp*, *Spam hoặc gửi nhầm*, *Từ chối được liên hệ*. Change them on *Cấu hình → Trạng thái Lead* if needed.
 3. **Lost needs a reason** in the new close dialog. The older stage form on the record page still accepts a lost move without a reason, as before. Should a reason be enforced on every lost move, API included?
 4. **Leads in the API/MCP:** yes or no.
+5. **Erasing a lead.** Migration 0055 blocks deleting any lead row and freezes converted leads, to keep the audit trail. There is therefore no in-app way to erase a lead's personal data on request; today it needs a separate, audited migration or an admin procedure. Decide the erasure policy (anonymise in place or a reviewed delete) before real enquiries accumulate.

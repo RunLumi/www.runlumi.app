@@ -165,3 +165,57 @@ test("intake: a signed enquiry becomes an unassigned lead; the Lark card carries
   await assignLead(db, content, manager, await loadLead(db, manager, inbound.lead_id), form({ version: lead.version, owner_id: "exec_b" }));
   assert.equal((raw.prepare("SELECT status FROM crm_inbound").get() as { status: string }).status, "assigned");
 });
+
+test("review fixes: Today shows only the person's own leads, managers included", async () => {
+  const { db, content } = setup();
+  await createLead(db, content, execA, form({ name: "TEST A lead", company: "TEST A Co", phone: phone(), source_channel: "phone" }));
+  await createLead(db, content, manager, form({ name: "TEST M lead", company: "TEST M Co", phone: phone(), source_channel: "phone", owner_id: "manager" }));
+  await createLead(db, content, manager, form({ name: "TEST queue lead", company: "TEST Q Co", phone: phone(), source_channel: "phone", owner_id: "unassigned" }));
+  const { loadToday } = await import("../src/lib/crm/today.ts");
+  const team = await loadToday(db, manager, [], 30);
+  assert.deepEqual(team.leads.map((lead) => lead.name), ["TEST M lead"], "another seller's leads are not on the manager's list");
+  assert.equal(team.unassignedLeads, 1, "the queue stays a separate count");
+  assert.deepEqual((await loadToday(db, execA, [], 30)).leads.map((lead) => lead.name), ["TEST A lead"]);
+});
+
+test("review fixes: reopening after a new lead-process version moves the lead to that version", async () => {
+  const { raw, db, content } = setup();
+  const id = await createLead(db, content, execA, form({ name: "TEST Reopen", company: "TEST Reopen Co", phone: phone(), source_channel: "phone" }));
+  const v1 = await currentLeadProcess(db);
+  await disqualifyLead(db, execA, await loadLead(db, execA, id), v1, form({ version: 1, reason_id: "no_response" }));
+  raw.prepare("INSERT INTO crm_policies (id, policy_key, version, body, source_ref, effective_from, created_by, created_at) VALUES ('crm-lead-process@2', 'crm-lead-process', 2, ?, 'test', '2026-10-29', 'admin', '2026-10-29T01:00:00.000Z')")
+    .run(JSON.stringify({ statuses: [{ id: "fresh", en: "Fresh", vi: "Mới" }], disqualify_reasons: [{ id: "not_fit", en: "Not a fit", vi: "Không phù hợp" }] }));
+  const v2 = await currentLeadProcess(db);
+  await reopenLead(db, execA, await loadLead(db, execA, id), v2, form({ version: 2, reopen_reason: "TEST owner called back" }));
+  const lead = (await loadLead(db, execA, id)).lead;
+  assert.deepEqual([lead.state, lead.status_id, lead.process_id], ["open", "fresh", "crm-lead-process@2"]);
+});
+
+test("review fixes: a repeated conversion after commit returns the same records instead of an error", async () => {
+  const { raw, db, content } = setup();
+  const id = await createLead(db, content, execA, form({ name: "TEST Twice", company: "TEST Twice Co", phone: phone(), source_channel: "phone" }));
+  const fields = { version: 1, account_mode: "new", account_name: "TEST Twice Co", contact_mode: "new", playbook_key: "local-preview", title: "TEST Twice Co" };
+  const first = await convertLead(db, execA, await loadLead(db, execA, id), form(fields));
+  // A second click carries a new request key and the old version.
+  const second = await convertLead(db, execA, await loadLead(db, execA, id), form(fields));
+  assert.equal(second.opportunityId, first.opportunityId);
+  assert.equal((raw.prepare("SELECT COUNT(*) AS n FROM crm_opportunities").get() as { n: number }).n, 1);
+  await assert.rejects(convertLead(db, execB, { lead: (await loadLead(db, manager, id)).lead, canEdit: false }, form(fields)), ForbiddenError, "someone else still cannot act on it");
+});
+
+test("review fixes: two concurrent lead-process saves give one version and a conflict, not a server error", async () => {
+  const { raw, db } = setup();
+  const { saveLeadProcessVersion } = await import("../src/lib/crm/leads.ts");
+  const fields = { "status.0.id": "received", "status.0.en": "Received", "status.0.vi": "Đã tiếp nhận", "reason.0.id": "not_fit", "reason.0.en": "Not a fit", "reason.0.vi": "Không phù hợp" };
+  // The other admin's save lands between this save's read and its write.
+  const racing = new Proxy(db, { get(target, prop) {
+    if (prop !== "batch") return Reflect.get(target, prop);
+    return async (statements: D1PreparedStatement[]) => {
+      raw.prepare("INSERT INTO crm_policies (id, policy_key, version, body, source_ref, effective_from, created_by, created_at) VALUES ('crm-lead-process@2', 'crm-lead-process', 2, '{}', 'other admin', '2026-10-29', 'other', '2026-10-29T02:00:00.000Z')").run();
+      return target.batch(statements);
+    };
+  } });
+  await assert.rejects(saveLeadProcessVersion(racing, admin, form(fields)), ConflictError);
+  assert.equal((raw.prepare("SELECT COUNT(*) AS n FROM crm_policies WHERE policy_key = 'crm-lead-process'").get() as { n: number }).n, 2);
+  assert.equal(await saveLeadProcessVersion(db, admin, form(fields)), "crm-lead-process@3", "the next save succeeds");
+});
