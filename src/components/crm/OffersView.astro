@@ -1,5 +1,7 @@
 ---
 import CrmShell from "../../layouts/CrmShell.astro";
+import Crumbs from "./Crumbs.astro";
+import "../../styles/crm-sales.css";
 import Field from "./Field.astro";
 import FormNotices from "./FormNotices.astro";
 import Hidden from "./Hidden.astro";
@@ -21,6 +23,7 @@ const err = (name: string) => posted ? state.errors[name] : undefined;
 const show = (offer: Offer | null) => !!offer || isNew;
 ---
 <CrmShell title={vi ? "Gói và giá" : "Offers"} lang={lang} actor={ctx.actor} current="offers">
+  <Crumbs label={vi ? "Đường dẫn" : "Breadcrumb"} items={[{ label: "CRM", href: base }, { label: vi ? "Gói và giá" : "Offers and prices" }]} />
   <p class="crm-eyebrow"><a class="crm-link" href={`${base}/admin`}>{vi ? "Quản trị" : "Admin"}</a> / {vi ? "Gói" : "Offers"}</p>
   <div class="crm-head"><div>
     <h1 class="crm-h1">{vi ? "Gói, giá và điều kiện có phiên bản." : "Versioned offers, prices and conditions."}</h1>

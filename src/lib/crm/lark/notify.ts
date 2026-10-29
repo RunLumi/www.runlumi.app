@@ -159,6 +159,7 @@ export async function digestFacts(db: D1Database, contentDb: D1Database, at: Dat
     overdue: today.overdue.length, dueToday: today.dueToday.length,
     topOverdue: top.map((task) => ({ id: task.opportunity_id, title: `${task.title} (${task.account_name})`, ownerName: task.owner_id ? names[task.owner_id]?.name ?? null : null, due: task.due_on })),
     missingNext: today.missingNext.length, unassigned: (await db.prepare("SELECT COUNT(*) AS count FROM crm_opportunities WHERE owner_id IS NULL AND outcome = 'open'").first<{ count: number }>())?.count ?? 0,
+    unassignedLeads: today.unassignedLeads,
     pendingPayments: today.pendingPayments, blocked: today.blocked.length,
   };
 }

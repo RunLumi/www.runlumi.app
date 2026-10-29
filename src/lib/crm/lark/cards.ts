@@ -215,6 +215,8 @@ export interface DigestFacts {
   created24h: number; won24h: number; wonValue24h: number; lost24h: number;
   overdue: number; dueToday: number; topOverdue: DigestItem[];
   missingNext: number; unassigned: number; pendingPayments: number; blocked: number;
+  /** Open leads nobody owns yet (website enquiries, referrals, the queue). */
+  unassignedLeads?: number;
 }
 
 /** Morning summary (Monday to Saturday). Every total says what it covers. */
@@ -238,6 +240,7 @@ export function digestCard(facts: DigestFacts): Record<string, unknown> {
         section("Cần chú ý", lines([
           `${facts.missingNext} cơ hội chưa có bước tiếp theo`,
           `${facts.unassigned} cơ hội chờ phân công`,
+          ...(facts.unassignedLeads === undefined ? [] : [`${facts.unassignedLeads} Lead chờ phân công`]),
           `${facts.pendingPayments} thanh toán chờ tài chính xác nhận`,
           `${facts.blocked} bàn giao đang bị chặn`,
         ])),

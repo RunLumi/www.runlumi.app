@@ -1,5 +1,6 @@
 ---
 import CrmShell from "../../layouts/CrmShell.astro";
+import Crumbs from "./Crumbs.astro";
 import "../../styles/crm-sales.css";
 import Field from "./Field.astro";
 import FormNotices from "./FormNotices.astro";
@@ -19,6 +20,7 @@ const e = (intent: string, name: string) => errorFor(state, intent, name);
 const payload = (raw: string) => { try { return JSON.parse(raw) as IntakePayload; } catch { return null; } };
 ---
 <CrmShell title={vi ? "Vận hành CRM" : "CRM operations"} lang={lang} actor={ctx.actor} current="admin">
+  <Crumbs label={vi ? "Đường dẫn" : "Breadcrumb"} items={[{ label: "CRM", href: base }, { label: vi ? "Phân công và cohort" : "Assignment and cohorts" }]} />
   <div class="crm-head"><div>
     <p class="crm-eyebrow">{vi ? "Vận hành CRM" : "CRM operations"}</p>
     <h1 class="crm-h1">{vi ? "Phân công khách mới và theo dõi cohort." : "Assign new enquiries and run cohorts."}</h1>

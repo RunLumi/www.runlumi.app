@@ -22,7 +22,7 @@ const rows = (prefix: "status" | "reason", items: { id: string; en: string; vi: 
   });
 };
 ---
-<CrmShell title={vi ? "Thiết lập Lead" : "Lead settings"} lang={lang} actor={ctx.actor} current="playbooks">
+<CrmShell title={vi ? "Thiết lập Lead" : "Lead settings"} lang={lang} actor={ctx.actor} current="lead-settings">
   <Crumbs label={vi ? "Đường dẫn" : "Breadcrumb"} items={[{ label: "CRM", href: base }, { label: "Playbook", href: `${base}/admin/playbooks` }, { label: vi ? "Thiết lập Lead" : "Lead settings" }]} />
   <div class="crm-head"><div>
     <p class="crm-eyebrow">{vi ? "Cấu hình" : "Setup"}</p>

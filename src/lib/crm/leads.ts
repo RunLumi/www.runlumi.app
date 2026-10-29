@@ -550,3 +550,17 @@ export async function sourceLead(db: D1Database, actor: CrmActor, opportunityId:
   const scope = leadScope(actor);
   return await db.prepare(`SELECT l.id, l.name, l.company, l.converted_at FROM crm_lead_records l WHERE l.converted_opportunity_id = ? AND ${scope.sql}`).bind(opportunityId, ...scope.args).first();
 }
+
+export interface LeadSourceRow { source_channel: string; open: number; converted: number; disqualified: number }
+
+/**
+ * Leads by source and state, within the person's lead scope. The share
+ * converted is over decided leads only (converted + disqualified); open leads
+ * are not counted as failures, and no rate is shown without decided leads.
+ */
+export async function leadReport(db: D1Database, actor: CrmActor): Promise<LeadSourceRow[]> {
+  const scope = leadScope(actor);
+  return (await db.prepare(`SELECT l.source_channel, SUM(CASE WHEN l.state = 'open' THEN 1 ELSE 0 END) AS open, SUM(CASE WHEN l.state = 'converted' THEN 1 ELSE 0 END) AS converted,
+      SUM(CASE WHEN l.state = 'disqualified' THEN 1 ELSE 0 END) AS disqualified FROM crm_lead_records l WHERE ${scope.sql} GROUP BY l.source_channel ORDER BY COUNT(*) DESC`)
+    .bind(...scope.args).all<LeadSourceRow>()).results;
+}

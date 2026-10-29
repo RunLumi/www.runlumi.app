@@ -615,3 +615,28 @@ test("16. calendar: month and week per locale, own items only, events go through
   assert.doesNotMatch((await S.c.get(`/crm/calendar?view=week&week=${day}`)).html, new RegExp(`TEST calendar meeting ${run}`), "others' tasks are not shown");
   assert.match((await S.admin.get(`/crm/calendar?view=week&week=${day}`)).html, new RegExp(`TEST calendar meeting ${run}`), "the team sees everyone's");
 });
+
+test("17. contact record, company breadcrumbs, Today leads and the lead report respect scope", async () => {
+  const id = await create(S.a, { playbook_key: "lumi-solution", account_name: `TEST Contact Page Co ${run}`, contact_name: `TEST Contact Page ${run}`, phone: phone() });
+  const contactId = jobs(`SELECT primary_contact_id AS id FROM crm_opportunities WHERE id = ${q(id)}`)[0].id;
+  for (const path of [`/crm/contacts/${contactId}`, `/vi/crm/contacts/${contactId}`]) {
+    assert.equal((await S.outsider.get(path)).status, 403);
+    assert.equal((await S.c.get(path)).status, 404, "another seller's contact is not found");
+    const page = await S.a.get(path);
+    assert.equal(page.status, 200);
+    assert.match(page.html, /class="crm-crumbs"/);
+  }
+  assert.equal((await S.c.post(`/crm/contacts/${contactId}`, { intent: "contact", version: 1, name: "TEST probe" })).status, 404);
+  const page = await S.a.get(`/crm/contacts/${contactId}`);
+  assert.equal((await S.a.post(`/crm/contacts/${contactId}`, { intent: "contact", version: version(page.html), name: `TEST Contact Renamed ${run}`, role: "owner", consent_status: "unknown" })).status, 303);
+  assert.equal(jobs(`SELECT name FROM crm_contacts WHERE id = ${q(contactId)}`)[0].name, `TEST Contact Renamed ${run}`);
+  assert.equal((await S.a.post(`/crm/contacts/${contactId}`, { intent: "contact", version: version(page.html), name: "TEST stale", role: "owner", consent_status: "unknown" })).status, 409);
+  const accountId = jobs(`SELECT account_id AS id FROM crm_opportunities WHERE id = ${q(id)}`)[0].id;
+  assert.match((await S.a.get(`/vi/crm/accounts/${accountId}`)).html, /class="crm-crumbs"[\s\S]*Công ty/);
+  // Today lists the seller's own leads with a due or missing next step; the team sees the queue count.
+  const lead = await S.a.post("/crm/leads", { intent: "lead_create", name: `TEST Today Lead ${run}`, company: `TEST Today Lead Co ${run}`, phone: phone(), source_channel: "event" });
+  assert.equal(lead.status, 303);
+  assert.match((await S.a.get("/crm")).html, new RegExp(`TEST Today Lead ${run}`));
+  assert.doesNotMatch((await S.c.get("/crm")).html, new RegExp(`TEST Today Lead ${run}`));
+  assert.match((await S.a.get("/vi/crm/reports")).html, /Lead theo nguồn/);
+});

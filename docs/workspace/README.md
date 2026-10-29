@@ -112,11 +112,11 @@ The old tables are kept for recovery and are no longer read.
 Overview            /workspace                 counts per module the person can open
 Hiring              /admin/jobs                Roles · Candidates
 CRM                 /crm                       grouped sidebar (Menu disclosure below 1024px):
-  Selling                                      Today · Pipeline · New opportunity · Referrals (refer)
+  Selling                                      Today · Leads · Pipeline (list, board, table) · Calendar · New opportunity · Referrals (refer)
   Customers                                    Companies · Contacts
   Results                                      Reports · Commission
   Operations                                   Fulfillment (fulfillment or team) · Assignment and cohorts (team)
-  Setup                                        Playbooks · Offers and prices (configure)
+  Setup                                        Playbooks · Lead statuses · Offers and prices (configure)
   Guides and tools                             Sales process · Connect an AI agent
 HRM                 /hrm                       My overview · My profile · Legal · Onboarding · Time/leave · My payslips · My HR requests · Notifications · Payroll · HR service desk (each entry permission-gated)
 Admin               /workspace/users           Users and roles

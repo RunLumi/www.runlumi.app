@@ -55,6 +55,15 @@ Phần này áp dụng cho cả Nhân viên bán hàng và Cộng tác viên. Nh
 
 Bạn chỉ thấy các cơ hội được giao cho mình. Nếu một doanh nghiệp có cơ hội của người khác, bạn không thấy cơ hội đó.
 
+## Lead, Kanban, bảng và lịch
+
+- **Lead** (*CRM → Lead*): yêu cầu từ local.runlumi.app và khách được giới thiệu vào đây trước, ở trạng thái chờ phân công. Bạn cũng có thể tự tạo Lead (ghé thăm, gọi, sự kiện); cần số điện thoại hoặc email. Bạn chỉ thấy Lead của mình; Quản lý bán hàng thấy tất cả và phân công (không tự giao cho mình Lead chưa ghi công).
+- **Đổi trạng thái**: trên trang Lead, hoặc trên Kanban Lead bằng ô *Chuyển sang* ở mỗi thẻ (hoặc kéo thẻ sang cột khác). Tên trạng thái và lý do *Không tiếp tục* do admin đặt ở *Cấu hình → Trạng thái Lead*; mỗi lần lưu là một phiên bản mới.
+- **Chuyển đổi**: khi Lead đã đủ điều kiện, bấm *Chuyển đổi*. Chọn tạo công ty mới hoặc dùng công ty có sẵn (CRM gợi ý công ty/liên hệ trùng số điện thoại, email hoặc tên mà bạn được làm việc), chọn liên hệ, rồi chọn playbook và tên cơ hội. Người phụ trách Lead trở thành người phụ trách và người bán được ghi công; nguồn Lead và người giới thiệu được giữ. Sau đó Lead chỉ còn để đọc.
+- **Kanban cơ hội** (*Cơ hội → Kanban*, chọn một playbook): kéo thẻ sang cột để đổi giai đoạn, hoặc dùng ô *Chuyển sang*. Khi kéo, vùng *Thắng* và *Thua* hiện ở cuối màn hình và mở hộp thoại *Đóng cơ hội*; chọn Thua thì phải ghi lý do. Nếu thiếu điều kiện của giai đoạn, CRM báo còn thiếu gì và không đổi giai đoạn.
+- **Bảng cơ hội** (*Cơ hội → Bảng*): sửa giá trị, tỉ lệ thành công, bước tiếp theo và hạn ngay trong ô; nếu người khác vừa sửa, CRM giữ thay đổi mới hơn và báo xung đột.
+- **Lịch** (*CRM → Lịch*): xem theo tháng hoặc tuần các công việc, lịch hẹn, ghé thăm và bước tiếp theo của cơ hội và Lead bạn phụ trách. Có thể hiện thêm hoạt động đã ghi. Tạo lịch hẹn mới ngay trên trang; lịch không gửi lời mời hay tin nhắn cho khách.
+
 ## Dashboard bán hàng (trang Hôm nay)
 
 - **Trên mỗi cơ hội** ghi hai ước tính:

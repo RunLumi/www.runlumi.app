@@ -1,5 +1,6 @@
 ---
 import CrmShell from "../../layouts/CrmShell.astro";
+import "../../styles/crm-sales.css";
 import { formatDate, label, options } from "../../lib/crm/i18n";
 import { formatVnd } from "../../lib/crm/money";
 import type { ReportsProps } from "../../lib/crm/routes/reports";
@@ -46,6 +47,15 @@ const gateLabels: Record<string, [string, string]> = {
     </ol>
     <p class="crm-help">{vi ? "Đang mở" : "Open"}: {summary.outcomes.open ?? 0} · {vi ? "Thành công" : "Won"}: {summary.outcomes.won ?? 0} · {vi ? "Không thành" : "Lost"}: {summary.outcomes.lost ?? 0} · {vi ? "Tạm hoãn" : "Paused"}: {summary.outcomes.paused ?? 0}<br />{vi ? "Giá trị ước tính đã biết" : "Known estimated value"}: {formatVnd(summary.knownValue, vi)} · {vi ? "chưa biết giá trị" : "value unknown"}: {summary.unknownValue}</p>
   </section>; })}</div>
+
+  <section class="crm-sheet" id="leads" style="margin-top:18px" aria-labelledby="leads-report-h">
+    <h2 class="crm-h2" id="leads-report-h">{vi ? "Lead theo nguồn" : "Leads by source"}</h2>
+    <p class="crm-help">{vi ? "Tỉ lệ chuyển đổi chỉ tính trên Lead đã có quyết định (đã chuyển đổi hoặc không tiếp tục); Lead đang mở không bị tính là thất bại." : "The share converted counts decided leads only (converted or disqualified); open leads are not counted as failures."}{ctx.actor.manager ? "" : (vi ? " Chỉ Lead của bạn." : " Your leads only.")}</p>
+    {Astro.props.leads.length ? <div class="crm-grid-table-wrap"><table class="crm-grid-table">
+      <thead><tr><th scope="col">{vi ? "Nguồn" : "Source"}</th><th scope="col" class="num">{vi ? "Đang mở" : "Open"}</th><th scope="col" class="num">{vi ? "Đã chuyển đổi" : "Converted"}</th><th scope="col" class="num">{vi ? "Không tiếp tục" : "Disqualified"}</th><th scope="col" class="num">{vi ? "Tỉ lệ chuyển đổi" : "Share converted"}</th></tr></thead>
+      <tbody>{Astro.props.leads.map((row) => { const decided = row.converted + row.disqualified; return <tr><th scope="row">{label(lang, "channel", row.source_channel)}</th><td class="num">{row.open}</td><td class="num">{row.converted}</td><td class="num">{row.disqualified}</td><td class="num">{decided ? `${Math.round((row.converted / decided) * 100)}% (${row.converted}/${decided})` : (vi ? "Chưa đủ dữ liệu" : "Not enough data")}</td></tr>; })}</tbody>
+    </table></div> : <p class="crm-empty">{vi ? "Chưa có Lead." : "No leads yet."}</p>}
+  </section>
 
   {(ctx.actor.manager || ctx.actor.finance) && <section class="crm-sheet" id="cohort" style="margin-top:18px" aria-labelledby="cohort-h">
     <h2 class="crm-h2" id="cohort-h">{vi ? "Cohort Lumi Local và kinh tế bán hàng" : "Lumi Local cohort and sales economics"}</h2>
