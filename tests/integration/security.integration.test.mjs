@@ -70,12 +70,13 @@ test("token creation and hiring exports need step-up; afterwards they work and e
   const created = await exec.rawPost("/crm/api", token);
   assert.equal(created.status, 200);
   assert.match(created.html, /lumi_crm_[A-Za-z0-9_-]{43}/);
+  S.token = /lumi_crm_[A-Za-z0-9_-]{43}/.exec(created.html)[0];
 
   const hr = await userSession(S.admin, { email: `test-sec-hr-${run}@example.test`, name: `TEST Sec HR ${run}` });
   hr.passkey = S.hr.passkey;
   const exportDenied = await hr.rawGet("/api/admin/applications/export.csv");
-  assert.equal(exportDenied.status, 303);
-  assert.match(exportDenied.location, /^\/workspace\/verify\?/);
+  assert.equal(exportDenied.status, 401, "an unverified session reaches no Workspace API");
+  assert.match(exportDenied.html, /"code":"passkey_required"/);
   assert.equal(await hr.verifyPasskey(), 200);
   const exported = await hr.rawGet("/api/admin/applications/export.csv");
   assert.equal(exported.status, 200);
@@ -99,4 +100,130 @@ test("the passkey page renders in both locales inside the Workspace shell", asyn
   }
   const evil = await S.exec.get("/workspace/verify?next=https%3A%2F%2Fevil.example%2F");
   assert.match(evil.html, /data-next="\/workspace"/, "foreign return targets fall back to the Workspace");
+});
+
+/** The real ceremony without the helper's automatic code setup, to see each gate. */
+async function verifyOnly(session) {
+  const started = await fetch(`${BASE}/api/workspace/passkey/options`, { method: "POST", headers: json(session), body: "{}" });
+  const { options } = await started.json();
+  const done = await fetch(`${BASE}/api/workspace/passkey/verify`, { method: "POST", headers: json(session), body: JSON.stringify({ purpose: "session", credential: session.passkey.assert(options.challenge) }) });
+  session.absorb(done);
+  return done.status;
+}
+
+test("R-08 gate: no passkey check, no Workspace (pages redirect, APIs 401); then the anti-phishing code is required", async () => {
+  const email = `test-sec-gate-${run}@example.test`;
+  const fresh = await userSession(S.admin, { email, name: `TEST Sec Gate ${run}` });
+  assert.equal((await S.admin.post("/workspace/users", { intent: "grant", email, roles: ["hr"] })).status, 303);
+  const page = await fresh.rawGet("/vi/admin/jobs?x=1");
+  assert.equal(page.status, 303);
+  assert.equal(page.location, "/vi/workspace/verify?reason=session&next=%2Fvi%2Fadmin%2Fjobs%3Fx%3D1");
+  const api = await fresh.rawGet("/api/admin/applications/export.csv");
+  assert.equal(api.status, 401);
+  assert.match(api.html, /"code":"passkey_required"/);
+  assert.equal((await fresh.rawGet("/workspace/verify")).status, 200, "the passkey page itself opens");
+  fresh.passkey = (await import("../support/synthetic-passkey.mjs")).syntheticPasskey(`test_cred_gate_${run}`);
+  content(`INSERT INTO credentials (id, user_id, public_key, algorithm, counter, device_type, backed_up, transports, name) VALUES (${q(fresh.passkey.id)}, ${q(fresh.id)}, X'${fresh.passkey.publicKeyHex}', -7, 0, 'singleDevice', 0, '["internal"]', 'Synthetic')`);
+  assert.equal(await verifyOnly(fresh), 200);
+  const noCode = await fresh.rawGet("/admin/jobs");
+  assert.equal(noCode.status, 303);
+  assert.equal(noCode.location, "/workspace/account/security?setup=1&next=%2Fadmin%2Fjobs");
+  const bad = await fresh.rawPost("/workspace/account/security?setup=1&next=%2Fadmin%2Fjobs", new URLSearchParams({ intent: "code", code: "<b>" }));
+  assert.equal(bad.status, 422);
+  const saved = await fresh.rawPost("/workspace/account/security?setup=1&next=%2Fadmin%2Fjobs", new URLSearchParams({ intent: "code", code: "Mây Xanh 7" }));
+  assert.equal(saved.status, 303);
+  assert.equal(saved.location, "/admin/jobs");
+  assert.equal((await fresh.rawGet("/admin/jobs")).status, 200);
+  const security = await fresh.rawGet("/vi/workspace/account/security");
+  assert.equal(security.status, 200);
+  assert.match(security.html, /Mã chống lừa đảo của bạn: Mây Xanh 7/, "the email preview starts with the person's code");
+  assert.equal(jobs(`SELECT COUNT(*) AS n FROM workspace_audit WHERE actor_id = ${q(fresh.id)} AND action = 'anti_phishing_set'`)[0].n, 1);
+  assert.doesNotMatch(JSON.stringify(jobs(`SELECT detail FROM workspace_audit WHERE actor_id = ${q(fresh.id)}`)), /Mây Xanh/, "the code is never in the audit log");
+  S.gate = fresh;
+});
+
+test("adding a passkey in EmDash needs an existing one; an admin recovery window opens it once, never for oneself", async () => {
+  const unverified = await userSession(S.admin, { email: `test-sec-gate-${run}@example.test`, name: `TEST Sec Gate ${run}` });
+  const emdash = (session) => ({ cookie: session.header(), origin: BASE, "content-type": "application/json", "x-emdash-request": "1" });
+  const blocked = await fetch(`${BASE}/_emdash/api/auth/passkey/register/options`, { method: "POST", headers: emdash(unverified), body: "{}" });
+  assert.equal(blocked.status, 403);
+  assert.match(await blocked.text(), /STEP_UP_REQUIRED/);
+  assert.equal((await S.admin.post("/workspace/security", { intent: "recovery", user_id: await S.admin.userId(), reason: "self service attempt" })).status, 422, "never for oneself");
+  assert.equal((await S.hr.post("/workspace/security", { intent: "recovery", user_id: S.gate.id, reason: "Confirmed by video call" })).status, 403, "only admins");
+  assert.equal((await S.admin.post("/workspace/security", { intent: "recovery", user_id: S.gate.id, reason: "Confirmed by video call" })).status, 303);
+  const opened = await fetch(`${BASE}/_emdash/api/auth/passkey/register/options`, { method: "POST", headers: emdash(unverified), body: "{}" });
+  assert.equal(opened.status, 200, "the recovery window lets them start adding a passkey");
+  assert.equal(jobs(`SELECT COUNT(*) AS n FROM workspace_audit WHERE action = 'passkey_recovery_opened' AND target_user_id = ${q(S.gate.id)}`)[0].n, 1);
+  const stranger = await userSession(S.admin, { email: `test-sec-stranger-${run}@example.test`, name: `TEST Sec Stranger ${run}` });
+  assert.notEqual((await fetch(`${BASE}/_emdash/api/auth/passkey/register/options`, { method: "POST", headers: emdash(stranger), body: "{}" })).status, 403, "people outside the Workspace are left to EmDash");
+});
+
+const adminPaths = ["/workspace/audit", "/workspace/security", "/workspace/notifications", "/workspace/notifications/new", "/workspace/webhooks", "/workspace/agents"];
+
+test("admin security screens: allowed for System Super Admin in both locales, denied for every other role", async () => {
+  for (const path of adminPaths) {
+    for (const prefix of ["", "/vi"]) {
+      const page = await S.admin.get(prefix + path);
+      assert.equal(page.status, 200, prefix + path);
+      assert.match(page.html, /class="ws-modules"|ws-launcher|WorkspaceShell|ws-header/, `${prefix + path} renders inside the shell`);
+    }
+    assert.equal((await S.hr.get(path)).status, 403, `HR ${path}`);
+    assert.equal((await S.exec.get(path)).status, 403, `Sales Executive ${path}`);
+  }
+  assert.equal((await S.hr.get("/workspace/account/security")).status, 200, "everyone reaches their own security page");
+  assert.equal((await S.exec.get("/api/workspace/audit/export.csv")).status, 403);
+});
+
+test("audit review: security events listed, event child screen, CSV export behind step-up and itself audited", async () => {
+  const list = await S.admin.get("/workspace/audit?kind=security");
+  assert.match(list.html, /Passkey verified/);
+  const id = /href="\/workspace\/audit\/(aud_[a-f0-9]+)"/.exec(list.html)?.[1];
+  assert.ok(id);
+  const event = await S.admin.get(`/vi/workspace/audit/${id}`);
+  assert.equal(event.status, 200);
+  assert.match(event.html, /Nhật ký kiểm toán/);
+  assert.equal((await S.admin.get("/workspace/audit/aud_doesnotexist")).status, 404);
+  const csv = await S.admin.get("/api/workspace/audit/export.csv?kind=security&lang=en");
+  assert.equal(csv.status, 200);
+  assert.match(csv.headers.get("content-type"), /text\/csv/);
+  assert.match(csv.html, /passkey_verified/);
+  assert.ok(jobs("SELECT COUNT(*) AS n FROM workspace_audit WHERE action = 'data_exported' AND module = 'admin'")[0].n >= 1);
+});
+
+test("notification rules and webhooks: admins configure with step-up; webhooks refuse to store a URL without the encryption key", async () => {
+  const created = await S.admin.post("/workspace/notifications/new", { name: `TEST rule ${run}`, events: ["stage", "created"], email: "1", record_owner: "1", recipient_roles: "sales_manager", enabled: "1" });
+  assert.equal(created.status, 303);
+  assert.match(created.location, /^\/workspace\/notifications\/rul_[a-f0-9]{32}\?saved=rule$/);
+  const page = await S.admin.get(created.location);
+  assert.equal(page.status, 200);
+  assert.match(page.html, new RegExp(`TEST rule ${run}`));
+  const version = /name="version" value="(\d+)"/.exec(page.html)[1];
+  assert.equal((await S.admin.post(created.location.split("?")[0], { name: `TEST rule ${run}`, events: "stage", email: "1", record_owner: "1", version: "99" })).status, 422, "stale versions are refused");
+  assert.equal((await S.admin.post(created.location.split("?")[0], { name: `TEST rule ${run} v2`, events: "stage", email: "1", record_owner: "1", version })).status, 303);
+  assert.equal((await S.admin.post("/workspace/notifications/new", { name: "x", events: "stage" })).status, 422, "a rule needs a channel");
+  assert.equal((await S.hr.post("/workspace/notifications/new", { name: "x", events: "stage", email: "1", record_owner: "1" })).status, 403);
+  const hook = await S.admin.post("/workspace/webhooks", { intent: "create", platform: "slack", name: "TEST Slack", url: "https://hooks.slack.com/services/T0123456/B0123456/abcdefghijklmnopqrstuvwx" });
+  assert.equal(hook.status, 503, "no WORKSPACE_WEBHOOK_KEY in the test Worker: nothing stored");
+  assert.equal(jobs("SELECT COUNT(*) AS n FROM workspace_notification_destinations")[0].n, 0);
+  assert.equal(jobs("SELECT COUNT(*) AS n FROM workspace_audit WHERE action = 'notification_rule_saved'")[0].n >= 2, true);
+});
+
+test("AI agents: admin module levels apply to the next MCP call, and every call is audited", async () => {
+  const mcp = (body) => fetch(`${BASE}/api/crm/mcp`, { method: "POST", headers: { authorization: `Bearer ${S.token}`, "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, ...body }) }).then((response) => response.json());
+  const before = await mcp({ method: "tools/list" });
+  assert.ok(before.result.tools.some((tool) => tool.name === "workspace_my_access"));
+  const access = await mcp({ method: "tools/call", params: { name: "workspace_my_access", arguments: {} } });
+  assert.deepEqual(access.result.structuredContent.never_available_to_agents.map((item) => item.module), ["hiring", "hrm", "finance"]);
+  assert.equal((await S.admin.post("/workspace/agents", { intent: "policy", level_crm: "off", level_workspace: "read" })).status, 303);
+  assert.equal((await S.hr.post("/workspace/agents", { intent: "policy", level_crm: "write", level_workspace: "read" })).status, 403);
+  const after = await mcp({ method: "tools/list" });
+  assert.ok(!after.result.tools.some((tool) => tool.name === "search_companies"), "CRM tools disappear for every agent");
+  const refused = await mcp({ method: "tools/call", params: { name: "search_companies", arguments: {} } });
+  assert.equal(refused.result.structuredContent.error.code, "module_not_allowed");
+  assert.ok(jobs(`SELECT COUNT(*) AS n FROM workspace_audit WHERE action = 'agent_tool_called' AND via = 'mcp' AND outcome = 'denied' AND actor_id = ${q(S.exec.id)}`)[0].n >= 1);
+  assert.ok(jobs(`SELECT COUNT(*) AS n FROM workspace_audit WHERE action = 'agent_tool_called' AND via = 'mcp' AND outcome = 'success' AND actor_id = ${q(S.exec.id)}`)[0].n >= 1);
+  assert.equal((await S.admin.post("/workspace/agents", { intent: "policy", level_crm: "write", level_workspace: "read" })).status, 303);
+  const restored = (await mcp({ method: "tools/list" })).result.tools.map((tool) => tool.name);
+  assert.ok(restored.includes("search_companies"));
+  assert.ok(!restored.includes("create_company"), "a read-only token still sees no write tools");
 });
