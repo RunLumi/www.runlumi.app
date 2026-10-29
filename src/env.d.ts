@@ -6,6 +6,8 @@ interface Env {
   FINANCE_LIVE_ENABLED?: string;
   /** HRM deployment kill switch; absent/off keeps production closed. */
   HRM_LIVE_ENABLED?: string;
+  /** R-08 enforcement switch: "true" requires a passkey check per session and an anti-phishing code for every Workspace user. Absent/other = off. */
+  WORKSPACE_PASSKEY_REQUIRED?: string;
   /** In-place D1 recovery fence; while true, all private routes/jobs stay unavailable. */
   WORKSPACE_RESTORE_MODE?: string;
   DB: D1Database;

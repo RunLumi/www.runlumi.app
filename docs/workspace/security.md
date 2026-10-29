@@ -19,6 +19,25 @@ No password, second login, or app-owned cookie is added. The Workspace keeps
 two facts in the existing EmDash (Astro) session, each bound to the user ID:
 the time of the last Workspace passkey check and the credential used.
 
+## Deployment switch: `WORKSPACE_PASSKEY_REQUIRED`
+
+Rules 1 and 2 below, and the passkey-registration guard, are enforced only
+when the Worker variable `WORKSPACE_PASSKEY_REQUIRED` is exactly `"true"`.
+`wrangler.jsonc` (generated from `infra/workspace.manifest.mjs`) ships it as
+`"false"` for production and staging, so a release cannot lock out existing
+users. Step-up (rule 3) and the audit log are always on.
+
+Turning it on (owner decision):
+1. On **Admin › Security**, check that every member has a passkey (ideally
+   two) and an anti-phishing code; people can add both on
+   **My account › Security** while the switch is off.
+2. Tell the team that every Workspace session will ask for a passkey once.
+3. Set the variable to `"true"` in `infra/workspace.manifest.mjs`, run
+   `node scripts/generate-wrangler.mjs`, and merge (merging `main` deploys).
+   Turning it off is the same change back to `"false"`.
+
+The integration suite runs with the switch on.
+
 ## Rules
 
 1. **Workspace passkey check (R-08).** Every private Workspace page and API

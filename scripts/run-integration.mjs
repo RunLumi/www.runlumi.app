@@ -36,6 +36,7 @@ const env = {
   CRM_BASE_URL: base,
   HRM_LIVE_ENABLED: "true",
   FINANCE_LIVE_ENABLED: "true",
+  WORKSPACE_PASSKEY_REQUIRED: "true",
   ASTRO_DEV_BACKGROUND: "0",
   CRM_INTAKE_SECRET: "local-test-secret-not-for-production-0123456789",
   WRANGLER_SEND_METRICS: "false",
@@ -59,7 +60,7 @@ try {
 
   await writeFile(
     devVarsPath,
-    "HRM_LIVE_ENABLED=true\nFINANCE_LIVE_ENABLED=true\nCRM_INTAKE_SECRET=local-test-secret-not-for-production-0123456789\n",
+    "HRM_LIVE_ENABLED=true\nFINANCE_LIVE_ENABLED=true\nWORKSPACE_PASSKEY_REQUIRED=true\nCRM_INTAKE_SECRET=local-test-secret-not-for-production-0123456789\n",
     { flag: "wx", mode: 0o600 },
   );
   localVars = true;

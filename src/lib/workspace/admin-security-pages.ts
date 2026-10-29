@@ -14,6 +14,7 @@ import { type Rule, getRule, listRules, parseRuleForm, saveRule } from "./notify
 import { openRecoveryWindow, securityOverview, type SecurityRow } from "./org-security";
 import type { WorkspaceUser } from "./roles";
 import { stepUpGuard } from "./step-up";
+import { passkeyRequired } from "./security-gate";
 
 export type Lang = "en" | "vi";
 type Base = { lang: Lang; vi: boolean; user: WorkspaceUser; error: string | null; saved: string | null };
@@ -45,7 +46,7 @@ function base(astro: AstroGlobal, lang: Lang): Base | Response {
 
 // ---- Security overview -----------------------------------------------------
 
-export interface SecurityData extends Base { rows: SecurityRow[] }
+export interface SecurityData extends Base { rows: SecurityRow[]; enforced: boolean }
 
 export async function securityPage(astro: AstroGlobal, lang: Lang): Promise<SecurityData | Response> {
   const data = base(astro, lang);
@@ -60,7 +61,7 @@ export async function securityPage(astro: AstroGlobal, lang: Lang): Promise<Secu
     if (result instanceof Response) return result;
     data.error = result.error;
   }
-  return { ...data, rows: await securityOverview(DB, CONTENT_DB) };
+  return { ...data, rows: await securityOverview(DB, CONTENT_DB), enforced: passkeyRequired(envFromLocals(astro.locals)) };
 }
 
 // ---- Webhooks ---------------------------------------------------------------

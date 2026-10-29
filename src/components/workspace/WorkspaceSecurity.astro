@@ -13,7 +13,7 @@ import { RECOVERY_WINDOW_HOURS } from "../../lib/workspace/org-security";
 import { roleLabel } from "../../lib/workspace/roles";
 
 type Props = SecurityData;
-const { lang, vi, user, rows, error, saved } = Astro.props;
+const { lang, vi, user, rows, error, saved, enforced } = Astro.props;
 const t = (en: string, viText: string) => (vi ? viText : en);
 const active = rows.filter((row) => row.enabled);
 const noPasskey = active.filter((row) => row.passkeys === 0).length, onePasskey = active.filter((row) => row.passkeys === 1).length, noCode = active.filter((row) => !row.codeSet).length;
@@ -33,6 +33,9 @@ const rules: [string, string, string, string][] = [
   <PageHeader vi={vi} eyebrow={t("Admin", "Quản trị")} title={t("Security", "Bảo mật")} lede={t("These rules are fixed for everyone; there is no opt-out. Every change below is recorded in the audit log.", "Các quy tắc này cố định với mọi người, không có ngoại lệ. Mọi thay đổi bên dưới được ghi vào nhật ký kiểm toán.")}>
     <Fragment slot="actions"><a class="crm-button secondary" href={`${localized("/workspace/audit", vi)}?kind=security`}>{t("Security events", "Sự kiện bảo mật")}</a></Fragment>
   </PageHeader>
+  <div class:list={["crm-notice", enforced ? "good" : "bad"]} role="status">{enforced
+    ? t("Enforcement is on: every Workspace session needs a passkey check and an anti-phishing code.", "Đang bắt buộc: mọi phiên Workspace cần xác thực passkey và mã chống lừa đảo.")
+    : t("Enforcement is off (WORKSPACE_PASSKEY_REQUIRED is not \"true\"). Step-up for sensitive actions still applies. Turn it on once everyone below has a passkey.", "Chưa bắt buộc (WORKSPACE_PASSKEY_REQUIRED chưa là \"true\"). Xác thực lại trước thao tác nhạy cảm vẫn áp dụng. Hãy bật khi mọi người dưới đây đã có passkey.")}</div>
   {saved === "recovery" && <div class="crm-notice good" role="status">{t("Recovery window opened. The person signs in with an EmDash recovery link and adds a new passkey.", "Đã mở cửa sổ khôi phục. Người đó đăng nhập bằng link khôi phục của EmDash rồi thêm passkey mới.")}</div>}
   {error && <div class="crm-notice bad" role="alert">{errors[error]?.[vi ? 1 : 0] ?? error}</div>}
   <PanelRow>

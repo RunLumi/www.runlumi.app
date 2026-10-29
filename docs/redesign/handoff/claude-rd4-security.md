@@ -45,6 +45,10 @@ Shared files changed in their own commits: `package.json`/lock (declare `@emdash
 5. **Not built from the boards:** department recipients (no department model outside HRM data), "send test" for webhooks, re-sending failed deliveries from the UI, editing a webhook URL (remove and add instead), "remind members" on the security page, agent write-confirmation flow (AgentConsent), OAuth MCP connection, and per-person module grants (levels are organisation-wide).
 6. **Staging** cannot deploy until the founder creates its resources (`node scripts/generate-wrangler.mjs --plan`) and pastes the D1 IDs. The Cloudflare adapter's `SESSION` KV binding for staging is unverified.
 
+## Release safety (integrator request, 2026-10-29)
+
+R-08 enforcement ships **off** behind `WORKSPACE_PASSKEY_REQUIRED` (production and staging `"false"`), so merging cannot lock anyone out. With it off: no session passkey check, no code gate, no EmDash registration guard. Step-up, the audit log, notification rules, agent levels and the account security page still work. Turning it on is documented in [security.md](../../workspace/security.md#deployment-switch-workspace_passkey_required).
+
 ## Decisions needed from the founder
 
 1. **Email provider** for notification email (and whether EmDash should send its own mail through it). Until then, rules deliver by webhook only.
@@ -52,4 +56,4 @@ Shared files changed in their own commits: `package.json`/lock (declare `@emdash
 3. **Recovery with two admins**, or keep one admin plus a reason, as built.
 4. **HRM and hiring for agents.** AGENTS.md forbids tokens reaching hiring, and the HRM spec requires a separate HRM token and scope. Both stay excluded. Building an HRM agent token is a separate decision.
 5. **Session length.** 12 h is assumed (the board says "chưa chốt").
-6. **Production rollout of R-08.** On merge, every existing user must touch a passkey and set a code at their next visit. People with no passkey add their first one after an EmDash sign-in. Confirm the timing, and tell the team before the merge.
+6. **When to turn on R-08 enforcement** (`WORKSPACE_PASSKEY_REQUIRED="true"`). Admin › Security shows who still lacks a passkey or code. Until then, R-08 is built but not enforced.

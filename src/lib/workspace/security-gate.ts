@@ -9,6 +9,17 @@ import type { WorkspaceUser } from "./roles";
 
 export const ACCOUNT_SECURITY_PATH = "/workspace/account/security";
 
+/**
+ * Deployment switch for R-08 enforcement (the session passkey check, the
+ * anti-phishing code gate and the EmDash passkey-registration guard).
+ * Off unless WORKSPACE_PASSKEY_REQUIRED is exactly "true", so a release never
+ * locks existing users out before the owner turns it on. Step-up for
+ * sensitive actions is always on.
+ */
+export function passkeyRequired(env: { WORKSPACE_PASSKEY_REQUIRED?: string }): boolean {
+  return env.WORKSPACE_PASSKEY_REQUIRED === "true";
+}
+
 const plain = (path: string) => (path.startsWith("/vi/") ? path.slice(3) : path);
 
 /** Pages that must open before the session check: the check itself. */
@@ -27,9 +38,9 @@ const privateHeaders = { "Cache-Control": "private, no-store", "X-Content-Type-O
 export interface GateContext { session?: SessionStore; request: Request; url: URL }
 
 /** null when the request may continue; otherwise the redirect or 401 to send. */
-export async function workspaceGate(context: GateContext, user: WorkspaceUser, db: D1Database, api: boolean): Promise<Response | null> {
+export async function workspaceGate(context: GateContext, user: WorkspaceUser, db: D1Database, api: boolean, required = true): Promise<Response | null> {
   const path = context.url.pathname, vi = path.startsWith("/vi/");
-  if (passkeyExempt(path)) return null;
+  if (!required || passkeyExempt(path)) return null;
   if (!(await sessionPasskeyVerified(context.session, user.id))) {
     if (api) return new Response(JSON.stringify({ ok: false, error: { code: "passkey_required", verify: verifyPath(vi, "/workspace", "session") } }), { status: 401, headers: { ...privateHeaders, "Content-Type": "application/json; charset=utf-8" } });
     return new Response(null, { status: 303, headers: { ...privateHeaders, Location: verifyPath(vi, path + context.url.search, "session") } });
@@ -58,10 +69,10 @@ export function passkeyRegistrationPath(path: string): boolean {
  * response (audit, and close the recovery window), or null to continue.
  */
 export async function passkeyRegistrationGuard(
-  context: GateContext & { locals: App.Locals }, db: D1Database, contentDb: D1Database,
+  context: GateContext & { locals: App.Locals }, db: D1Database, contentDb: D1Database, required = true,
 ): Promise<Response | ((response: Response) => Promise<void>) | null> {
   const user = context.locals.user;
-  if (!user?.id || user.disabled || context.request.method !== "POST") return null;
+  if (!required || !user?.id || user.disabled || context.request.method !== "POST") return null;
   // Revoked members count too, so a passkey added while revoked cannot carry over a later restore.
   const workspacePerson = user.role === 50 || !!(await db.prepare("SELECT 1 FROM workspace_members WHERE user_id = ? LIMIT 1").bind(user.id).first());
   if (!workspacePerson) return null;

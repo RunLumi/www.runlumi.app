@@ -20,6 +20,7 @@ export const manifest = {
     vars: {
       FINANCE_LIVE_ENABLED: { value: "true", comment: "Company data remains unavailable until Super Admin completes book setup." },
       WORKSPACE_RESTORE_MODE: { value: "false" },
+      WORKSPACE_PASSKEY_REQUIRED: { value: "false", comment: "R-08 passkey and anti-phishing enforcement. Off until the owner confirms every\nWorkspace user has an EmDash passkey; see docs/workspace/security.md." },
     },
     routes: ["runlumi.app/*", "www.runlumi.app/*", "landing.runlumi.app/*"],
     zone: "runlumi.app",
@@ -43,6 +44,7 @@ export const manifest = {
       FINANCE_LIVE_ENABLED: { value: "false" },
       HRM_LIVE_ENABLED: { value: "false" },
       WORKSPACE_RESTORE_MODE: { value: "false" },
+      WORKSPACE_PASSKEY_REQUIRED: { value: "false" },
     },
     d1: [
       // IDs exist only after the founder creates the databases (see --plan).

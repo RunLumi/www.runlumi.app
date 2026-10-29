@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { AntiPhishingError, maskCode, normalizeCode } from "../src/lib/workspace/anti-phishing.ts";
 import { renderEmail, safeLink } from "../src/lib/workspace/email.ts";
-import { codeExempt, passkeyExempt, passkeyRegistrationGuard, passkeyRegistrationPath, workspaceGate } from "../src/lib/workspace/security-gate.ts";
+import { codeExempt, passkeyExempt, passkeyRequired, passkeyRegistrationGuard, passkeyRegistrationPath, workspaceGate } from "../src/lib/workspace/security-gate.ts";
 import { makeUser } from "../src/lib/workspace/roles.ts";
 // @ts-expect-error test helper without types
 import { memorySession } from "./support/synthetic-passkey.mjs";
@@ -76,6 +76,10 @@ test("Workspace gate: no session passkey check → redirect (pages) or 401 (APIs
   const other = at("/crm");
   other.session.set("lumi_workspace_passkey", { userId: "bob", at: Date.now(), credentialId: "c" });
   assert.equal((await workspaceGate(other, user, db({ code: "x y z w" }), false))!.status, 303, "another user's check does not count");
+  assert.equal(await workspaceGate(at("/crm"), user, db(), false, false), null, "switch off: nobody is stopped");
+  assert.equal(passkeyRequired({}), false);
+  assert.equal(passkeyRequired({ WORKSPACE_PASSKEY_REQUIRED: "TRUE" }), false, "only the exact value turns it on");
+  assert.equal(passkeyRequired({ WORKSPACE_PASSKEY_REQUIRED: "true" }), true);
   assert.ok(passkeyExempt("/vi/workspace/verify") && codeExempt("/workspace/account/security") && !codeExempt("/workspace/account/securityx"));
 });
 
@@ -86,6 +90,7 @@ test("adding a passkey in EmDash: first passkey free, otherwise step-up or an ad
   const alice = { id: "alice", email: "alice@example.test", name: "Alice", role: 30, disabled: 0 };
   const content = (count: number) => ({ prepare: () => ({ bind: () => ({ all: async () => ({ results: Array.from({ length: count }, (_, i) => ({ id: `c${i}`, user_id: "alice", public_key: [], algorithm: -7, counter: 0, name: null, transports: null })) }) }) }) }) as unknown as D1Database;
   assert.equal(await passkeyRegistrationGuard(ctx(alice), db({ member: false }), content(1)), null, "not a Workspace person: EmDash decides");
+  assert.equal(await passkeyRegistrationGuard(ctx(alice), db({ member: true }), content(1), false), null, "switch off: EmDash decides");
   const first = await passkeyRegistrationGuard(ctx(alice), db({ member: true }), content(0));
   assert.equal(typeof first, "function", "first passkey allowed, then audited");
   const blocked = await passkeyRegistrationGuard(ctx(alice), db({ member: true }), content(1));

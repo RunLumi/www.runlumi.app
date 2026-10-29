@@ -24,7 +24,7 @@ test("production keeps today's names, IDs, routes, crons and vars unchanged (R-1
   assert.deepEqual(config.r2_buckets, [{ binding: "FILES", bucket_name: "lumi-job-files" }, { binding: "BLOG_MEDIA", bucket_name: "lumi-blog-media" }]);
   assert.deepEqual(config.routes.map((route: { pattern: string }) => route.pattern), ["runlumi.app/*", "www.runlumi.app/*", "landing.runlumi.app/*"]);
   assert.deepEqual(config.triggers.crons, ["37 1 * * MON-SAT", "40 1 * * *", "*/10 * * * *"]);
-  assert.deepEqual(config.vars, { FINANCE_LIVE_ENABLED: "true", WORKSPACE_RESTORE_MODE: "false" });
+  assert.deepEqual(config.vars, { FINANCE_LIVE_ENABLED: "true", WORKSPACE_RESTORE_MODE: "false", WORKSPACE_PASSKEY_REQUIRED: "false" }, "R-08 enforcement ships off");
   assert.deepEqual(config.compatibility_flags, ["nodejs_compat", "global_fetch_strictly_public"]);
   assert.equal(config.main, "./src/worker.ts");
 });
