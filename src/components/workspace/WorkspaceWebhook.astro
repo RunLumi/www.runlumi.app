@@ -1,0 +1,46 @@
+---
+// Admin › Webhooks › one webhook (child screen): configuration, the rules
+// that use it, the delivery log, and pause/resume/remove behind step-up.
+import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
+import DataTable from "./ui/DataTable.astro";
+import FactRow from "./ui/FactRow.astro";
+import PageHeader from "./ui/PageHeader.astro";
+import Panel from "./ui/Panel.astro";
+import { localized } from "../../lib/workspace/nav";
+import type { WebhookData } from "../../lib/workspace/admin-security-pages";
+import { platformLabels } from "../../lib/workspace/notify/destinations";
+import { dateTime } from "../../lib/workspace/format";
+
+type Props = WebhookData;
+const { lang, vi, user, destination, deliveries, rules, names, saved } = Astro.props;
+const t = (en: string, viText: string) => (vi ? viText : en);
+const base = localized("/workspace/webhooks", vi);
+const statuses: Record<string, [string, string]> = { sent: ["Sent", "Đã gửi"], failed: ["Failed", "Lỗi"], skipped: ["Not sent", "Không gửi"], sending: ["Sending", "Đang gửi"], active: ["Active", "Hoạt động"], paused: ["Paused", "Tạm dừng"] };
+const ruleName = (id: string) => rules.find((rule) => rule.id === id)?.name ?? id;
+---
+<WorkspaceShell title={destination.name} lang={lang} user={user} module="admin" current="webhooks">
+  <PageHeader vi={vi} title={destination.name} crumbs={[{ label: t("Admin", "Quản trị"), href: localized("/workspace/users", vi) }, { label: "Webhook", href: base }, { label: destination.name }]}>
+    <Fragment slot="actions">
+      <form method="post"><input type="hidden" name="intent" value={destination.status === "active" ? "pause" : "resume"} /><button class="crm-button secondary" type="submit">{destination.status === "active" ? t("Pause", "Tạm dừng") : t("Resume", "Tiếp tục")}</button></form>
+      <form method="post"><input type="hidden" name="intent" value="remove" /><button class="crm-button danger" type="submit">{t("Remove webhook", "Gỡ Webhook")}</button></form>
+    </Fragment>
+  </PageHeader>
+  {saved && <div class="crm-notice good" role="status">{t("Saved.", "Đã lưu.")}</div>}
+  {destination.status === "paused" && destination.consecutive_failures > 0 && <div class="crm-notice bad" role="status">{t(`Paused after ${destination.consecutive_failures} failures in a row (last: ${destination.last_result}). Check the address in ${platformLabels[destination.platform]}; to change it, remove this webhook and add it again.`, `Đã tạm dừng sau ${destination.consecutive_failures} lần lỗi liên tiếp (gần nhất: ${destination.last_result}). Kiểm tra địa chỉ trên ${platformLabels[destination.platform]}; muốn đổi, hãy gỡ Webhook này rồi thêm lại.`)}</div>}
+  <FactRow facts={[
+    { label: t("Platform", "Nền tảng"), value: platformLabels[destination.platform] }, { label: t("Address", "Địa chỉ đích"), value: destination.url_hint },
+    { label: t("Status", "Trạng thái"), value: statuses[destination.status]?.[vi ? 1 : 0] ?? destination.status },
+    { label: t("Added", "Tạo lúc"), value: `${dateTime(destination.created_at, vi)} · ${names[destination.created_by] ?? destination.created_by}` },
+  ]} />
+  <Panel title={t("Rules using it", "Quy tắc dùng Webhook này")}>
+    {rules.length ? <ul class="crm-list">{rules.map((rule) => <li class="crm-row"><a class="crm-link" href={`${localized("/workspace/notifications", vi)}/${rule.id}`}>{rule.name}</a></li>)}</ul> : <p class="crm-empty">{t("No rule sends here yet.", "Chưa có quy tắc nào gửi tới đây.")}</p>}
+  </Panel>
+  <Panel title={t("Delivery log", "Nhật ký gửi")} note={t("Last 100 deliveries. Content is not stored; only the outcome.", "100 lượt gửi gần nhất. Không lưu nội dung, chỉ lưu kết quả.")} flush>
+    {deliveries.length
+      ? <DataTable vi={vi} label={t("Deliveries", "Lượt gửi")} frozen={1} widths={["11rem"]} minWidth="820px">
+          <thead><tr><th scope="col">{t("Time", "Thời gian")}</th><th scope="col">{t("Rule", "Quy tắc")}</th><th scope="col">{t("Result", "Kết quả")}</th><th scope="col">{t("Reason", "Lý do")}</th><th scope="col" class="num">{t("Attempts", "Lần thử")}</th><th scope="col">{t("Delivery ID", "Mã gửi")}</th></tr></thead>
+          <tbody>{deliveries.map((row) => <tr><th scope="row">{dateTime(row.updated_at, vi)}</th><td>{ruleName(row.rule_id)}</td><td><span class:list={["crm-badge", row.status === "sent" ? "green" : row.status === "failed" ? "red" : ""]}>{statuses[row.status]?.[vi ? 1 : 0] ?? row.status}</span></td><td>{row.last_error || "—"}</td><td class="num">{row.attempts}</td><td><code>{row.id}</code></td></tr>)}</tbody>
+        </DataTable>
+      : <p class="crm-empty">{t("Nothing sent yet.", "Chưa gửi lần nào.")}</p>}
+  </Panel>
+</WorkspaceShell>

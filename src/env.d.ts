@@ -23,6 +23,8 @@ interface Env {
   LARK_CRM_WEBHOOK_URL?: string;
   /** Lark custom bot signing secret (signature verification). */
   LARK_CRM_WEBHOOK_SECRET?: string;
+  /** Optional, ≥32 characters: encrypts admin-added Slack/Discord/Teams webhook URLs at rest. Absent = those webhooks cannot be added or used. */
+  WORKSPACE_WEBHOOK_KEY?: string;
 }
 
 declare namespace App {
