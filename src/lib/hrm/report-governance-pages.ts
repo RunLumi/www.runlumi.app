@@ -36,5 +36,5 @@ export async function reportGovernancePage(astro:AstroGlobal,lang:"en"|"vi"):Pro
   membersWithRoles(env.DB,env.CONTENT_DB,roles),env.CONTENT_DB.prepare("SELECT id,COALESCE(name,email) AS name FROM users WHERE role=50 AND disabled=0 ORDER BY id LIMIT 100").all<{id:string;name:string}>(),
  ]);
  const owners=[...new Map([...members.map(m=>({id:m.user_id,name:m.name||m.email})),...admins.results].map(m=>[m.id,m])).values()];
- return {lang,vi:lang==="vi",user,title:lang==="vi"?"Chính sách và hold báo cáo":"Report policies and holds",live:user.hrmEnabled===true,policies,holds,sources:sources.results,owners,error,saved:astro.url.searchParams.get("saved")==="1"};
+ return {lang,vi:lang==="vi",user,title:lang==="vi"?"Chính sách và tạm giữ báo cáo":"Report policies and holds",live:user.hrmEnabled===true,policies,holds,sources:sources.results,owners,error,saved:astro.url.searchParams.get("saved")==="1"};
 }

@@ -26,7 +26,7 @@ export async function retentionPage(astro:AstroGlobal,lang:Lang):Promise<Retenti
   const template=RETENTION_CATEGORIES.map(category=>({category,retention_days:null,basis:""}));
   const error=astro.url.searchParams.get("error")??"";
   const financial=await financialRetentionPanel(DB,CONTENT_DB,FILES,user,astro.url);
-  return {lang,vi:lang==="vi",user,title:lang==="vi"?"Lưu trữ và legal hold":"Retention and legal holds",live:user.hrmEnabled===true,
+  return {lang,vi:lang==="vi",user,title:lang==="vi"?"Lưu trữ và tạm giữ pháp lý":"Retention and legal holds",live:user.hrmEnabled===true,
     policies,files,holds,requests,people:people.results,categories:RETENTION_CATEGORIES,policyTemplate:JSON.stringify(template,null,2),structuredPolicies,structuredRecords,structuredRequests,structuredPolicyTemplate:structuredRetentionTemplate(),
     financial,requestKey:crypto.randomUUID(),saved:astro.url.searchParams.get("saved")??"",error:allowedErrors.has(error)?error:undefined};
 }

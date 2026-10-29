@@ -8,7 +8,7 @@ const kindLabel=(kind:string)=>kind==="file"?(vi?"PDF quyết toán":"Financial 
 ---
 <section class="crm-sheet" id="financial-disposition">
  <h3 class="crm-h2">{vi?"Xử lý dữ liệu đến hạn":"Disposition of due records"}</h3>
- <p class="crm-help">{vi?"Mỗi yêu cầu có người đề nghị, người rà soát độc lập và System Super Admin thực hiện là ba người khác nhau. Legal hold luôn chặn xóa. Xóa PDF và xóa nội dung dossier là hai quyết định riêng; không khôi phục quyền truy cập của nhân viên đã nghỉ.":"Each request needs three distinct people: requester, independent reviewer and System Super Admin executor. Legal holds block erasure. PDF erasure and dossier content redaction are separate decisions; neither restores access for ended employees."}</p>
+ <p class="crm-help">{vi?"Mỗi yêu cầu có người đề nghị, người rà soát độc lập và System Super Admin thực hiện là ba người khác nhau. Tạm giữ pháp lý luôn chặn xóa. Xóa PDF và xóa nội dung hồ sơ là hai quyết định riêng; không khôi phục quyền truy cập của nhân viên đã nghỉ.":"Each request needs three distinct people: requester, independent reviewer and System Super Admin executor. Legal holds block erasure. PDF erasure and dossier content redaction are separate decisions; neither restores access for ended employees."}</p>
  {!d.live?<p class="crm-notice warn">{vi?"HRM đang đóng. Có thể chuẩn bị chính sách; chưa mở xử lý dữ liệu nhân viên.":"HRM is closed. Policy preparation is available; employee disposition is not open."}</p>:<>
  <form class="crm-form" method="get" action={path}>
   <label class="crm-field"><span>{vi?"Tìm hồ sơ theo mã hoặc tên nhân viên":"Find cases by employee code or name"}</span><input class="crm-input" name="financial_person" value={f.caseSearch} maxlength="100"/></label>
@@ -19,7 +19,7 @@ const kindLabel=(kind:string)=>kind==="file"?(vi?"PDF quyết toán":"Financial 
  {f.nextCase&&<a href={next("financial_cases_after",f.nextCase)}>{vi?"Hồ sơ tiếp theo":"More cases"}</a>}
  {f.selected&&<>
  <h4>{f.selected.employee_code} · {f.selected.legal_name}</h4>
- <a href={`${vi?"/vi":""}/hrm/offboarding/${encodeURIComponent(f.selected.id)}`}>{vi?"Mở hồ sơ nghỉ việc và legal hold":"Open offboarding case and legal holds"}</a>
+ <a href={`${vi?"/vi":""}/hrm/offboarding/${encodeURIComponent(f.selected.id)}`}>{vi?"Mở hồ sơ nghỉ việc và tạm giữ pháp lý":"Open offboarding case and legal holds"}</a>
  {f.policiesHaveMore&&<p class="crm-notice warn">{vi?"Đang hiển thị 50 chính sách đang hiệu lực. Cần thu hẹp danh sách chính sách trước khi chọn nếu chưa thấy quy tắc phù hợp.":"Showing 50 active policies. Narrow the policy catalogue if the applicable rule is not shown."}</p>}
  <form class="crm-form" method="get" action={path}>
   <input type="hidden" name="financial_case" value={f.selected.id}/>
@@ -31,7 +31,7 @@ const kindLabel=(kind:string)=>kind==="file"?(vi?"PDF quyết toán":"Financial 
   <input type="hidden" name="intent" value="request_financial_disposition"/><input type="hidden" name="lang" value={d.lang}/><input type="hidden" name="request_key" value={crypto.randomUUID()}/><input type="hidden" name="case_id" value={f.selected!.id}/><input type="hidden" name="target_kind" value={target.kind}/><input type="hidden" name="target_id" value={target.id}/><input type="hidden" name="version" value={target.version}/>
   <label class="crm-field"><span>{vi?"Chính sách áp dụng đã rà soát":"Reviewed applicable policy"}</span><select class="crm-select" name="policy_id" required><option value="">{vi?"Chọn chính sách":"Choose policy"}</option>{f.activePolicies.filter(p=>target.kind==="file"?p.file_days!==null:p.dossier_days!==null).map(policy=><option value={policy.id}>{vi?policy.title_vi:policy.title_en} · v{policy.revision}</option>)}</select></label>
   <label class="crm-field"><span>{vi?"Căn cứ phạm vi và việc áp dụng":"Scope and applicability basis"}</span><textarea class="crm-input" name="reason" maxlength="1000" required rows="3"></textarea></label>
-  <label><input type="checkbox" name="confirmed" value="yes" required/> {vi?"Tôi đã kiểm tra phạm vi, mốc tính và chính sách áp dụng. Hệ thống sẽ kiểm tra lại hạn và legal hold.":"I checked the scope, anchor and policy applicability. The system will recheck the due date and legal holds."}</label>
+  <label><input type="checkbox" name="confirmed" value="yes" required/> {vi?"Tôi đã kiểm tra phạm vi, mốc tính và chính sách áp dụng. Hệ thống sẽ kiểm tra lại hạn và tạm giữ pháp lý.":"I checked the scope, anchor and policy applicability. The system will recheck the due date and legal holds."}</label>
   <button class="crm-button secondary">{vi?"Gửi rà soát độc lập":"Submit for independent review"}</button>
  </form></details>}
  </article>)}</div>

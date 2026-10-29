@@ -1,5 +1,8 @@
 ---
 import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
+import Breadcrumbs, { type Crumb } from "../modules/Breadcrumbs.astro";
+import "../../styles/modules.css";
+import { localized, modules } from "../../lib/workspace/nav";
 import type { Failure, PageBase } from "../../lib/hrm/pages";
 interface Props { data: PageBase|Failure; module?:"hrm"; current?:string }
 const {data}=Astro.props;const vi=data.vi;
@@ -20,17 +23,17 @@ const messages:Record<string,[string,string]>={
  financial_payload_unavailable:["The stored financial file could not be verified. Reconcile the file before using it.","Chưa xác minh được tệp tài chính đã lưu. Cần đối soát trước khi sử dụng tệp."],
  financial_payload_remaining:["File content is still present; disposition has not completed.","Nội dung tệp vẫn còn; việc xóa chưa hoàn tất."],
  closeout_pdf_required:["Upload a PDF file for confidential financial evidence.","Chứng cứ tài chính riêng tư phải là tệp PDF."],
- closeout_hold_unavailable:["A deleted file or an erasure already in progress cannot receive a new hold.","Không thể đặt hold mới cho tệp đã xóa hoặc đang được xử lý xóa."],
+ closeout_hold_unavailable:["A deleted file or an erasure already in progress cannot receive a new hold.","Không thể đặt tạm giữ mới cho tệp đã xóa hoặc đang được xử lý xóa."],
  report_account_unavailable:["Your account or permissions changed. Reload and try again.","Tài khoản hoặc quyền đã thay đổi. Hãy tải lại trang."],
  closeout_invalid:["Complete the required financial review fields.","Hãy điền đủ các trường rà soát tài chính bắt buộc."],
  closeout_checks_required:["Every policy check needs a permitted outcome, reason and 1–5 reviewed PDFs.","Mỗi mục chính sách cần kết luận được phép, lý do và 1–5 PDF đã được rà soát."],
  closeout_source_changed:["Financial sources or this review changed. Reload, inspect the current sources and prepare a fresh dossier.","Nguồn tài chính hoặc bản rà soát đã thay đổi. Hãy tải lại, kiểm tra nguồn hiện hành và lập hồ sơ mới."],
  closeout_approval_required:["Only the independent approver can apply a current approved dossier.","Chỉ người duyệt độc lập mới được dùng hồ sơ hiện hành đã duyệt để ghi hoàn tất."],
- closeout_evidence_invalid:["Use this case’s independently reviewed, available PDFs; pending disposal and missing objects are blocked.","Cần PDF đúng case, đã rà soát độc lập và còn khả dụng; tệp chờ xử lý lưu trữ hoặc bị thiếu sẽ bị chặn."],
+ closeout_evidence_invalid:["Use this case’s independently reviewed, available PDFs; pending disposal and missing objects are blocked.","Cần PDF đúng hồ sơ nghỉ việc, đã rà soát độc lập và còn khả dụng; tệp chờ xử lý lưu trữ hoặc bị thiếu sẽ bị chặn."],
  closeout_policy_required:["Select an active, reviewed policy covering this employment ending and the current review date.","Hãy chọn chính sách hiện hành đã duyệt, bao phủ ngày kết thúc làm việc và ngày rà soát."],
- closeout_sources_unreconciled:["Recorded sources remain unresolved. Resolve missing payroll, receipts, time, leave or inquiries before approval.","Nguồn còn vấn đề chưa giải quyết. Cần xử lý payroll, thanh toán, công, phép hoặc khiếu nại còn thiếu trước khi duyệt."],
- closeout_source_limit:["This case exceeds the safe review size. No truncated snapshot or clearance was created.","Hồ sơ vượt giới hạn rà soát an toàn. Hệ thống chưa tạo snapshot bị cắt hay xác nhận quyết toán."],
- closeout_policy_invalid:["Complete the policy terms, dates and explicit exemption instructions.","Hãy điền đủ điều khoản, ngày hiệu lực và hướng dẫn chứng cứ nếu cho phép miễn payroll."],
+ closeout_sources_unreconciled:["Recorded sources remain unresolved. Resolve missing payroll, receipts, time, leave or inquiries before approval.","Nguồn còn vấn đề chưa giải quyết. Cần xử lý bảng lương, thanh toán, công, phép hoặc khiếu nại còn thiếu trước khi duyệt."],
+ closeout_source_limit:["This case exceeds the safe review size. No truncated snapshot or clearance was created.","Hồ sơ vượt giới hạn rà soát an toàn. Hệ thống chưa tạo bản chốt bị cắt hay xác nhận quyết toán."],
+ closeout_policy_invalid:["Complete the policy terms, dates and explicit exemption instructions.","Hãy điền đủ điều khoản, ngày hiệu lực và hướng dẫn chứng cứ nếu cho phép miễn đối chiếu bảng lương."],
  closeout_checklist_invalid:["Provide 1–30 checks with unique uppercase keys, English and Vietnamese titles and instructions, and an explicit exemption choice.","Cần 1–30 mục với mã in hoa không trùng, tên và hướng dẫn bằng cả tiếng Anh lẫn tiếng Việt, cùng lựa chọn có cho phép miễn hay không."],
  closeout_policy_source_invalid:["Choose a policy DOCX version with independently reviewed source and file, matching checksum and legal entity.","Hãy chọn phiên bản DOCX chính sách cùng pháp nhân, có checksum khớp và đã được duyệt độc lập ở cả tệp lẫn phiên bản."],
  closeout_policy_expired:["This policy’s review window has ended. Create and review a new version with explicit dates.","Thời hạn rà soát của chính sách đã hết. Hãy tạo và duyệt phiên bản mới với ngày hiệu lực cụ thể."],
@@ -43,12 +46,12 @@ const messages:Record<string,[string,string]>={
  performance_self_review:["You cannot manage or approve your own review, or approve one you prepared or assessed.","Bạn không thể quản lý/tự duyệt đánh giá của mình, hoặc duyệt bản do chính mình tạo hay đánh giá."],
  performance_cycle_invalid:["Use letters, digits, underscores or hyphens for the cycle code.","Mã kỳ chỉ dùng chữ, số, dấu gạch dưới hoặc gạch ngang."],
 
- hrm_closed:["HRM is not activated. The owner’s configuration and deployment gate are still closed.","HRM chưa được kích hoạt. Cấu hình của owner và cổng production hiện vẫn đóng."],
+ hrm_closed:["HRM is not activated. The owner’s configuration and deployment gate are still closed.","HRM chưa được kích hoạt. Cấu hình của chủ sở hữu và công tắc môi trường chính thức hiện vẫn đóng."],
  policy_required:["Complete and review the policy source, purpose and retention configuration first.","Hãy điền và rà soát nguồn chính sách, mục đích xử lý và thời hạn lưu trước."],
  legal_entity_unconfigured:["Set the employing legal entity before creating an asset reminder policy.","Hãy cấu hình pháp nhân sử dụng lao động trước khi tạo lịch nhắc tài sản."],
  report_period_invalid:["Choose a valid reporting month.","Hãy chọn tháng báo cáo hợp lệ."],
  report_department_invalid:["Choose a department from the current legal-entity list.","Hãy chọn phòng ban trong danh sách của pháp nhân hiện tại."],
- activation_closed:["The deployment kill switch is off. Ask the owner to enable HRM only after the policy gate passes.","Công tắc triển khai HRM đang tắt. Hãy nhờ owner bật sau khi chính sách đã qua cổng rà soát."],
+ activation_closed:["The deployment kill switch is off. Ask the owner to enable HRM only after the policy gate passes.","Công tắc triển khai HRM đang tắt. Hãy nhờ chủ sở hữu bật sau khi chính sách đã qua cổng rà soát."],
  invalid_origin:["The request origin was rejected.","Nguồn gửi yêu cầu không hợp lệ."],
  invalid_form:["The form could not be read.","Không đọc được biểu mẫu."],
  conflict:["The record changed since it was opened. Reload and review the latest revision.","Hồ sơ đã thay đổi. Hãy tải lại và kiểm tra phiên bản mới nhất."],
@@ -61,8 +64,8 @@ const messages:Record<string,[string,string]>={
  file_size:["Files must be no larger than 5 MB.","Tệp không được lớn hơn 5 MB."],
  invalid_account:["Choose an existing, active EmDash account.","Hãy chọn tài khoản EmDash đang hoạt động."],
  invalid_relationship_type:["Choose employee or contractor.","Hãy chọn nhân viên hoặc cộng tác viên."],
- payroll_contractor:["Contractors are never in payroll: they have no compensation, payroll run or final pay.","Cộng tác viên không vào payroll: không có thu nhập theo hợp đồng, kỳ lương hay quyết toán lương."],
- relationship_type_fixed:["The relationship type cannot change once compensation or payroll uses this employment period.","Không thể đổi loại quan hệ khi đợt làm việc này đã có thu nhập theo hợp đồng hoặc đã vào payroll."],
+ payroll_contractor:["Contractors are never in payroll: they have no compensation, payroll run or final pay.","Cộng tác viên không vào bảng lương: không có thu nhập theo hợp đồng, kỳ lương hay quyết toán lương."],
+ relationship_type_fixed:["The relationship type cannot change once compensation or payroll uses this employment period.","Không thể đổi loại quan hệ khi đợt làm việc này đã có thu nhập theo hợp đồng hoặc đã vào bảng lương."],
  rehire_conflict:["This employment period is no longer current. Reload before starting another period.","Đợt làm việc này không còn là đợt hiện tại. Hãy tải lại trước khi tạo đợt mới."],
  invalid_document_config:["Check the document version, audience, signature method and dates.","Hãy kiểm tra phiên bản tài liệu, đối tượng, phương thức ký và ngày hiệu lực."],
  legal_file_type:["Upload a valid DOCX Open XML source file or a PDF evidence file.","Hãy tải lên DOCX Open XML hợp lệ làm bản nguồn hoặc PDF làm bằng chứng."],
@@ -79,14 +82,14 @@ const messages:Record<string,[string,string]>={
  mitigation_required:["A mitigation decision needs a plan and a follow-up date.","Quyết định cần giảm thiểu phải có biện pháp và ngày theo dõi."],
  reason_required:["Enter a reason so the decision has an audit trail.","Hãy ghi lý do để quyết định có dấu vết kiểm tra."],
  request_too_large:["The upload request exceeds the safe size limit.","Yêu cầu tải tệp vượt quá giới hạn kích thước cho phép."],
- invalid_file_target:["Choose exactly one COI declaration or issued document for the PDF evidence.","Hãy chọn đúng một khai báo COI hoặc tài liệu đã phát hành để đính kèm PDF."],
- evidence_pending:["Review or reject every pending COI evidence file before closing the declaration.","Hãy rà soát hoặc từ chối mọi tệp bằng chứng COI đang chờ trước khi đóng khai báo."],
+ invalid_file_target:["Choose exactly one COI declaration or issued document for the PDF evidence.","Hãy chọn đúng một khai báo xung đột lợi ích hoặc tài liệu đã phát hành để đính kèm PDF."],
+ evidence_pending:["Review or reject every pending COI evidence file before closing the declaration.","Hãy rà soát hoặc từ chối mọi tệp bằng chứng xung đột lợi ích đang chờ trước khi đóng khai báo."],
  invalid_onboarding_config:["Check the task JSON, owners, evidence type, applicability filters and dependencies.","Hãy kiểm tra JSON todo, người phụ trách, loại bằng chứng, đối tượng áp dụng và phụ thuộc."],
  onboarding_dependency_cycle:["The task dependency graph contains a cycle.","Chuỗi phụ thuộc của todo có vòng lặp."],
- onboarding_pdf_needs_reviewer:["A PDF evidence task must have an assigned reviewer.","Todo yêu cầu PDF phải có người rà soát được phân công."],
- onboarding_restricted_needs_reviewer:["Identity, legal and COI tasks must have an assigned reviewer.","Todo định danh, pháp lý và COI phải có người rà soát được phân công."],
+ onboarding_pdf_needs_reviewer:["A PDF evidence task must have an assigned reviewer.","Việc cần làm yêu cầu PDF phải có người rà soát được phân công."],
+ onboarding_restricted_needs_reviewer:["Identity, legal and COI tasks must have an assigned reviewer.","Việc cần làm định danh, pháp lý và xung đột lợi ích phải có người rà soát được phân công."],
  onboarding_not_applicable:["This template does not apply to the employee's legal entity, job, location or status.","Mẫu này không áp dụng cho pháp nhân, vị trí, địa điểm hoặc trạng thái đợt làm việc của nhân viên."],
- onboarding_template_inactive:["Choose an active, reviewed onboarding template version.","Hãy chọn phiên bản mẫu onboarding đã rà soát và kích hoạt."],
+ onboarding_template_inactive:["Choose an active, reviewed onboarding template version.","Hãy chọn phiên bản mẫu hội nhập đã rà soát và kích hoạt."],
  onboarding_employee_unavailable:["The employment period must be active/preboarding and linked to an EmDash account.","Đợt làm việc phải đang chuẩn bị/hoạt động và liên kết với tài khoản EmDash."],
  onboarding_owner_required:["Assign every owner required by the selected template before creating the plan.","Hãy phân công đủ người phụ trách mà mẫu yêu cầu trước khi tạo kế hoạch."],
  onboarding_self_verifier:["The task assignee and verifier must be different people.","Người làm và người kiểm tra todo phải là hai người khác nhau."],
@@ -96,7 +99,7 @@ const messages:Record<string,[string,string]>={
  onboarding_pdf_upload_required:["Upload the required PDF evidence from this task before submitting it.","Hãy tải PDF bằng chứng bắt buộc tại todo này trước khi nộp."],
  onboarding_evidence_required:["Submit the required evidence before requesting verification.","Hãy nộp bằng chứng bắt buộc trước khi yêu cầu xác minh."],
  waiver_not_allowed:["This task cannot be waived by your role or the template policy.","Vai trò của bạn hoặc chính sách mẫu không cho phép miễn todo này."],
- onboarding_not_assigned:["This task is not assigned to you.","Todo này không được phân công cho bạn."],
+ onboarding_not_assigned:["This task is not assigned to you.","Việc cần làm này không được phân công cho bạn."],
  confirmation_required:["Review the preview and confirm before applying the date change.","Hãy kiểm tra bản xem trước và xác nhận trước khi đổi ngày."],
  onboarding_version_must_be_reviewed:["A different authorized reviewer must review this version before activation.","Một người rà soát được cấp quyền và khác người tạo phải kiểm tra phiên bản trước khi kích hoạt."],
  candidate_not_hired:["This ATS application is not in the hired state.","Hồ sơ ATS chưa ở trạng thái đã tuyển."],
@@ -109,7 +112,7 @@ const messages:Record<string,[string,string]>={
  invalid_revision:["Reload the current preview and try again.","Hãy tải lại bản xem trước hiện tại rồi thử lại."],
  invalid_field:["Check the submitted fields and try again.","Hãy kiểm tra các trường vừa gửi rồi thử lại."],
  internal_error:["The request could not be completed. Reload and check the current state before retrying.","Không thể hoàn tất yêu cầu. Hãy tải lại và kiểm tra trạng thái hiện tại trước khi thử lại."],
- offboarding_case_inactive:["This offboarding case was superseded or already closed.","Hồ sơ offboarding đã được thay thế hoặc đóng."],
+ offboarding_case_inactive:["This offboarding case was superseded or already closed.","Hồ sơ nghỉ việc đã được thay thế hoặc đóng."],
  offboarding_payroll_blocked:["Final payroll review requires an approved, current employee dossier and independently reviewed evidence. This task remains blocked.","Quyết toán cần hồ sơ nhân viên đã được duyệt còn hiệu lực và chứng cứ được rà soát độc lập. Việc này vẫn đang bị chặn."],
  offboarding_assets_pending:["Return or resolve the assigned company assets before completing this task.","Hãy thu hồi hoặc xử lý các tài sản công ty đang giao trước khi hoàn tất việc này."],
  asset_evidence_self_review:["The uploader or asset issuer cannot review this handover evidence.","Người tải lên hoặc người giao tài sản không được tự rà soát biên bản bàn giao này."],
@@ -117,44 +120,44 @@ const messages:Record<string,[string,string]>={
  asset_evidence_type_invalid:["Choose a valid asset evidence type.","Hãy chọn đúng loại chứng từ tài sản."],
  asset_evidence_target_invalid:["This assignment cannot receive that evidence in its current state.","Assignment hiện tại không thể nhận loại chứng từ này."],
  asset_evidence_storage_failed:["The private evidence file could not be stored. Try again.","Không thể lưu tệp chứng từ riêng tư. Hãy thử lại."],
- asset_evidence_persist_failed:["The evidence record could not be saved. The uploaded bytes were removed; retry after review.","Không thể lưu metadata chứng từ. Tệp vừa tải đã được gỡ; hãy thử lại sau khi kiểm tra."],
+ asset_evidence_persist_failed:["The evidence record could not be saved. The uploaded bytes were removed; retry after review.","Không thể lưu siêu dữ liệu chứng từ. Tệp vừa tải đã được gỡ; hãy thử lại sau khi kiểm tra."],
  asset_reminder_days_invalid:["Enter 1–12 unique whole-day offsets between -365 and 365.","Nhập 1–12 mốc ngày nguyên, không trùng, trong khoảng -365 đến 365."],
  asset_reminder_policy_self_review:["A policy creator cannot review or activate their own reminder policy.","Người tạo không thể tự rà soát hoặc kích hoạt lịch nhắc."],
  asset_reminder_policy_not_reviewed:["This reminder policy must be independently reviewed before activation.","Lịch nhắc phải được người khác rà soát trước khi kích hoạt."],
  asset_reminder_decision_invalid:["Choose a valid reminder-policy decision.","Chọn quyết định hợp lệ cho lịch nhắc."],
- offboarding_system_admin_protected:["A System Super Admin account cannot be disabled through employee offboarding.","Không thể tắt tài khoản System Super Admin qua quy trình offboarding nhân viên."],
+ offboarding_system_admin_protected:["A System Super Admin account cannot be disabled through employee offboarding.","Không thể tắt tài khoản System Super Admin qua quy trình nghỉ việc nhân viên."],
  offboarding_access_pending:["Workspace access could not be verified as revoked. Keep this task open and retry after review.","Chưa xác minh được quyền Workspace đã bị thu hồi. Hãy giữ việc mở và thử lại sau khi rà soát."],
  offboarding_not_assigned:["This task is not assigned to your account.","Việc này không được phân công cho tài khoản của bạn."],
- offboarding_not_waivable:["This offboarding task cannot be marked not required.","Không thể đánh dấu việc offboarding này là không cần áp dụng."],
+ offboarding_not_waivable:["This offboarding task cannot be marked not required.","Không thể đánh dấu đầu việc nghỉ việc này là không cần áp dụng."],
  offboarding_end_date_required:["Set the employment end date before ending the period.","Hãy đặt ngày kết thúc trước khi kết thúc đợt làm việc."],
- offboarding_self_revoke:["You cannot revoke your own Workspace membership through offboarding.","Bạn không thể tự thu hồi quyền Workspace của mình qua quy trình offboarding."],
- forbidden:["Your role cannot perform this offboarding action.","Vai trò của bạn không được phép thực hiện thao tác offboarding này."],
+ offboarding_self_revoke:["You cannot revoke your own Workspace membership through offboarding.","Bạn không thể tự thu hồi quyền Workspace của mình qua quy trình nghỉ việc."],
+ forbidden:["Your role cannot perform this offboarding action.","Vai trò của bạn không được phép thực hiện thao tác nghỉ việc này."],
  retention_policy_invalid:["Every category needs one explicit retention value (or null for no scheduled deletion) and a reviewed basis.","Mỗi danh mục cần một thời hạn tường minh (hoặc null để không lên lịch xóa) và căn cứ đã rà soát."],
- retention_policy_missing:["No active, reviewed retention policy exists. No deletion is permitted.","Chưa có chính sách lưu trữ active đã rà soát. Không được xóa tệp."],
+ retention_policy_missing:["No active, reviewed retention policy exists. No deletion is permitted.","Chưa có chính sách lưu trữ đang hiệu lực đã rà soát. Không được xóa tệp."],
  retention_deletion_in_progress:["Finish or recover deletion jobs under the active policy before activating a replacement version.","Hãy hoàn tất hoặc khôi phục các tác vụ xóa theo chính sách hiện hành trước khi kích hoạt phiên bản thay thế."],
- retention_policy_review_required:["A different authorized reviewer must review this retention version before activation.","Một người rà soát được cấp quyền và khác người tạo phải rà soát phiên bản retention trước khi kích hoạt."],
+ retention_policy_review_required:["A different authorized reviewer must review this retention version before activation.","Một người rà soát được cấp quyền và khác người tạo phải rà soát phiên bản lưu trữ trước khi kích hoạt."],
  retention_category_manual_review:["This category has no scheduled retention date; a reviewed category rule is required before deletion.","Danh mục này chưa có ngày hết hạn; cần quy tắc đã rà soát trước khi xóa."],
  retention_category_unconfigured:["The active policy does not define this file category.","Chính sách active chưa định nghĩa danh mục tệp này."],
  retention_not_due:["The approved retention date has not arrived.","Chưa đến ngày hết hạn lưu được phê duyệt."],
- legal_hold_active:["An active legal hold blocks deletion of this file.","Legal hold đang hiệu lực nên chặn xóa tệp này."],
+ legal_hold_active:["An active legal hold blocks deletion of this file.","Tạm giữ pháp lý đang hiệu lực nên chặn xóa tệp này."],
  legal_hold_scope_invalid:["Choose one valid employee/category scope or one file.","Chọn đúng một phạm vi hồ sơ/danh mục hoặc một tệp."],
  retention_file_unreviewed:["A quarantined file cannot enter the deletion queue before review.","Không thể đưa tệp đang cách ly vào hàng chờ xóa trước khi rà soát."],
  retention_file_date_invalid:["The file timestamp is invalid; no retention date can be calculated.","Thời điểm tệp không hợp lệ; không thể tính ngày hết hạn lưu."],
- retention_policy_changed:["The active retention policy changed after this request. Create a new reviewed request.","Chính sách retention active đã đổi sau yêu cầu này. Hãy tạo yêu cầu mới đã rà soát."],
+ retention_policy_changed:["The active retention policy changed after this request. Create a new reviewed request.","Chính sách lưu trữ đang hiệu lực đã đổi sau yêu cầu này. Hãy tạo yêu cầu mới đã rà soát."],
  retention_file_changed:["The file changed after the request was created. Review its current revision.","Tệp đã đổi sau khi tạo yêu cầu. Hãy rà soát phiên bản hiện tại."],
- retention_execution_system_admin_only:["Only System Super Admin can execute physical object deletion.","Chỉ System Super Admin mới được thực hiện xóa object vật lý."],
+ retention_execution_system_admin_only:["Only System Super Admin can execute physical object deletion.","Chỉ System Super Admin mới được thực hiện xóa đối tượng lưu trữ vật lý."],
  retention_executor_must_differ:["The System Super Admin executing deletion must differ from both the requester and reviewer.","System Super Admin thực hiện xóa phải khác cả người tạo yêu cầu và người rà soát."],
- retention_delete_failed:["Object deletion or metadata finalization failed. The request remains retryable; review before retrying.","Xóa object hoặc chốt metadata thất bại. Yêu cầu còn trạng thái có thể thử lại; hãy rà soát trước khi thử."],
+ retention_delete_failed:["Object deletion or metadata finalization failed. The request remains retryable; review before retrying.","Xóa đối tượng lưu trữ hoặc chốt siêu dữ liệu thất bại. Yêu cầu còn trạng thái có thể thử lại; hãy rà soát trước khi thử."],
  retention_request_system_admin_not_needed:["Create the retention request through an HRM operator account; System Super Admin is reserved for final execution.","Hãy tạo yêu cầu bằng tài khoản HRM; System Super Admin dành cho bước thực hiện cuối."],
- retention_hold_deletion_in_progress:["A physical deletion is already in progress or needs recovery. Resolve it before placing a new hold.","Đang xóa vật lý hoặc đang cần khôi phục. Hãy xử lý trước khi đặt hold mới."],
- legal_hold_record_disposed:["This category contains a completed structured-record disposition. A new hold cannot restore data already redacted.","Danh mục này đã có hồ sơ cấu trúc được xử lý. Legal hold mới không thể khôi phục dữ liệu đã xóa."],
+ retention_hold_deletion_in_progress:["A physical deletion is already in progress or needs recovery. Resolve it before placing a new hold.","Đang xóa vật lý hoặc đang cần khôi phục. Hãy xử lý trước khi đặt tạm giữ mới."],
+ legal_hold_record_disposed:["This category contains a completed structured-record disposition. A new hold cannot restore data already redacted.","Danh mục này đã có hồ sơ cấu trúc được xử lý. Tạm giữ pháp lý mới không thể khôi phục dữ liệu đã xóa."],
  structured_retention_policy_invalid:["Enter exactly one explicit anchor, duration and reviewed basis for every structured-record category; use null to leave a category unscheduled.","Nhập đủ từng danh mục với mốc tính, thời hạn và căn cứ đã rà soát; dùng null để không lên lịch tự động."],
  structured_retention_policy_missing:["No active structured-record retention policy exists. No structured record can be disposed.","Chưa có chính sách lưu trữ hồ sơ cấu trúc đang hoạt động; không thể xử lý hồ sơ."],
  structured_retention_policy_changed:["The structured-record retention policy changed after this request. Create a new reviewed request.","Chính sách lưu trữ hồ sơ cấu trúc đã thay đổi sau yêu cầu; hãy tạo yêu cầu mới để rà soát."],
  structured_retention_category_unconfigured:["The active policy does not define this structured-record category.","Chính sách đang hoạt động chưa định nghĩa danh mục hồ sơ cấu trúc này."],
- structured_retention_manual_review:["This category has no scheduled retention duration; owner-approved manual review is required.","Danh mục này không có thời hạn tự động; cần owner phê duyệt quy trình rà soát thủ công."],
+ structured_retention_manual_review:["This category has no scheduled retention duration; owner-approved manual review is required.","Danh mục này không có thời hạn tự động; cần chủ sở hữu phê duyệt quy trình rà soát thủ công."],
  structured_retention_anchor_unavailable:["The configured retention anchor is not available for this record.","Hồ sơ chưa có mốc tính thời hạn lưu đã cấu hình."],
- structured_record_files_pending:["Dispose linked private files through the separate reviewed file-retention queue first.","Hãy xử lý tệp riêng tư đã liên kết qua hàng chờ retention riêng trước."],
+ structured_record_files_pending:["Dispose linked private files through the separate reviewed file-retention queue first.","Hãy xử lý tệp riêng tư đã liên kết qua hàng chờ lưu trữ riêng trước."],
  structured_record_change_pending:["Resolve pending profile changes before requesting structured-record disposition.","Hãy xử lý các yêu cầu đổi hồ sơ đang chờ trước khi yêu cầu xử lý dữ liệu cấu trúc."],
  structured_record_changed:["The profile record changed after the disposition request. Review the current revision.","Hồ sơ đã thay đổi sau yêu cầu xử lý; hãy rà soát phiên bản hiện tại."],
  structured_record_already_disposed:["This profile record has already been redacted.","Hồ sơ này đã được ẩn dữ liệu."],
@@ -197,26 +200,26 @@ const messages:Record<string,[string,string]>={
  approval_delegation_inactive:["This delegation is no longer active. Reload the page.","Ủy quyền này không còn hiệu lực. Hãy tải lại trang."],
  leave_cancel_requires_adjustment:["The affected time period is locked. Record a reviewed correction instead of changing this period.","Kỳ chấm công liên quan đã khóa. Hãy lập điều chỉnh có rà soát, không sửa kỳ này."],
  invalid_time:["The local time is invalid, ambiguous or falls inside a daylight-saving gap.","Giờ địa phương không hợp lệ, bị trùng do đổi giờ mùa hè hoặc rơi vào khoảng giờ bị bỏ qua."],
- payroll_closed:["Payroll is closed. Draft policy configuration may be prepared, but runs, payslips and payment records remain unavailable.","Payroll đang đóng. Có thể chuẩn bị cấu hình nháp, nhưng chưa thể tạo kỳ lương, phiếu lương hoặc xác nhận thanh toán."],
+ payroll_closed:["Payroll is closed. Draft policy configuration may be prepared, but runs, payslips and payment records remain unavailable.","Bảng lương đang đóng. Có thể chuẩn bị cấu hình nháp, nhưng chưa thể tạo kỳ lương, phiếu lương hoặc xác nhận thanh toán."],
  payroll_components_invalid:["Use a valid component list with no executable formulas or unknown fields.","Hãy dùng danh sách cấu phần hợp lệ, không chứa công thức thực thi hoặc trường lạ."],
  payroll_required_earning_missing:["Include at least one required earning component.","Cần ít nhất một cấu phần thu nhập bắt buộc."],
  payroll_policy_invalid:["Check the policy key, currency scale and configured component definitions.","Hãy kiểm tra mã chính sách, số chữ số tiền tệ và các cấu phần đã cấu hình."],
- hrm_entity_unconfigured:["Set the same legal entity in HRM settings before configuring payroll.","Hãy cấu hình cùng pháp nhân trong thiết lập HRM trước khi khai báo payroll."],
+ hrm_entity_unconfigured:["Set the same legal entity in HRM settings before configuring payroll.","Hãy cấu hình cùng pháp nhân trong thiết lập HRM trước khi khai báo bảng lương."],
  payroll_policy_review_required:["A different authorized person must review this policy before activation.","Một người có quyền và khác người tạo phải rà soát chính sách trước khi kích hoạt."],
- payroll_policy_not_active:["Select an active, reviewed payroll policy version.","Hãy chọn phiên bản chính sách payroll đã rà soát và kích hoạt."],
- payroll_time_period_not_locked:["Lock the matching attendance period before preparing payroll.","Hãy khóa kỳ công tương ứng trước khi chuẩn bị payroll."],
+ payroll_policy_not_active:["Select an active, reviewed payroll policy version.","Hãy chọn phiên bản chính sách bảng lương đã rà soát và kích hoạt."],
+ payroll_time_period_not_locked:["Lock the matching attendance period before preparing payroll.","Hãy khóa kỳ công tương ứng trước khi chuẩn bị bảng lương."],
  payroll_correction_source_invalid:["A correction must reference the current published payslip for the same locked period and policy.","Điều chỉnh phải tham chiếu phiếu lương đang có hiệu lực của cùng kỳ công đã khóa và chính sách."],
  payroll_component_invalid:["Choose a component and source type defined in this reviewed policy.","Hãy chọn cấu phần và loại nguồn đã khai báo trong chính sách được rà soát."],
  payroll_amount_invalid:["Enter an exact non-negative integer amount in the configured minor unit.","Hãy nhập số nguyên không âm theo đơn vị nhỏ nhất đã cấu hình."],
  payroll_zero_reason_required:["A zero amount needs an explicit reason; missing inputs cannot be treated as zero.","Khoản bằng không cần lý do tường minh; dữ liệu thiếu không được xem là số không."],
  payroll_source_reference_invalid:["The source reference does not match the locked period, employment or approved adjustment.","Tham chiếu nguồn không khớp kỳ đã khóa, đợt làm việc hoặc điều chỉnh đã duyệt."],
- payroll_inputs_incomplete:["Required payroll inputs are missing for at least one employee.","Còn thiếu đầu vào payroll bắt buộc của ít nhất một nhân viên."],
- payroll_inputs_invalid:["One or more payroll inputs do not match the approved component definition.","Một hoặc nhiều đầu vào payroll không khớp cấu phần đã duyệt."],
+ payroll_inputs_incomplete:["Required payroll inputs are missing for at least one employee.","Còn thiếu đầu vào bảng lương bắt buộc của ít nhất một nhân viên."],
+ payroll_inputs_invalid:["One or more payroll inputs do not match the approved component definition.","Một hoặc nhiều đầu vào bảng lương không khớp cấu phần đã duyệt."],
  payroll_totals_invalid:["The exact totals exceed the safe range or deductions exceed earnings. Review the source inputs.","Tổng chính xác vượt giới hạn an toàn hoặc khấu trừ lớn hơn thu nhập. Hãy rà soát nguồn đầu vào."],
  payroll_roster_empty:["No active employment overlaps this locked period and legal entity.","Không có đợt làm việc phù hợp với kỳ đã khóa và pháp nhân này."],
  payroll_run_immutable:["Published or closed runs cannot be edited. Create a linked correction instead.","Không thể sửa kỳ lương đã phát hành hoặc đóng. Hãy tạo bản điều chỉnh có liên kết."],
  payroll_publish_blocked:["An independently reviewed and approved run is required before issue.","Cần kỳ lương đã được rà soát độc lập và phê duyệt trước khi phát hành."],
- payroll_snapshot_invalid:["The payroll snapshot does not match its current employee roster.","Snapshot payroll không khớp danh sách nhân viên hiện tại."],
+ payroll_snapshot_invalid:["The payroll snapshot does not match its current employee roster.","Bản chốt bảng lương không khớp danh sách nhân viên hiện tại."],
  payroll_payment_exceeds_balance:["The confirmation exceeds the unpaid net amount. Check previous partial payments.","Số xác nhận vượt số thực nhận còn lại. Hãy kiểm tra các lần thanh toán một phần trước."],
  payroll_payment_date_future:["A payment can be confirmed only after its transaction date.","Chỉ xác nhận thanh toán khi ngày giao dịch đã xảy ra."],
  payroll_correction_paid_exceeds_net:["Previously confirmed payments exceed the corrected net amount. A separately reviewed recovery adjustment is required.","Các khoản đã xác nhận trả lớn hơn thực nhận sau điều chỉnh. Cần quy trình thu hồi/điều chỉnh riêng được rà soát."],
@@ -232,15 +235,26 @@ const messages:Record<string,[string,string]>={
 let title=data.title||"HRM";let error="error" in data?data.error:undefined;
 const savedMessages:Record<string,[string,string]>={asset_reminder_read:["Reminder marked as read.","Đã đánh dấu nhắc việc là đã xem."]};
 const saved=Astro.url.searchParams.get("saved")??"";
+// Breadcrumbs come from the HRM navigation map: the deepest menu entry whose
+// path contains this URL is the parent, so child screens (a person, a case,
+// a declaration) link back to the list they were opened from.
+const hrmLinks=modules.find(item=>item.key==="hrm")!.links;
+const path=Astro.url.pathname.replace(/^\/vi(?=\/)/,"").replace(/\/+$/,"")||"/hrm";
+const parent=hrmLinks.filter(link=>link.path!=="/hrm"&&(path===link.path||path.startsWith(`${link.path}/`))).sort((a,b)=>b.path.length-a.path.length)[0];
+const crumbs:Crumb[]=[{label:"HRM",href:localized("/hrm",vi)}];
+if(parent&&parent.path!==path)crumbs.push({label:vi?parent.vi:parent.en,href:localized(parent.path,vi)});
+if(path!=="/hrm"||title!=="HRM")crumbs.push({label:title});
 ---
 <WorkspaceShell title={title} lang={data.lang} user={data.user} module={Astro.props.module??"hrm"} current={Astro.props.current}>
-  <div class="crm-head"><div>
-    <p class="crm-eyebrow">HRM</p>
+  <div class="md-scope">
+  <Breadcrumbs vi={vi} items={crumbs} />
+  <div class="md-head"><div>
     <h1 class="crm-h1">{title}</h1>
   </div></div>
   {error && <div class="crm-notice bad" role="alert"><strong>{vi?"Chưa hoàn tất":"Could not complete"}</strong><p>{messages[error]?.[vi?1:0]??(vi?"Yêu cầu không hợp lệ hoặc hồ sơ không còn khả dụng.":"The request is invalid or the record is no longer available.")}</p></div>}
   {savedMessages[saved]&&<div class="crm-notice good" role="status">{savedMessages[saved][vi?1:0]}</div>}
   {import.meta.env.DEV&&error?.startsWith("internal_error:")&&<pre class="crm-meta">{error.slice(15)}</pre>}
-  {error==="hrm_closed" && data.user.can("hrm.configure") && <div class="crm-sheet"><p>{vi?"Cấu hình chính sách, mục đích sử dụng và retention trước khi mở cổng. Cài đặt ở HRM → Thiết lập.":"Configure the legal entity, purpose and retention policy before opening the module. Use HRM → Settings."}</p><a class="crm-button secondary" href={vi?"/vi/hrm/settings":"/hrm/settings"}>{vi?"Mở thiết lập":"Open settings"}</a></div>}
+  {error==="hrm_closed" && data.user.can("hrm.configure") && <div class="crm-sheet"><p>{vi?"Cấu hình chính sách, mục đích sử dụng và lưu trữ trước khi mở cổng. Cài đặt ở HRM → Thiết lập.":"Configure the legal entity, purpose and retention policy before opening the module. Use HRM → Settings."}</p><a class="crm-button secondary" href={vi?"/vi/hrm/settings":"/hrm/settings"}>{vi?"Mở thiết lập":"Open settings"}</a></div>}
   <slot />
+  </div>
 </WorkspaceShell>

@@ -28,11 +28,11 @@
 .md-table-wrap { max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; border: 1px solid var(--crm-line); border-radius: var(--crm-radius); background: var(--crm-sheet); box-shadow: var(--crm-lift); }
 .md-table-wrap:focus-visible { outline: 3px solid var(--crm-blue); outline-offset: 3px; }
 .md-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 15px; line-height: 1.45; }
-.md-table th, .md-table td { padding: 10px 14px; border-bottom: 1px solid var(--crm-line-soft); text-align: left; vertical-align: top; background: var(--crm-sheet); }
+.md-table th, .md-table td { min-width: 8rem; padding: 10px 14px; border-bottom: 1px solid var(--crm-line-soft); text-align: left; vertical-align: top; background: var(--crm-sheet); }
 .md-table thead th { color: var(--crm-slate); background: #f8f9fb; font-size: var(--crm-small); font-weight: 650; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; border-bottom-color: var(--crm-line); }
 .md-table tbody tr:last-child > * { border-bottom: 0; }
 .md-table tbody tr:hover > * { background: #fafbfc; }
-.md-table .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.md-table .num { min-width: 0; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .md-table .nowrap { white-space: nowrap; }
 .md-table td.md-lead a { color: var(--crm-navy); font-weight: 650; text-decoration: none; overflow-wrap: anywhere; }
 .md-table td.md-lead a:hover { color: var(--crm-blue); text-decoration: underline; }
