@@ -561,3 +561,41 @@ test("14. commission: proposal is admin-only simulation; approval shows each sel
   // Voided handoffs stay as append-only history; they no longer hold any line.
   jobs("DELETE FROM crm_commission_payouts; DELETE FROM crm_policies WHERE policy_key = 'local-commission' AND version > 1");
 });
+
+test("15. pipeline board, table inline edit and close dialog keep checks, versions and ownership", async () => {
+  // B was revoked earlier; a fresh seller checks cross-access.
+  S.c = await userSession(S.admin, { email: `test-c-${run}@example.test`, name: `TEST Seller C ${run}` });
+  assert.equal((await S.admin.post("/workspace/users", { intent: "grant", email: S.c.email, roles: ["sales_executive"] })).status, 303);
+  const id = await create(S.a, { playbook_key: "lumi-solution", account_name: `TEST Board Co ${run}`, contact_name: "TEST Board Owner", phone: phone() });
+  for (const path of ["/crm/pipeline?playbook=lumi-solution&view=board", "/vi/crm/pipeline?playbook=lumi-solution&view=board", "/crm/pipeline?view=table", "/vi/crm/pipeline?view=table"]) {
+    assert.equal((await S.outsider.get(path)).status, 403, `${path} needs CRM access`);
+    assert.equal((await S.a.get(path)).status, 200, path);
+  }
+  const board = await S.a.get("/crm/pipeline?playbook=lumi-solution&view=board");
+  assert.match(board.html, new RegExp(`data-card="${id}"`));
+  assert.match(board.html, /data-zone="won"[\s\S]*data-zone="lost"/, "won/lost zones are rendered for dragging");
+  assert.doesNotMatch((await S.c.get("/crm/pipeline?playbook=lumi-solution&view=board")).html, new RegExp(id), "others' cards are not on the board");
+  // "Move to" on the board runs the playbook's checks: contacted needs a primary contact, which quick create set.
+  const v1 = await oppVersion(S.a, id);
+  assert.equal((await S.c.post("/crm/pipeline?playbook=lumi-solution&view=board", { intent: "stage", opportunity_id: id, version: v1, to_stage: "contacted" })).status, 404);
+  assert.equal((await S.a.post("/crm/pipeline?playbook=lumi-solution&view=board", { intent: "stage", opportunity_id: id, version: v1, to_stage: "contacted" })).status, 303);
+  const blocked = await S.a.post("/crm/pipeline?playbook=lumi-solution&view=board", { intent: "stage", opportunity_id: id, version: v1 + 1, to_stage: "qualified" });
+  assert.equal(blocked.status, 422, "a drop that skips requirements is refused");
+  assert.match(blocked.html, /Missing:/);
+  // Table inline edit changes one field and keeps the rest.
+  const v2 = await oppVersion(S.a, id);
+  assert.equal((await S.a.post("/crm/pipeline?view=table", { intent: "inline", opportunity_id: id, version: v2, field: "estimated_value_vnd", value: "15000000" })).status, 303);
+  const after = jobs(`SELECT estimated_value_vnd, title, stage_id FROM crm_opportunities WHERE id = ${q(id)}`)[0];
+  assert.deepEqual([after.estimated_value_vnd, after.title, after.stage_id], [15000000, `TEST Board Co ${run}`, "contacted"]);
+  assert.equal((await S.a.post("/crm/pipeline?view=table", { intent: "inline", opportunity_id: id, version: v2, field: "win_probability", value: "40" })).status, 409, "a stale cell edit writes nothing");
+  assert.equal((await S.a.post("/crm/pipeline?view=table", { intent: "inline", opportunity_id: id, version: v2 + 1, field: "win_probability", value: "140" })).status, 422);
+  assert.equal((await S.a.post("/crm/pipeline?view=table", { intent: "inline", opportunity_id: id, version: v2 + 1, field: "title", value: "x" })).status, 422, "only listed fields are editable in place");
+  assert.equal((await S.c.post("/crm/pipeline?view=table", { intent: "inline", opportunity_id: id, version: v2 + 1, field: "next_action", value: "probe" })).status, 404);
+  // Close dialog from a drop zone: lost needs a reason.
+  const dialog = await S.a.get(`/vi/crm/${id}?close=lost`);
+  assert.match(dialog.html, /Đóng cơ hội/);
+  assert.equal((await S.a.post(`/crm/${id}`, { intent: "close", version: v2 + 1, to_stage: "lost" })).status, 422);
+  assert.equal((await S.a.post(`/crm/${id}`, { intent: "close", version: v2 + 1, to_stage: "contacted", reason: "x" })).status, 422, "only closing stages are accepted");
+  assert.equal((await S.a.post(`/crm/${id}`, { intent: "close", version: v2 + 1, to_stage: "lost", reason: "TEST chose another vendor" })).status, 303);
+  assert.deepEqual(Object.values(jobs(`SELECT outcome, lost_reason FROM crm_opportunities WHERE id = ${q(id)}`)[0]), ["lost", "TEST chose another vendor"]);
+});

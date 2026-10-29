@@ -14,7 +14,7 @@ import { type Ctx, type FormState, context, emptyState, handlePost, notFound } f
 import { type Playbook, type TransitionCheck, checkTransition } from "../playbook";
 import {
   type Access, type Contact, type Opportunity, addNote, assignOwner, changePlaybook, createLinked, loadOpportunity, moveStage, moveToAccount,
-  recentEvents, relatedOpportunities, requireEdit, saveDetails, saveFields, setPrimaryContact, transitionContext,
+  recentEvents, relatedOpportunities, requireEdit, saveDetails, saveFields, setPrimaryContact, transitionContext, closeOpportunity,
 } from "../records";
 import { visibleContacts } from "../directory";
 import { type CostRow, type Task, createTask, logCost, opportunityCosts, opportunityTasks, updateTask } from "../tasks";
@@ -54,6 +54,7 @@ export async function opportunityRoute(astro: AstroGlobal, lang: Lang): Promise<
     details: async (form) => { await saveDetails(ctx.db, ctx.actor, edit(), form); return `${here}#details`; },
     fields: async (form) => { await saveFields(ctx.db, ctx.actor, edit(), playbook, form); return `${here}#discovery`; },
     stage: async (form) => { await moveStage(ctx.db, ctx.actor, edit(), playbook, form); return `${here}#stage`; },
+    close: async (form) => { await closeOpportunity(ctx.db, ctx.actor, edit(), playbook, form); return `${here}#stage`; },
     assign: async (form) => { await assignOwner(ctx.db, ctx.contentDb, ctx.actor, opportunity, form); return here; },
     primary_contact: async (form) => { await setPrimaryContact(ctx.db, ctx.actor, edit(), form); return `${here}#contacts`; },
     note: async (form) => { await addNote(ctx.db, ctx.actor, edit(), form); return `${here}#activity`; },
