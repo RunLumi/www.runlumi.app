@@ -1,5 +1,7 @@
 ---
 import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
+import Breadcrumbs from "../modules/Breadcrumbs.astro";
+import "../../styles/modules.css";
 import { deskDate, deskPath, statusName, statusTone } from "../../lib/hiring/desk";
 import type { jobPage } from "../../lib/hiring/pages";
 
@@ -11,13 +13,14 @@ const workplace: Record<string, [string, string]> = { Remote: ["Remote", "Từ x
 const transitions = job.status === "published" ? [["closed", vi ? "Đóng vị trí" : "Close role", "secondary"]] : job.status === "closed" ? [["draft", vi ? "Về nháp" : "Return to draft", "secondary"], ["published", vi ? "Mở lại" : "Reopen", ""]] : [["published", vi ? "Đăng tuyển" : "Publish", ""]];
 ---
 <WorkspaceShell title={job.title} lang={lang} user={user} module="hiring" current="jobs">
-  <p class="crm-eyebrow"><a class="crm-link" href={deskPath(lang, "/admin/jobs")}>{vi ? "Vị trí" : "Roles"}</a> / {job.team || "Lumi"}</p>
-  <div class="crm-head"><div>
+  <div class="md-scope">
+  <Breadcrumbs vi={vi} items={[{ label: vi ? "Tuyển dụng" : "Hiring", href: deskPath(lang, "/admin/jobs") }, { label: vi ? "Vị trí" : "Roles", href: deskPath(lang, "/admin/jobs") }, { label: job.title }]} />
+  <div class="md-head"><div>
     <h1 class="crm-h1">{job.title}</h1>
     <p class="crm-lede"><span class:list={["crm-badge", statusTone(job.status)]}>{statusName(job.status, lang)}</span> · {vi ? "Cập nhật" : "Updated"} {deskDate(job.updated_at, lang)} · <a class="crm-link" href={`/jobs/${job.slug}`}>{vi ? "Trang công khai" : "Public page"}</a> · <a class="crm-link" href={deskPath(lang, `/admin/jobs/applications?job=${job.id}`)}>{total} {vi ? "hồ sơ" : "applications"}{open ? ` (${open} ${vi ? "cần xem" : "to review"})` : ""}</a></p>
   </div>
-  <div class="crm-actions">{transitions.map(([status, label, tone]) => <form method="post" action={`/api/admin/jobs/${job.id}/state`}><input type="hidden" name="lang" value={lang} /><input type="hidden" name="status" value={status} /><button class:list={["crm-button", tone]} type="submit">{label}</button></form>)}</div></div>
-  {errors.slug && <div class="crm-notice bad" role="alert">{vi ? "Slug đã được dùng. Hãy chọn slug khác." : "That slug is already in use. Choose another."}</div>}
+  <div class="md-head-actions">{transitions.map(([status, label, tone]) => <form method="post" action={`/api/admin/jobs/${job.id}/state`}><input type="hidden" name="lang" value={lang} /><input type="hidden" name="status" value={status} /><button class:list={["crm-button", tone]} type="submit">{label}</button></form>)}</div></div>
+  {errors.slug && <div class="crm-notice bad" role="alert">{vi ? "Đường dẫn (slug) đã được dùng. Hãy chọn đường dẫn khác." : "That slug is already in use. Choose another."}</div>}
   <div class="crm-grid two">
     <section class="crm-sheet" aria-labelledby="role-h">
       <h2 class="crm-h2" id="role-h">{vi ? "Nội dung vị trí" : "Role"}</h2>
@@ -25,7 +28,7 @@ const transitions = job.status === "published" ? [["closed", vi ? "Đóng vị t
         <input type="hidden" name="lang" value={lang} />
         <div class="crm-form-grid">
           <div class="crm-field"><label for="title">{vi ? "Tên vị trí" : "Title"} *</label><input class="crm-input" id="title" name="title" value={job.title} required maxlength="160" /></div>
-          <div class="crm-field"><label for="slug">Slug *</label><input class="crm-input" id="slug" name="slug" value={job.slug} required maxlength="80" /></div>
+          <div class="crm-field"><label for="slug">{vi ? "Đường dẫn (slug)" : "Slug"} *</label><input class="crm-input" id="slug" name="slug" value={job.slug} required maxlength="80" /></div>
           <div class="crm-field"><label for="team">{vi ? "Nhóm" : "Team"}</label><input class="crm-input" id="team" name="team" value={job.team} maxlength="120" /></div>
           <div class="crm-field"><label for="location">{vi ? "Địa điểm" : "Location"}</label><input class="crm-input" id="location" name="location" value={job.location} maxlength="160" /></div>
           <div class="crm-field"><label for="employment_type">{vi ? "Hình thức" : "Employment"}</label><select class="crm-select" id="employment_type" name="employment_type">{Object.entries(employment).map(([value, names]) => <option value={value} selected={job.employment_type === value}>{names[vi ? 1 : 0]}</option>)}</select></div>
@@ -44,7 +47,7 @@ const transitions = job.status === "published" ? [["closed", vi ? "Đóng vị t
     </section>
     <aside class="crm-grid">
       <section class="crm-sheet" aria-labelledby="test-h">
-        <h2 class="crm-h2" id="test-h">{vi ? "Bài test ứng tuyển" : "Application test"}<span class="crm-count">{questions.length}</span></h2>
+        <h2 class="crm-h2" id="test-h">{vi ? "Bài kiểm tra ứng tuyển" : "Application test"}<span class="crm-count">{questions.length}</span></h2>
         {errors.question && <p class="crm-notice bad" role="alert">{vi ? "Không xóa được câu hỏi vì đã có hồ sơ trả lời." : "That question could not be removed because applications already depend on it."}</p>}
         {questions.length ? <ul class="crm-list">{questions.map((question) => <li class="crm-row">
           <span><strong>{question.prompt}</strong></span>
@@ -74,5 +77,6 @@ const transitions = job.status === "published" ? [["closed", vi ? "Đóng vị t
         </form>
       </section>
     </aside>
+  </div>
   </div>
 </WorkspaceShell>

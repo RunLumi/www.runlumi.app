@@ -1,0 +1,16 @@
+---
+// Breadcrumbs for module pages (redesign rule R-03: a row opens a child
+// screen that shows where it sits). The last item is the current page.
+// Workstream 1 owns the shared shell; swap this component for its version
+// when that lands.
+export interface Crumb { label: string; href?: string }
+interface Props { items: Crumb[]; vi: boolean }
+const { items, vi } = Astro.props;
+---
+<nav class="md-crumbs" aria-label={vi ? "Đường dẫn trang" : "Breadcrumb"}>
+  <ol>
+    {items.map((item, index) => index === items.length - 1
+      ? <li><span aria-current="page">{item.label}</span></li>
+      : <li>{item.href ? <a href={item.href}>{item.label}</a> : <span>{item.label}</span>}</li>)}
+  </ol>
+</nav>

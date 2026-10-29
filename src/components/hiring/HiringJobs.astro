@@ -1,5 +1,7 @@
 ---
 import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
+import Breadcrumbs from "../modules/Breadcrumbs.astro";
+import "../../styles/modules.css";
 import { deskPath, statusName, statusTone } from "../../lib/hiring/desk";
 import type { jobsPage } from "../../lib/hiring/pages";
 
@@ -9,36 +11,55 @@ const open = jobs.filter((job) => job.status === "published").length;
 const toReview = jobs.reduce((sum, job) => sum + (job.unread_count ?? 0), 0);
 ---
 <WorkspaceShell title={vi ? "Vị trí tuyển dụng" : "Roles"} lang={lang} user={user} module="hiring" current="jobs">
-  <div class="crm-head"><div>
-    <p class="crm-eyebrow">{vi ? "Tuyển dụng / Vị trí" : "Hiring / Roles"}</p>
-    <h1 class="crm-h1">{vi ? "Mở vị trí. Giữ tiêu chuẩn rõ ràng." : "Open the role. Keep the bar clear."}</h1>
-    <p class="crm-lede">{vi ? "Chỉ đăng vị trí đã sẵn sàng tuyển. Bài test nhỏ, đúng vai trò và hiển thị từ đầu." : "Publish only roles we are ready to hire for. Tests should be small, relevant and visible from the start."}</p>
-  </div>
-  <dl class="crm-facts" style="min-width:min(100%,320px)">
-    <div><dt>{vi ? "Đang tuyển" : "Open roles"}</dt><dd class="crm-figure">{open}</dd></div>
-    <div><dt>{vi ? "Hồ sơ cần xem" : "To review"}</dt><dd class="crm-figure"><a class="crm-link" href={deskPath(lang, "/admin/jobs/applications?status=new")}>{toReview}</a></dd></div>
-  </dl></div>
-  {error === "slug" && <div class="crm-notice bad" role="alert">{vi ? "Slug đã được dùng. Hãy chọn slug khác." : "That slug is already in use. Choose another."}</div>}
-  <div class="crm-grid two">
-    <section class="crm-sheet" aria-labelledby="jobs-h">
-      <h2 class="crm-h2" id="jobs-h">{vi ? "Các vị trí" : "Roles"}<span class="crm-count">{jobs.length}</span></h2>
-      {jobs.length ? <ul class="crm-list">{jobs.map((job) => <li class="crm-row">
-        <a class="crm-row-title" href={deskPath(lang, `/admin/jobs/${job.id}`)}>{job.title}</a>
-        <span class="crm-row-side"><span class:list={["crm-badge", statusTone(job.status)]}>{statusName(job.status, lang)}</span><a class="crm-badge blue" href={deskPath(lang, `/admin/jobs/applications?job=${job.id}`)}>{job.application_count ?? 0} {vi ? "hồ sơ" : "applications"}</a></span>
-        <span class="crm-row-meta"><span>{job.team || (vi ? "Chưa có nhóm" : "No team")}</span><span>{job.location || (vi ? "Chưa có địa điểm" : "No location")}</span><span>/jobs/{job.slug}</span>{(job.unread_count ?? 0) > 0 && <span>{job.unread_count} {vi ? "cần xem" : "to review"}</span>}</span>
-      </li>)}</ul> : <p class="crm-empty">{vi ? "Chưa có vị trí. Tạo nháp ở bên cạnh; vị trí chỉ công khai khi bạn đăng." : "No roles yet. Create a draft alongside; it stays private until you publish it."}</p>}
+  <div class="md-scope">
+    <Breadcrumbs vi={vi} items={[{ label: vi ? "Tuyển dụng" : "Hiring", href: deskPath(lang, "/admin/jobs") }, { label: vi ? "Vị trí" : "Roles" }]} />
+    <div class="md-head"><div>
+      <h1 class="crm-h1">{vi ? "Vị trí tuyển dụng" : "Roles"}</h1>
+      <p class="crm-lede">{vi ? "Tạo vị trí ở dạng nháp, đăng khi sẵn sàng tuyển và đóng khi đủ người. Ứng viên chỉ thấy vị trí đã đăng." : "Create a role as a draft, publish it when you are ready to hire and close it when it is filled. Candidates see published roles only."}</p>
+    </div>
+    <dl class="crm-facts" style="min-width:min(100%,320px)">
+      <div><dt>{vi ? "Đang tuyển" : "Open roles"}</dt><dd class="crm-figure">{open}</dd></div>
+      <div><dt>{vi ? "Hồ sơ cần xem" : "To review"}</dt><dd class="crm-figure"><a class="crm-link" href={deskPath(lang, "/admin/jobs/applications?status=new")}>{toReview}</a></dd></div>
+    </dl></div>
+    {error === "slug" && <div class="crm-notice bad" role="alert">{vi ? "Đường dẫn (slug) đã được dùng. Hãy chọn đường dẫn khác." : "That slug is already in use. Choose another."}</div>}
+
+    <section aria-labelledby="jobs-h">
+      <div class="md-section-head"><h2 class="crm-h2" id="jobs-h">{vi ? "Các vị trí" : "Roles"}<span class="crm-count">{jobs.length}</span></h2><a class="crm-link" href="#new-h">{vi ? "Tạo vị trí mới" : "New role"}</a></div>
+      {jobs.length ? <div class="md-table-wrap" tabindex="0" role="region" aria-labelledby="jobs-h"><table class="md-table">
+        <thead><tr>
+          <th scope="col">{vi ? "Vị trí" : "Role"}</th>
+          <th scope="col">{vi ? "Trạng thái" : "Status"}</th>
+          <th scope="col" class="num">{vi ? "Hồ sơ" : "Applications"}</th>
+          <th scope="col" class="num">{vi ? "Cần xem" : "To review"}</th>
+          <th scope="col">{vi ? "Nhóm" : "Team"}</th>
+          <th scope="col">{vi ? "Địa điểm" : "Location"}</th>
+          <th scope="col">{vi ? "Trang công khai" : "Public page"}</th>
+        </tr></thead>
+        <tbody>{jobs.map((job) => <tr>
+          <td class="md-lead"><a href={deskPath(lang, `/admin/jobs/${job.id}`)}>{job.title}</a></td>
+          <td><span class:list={["crm-badge", statusTone(job.status)]}>{statusName(job.status, lang)}</span></td>
+          <td class="num"><a class="crm-link" href={deskPath(lang, `/admin/jobs/applications?job=${job.id}`)}>{job.application_count ?? 0}</a></td>
+          <td class="num">{job.unread_count ?? 0}</td>
+          <td>{job.team || "—"}</td>
+          <td>{job.location || "—"}</td>
+          <td class="nowrap crm-meta">/jobs/{job.slug}</td>
+        </tr>)}</tbody>
+      </table></div> : <p class="crm-empty">{vi ? "Chưa có vị trí. Tạo nháp ở bên dưới; vị trí chỉ công khai khi bạn đăng." : "No roles yet. Create a draft below; it stays private until you publish it."}</p>}
     </section>
-    <aside class="crm-sheet" aria-labelledby="new-h">
+
+    <section class="crm-sheet md-section" aria-labelledby="new-h">
       <h2 class="crm-h2" id="new-h">{vi ? "Vị trí mới" : "New role"}</h2>
       <form class="crm-form" method="post" action="/api/admin/jobs/create">
         <input type="hidden" name="lang" value={lang} />
-        <div class="crm-field"><label for="title">{vi ? "Tên vị trí" : "Title"} *</label><input class="crm-input" id="title" name="title" required maxlength="160" /></div>
-        <div class="crm-field"><label for="slug">Slug</label><input class="crm-input" id="slug" name="slug" placeholder="gtm-specialist" maxlength="80" aria-describedby="slug-help" /><span class="crm-help" id="slug-help">{vi ? "Để trống để tạo từ tên vị trí." : "Leave blank to generate from the title."}</span></div>
-        <div class="crm-field"><label for="team">{vi ? "Nhóm" : "Team"}</label><input class="crm-input" id="team" name="team" placeholder="Sales" maxlength="120" /></div>
-        <div class="crm-field"><label for="location">{vi ? "Địa điểm" : "Location"}</label><input class="crm-input" id="location" name="location" placeholder="TP.HCM / Remote" maxlength="160" /></div>
+        <div class="crm-form-grid">
+          <div class="crm-field"><label for="title">{vi ? "Tên vị trí" : "Title"} *</label><input class="crm-input" id="title" name="title" required maxlength="160" /></div>
+          <div class="crm-field"><label for="slug">{vi ? "Đường dẫn (slug)" : "Slug"}</label><input class="crm-input" id="slug" name="slug" placeholder="gtm-specialist" maxlength="80" aria-describedby="slug-help" /><span class="crm-help" id="slug-help">{vi ? "Để trống để tạo từ tên vị trí." : "Leave blank to generate from the title."}</span></div>
+          <div class="crm-field"><label for="team">{vi ? "Nhóm" : "Team"}</label><input class="crm-input" id="team" name="team" placeholder="Sales" maxlength="120" /></div>
+          <div class="crm-field"><label for="location">{vi ? "Địa điểm" : "Location"}</label><input class="crm-input" id="location" name="location" placeholder="TP.HCM / Remote" maxlength="160" /></div>
+        </div>
         <div class="crm-field"><label for="summary">{vi ? "Tóm tắt một dòng" : "One-line summary"} *</label><textarea class="crm-textarea" id="summary" name="summary" required maxlength="500"></textarea></div>
         <div class="crm-actions"><button class="crm-button" type="submit">{vi ? "Tạo nháp" : "Create draft"}</button></div>
       </form>
-    </aside>
+    </section>
   </div>
 </WorkspaceShell>

@@ -1,0 +1,77 @@
+/* Workspace module layer for Hiring, HRM and Finance (redesign workstream 2).
+   Applies the redesign UI rules on top of crm.css without changing markup
+   semantics: breadcrumbs on every page (R-03), full-width tables with a
+   frozen leading column (R-03) and equal-height panels in a row (R-04).
+   Workstream 1 owns the shared shell components; when they land, these
+   classes are the only thing to swap. */
+
+.md-scope { min-width: 0; }
+
+/* Breadcrumbs: where this screen sits in the module. */
+.md-crumbs { margin: 0 0 12px; color: var(--crm-slate); font-size: var(--crm-meta); }
+.md-crumbs ol { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 0; margin: 0; padding: 0; list-style: none; }
+.md-crumbs li { display: inline-flex; align-items: center; min-width: 0; }
+.md-crumbs li + li::before { content: "/"; margin-inline: 8px; color: var(--crm-line-strong); }
+.md-crumbs a { display: inline-flex; align-items: center; min-height: 32px; color: var(--crm-slate); text-decoration: underline; text-decoration-color: var(--crm-line-strong); text-underline-offset: 3px; overflow-wrap: anywhere; }
+.md-crumbs a:hover { color: var(--crm-navy); text-decoration-color: currentColor; }
+.md-crumbs [aria-current="page"] { color: var(--crm-navy); font-weight: 650; overflow-wrap: anywhere; }
+
+/* Page head: a plain title that says what the page is, then what it does. */
+.md-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 16px 28px; margin-bottom: 24px; }
+.md-head > div:first-child { min-width: 0; flex: 1 1 28rem; }
+.md-head .crm-h1 { font-size: clamp(28px, 3.6vw, 40px); }
+.md-head .crm-lede { margin-top: 8px; font-size: 16px; }
+.md-head-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+
+/* R-03: tables fill the content area and scroll inside their own frame.
+   The leading column (the record's name, the row's link) stays frozen. */
+.md-table-wrap { max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; border: 1px solid var(--crm-line); border-radius: var(--crm-radius); background: var(--crm-sheet); box-shadow: var(--crm-lift); }
+.md-table-wrap:focus-visible { outline: 3px solid var(--crm-blue); outline-offset: 3px; }
+.md-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 15px; line-height: 1.45; }
+.md-table th, .md-table td { padding: 10px 14px; border-bottom: 1px solid var(--crm-line-soft); text-align: left; vertical-align: top; background: var(--crm-sheet); }
+.md-table thead th { color: var(--crm-slate); background: #f8f9fb; font-size: var(--crm-small); font-weight: 650; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; border-bottom-color: var(--crm-line); }
+.md-table tbody tr:last-child > * { border-bottom: 0; }
+.md-table tbody tr:hover > * { background: #fafbfc; }
+.md-table .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.md-table .nowrap { white-space: nowrap; }
+.md-table td.md-lead a { color: var(--crm-navy); font-weight: 650; text-decoration: none; overflow-wrap: anywhere; }
+.md-table td.md-lead a:hover { color: var(--crm-blue); text-decoration: underline; }
+.md-table td.md-lead .crm-meta { display: block; margin-top: 2px; }
+.md-table caption { padding: 10px 14px; color: var(--crm-slate); font-size: var(--crm-meta); text-align: left; caption-side: bottom; }
+
+/* Freeze the leading column of every module table, including the existing
+   HRM (.crm-table) and Finance (.fn-table) tables, so a wide table keeps the
+   record name in view while it scrolls sideways. */
+.md-table :is(th, td):first-child,
+.md-scope .crm-table-wrap > .crm-table :is(th, td):first-child,
+.md-scope .fn-table-scroll > .fn-table :is(th, td):first-child { position: sticky; left: 0; z-index: 1; min-width: min(14rem, 45vw); box-shadow: 1px 0 0 var(--crm-line); }
+.md-scope .crm-table-wrap > .crm-table { border-collapse: separate; border-spacing: 0; }
+.md-scope .crm-table-wrap > .crm-table :where(th, td):first-child { background: var(--crm-sheet); }
+.md-scope .fn-table-scroll > .fn-table { border-collapse: separate; border-spacing: 0; }
+.md-scope .fn-table-scroll > .fn-table :where(td):first-child { background: var(--fn-sheet, #fff); }
+.md-table thead th:first-child { z-index: 2; }
+
+/* R-04: panels that share a row share a height. Stacks of panels inside a
+   column keep their natural heights. */
+.md-scope .crm-grid { align-items: stretch; }
+.md-scope .crm-grid > :is(div, aside):not(.crm-sheet) { align-content: start; }
+.md-scope .crm-grid > .crm-sheet { display: flex; flex-direction: column; }
+.md-scope .crm-grid > .crm-sheet > :last-child:is(.crm-actions, a.crm-button) { margin-top: auto; }
+.md-panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 18px; align-items: stretch; margin-bottom: 18px; }
+.md-panels > * { margin: 0; min-width: 0; }
+
+.md-section { margin-top: 24px; }
+.md-section-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px 16px; margin-bottom: 12px; }
+.md-section-head .crm-h2 { margin: 0; }
+
+@media (forced-colors: active) {
+  .md-crumbs [aria-current="page"] { text-decoration: underline; }
+  .md-table :is(th, td):first-child { border-right: 1px solid CanvasText; }
+}
+@media print {
+  .md-crumbs { display: none; }
+  .md-table-wrap { overflow: visible; box-shadow: none; }
+  .md-table :is(th, td):first-child,
+  .md-scope .crm-table-wrap > .crm-table :is(th, td):first-child,
+  .md-scope .fn-table-scroll > .fn-table :is(th, td):first-child { position: static; min-width: 0; box-shadow: none; }
+}

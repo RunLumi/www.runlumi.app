@@ -1,5 +1,7 @@
 ---
 import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
+import Breadcrumbs from "../modules/Breadcrumbs.astro";
+import "../../styles/modules.css";
 import HiringInterviews from "./HiringInterviews.astro";
 import { applicationStatuses } from "../../lib/ats";
 import { deskDate, deskPath, eventName, statusName, statusTone } from "../../lib/hiring/desk";
@@ -10,12 +12,13 @@ const { lang, vi, user, application, answers, files, notes, events, interviews, 
 const saved = flash.saved === "1" || (!!flash.saved && !["interview", "scorecard"].includes(flash.saved));
 ---
 <WorkspaceShell title={application.full_name} lang={lang} user={user} module="hiring" current="applications">
-  <p class="crm-eyebrow"><a class="crm-link" href={deskPath(lang, "/admin/jobs/applications")}>{vi ? "Ứng viên" : "Candidates"}</a> / {application.job_title} / {application.public_id}</p>
-  <div class="crm-head"><div>
+  <div class="md-scope">
+  <Breadcrumbs vi={vi} items={[{ label: vi ? "Tuyển dụng" : "Hiring", href: deskPath(lang, "/admin/jobs") }, { label: vi ? "Ứng viên" : "Candidates", href: deskPath(lang, "/admin/jobs/applications") }, { label: application.full_name }]} />
+  <div class="md-head"><div>
     <h1 class="crm-h1">{application.full_name}</h1>
-    <p class="crm-lede"><span class:list={["crm-badge", statusTone(application.status)]}>{statusName(application.status, lang)}</span> · {vi ? "Nộp" : "Applied"} {deskDate(application.created_at, lang)}</p>
+    <p class="crm-lede"><span class:list={["crm-badge", statusTone(application.status)]}>{statusName(application.status, lang)}</span> · {application.job_title} · {vi ? "Nộp" : "Applied"} {deskDate(application.created_at, lang)} · <span class="crm-num">{application.public_id}</span></p>
   </div>
-  {user.can("hiring.applications.manage") && <form class="crm-actions" method="post" action={`/api/admin/applications/${application.id}/status`}>
+  {user.can("hiring.applications.manage") && <form class="md-head-actions" method="post" action={`/api/admin/applications/${application.id}/status`}>
     <input type="hidden" name="lang" value={lang} />
     <label class="crm-label" for="status">{vi ? "Giai đoạn" : "Stage"}</label>
     <select class="crm-select" style="width:auto" id="status" name="status">{applicationStatuses.map((value) => <option value={value} selected={application.status === value}>{statusName(value, lang)}</option>)}</select>
@@ -31,7 +34,7 @@ const saved = flash.saved === "1" || (!!flash.saved && !["interview", "scorecard
           <div><dt>Email</dt><dd><a class="crm-link" href={`mailto:${application.email}`}>{application.email}</a></dd></div>
           <div><dt>{vi ? "Điện thoại" : "Phone"}</dt><dd>{application.phone || "—"}</dd></div>
           <div><dt>LinkedIn</dt><dd>{application.linkedin_url ? <a class="crm-link" href={application.linkedin_url} rel="noopener noreferrer" target="_blank">{vi ? "Mở" : "Open"} ↗</a> : "—"}</dd></div>
-          <div><dt>Portfolio</dt><dd>{application.portfolio_url ? <a class="crm-link" href={application.portfolio_url} rel="noopener noreferrer" target="_blank">{vi ? "Mở" : "Open"} ↗</a> : "—"}</dd></div>
+          <div><dt>{vi ? "Hồ sơ năng lực" : "Portfolio"}</dt><dd>{application.portfolio_url ? <a class="crm-link" href={application.portfolio_url} rel="noopener noreferrer" target="_blank">{vi ? "Mở" : "Open"} ↗</a> : "—"}</dd></div>
         </dl>
       </section>
       <section class="crm-sheet" aria-labelledby="letter-h"><h2 class="crm-h2" id="letter-h">{vi ? "Thư giới thiệu" : "Cover letter"}</h2><p style="white-space:pre-wrap">{application.cover_letter || "—"}</p></section>
@@ -39,7 +42,7 @@ const saved = flash.saved === "1" || (!!flash.saved && !["interview", "scorecard
         {answers.map((answer) => <div style="padding:12px 0;border-bottom:1px solid var(--crm-line-soft)"><strong>{answer.prompt}</strong><p style="margin:6px 0 0;white-space:pre-wrap">{answer.answer_text || "—"}</p></div>)}
       </section>}
       <section class="crm-sheet" aria-labelledby="files-h"><h2 class="crm-h2" id="files-h">{vi ? "Tệp" : "Files"}</h2>
-        {files.length ? <ul class="crm-list">{files.map((file) => <li class="crm-row"><a class="crm-row-title" href={`/api/admin/files/${file.id}`}>{file.filename}</a><span class="crm-row-meta"><span>{file.kind === "resume" ? "CV" : file.prompt || (vi ? "Tệp bài test" : "Test file")}</span><span>{Math.ceil(file.size_bytes / 1024)} KB</span></span></li>)}</ul> : <p class="crm-empty">{vi ? "Không có tệp." : "No files."}</p>}
+        {files.length ? <ul class="crm-list">{files.map((file) => <li class="crm-row"><a class="crm-row-title" href={`/api/admin/files/${file.id}`}>{file.filename}</a><span class="crm-row-meta"><span>{file.kind === "resume" ? "CV" : file.prompt || (vi ? "Tệp bài kiểm tra" : "Test file")}</span><span>{Math.ceil(file.size_bytes / 1024)} KB</span></span></li>)}</ul> : <p class="crm-empty">{vi ? "Không có tệp." : "No files."}</p>}
         <p class="crm-help">{vi ? "Tệp lưu riêng tư, chỉ mở qua phiên đăng nhập có quyền tuyển dụng." : "Files are private and open only through a signed-in session with hiring access."}</p>
       </section>
       <HiringInterviews lang={lang} user={user} applicationId={application.id} interviews={interviews} scorecards={scorecards} flash={flash} />
@@ -65,5 +68,6 @@ const saved = flash.saved === "1" || (!!flash.saved && !["interview", "scorecard
         </form>
       </section>}
     </aside>
+  </div>
   </div>
 </WorkspaceShell>
