@@ -599,3 +599,19 @@ test("15. pipeline board, table inline edit and close dialog keep checks, versio
   assert.equal((await S.a.post(`/crm/${id}`, { intent: "close", version: v2 + 1, to_stage: "lost", reason: "TEST chose another vendor" })).status, 303);
   assert.deepEqual(Object.values(jobs(`SELECT outcome, lost_reason FROM crm_opportunities WHERE id = ${q(id)}`)[0]), ["lost", "TEST chose another vendor"]);
 });
+
+test("16. calendar: month and week per locale, own items only, events go through task checks", async () => {
+  for (const path of ["/crm/calendar", "/vi/crm/calendar", "/crm/calendar?view=week", "/vi/crm/calendar?view=week&activity=1", "/crm/calendar?month=bad&view=x"]) {
+    assert.equal((await S.outsider.get(path)).status, 403, `${path} needs CRM access`);
+    assert.equal((await S.a.get(path)).status, 200, path);
+  }
+  const id = await create(S.a, { playbook_key: "lumi-solution", account_name: `TEST Calendar Co ${run}`, contact_name: "TEST Cal Owner", phone: phone() });
+  const day = isoDaysAgo(-3);
+  assert.equal((await S.a.post("/crm/calendar", { intent: "task_create", opportunity_id: id, kind: "meeting", title: `TEST calendar meeting ${run}`, due_on: day, due_time: "09:30" })).status, 303);
+  assert.equal((await S.a.post("/crm/calendar", { intent: "task_create", opportunity_id: id, kind: "meeting", title: "TEST no date" })).status, 422, "a meeting needs a date");
+  assert.equal((await S.c.post("/crm/calendar", { intent: "task_create", opportunity_id: id, kind: "internal", title: "TEST probe" })).status, 404, "another seller cannot schedule on this deal");
+  const week = await S.a.get(`/vi/crm/calendar?view=week&week=${day}`);
+  assert.match(week.html, new RegExp(`TEST calendar meeting ${run}`));
+  assert.doesNotMatch((await S.c.get(`/crm/calendar?view=week&week=${day}`)).html, new RegExp(`TEST calendar meeting ${run}`), "others' tasks are not shown");
+  assert.match((await S.admin.get(`/crm/calendar?view=week&week=${day}`)).html, new RegExp(`TEST calendar meeting ${run}`), "the team sees everyone's");
+});

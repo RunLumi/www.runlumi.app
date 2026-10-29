@@ -1,0 +1,9 @@
+---
+import CalendarView from "../../../components/crm/CalendarView.astro";
+import { calendarRoute } from "../../../lib/crm/routes/calendar";
+
+export const prerender = false;
+const result = await calendarRoute(Astro, "vi");
+if (result instanceof Response) return result;
+---
+<CalendarView {...result} />
