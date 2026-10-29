@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFileSync, readdirSync } from "node:fs";
-import { BASE, adminSession, content, jobs, localFetch, q, userSession } from "./helpers.mjs";
+import { BASE, Session, adminSession, content, jobs, localFetch, q, userSession } from "./helpers.mjs";
 import { startHrmBrowserQa } from "./hrm-browser-qa.mjs";
 import { exerciseCloseoutPolicy } from "./hrm-closeout-policy.mjs";
 import { runHrmRecoveryDrill } from "./hrm-recovery-drill.mjs";
@@ -14,7 +14,8 @@ const createPerson=async({user,code,name,manager="",status="active",startedOn="2
  const result=await S.hrm.post("/hrm/people/new",{request_key:`person_${code}_${run}`,employee_code:code,account_email:user?.email??"",legal_name:name,preferred_name:name,work_email:`${code.toLowerCase()}@work.example.test`,work_phone:"0900000000",department:"TEST Operations",job_title:"TEST Analyst",legal_entity:"TEST Local entity",location:"Ho Chi Minh City",manager_user_id:manager,status,started_on:startedOn,...(relationshipType?{relationship_type:relationshipType}:{})});
  assert.equal(result.status,303,result.html);const row=jobs(`SELECT id FROM hrm_people WHERE employee_code=${q(code)}`)[0];assert.ok(row);return row.id;
 };
-async function multipart(session,path,fields,file){const form=new FormData();for(const [key,value] of Object.entries(fields))form.set(key,String(value));form.set("file",file);const response=await localFetch(BASE+path,{method:"POST",body:form,headers:{cookie:session.header(),origin:BASE},redirect:"manual"});session.absorb(response);return {status:response.status,location:response.headers.get("location"),body:await response.text(),headers:response.headers};}
+// Uploads take the same one-time Workspace passkey check as Session.get/post: the same fields (and request_key) are sent again after it.
+async function multipart(session,path,fields,file){const send=async()=>{const form=new FormData();for(const [key,value] of Object.entries(fields))form.set(key,String(value));form.set("file",file);const response=await localFetch(BASE+path,{method:"POST",body:form,headers:{cookie:session.header(),origin:BASE},redirect:"manual"});session.absorb(response);return {status:response.status,location:response.headers.get("location"),body:await response.text(),headers:response.headers};};let result=await send();if(Session.asksForPasskey(result.status,result.location,result.body)&&await session.verifyPasskey()===200)result=await send();return result;}
 
 test("HRM P1 uses EmDash sessions, isolated HRM grants, scoped records, D1 history and private R2 files",{skip:["hrm-p3","hrm-p4","hrm-p5"].includes(process.env.RUNLUMI_INTEGRATION_SCOPE)},async(t)=>{
  S.system=await adminSession();
