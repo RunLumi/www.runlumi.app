@@ -127,7 +127,7 @@ export async function exportSavedReportSnapshotCsv(db:D1Database,user:WorkspaceU
 }
 
 function savedCsv(report:HrmReportSnapshot,ref:string,expiry:string,lang:HrmReportLanguage):string{
- return reportCsvContent(report,lang)+"\r\n"+[[lang==="vi"?"Tham chiếu snapshot":"Snapshot reference",ref],[lang==="vi"?"Hạn đọc thông thường":"Ordinary access through",expiry]].map(row=>row.map(reportCsvCell).join(",")).join("\r\n");
+ return reportCsvContent(report,lang)+"\r\n"+[[lang==="vi"?"Tham chiếu bản chốt":"Snapshot reference",ref],[lang==="vi"?"Hạn đọc thông thường":"Ordinary access through",expiry]].map(row=>row.map(reportCsvCell).join(",")).join("\r\n");
 }
 export async function exportHeldReportSnapshotCsv(db:D1Database,content:D1Database,user:WorkspaceUser,key:string,snapshotRef:string,reason:string,lang:HrmReportLanguage):Promise<string>{
  requirePermission(user,"hrm.reports.holds.read");live(user);await reportAccount(db,content,user.id,"hrm.reports.holds.read");

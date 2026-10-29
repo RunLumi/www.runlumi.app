@@ -1,0 +1,9 @@
+---
+import WorkspaceRoles from "../../components/workspace/WorkspaceRoles.astro";
+import { rolesPage } from "../../lib/workspace/pages";
+
+export const prerender = false;
+const data = rolesPage(Astro, "en");
+if (data instanceof Response) return data;
+---
+<WorkspaceRoles {...data} />

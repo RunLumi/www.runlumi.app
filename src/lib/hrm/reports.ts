@@ -87,7 +87,7 @@ export async function buildHrmReportSnapshotForEntity(db:D1Database,entity:strin
     {key:"movement",title_en:"Employment changes in selected period",title_vi:"Biến động nhân sự trong kỳ",rows:movement},
     {key:"attendance",title_en:"Attendance entries in selected period",title_vi:"Bản ghi công trong kỳ",rows:attendance},
     {key:"overtime",title_en:"Overtime review in selected period",title_vi:"Rà soát làm thêm trong kỳ",rows:overtime},
-    {key:"onboarding",title_en:"Onboarding items due in selected period",title_vi:"Công việc onboarding đến hạn trong kỳ",rows:onboarding},
+    {key:"onboarding",title_en:"Onboarding items due in selected period",title_vi:"Công việc hội nhập đến hạn trong kỳ",rows:onboarding},
     {key:"leave",title_en:"Leave requests overlapping selected period",title_vi:"Đơn nghỉ phép giao với kỳ đã chọn",rows:leave},
     {key:"services",title_en:"HR requests opened in selected period",title_vi:"Yêu cầu HR mở trong kỳ",rows:services},
     {key:"assets",title_en:"Company-wide asset custody snapshot",title_vi:"Ảnh chụp tài sản toàn pháp nhân",rows:assets},

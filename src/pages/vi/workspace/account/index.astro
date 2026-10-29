@@ -1,0 +1,8 @@
+---
+import WorkspaceAccount from "../../../../components/workspace/WorkspaceAccount.astro";
+import { accountPage } from "../../../../lib/workspace/pages";
+
+export const prerender = false;
+const data = await accountPage(Astro, "vi");
+---
+<WorkspaceAccount {...data} />
