@@ -112,11 +112,11 @@ The old tables are kept for recovery and are no longer read.
 Overview            /workspace                 figures per module the person can open; each figure links to its list
 Hiring              /admin/jobs                tabs: Roles · Candidates
 CRM                 /crm                       grouped sidebar (Pages disclosure below 1024px):
-  Selling                                      Today · Pipeline · New opportunity · Referrals (refer)
+  Selling                                      Today · Leads · Pipeline (list, board, table) · Calendar · New opportunity · Referrals (refer)
   Customers                                    Companies · Contacts
   Results                                      Reports · Commission · Business model (team)
   Operations                                   Fulfillment (fulfillment or team) · Assignment and cohorts (team)
-  Setup                                        Playbooks · Offers and prices (configure)
+  Setup                                        Playbooks · Lead statuses · Offers and prices (configure)
   Guides and tools                             Sales process · Files · Connect an AI agent
 HRM                 /hrm                       grouped sidebar; every entry permission-gated:
   My HR (Của tôi)                              My overview · My profile · documents · COI · onboarding · attendance · leave · payslips · HR requests · assets · benefits · reviews · training · Notifications

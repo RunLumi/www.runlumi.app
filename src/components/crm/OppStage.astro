@@ -3,7 +3,8 @@ import Hidden from "./Hidden.astro";
 import Field from "./Field.astro";
 import { errorText } from "../../lib/crm/i18n";
 import { errorFor, valueFor } from "../../lib/crm/page";
-import { requirementLabel, stageIndex } from "../../lib/crm/playbook";
+import { requirementLabel, stageIndex, stageLabel } from "../../lib/crm/playbook";
+import "../../styles/crm-sales.css";
 import type { OppProps } from "../../lib/crm/routes/opportunity";
 
 type Props = OppProps;
@@ -16,14 +17,40 @@ const nextOpen = def.stages.slice(current + 1).find((stage) => stage.outcome ===
 const nextCheck = nextOpen ? transitions[nextOpen.id] : null;
 const stageError = errorFor(state, "stage", "to_stage");
 const missing = stageError?.startsWith("missing:") ? stageError.slice(8).split(",") : [];
+// Close dialog: opened from a Kanban drop zone (?close=won|lost) or the button below.
+const closeParam = Astro.url.searchParams.get("close");
+const closeKind = state.intent === "close" ? (def.stages.find((stage) => stage.id === state.values.to_stage)?.outcome ?? "won") : closeParam === "lost" ? "lost" : closeParam === "won" ? "won" : "";
+const closing = def.stages.filter((stage) => stage.outcome === "won" || stage.outcome === "lost");
+const closeError = errorFor(state, "close", "to_stage");
+const closeMissing = closeError?.startsWith("missing:") ? closeError.slice(8).split(",") : [];
+const closeDefault = state.intent === "close" ? state.values.to_stage : closing.find((stage) => stage.outcome === closeKind)?.id ?? "";
+const outcomeName = (outcome: string) => outcome === "won" ? (vi ? "Thắng" : "Won") : (vi ? "Thua" : "Lost");
 ---
 <section class="crm-sheet" id="stage" aria-labelledby="stage-h">
   <h2 class="crm-h2" id="stage-h">{vi ? "Tiến độ bán hàng" : "Sales progress"}</h2>
-  <ol class="crm-stages" aria-label={vi ? "Các giai đoạn" : "Stages"}>
-    {def.stages.map((stage, index) => <li><span class:list={{ current: stage.id === opp.stage_id, done: index < current && stage.outcome === "open", terminal: stage.outcome !== "open" }} aria-current={stage.id === opp.stage_id ? "true" : undefined}>
-      <span>{index + 1}. {vi ? stage.vi : stage.en}</span>{stage.skippable && <span class="crm-help">{vi ? "có thể bỏ qua" : "skippable"}</span>}
-    </span></li>)}
+  <ol class="crm-path" aria-label={vi ? `Các giai đoạn của playbook ${playbook.name_vi} v${playbook.version}` : `Stages of playbook ${playbook.name_en} v${playbook.version}`}>
+    {def.stages.filter((stage) => stage.outcome === "open" || stage.outcome === "paused" || stage.id === opp.stage_id).map((stage) => { const index = def.stages.indexOf(stage); return <li class:list={{
+        current: stage.id === opp.stage_id && opp.outcome === "open", done: index < current && stage.outcome === "open",
+        "closed-won": stage.id === opp.stage_id && opp.outcome === "won", "closed-lost": stage.id === opp.stage_id && opp.outcome === "lost", current_paused: stage.id === opp.stage_id && opp.outcome === "paused" }}>
+      <span aria-current={stage.id === opp.stage_id ? "step" : undefined} title={stage.skippable ? (vi ? "Có thể bỏ qua, cần lý do" : "Skippable with a reason") : undefined}>{vi ? stage.vi : stage.en}{stage.skippable ? " ★" : ""}</span>
+    </li>; })}
+    {opp.outcome === "open" && closing.length > 0 && <li><span>{vi ? "Đóng" : "Closed"}</span></li>}
   </ol>
+  {access.canEdit && opp.outcome === "open" && closing.length > 0 && !closeKind && <p><a class="crm-button small secondary" href="?close=won#close">{vi ? "Đóng cơ hội…" : "Close the opportunity…"}</a></p>}
+  {access.canEdit && opp.outcome === "open" && closeKind && <section class="crm-sheet" id="close" aria-labelledby="close-h" style="margin:12px 0;box-shadow:none">
+    <h3 class="crm-h3" id="close-h" style="margin-top:0">{vi ? `Đóng cơ hội: ${opp.title}` : `Close opportunity: ${opp.title}`}</h3>
+    <form class="crm-form" method="post" action="#close">
+      <Hidden intent="close" state={state} version={opp.version} />
+      <fieldset class="crm-fieldset"><legend>{vi ? "Giai đoạn đóng" : "Closing stage"} *</legend>
+        <div class="crm-choice">{closing.map((stage) => { const check = transitions[stage.id]; return <label><input type="radio" name="to_stage" value={stage.id} checked={stage.id === closeDefault} required />
+          <span><strong>{vi ? stage.vi : stage.en}</strong> · {outcomeName(stage.outcome)}{check && !check.ok && <span class="crm-help"> — {vi ? "cần" : "needs"}: {check.missing.map((key) => requirementLabel(def, key, vi)).join(" · ")}</span>}</span></label>; })}</div>
+      </fieldset>
+      {closeError && <p class="crm-error" id="close-error">{errorText(lang, closeError)}{closeMissing.length > 0 && ` ${closeMissing.map((key) => requirementLabel(def, key, vi)).join(" · ")}`}</p>}
+      <Field name="reason" id="close-reason" type="textarea" label={vi ? "Lý do (bắt buộc khi thua)" : "Reason (required when lost)"} lang={lang} value={valueFor(state, "close", "reason", "")} error={errorFor(state, "close", "reason")} maxlength={1000} />
+      <p class="crm-help">{vi ? "Điều kiện của từng giai đoạn lấy từ playbook. Thắng không có nghĩa đã thanh toán; thanh toán chỉ tính khi tài chính xác nhận." : "Each stage's requirements come from the playbook. Won does not mean paid; payments count only once finance confirms them."}</p>
+      <div class="crm-actions"><a class="crm-button secondary" href={`?#stage`}>{vi ? `Hủy, giữ “${stageLabel(def, opp.stage_id, true)}”` : `Cancel, keep “${stageLabel(def, opp.stage_id, false)}”`}</a><button class="crm-button" type="submit">{vi ? "Lưu và đóng cơ hội" : "Save and close"}</button></div>
+    </form>
+  </section>}
   {nextOpen && nextCheck && opp.outcome === "open" && <p class="crm-help">
     {nextCheck.ok
       ? (vi ? `Đủ điều kiện chuyển sang “${nextOpen.vi}”.` : `Ready to move to “${nextOpen.en}”.`)

@@ -1,5 +1,7 @@
 ---
 import CrmShell from "../../layouts/CrmShell.astro";
+import Crumbs from "./Crumbs.astro";
+import "../../styles/crm-sales.css";
 import Field from "./Field.astro";
 import FormNotices from "./FormNotices.astro";
 import Hidden from "./Hidden.astro";
@@ -8,15 +10,17 @@ import { errorFor, valueFor } from "../../lib/crm/page";
 import type { AdminProps } from "../../lib/crm/routes/admin";
 import type { IntakePayload } from "../../lib/crm/intake";
 import { costCategories } from "../../lib/crm/tasks";
+import { statusLabel } from "../../lib/crm/leads";
 
 type Props = AdminProps;
-const { ctx, state, inbound, referrals, referrerNames, owners, cohorts, playbooks } = Astro.props;
+const { ctx, state, leads, leadProcesses, inbound, referrals, referrerNames, owners, cohorts, playbooks } = Astro.props;
 const { lang, vi, base } = ctx;
 const v = (intent: string, name: string, fallback = "") => valueFor(state, intent, name, fallback);
 const e = (intent: string, name: string) => errorFor(state, intent, name);
 const payload = (raw: string) => { try { return JSON.parse(raw) as IntakePayload; } catch { return null; } };
 ---
 <CrmShell title={vi ? "Vận hành CRM" : "CRM operations"} lang={lang} actor={ctx.actor} current="admin">
+  <Crumbs vi={vi} items={[{ label: "CRM", href: base }, { label: vi ? "Phân công và cohort" : "Assignment and cohorts" }]} />
   <div class="crm-head"><div>
     <p class="crm-eyebrow">{vi ? "Vận hành CRM" : "CRM operations"}</p>
     <h1 class="crm-h1">{vi ? "Phân công khách mới và theo dõi cohort." : "Assign new enquiries and run cohorts."}</h1>
@@ -24,8 +28,27 @@ const payload = (raw: string) => { try { return JSON.parse(raw) as IntakePayload
   </div><div class="crm-actions">{ctx.actor.configure && <><a class="crm-button secondary" href={`${base}/admin/playbooks`}>{vi ? "Playbook" : "Playbooks"}</a><a class="crm-button secondary" href={`${base}/admin/offers`}>{vi ? "Gói và giá" : "Offers and prices"}</a><a class="crm-button secondary" href={vi ? "/vi/workspace/users" : "/workspace/users"}>{vi ? "Người dùng và vai trò" : "Users and roles"}</a></>}</div></div>
   <FormNotices state={state} lang={lang} saved={Astro.url.searchParams.get("saved")} />
 
-  <section class="crm-sheet" id="inbound" aria-labelledby="inbound-h">
-    <h2 class="crm-h2" id="inbound-h">{vi ? "Yêu cầu từ website chờ phân công" : "Website enquiries waiting for assignment"}<span class="crm-count">{inbound.length}</span></h2>
+  <section class="crm-sheet" id="leads" aria-labelledby="leads-h">
+    <h2 class="crm-h2" id="leads-h">{vi ? "Lead chờ phân công" : "Leads waiting for an owner"}<span class="crm-count">{leads.length}</span></h2>
+    <p class="crm-help">{vi ? "Yêu cầu từ local.runlumi.app, khách được giới thiệu và Lead tạo để trong hàng chờ. Người được giao trở thành người bán khi Lead được chuyển đổi; người giới thiệu giữ ghi công giới thiệu." : "Enquiries from local.runlumi.app, referrals and leads left in the queue. The assignee becomes the seller once the lead converts; a referrer keeps referral credit."}</p>
+    {leads.length ? <div class="crm-grid-table-wrap"><table class="crm-grid-table">
+      <thead><tr><th class="frozen frozen-1" scope="col">#</th><th class="frozen frozen-2" scope="col">{vi ? "Lead" : "Lead"}</th><th scope="col">{vi ? "Công ty" : "Company"}</th><th scope="col">{vi ? "Nguồn" : "Source"}</th><th scope="col">{vi ? "Trạng thái" : "Status"}</th><th scope="col">{vi ? "Giới thiệu bởi" : "Referred by"}</th><th scope="col">{vi ? "Nhận lúc" : "Received"}</th><th scope="col">{vi ? "Giao cho" : "Assign to"}</th></tr></thead>
+      <tbody>{leads.map((row, index) => <tr>
+        <td class="frozen frozen-1 rowno">{index + 1}</td>
+        <td class="frozen frozen-2"><a href={`${base}/leads/${row.id}`}>{row.name}</a>{row.suppressed ? <span class="crm-badge red">{vi ? "Số từng yêu cầu không liên hệ" : "Number previously opted out"}</span> : null}</td>
+        <td class="wrap">{row.company}</td><td>{label(lang, "channel", row.source_channel)}</td><td>{statusLabel(leadProcesses.get(row.process_id), row.status_id, vi)}</td>
+        <td>{row.referrer_id ? referrerNames[row.referrer_id]?.name ?? "—" : "—"}</td><td>{formatDateTime(row.created_at, lang)}</td>
+        <td><form class="crm-cell-form" method="post" action="#leads"><Hidden intent="lead_assign" state={state} version={row.version} /><input type="hidden" name="lead_id" value={row.id} />
+          <label class="crm-sr" for={`lq-owner-${row.id}`}>{vi ? `Giao ${row.name} cho` : `Assign ${row.name} to`}</label>
+          <select class="crm-select" id={`lq-owner-${row.id}`} name="owner_id"><option value="">{vi ? "Chọn người" : "Choose"}</option>{owners.filter((owner) => owner.id !== ctx.actor.id || ctx.actor.configure).map((owner) => <option value={owner.id}>{owner.label}</option>)}</select>
+          <button class="crm-button small" type="submit">{vi ? "Giao" : "Assign"}</button></form>
+          {state.intent === "lead_assign" && state.values.lead_id === row.id && state.errors.owner_id && <p class="crm-error">{vi ? "Chọn người bán hợp lệ (không tự giao cho mình)." : "Choose a valid seller (not yourself)."}</p>}</td>
+      </tr>)}</tbody>
+    </table></div> : <p class="crm-empty">{vi ? "Không có Lead đang chờ." : "No leads waiting."}</p>}
+  </section>
+
+  {inbound.length > 0 && <section class="crm-sheet" id="inbound" aria-labelledby="inbound-h">
+    <h2 class="crm-h2" id="inbound-h">{vi ? "Yêu cầu cũ từ website chờ phân công" : "Earlier website enquiries waiting for assignment"}<span class="crm-count">{inbound.length}</span></h2>
     <p class="crm-help">{vi ? "Chỉ yêu cầu gửi tới Lumi từ local.runlumi.app. Yêu cầu chưa phải thanh toán, tài khoản hay khách đã đủ điều kiện." : "Only enquiries addressed to Lumi from local.runlumi.app. An enquiry is not a payment, an account or a qualified lead."}</p>
     {inbound.length ? <ul class="crm-list">{inbound.map((row) => { const data = payload(row.payload); return <li class="crm-row">
       <a class="crm-row-title" href={`${base}/${row.opportunity_id}`}>{data?.business ?? row.id}</a>
@@ -39,11 +62,11 @@ const payload = (raw: string) => { try { return JSON.parse(raw) as IntakePayload
           <Field name="dismiss_reason" id={`ib-dis-${row.id}`} label={vi ? "Lý do bỏ qua (spam, nhầm…)" : "Reason to dismiss (spam, misdirected…)"} lang={lang} value="" maxlength={500} error={state.intent === "inbound_dismiss" && state.values.inbound_id === row.id ? state.errors.dismiss_reason : undefined} />
           <button class="crm-button small secondary" type="submit">{vi ? "Bỏ qua" : "Dismiss"}</button></form>
       </div>
-    </li>; })}</ul> : <p class="crm-empty">{vi ? "Không có yêu cầu đang chờ." : "No enquiries waiting."}</p>}
-  </section>
+    </li>; })}</ul> : null}
+  </section>}
 
-  <section class="crm-sheet" id="referrals" aria-labelledby="ref-h">
-    <h2 class="crm-h2" id="ref-h">{vi ? "Khách được giới thiệu chờ phân công" : "Referred businesses waiting for an owner"}<span class="crm-count">{referrals.length}</span></h2>
+  {referrals.length > 0 && <section class="crm-sheet" id="referrals" aria-labelledby="ref-h">
+    <h2 class="crm-h2" id="ref-h">{vi ? "Khách được giới thiệu trước khi có Lead, chờ phân công" : "Referrals made before leads, waiting for an owner"}<span class="crm-count">{referrals.length}</span></h2>
     <p class="crm-help">{vi ? "Cộng tác viên hoặc nhân viên giới thiệu; người giới thiệu được ghi công, người được giao là người bán." : "Referred by partners or staff; the referrer keeps referral credit and the assignee becomes the seller."}</p>
     {referrals.length ? <ul class="crm-list">{referrals.map((row) => <li class="crm-row">
       <a class="crm-row-title" href={`${base}/${row.id}`}>{row.title}</a>
@@ -53,8 +76,8 @@ const payload = (raw: string) => { try { return JSON.parse(raw) as IntakePayload
         <select class="crm-select" style="width:auto" id={`ref-owner-${row.id}`} name="owner_id"><option value="">{vi ? "Chọn người" : "Choose"}</option>{owners.filter((owner) => owner.id !== ctx.actor.id || ctx.actor.configure).map((owner) => <option value={owner.id}>{owner.label}</option>)}</select>
         <button class="crm-button small" type="submit">{vi ? "Giao" : "Assign"}</button>
       </form>
-    </li>)}</ul> : <p class="crm-empty">{vi ? "Không có khách được giới thiệu đang chờ." : "No referrals waiting."}</p>}
-  </section>
+    </li>)}</ul> : null}
+  </section>}
 
   <section class="crm-sheet" id="cohorts" aria-labelledby="cohorts-h">
     <h2 class="crm-h2" id="cohorts-h">Cohort</h2>

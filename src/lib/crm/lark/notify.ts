@@ -8,7 +8,8 @@ import { getPlaybook } from "../config";
 import { loadDashboard } from "../dashboard";
 import { vnDate } from "../money";
 import { loadToday } from "../today";
-import { ANNOUNCED_KINDS, type DigestFacts, type EventFacts, type OppFacts, digestCard, eventCard } from "./cards";
+import { ANNOUNCED_KINDS, type DigestFacts, type EventFacts, type LeadFacts, type OppFacts, digestCard, eventCard } from "./cards";
+import { leadProcessVersions, reasonLabel, statusLabel } from "../leads";
 import { type LarkResult, postToLark } from "./client";
 
 export interface LarkDeps {
@@ -53,7 +54,7 @@ async function finish(db: D1Database, eventId: string, result: LarkResult | "ski
   }
 }
 
-interface EventRow { id: string; opportunity_id: string | null; account_id: string | null; actor_name: string; kind: string; body: string; created_at: string }
+interface EventRow { id: string; opportunity_id: string | null; account_id: string | null; lead_id?: string | null; actor_name: string; kind: string; body: string; created_at: string }
 
 function parse(body: string): Record<string, unknown> {
   try { return JSON.parse(body) as Record<string, unknown>; } catch { return {}; }
@@ -65,7 +66,7 @@ export async function eventFacts(db: D1Database, contentDb: D1Database, row: Eve
   let opportunity: OppFacts | null = null;
   let fromStage: string | undefined;
   // "from"/"to" are user IDs on assignment events, stage IDs on stage events.
-  const people = row.kind === "stage" || row.kind === "fulfillment_status" ? [] : [body.from, body.to, body.owner_id].filter((id): id is string => typeof id === "string" && !!id);
+  const people = row.kind === "stage" || row.kind === "fulfillment_status" || row.kind === "lead_status" ? [] : [body.from, body.to, body.owner_id].filter((id): id is string => typeof id === "string" && !!id);
   const offerName = row.kind.startsWith("quote_") && typeof body.offer === "string"
     ? (await db.prepare("SELECT name_vi FROM crm_offers WHERE id = ?").bind(body.offer).first<{ name_vi: string }>())?.name_vi ?? null : null;
   if (row.opportunity_id) {
@@ -87,9 +88,22 @@ export async function eventFacts(db: D1Database, contentDb: D1Database, row: Eve
     }
   }
   const account = row.account_id ? await db.prepare("SELECT name FROM crm_accounts WHERE id = ?").bind(row.account_id).first<{ name: string }>() : null;
-  const names = await displayNames(contentDb, people);
+  const leadRow = row.lead_id ? await db.prepare("SELECT company, status_id, process_id, source_channel, owner_id FROM crm_lead_records WHERE id = ?").bind(row.lead_id)
+    .first<{ company: string; status_id: string; process_id: string; source_channel: string; owner_id: string | null }>() : null;
+  const names = await displayNames(contentDb, [...people, ...(leadRow?.owner_id ? [leadRow.owner_id] : [])]);
+  let lead: LeadFacts | null = null;
+  if (leadRow && row.lead_id) {
+    const process = (await leadProcessVersions(db)).find((item) => item.id === leadRow.process_id);
+    const statusName = (id: string) => process ? statusLabel(process, id, true) : id;
+    lead = {
+      id: row.lead_id, company: leadRow.company, status: statusName(leadRow.status_id), channel: leadRow.source_channel,
+      ownerName: leadRow.owner_id ? names[leadRow.owner_id]?.name ?? null : null,
+      fromStatus: row.kind === "lead_status" && typeof body.from === "string" ? statusName(body.from) : undefined,
+      reason: row.kind === "lead_disqualified" && process && typeof body.reason_id === "string" ? reasonLabel(process, body.reason_id, true) : undefined,
+    };
+  }
   const ownerTo = typeof body.to === "string" ? body.to : typeof body.owner_id === "string" ? body.owner_id : null;
-  return { kind: row.kind, body, actorName: row.actor_name, createdAt: row.created_at, opportunity, accountId: row.account_id, accountName: account?.name ?? null, offerName,
+  return { kind: row.kind, body, actorName: row.actor_name, createdAt: row.created_at, opportunity, accountId: row.account_id, accountName: account?.name ?? null, offerName, lead,
     ownerFrom: typeof body.from === "string" ? names[body.from]?.name ?? null : null, ownerTo: ownerTo ? names[ownerTo]?.name ?? null : null };
 }
 
@@ -101,7 +115,7 @@ export async function flushLark(deps: LarkDeps): Promise<{ sent: number; failed:
   const pause = deps.pause ?? sleep;
   const started = now();
   const kinds = ANNOUNCED_KINDS.map(() => "?").join(", ");
-  const rows = (await deps.db.prepare(`SELECT e.id, e.opportunity_id, e.account_id, e.actor_name, e.kind, e.body, e.created_at
+  const rows = (await deps.db.prepare(`SELECT e.id, e.opportunity_id, e.account_id, e.lead_id, e.actor_name, e.kind, e.body, e.created_at
     FROM crm_events e LEFT JOIN crm_notifications n ON n.event_id = e.id
     WHERE e.kind IN (${kinds}) AND e.created_at > (SELECT created_at FROM crm_notifications WHERE id = 'marker') AND e.created_at > ?
       AND (n.id IS NULL OR (n.status = 'failed' AND n.attempts < ?) OR (n.status = 'sending' AND n.updated_at < ?))
@@ -145,6 +159,7 @@ export async function digestFacts(db: D1Database, contentDb: D1Database, at: Dat
     overdue: today.overdue.length, dueToday: today.dueToday.length,
     topOverdue: top.map((task) => ({ id: task.opportunity_id, title: `${task.title} (${task.account_name})`, ownerName: task.owner_id ? names[task.owner_id]?.name ?? null : null, due: task.due_on })),
     missingNext: today.missingNext.length, unassigned: (await db.prepare("SELECT COUNT(*) AS count FROM crm_opportunities WHERE owner_id IS NULL AND outcome = 'open'").first<{ count: number }>())?.count ?? 0,
+    unassignedLeads: today.unassignedLeads,
     pendingPayments: today.pendingPayments, blocked: today.blocked.length,
   };
 }

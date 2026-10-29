@@ -235,18 +235,29 @@ test("partners refer businesses, follow status only, and never record payments",
   assert.equal((await refer({})).status, 422, "consent is required");
   const sent = await refer({ consent: "1" });
   assert.equal(sent.status, 303);
-  const [row] = jobs(`SELECT id, owner_id, seller_id, referrer_id, source_channel FROM crm_opportunities WHERE title = ${q(business)}`);
-  assert.deepEqual([row.owner_id, row.seller_id, row.referrer_id, row.source_channel], [null, null, S.partner.id, "referral"]);
+  // A referral arrives as an unassigned lead; conversion later opens the opportunity.
+  assert.equal(jobs(`SELECT COUNT(*) AS n FROM crm_opportunities WHERE title = ${q(business)}`)[0].n, 0);
+  const [row] = jobs(`SELECT id, owner_id, referrer_id, source_channel, version FROM crm_lead_records WHERE company = ${q(business)}`);
+  assert.deepEqual([row.owner_id, row.referrer_id, row.source_channel], [null, S.partner.id, "referral"]);
   assert.match((await S.partner.get("/crm/referrals")).html, new RegExp(`${business}[\\s\\S]*Waiting for assignment`));
+  assert.equal((await S.partner.get(`/crm/leads/${row.id}`)).status, 404, "the referrer cannot open the lead");
 
   const ops = await S.manager.get("/crm/admin");
-  assert.match(ops.html, new RegExp(business), "managers see the referral queue");
-  assert.doesNotMatch((await S.exec.get("/crm/pipeline")).html, new RegExp(business), "executives do not see unassigned referrals");
-  const version = jobs(`SELECT version FROM crm_opportunities WHERE id = ${q(row.id)}`)[0].version;
-  assert.equal((await S.manager.post("/crm/admin", { intent: "referral_assign", opportunity_id: row.id, version, owner_id: S.exec.id })).status, 303);
-  assert.equal(jobs(`SELECT owner_id FROM crm_opportunities WHERE id = ${q(row.id)}`)[0].owner_id, S.exec.id);
-  assert.equal((await S.exec.get(`/crm/${row.id}`)).status, 200);
-  assert.equal((await S.partner.get(`/crm/${row.id}`)).status, 404, "the referrer cannot open the assigned deal");
+  assert.match(ops.html, new RegExp(business), "managers see the lead queue");
+  assert.doesNotMatch((await S.exec.get("/crm/leads")).html, new RegExp(business), "executives do not see unassigned leads");
+  assert.equal((await S.exec.get(`/crm/leads/${row.id}`)).status, 404);
+  assert.equal((await S.manager.post("/crm/admin", { intent: "lead_assign", lead_id: row.id, version: row.version, owner_id: S.manager.id })).status, 422, "a Sales Manager cannot take an unattributed lead");
+  assert.equal((await S.manager.post("/crm/admin", { intent: "lead_assign", lead_id: row.id, version: row.version, owner_id: S.exec.id })).status, 303);
+  assert.equal(jobs(`SELECT owner_id FROM crm_lead_records WHERE id = ${q(row.id)}`)[0].owner_id, S.exec.id);
+  assert.equal((await S.exec.get(`/crm/leads/${row.id}`)).status, 200);
+  assert.match((await S.partner.get("/crm/referrals")).html, /Assigned to the team/);
+  const leadVersion = jobs(`SELECT version FROM crm_lead_records WHERE id = ${q(row.id)}`)[0].version;
+  const converted = await S.exec.post(`/crm/leads/${row.id}`, { intent: "lead_convert", version: leadVersion, account_mode: "new", account_name: business, contact_mode: "new", contact_role: "owner", playbook_key: "local-preview", title: business });
+  assert.equal(converted.status, 303, `convert: ${converted.status}`);
+  const [opp] = jobs(`SELECT id, owner_id, seller_id, referrer_id, source_channel FROM crm_opportunities WHERE title = ${q(business)}`);
+  assert.deepEqual([opp.owner_id, opp.seller_id, opp.referrer_id, opp.source_channel], [S.exec.id, S.exec.id, S.partner.id, "referral"]);
+  assert.equal((await S.exec.get(`/crm/${opp.id}`)).status, 200);
+  assert.equal((await S.partner.get(`/crm/${opp.id}`)).status, 404, "the referrer cannot open the converted deal");
   assert.match((await S.partner.get("/crm/referrals")).html, /Assigned to the team/);
 
   const own = idFrom((await S.partner.post("/crm/new", { intent: "create", playbook_key: "local-preview", source_channel: "field_visit", account_name: `TEST Partner Own ${run}`, contact_name: "TEST Owner" })).location);

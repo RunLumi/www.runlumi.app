@@ -1,4 +1,5 @@
 import type { AstroGlobal } from "astro";
+import { sourceLead } from "../leads";
 import { type OwnerOption, displayNames, ownerOptions } from "../access";
 import {
   type LedgerRow, type Quote, acceptQuote, createQuote, creditFor, opportunityLedger, opportunityQuotes, recordPayment, recordReceivable, recordRefund, reviewPayment, voidEntry, withdrawQuote,
@@ -13,7 +14,7 @@ import { type Ctx, type FormState, context, emptyState, handlePost, notFound } f
 import { type Playbook, type TransitionCheck, checkTransition } from "../playbook";
 import {
   type Access, type Contact, type Opportunity, addNote, assignOwner, changePlaybook, createLinked, loadOpportunity, moveStage, moveToAccount,
-  recentEvents, relatedOpportunities, requireEdit, saveDetails, saveFields, setPrimaryContact, transitionContext,
+  recentEvents, relatedOpportunities, requireEdit, saveDetails, saveFields, setPrimaryContact, transitionContext, closeOpportunity,
 } from "../records";
 import { visibleContacts } from "../directory";
 import { type CostRow, type Task, createTask, logCost, opportunityCosts, opportunityTasks, updateTask } from "../tasks";
@@ -25,6 +26,7 @@ export interface OppProps {
   related: Opportunity[]; events: { id: string; actor_name: string; kind: string; body: string; created_at: string }[];
   names: Record<string, { name: string; active: boolean }>; owners: OwnerOption[]; cohorts: string[];
   linkPlaybooks: Playbook[]; allVersions: Playbook[]; playbookNames: Record<string, string>;
+  fromLead: { id: string; name: string; company: string; converted_at: string | null } | null;
 }
 
 export async function opportunityRoute(astro: AstroGlobal, lang: Lang): Promise<OppProps | Response> {
@@ -52,6 +54,7 @@ export async function opportunityRoute(astro: AstroGlobal, lang: Lang): Promise<
     details: async (form) => { await saveDetails(ctx.db, ctx.actor, edit(), form); return `${here}#details`; },
     fields: async (form) => { await saveFields(ctx.db, ctx.actor, edit(), playbook, form); return `${here}#discovery`; },
     stage: async (form) => { await moveStage(ctx.db, ctx.actor, edit(), playbook, form); return `${here}#stage`; },
+    close: async (form) => { await closeOpportunity(ctx.db, ctx.actor, edit(), playbook, form); return `${here}#stage`; },
     assign: async (form) => { await assignOwner(ctx.db, ctx.contentDb, ctx.actor, opportunity, form); return here; },
     primary_contact: async (form) => { await setPrimaryContact(ctx.db, ctx.actor, edit(), form); return `${here}#contacts`; },
     note: async (form) => { await addNote(ctx.db, ctx.actor, edit(), form); return `${here}#activity`; },
@@ -93,7 +96,9 @@ export async function opportunityRoute(astro: AstroGlobal, lang: Lang): Promise<
   const summary = summarizeLedger(ledger);
   const people = [opportunity.owner_id, opportunity.seller_id, opportunity.referrer_id, opportunity.created_by, ...ledger.flatMap((entry) => [entry.recorded_by, entry.confirmed_by]), fulfillment?.assignee_id].filter((id): id is string => !!id && !id.includes(":"));
   const latest = await latestPlaybooks(ctx.db, { activeOnly: true });
+  const fromLead = await sourceLead(ctx.db, ctx.actor, access.opportunity.id);
   return {
+    fromLead,
     ctx, state: posted ?? emptyState, access, playbook, transitions, offers, quoteOffers, quotes, ledger, summary, payment: paymentState(summary), credit,
     fulfillment, tasks, costs, contacts, related, events, names: await displayNames(ctx.contentDb, people),
     owners: ctx.actor.manager ? await ownerOptions(ctx.db, ctx.contentDb, ctx.actor) : [],

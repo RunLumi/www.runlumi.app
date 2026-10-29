@@ -1,0 +1,9 @@
+---
+import LeadSettingsView from "../../../../components/crm/LeadSettingsView.astro";
+import { leadSettingsRoute } from "../../../../lib/crm/routes/leads";
+
+export const prerender = false;
+const result = await leadSettingsRoute(Astro, "vi");
+if (result instanceof Response) return result;
+---
+<LeadSettingsView {...result} />

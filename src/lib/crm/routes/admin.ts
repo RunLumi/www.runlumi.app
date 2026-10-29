@@ -1,6 +1,7 @@
 import type { AstroGlobal } from "astro";
 import { type OwnerOption, displayNames, ownerOptions } from "../access";
 import { type QueuedReferral, unassignedReferrals } from "../referrals";
+import { type Lead, type LeadProcess, assignLead, leadProcessVersions, loadLead, unassignedLeads } from "../leads";
 import { assignOwner, loadOpportunity } from "../records";
 import { assignInbound, dismissInbound, saveCohort, setCostingComplete } from "../admin";
 import {
@@ -18,7 +19,7 @@ import { ValidationError } from "../core";
 
 export interface AdminProps {
   ctx: Ctx; state: FormState;
-  inbound: InboundRow[]; referrals: QueuedReferral[]; referrerNames: Record<string, { name: string; active: boolean }>; owners: OwnerOption[]; cohorts: CohortRow[]; playbooks: Playbook[];
+  leads: Lead[]; leadProcesses: Map<string, LeadProcess>; inbound: InboundRow[]; referrals: QueuedReferral[]; referrerNames: Record<string, { name: string; active: boolean }>; owners: OwnerOption[]; cohorts: CohortRow[]; playbooks: Playbook[];
 }
 
 /** CRM operations (inbound queue, cohorts) need the team permission; configuration needs Admin. */
@@ -33,6 +34,11 @@ export async function adminRoute(astro: AstroGlobal, lang: Lang): Promise<AdminP
   if (ctx instanceof Response) return ctx;
   const here = astro.url.pathname;
   const posted = await handlePost(astro, ctx, {
+    lead_assign: async (form) => {
+      const access = await loadLead(ctx.db, ctx.actor, String(form.get("lead_id") ?? ""));
+      await assignLead(ctx.db, ctx.contentDb, ctx.actor, access, form);
+      return `${here}#leads`;
+    },
     inbound_assign: async (form) => { await assignInbound(ctx.db, ctx.contentDb, ctx.actor, form); return `${here}#inbound`; },
     referral_assign: async (form) => {
       const access = await loadOpportunity(ctx.db, ctx.actor, String(form.get("opportunity_id") ?? ""));
@@ -51,9 +57,11 @@ export async function adminRoute(astro: AstroGlobal, lang: Lang): Promise<AdminP
   });
   if (posted instanceof Response) return posted;
   const queued = await unassignedReferrals(ctx.db);
+  const leads = await unassignedLeads(ctx.db);
   return {
+    leads, leadProcesses: new Map((await leadProcessVersions(ctx.db)).map((item) => [item.id, item])),
     ctx, state: posted ?? emptyState,
-    referrals: queued, referrerNames: await displayNames(ctx.contentDb, queued.map((row) => row.referrer_id ?? "")),
+    referrals: queued, referrerNames: await displayNames(ctx.contentDb, [...queued, ...leads].map((row) => row.referrer_id ?? "")),
     inbound: await inboundQueue(ctx.db), owners: await ownerOptions(ctx.db, ctx.contentDb, ctx.actor),
     cohorts: (await ctx.db.prepare("SELECT * FROM crm_cohorts ORDER BY starts_on DESC LIMIT 50").all<CohortRow>()).results,
     playbooks: await latestPlaybooks(ctx.db),

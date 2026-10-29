@@ -386,3 +386,19 @@ export async function possibleDuplicates(db: D1Database, account: Account): Prom
     "SELECT id, name, region FROM crm_accounts WHERE id != ? AND ((phone_norm != '' AND phone_norm = ?) OR (name = ? COLLATE NOCASE)) LIMIT 10",
   ).bind(account.id, account.phone_norm, account.name).all<Pick<Account, "id" | "name" | "region">>()).results;
 }
+
+/** One contact the person may see, with its company; others' contacts are not found. */
+export async function loadContact(db: D1Database, actor: CrmActor, id: string): Promise<Contact & { account_name: string; account_dnc: number }> {
+  const scope = contactScope(actor);
+  const row = await db.prepare(`SELECT c.*, a.name AS account_name, a.do_not_contact AS account_dnc FROM crm_contacts c JOIN crm_accounts a ON a.id = c.account_id WHERE c.id = ? AND ${scope.sql}`)
+    .bind(id, ...scope.args).first<Contact & { account_name: string; account_dnc: number }>();
+  if (!row) throw new NotFoundError();
+  return row;
+}
+
+/** Opportunities that name this contact and that the person may open. */
+export async function contactOpportunities(db: D1Database, actor: CrmActor, contactId: string): Promise<{ id: string; title: string; playbook_id: string; stage_id: string; outcome: string; owner_id: string | null }[]> {
+  const scope = readableScope(actor);
+  return (await db.prepare(`SELECT o.id, o.title, o.playbook_id, o.stage_id, o.outcome, o.owner_id FROM crm_opportunities o WHERE o.primary_contact_id = ? AND ${scope.sql} ORDER BY o.created_at DESC LIMIT 50`)
+    .bind(contactId, ...scope.args).all<{ id: string; title: string; playbook_id: string; stage_id: string; outcome: string; owner_id: string | null }>()).results;
+}

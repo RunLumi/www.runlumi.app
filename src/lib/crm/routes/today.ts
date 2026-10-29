@@ -6,9 +6,10 @@ import { latestOffers, latestPlaybooks } from "../config";
 import type { Lang } from "../i18n";
 import { type Ctx, context } from "../page";
 import { type TodayData, loadToday } from "../today";
+import { leadProcessVersions } from "../leads";
 
 export interface TodayProps {
-  ctx: Ctx; data: TodayData; stageNames: Record<string, string>;
+  ctx: Ctx; data: TodayData; stageNames: Record<string, string>; leadStatus: Record<string, string>;
   dashboard: Dashboard; owners: OwnerOption[]; playbooks: Playbook[]; names: Record<string, { name: string; active: boolean }>;
 }
 
@@ -21,10 +22,12 @@ export async function todayRoute(astro: AstroGlobal, lang: Lang): Promise<TodayP
   const stageNames: Record<string, string> = {};
   const playbooks = await latestPlaybooks(ctx.db);
   for (const playbook of playbooks) for (const stage of playbook.def.stages) stageNames[`${playbook.playbook_key}:${stage.id}`] = ctx.vi ? stage.vi : stage.en;
+  const leadStatus: Record<string, string> = {};
+  for (const process of await leadProcessVersions(ctx.db)) for (const status of process.def.statuses) leadStatus[`${process.id}:${status.id}`] = ctx.vi ? status.vi : status.en;
   const dashboard = await loadDashboard(ctx.db, ctx.actor, readDashboardFilters(astro.url, ctx.actor));
   const people = [dashboard.filters.owner, ...(dashboard.owners ?? []).map((row) => row.key)].filter(Boolean);
   return {
-    ctx, data, stageNames, dashboard, playbooks: playbooks.filter((item) => item.kind !== "legacy"),
+    ctx, data, stageNames, leadStatus, dashboard, playbooks: playbooks.filter((item) => item.kind !== "legacy"),
     owners: ctx.actor.manager ? await ownerOptions(ctx.db, ctx.contentDb, ctx.actor) : [],
     names: await displayNames(ctx.contentDb, [...new Set(people)]),
   };
