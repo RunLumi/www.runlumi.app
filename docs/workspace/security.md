@@ -21,6 +21,8 @@ the time of the last Workspace passkey check and the credential used.
 
 ## Deployment switch: `WORKSPACE_PASSKEY_REQUIRED`
 
+**From release, step-up is always on:** a person without an EmDash passkey must add one at `/workspace/verify` or **My account › Security** before exports, deletes, access changes or API token creation. Failed passkey checks are limited to 10 per person per 15 minutes (`429`), and nothing more is audited while limited.
+
 Rules 1 and 2 below, and the passkey-registration guard, are enforced only
 when the Worker variable `WORKSPACE_PASSKEY_REQUIRED` is exactly `"true"`.
 `wrangler.jsonc` (generated from `infra/workspace.manifest.mjs`) ships it as

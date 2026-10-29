@@ -150,3 +150,25 @@ test("dispatch: claims each target once, masks content, pauses a failing webhook
   const withoutKey = await dispatchNotifications({ db, contentDb: content, webhookKey: null, send, email: null, now: () => new Date(now.getTime() + 6000) });
   assert.equal(withoutKey.sent, 0);
 });
+
+test("dispatch never starves new events behind 200 older ones: finished and unmatched events are settled and skipped in SQL", async () => {
+  const { db, content, admin } = world();
+  const now = new Date();
+  db.raw.exec("PRAGMA foreign_keys = OFF");
+  db.raw.prepare("INSERT INTO crm_accounts (id, name, created_by, created_at, updated_at, owner_id) VALUES ('acc_1', 'TEST Co', 'own', ?, ?, 'own')").run(now.toISOString(), now.toISOString());
+  await saveRule(db, admin, null, parseRuleForm(form([["name", "Companies"], ["events", "account_created"], ["email", "1"], ["record_owner", "1"]])));
+  await saveAntiPhishingCode(db, makeUser({ id: "own", name: "TEST Owner", email: "own@example.test" }, false, ["sales_executive"]), "Mây Xanh 7");
+  const at = (offset: number) => new Date(now.getTime() + 1000 + offset).toISOString();
+  const insert = db.raw.prepare("INSERT INTO crm_events (id, opportunity_id, account_id, actor_id, actor_name, kind, body, created_at) VALUES (?, NULL, 'acc_1', 'own', 'TEST Owner', ?, '{}', ?)");
+  // 250 watched-kind events that another kind of rule would watch but this one does not match (no rule for note), plus 45 matching ones.
+  for (let index = 0; index < 250; index++) insert.run(`evt_n${String(index).padStart(3, "0")}`, "note", at(index));
+  await saveRule(db, admin, null, parseRuleForm(form([["name", "Notes over a value"], ["events", "note"], ["min_value_vnd", "1"], ["email", "1"], ["record_owner", "1"]])));
+  for (let index = 0; index < 45; index++) insert.run(`evt_a${String(index).padStart(3, "0")}`, "account_created", at(300 + index));
+  const mails: string[] = [];
+  const email = async (mail: { to: string }) => { mails.push(mail.to); return { ok: true }; };
+  for (let run = 0; run < 4; run++) await dispatchNotifications({ db, contentDb: content, webhookKey: null, email, now: () => new Date(now.getTime() + 10_000 + run) });
+  assert.equal(mails.length, 45, "every newer event is delivered within a few runs");
+  assert.equal(db.raw.prepare("SELECT COUNT(*) AS n FROM workspace_notification_settled").get()!.n, 295, "unmatched and finished events are settled");
+  await dispatchNotifications({ db, contentDb: content, webhookKey: null, email, now: () => new Date(now.getTime() + 20_000) });
+  assert.equal(mails.length, 45, "settled events are never sent twice");
+});

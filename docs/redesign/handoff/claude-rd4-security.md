@@ -47,6 +47,8 @@ Shared files changed in their own commits: `package.json`/lock (declare `@emdash
 
 ## Release safety (integrator request, 2026-10-29)
 
+**From release, step-up is always on:** a person without an EmDash passkey must add one at `/workspace/verify` or **My account › Security** before exports, deletes, access changes or API token creation. Failed passkey checks are limited to 10 per person per 15 minutes (`429`), and nothing more is audited while limited.
+
 R-08 enforcement ships **off** behind `WORKSPACE_PASSKEY_REQUIRED` (production and staging `"false"`), so merging cannot lock anyone out. With it off: no session passkey check, no code gate, no EmDash registration guard. Step-up, the audit log, notification rules, agent levels and the account security page still work. Turning it on is documented in [security.md](../../workspace/security.md#deployment-switch-workspace_passkey_required).
 
 ## Decisions needed from the founder

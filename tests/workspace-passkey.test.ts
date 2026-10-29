@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { PASSKEY_SESSION_MS, STEP_UP_WINDOW_MS, StepUpRequiredError, passkeyOptions, requireStepUp, safeReturn, sessionPasskeyVerified, stepUpFresh, verifyPasskey, verifyPath, type CredentialSource, type StoredCredential } from "../src/lib/workspace/passkey.ts";
 import { stepUpGuard, stepUpRequiredResponse } from "../src/lib/workspace/step-up.ts";
-import { optionsRoute, verifyRoute } from "../src/lib/workspace/passkey-routes.ts";
+import { FAILURE_LIMIT, FAILURE_WINDOW_MS, optionsRoute, verifyRoute } from "../src/lib/workspace/passkey-routes.ts";
 import { makeUser } from "../src/lib/workspace/roles.ts";
 // @ts-expect-error test helper without types
 import { memorySession, syntheticPasskey } from "./support/synthetic-passkey.mjs";
@@ -108,7 +108,7 @@ test("passkey endpoints: allowed same-origin JSON for a member; denied for beare
   const key = syntheticPasskey("cred_route"), creds = source(stored(key, "alice"));
   const url = new URL("https://runlumi.app/api/workspace/passkey/options");
   const audits: unknown[][] = [];
-  const db = { prepare: () => ({ bind: (...args: unknown[]) => ({ run: async () => { audits.push(args); } }) }) } as unknown as D1Database;
+  const db = { prepare: () => ({ bind: (...args: unknown[]) => ({ run: async () => { audits.push(args); }, first: async () => ({ n: audits.filter((row) => row[3] === "passkey_failed" && row[1] === args[0]).length }) }) }) } as unknown as D1Database;
   const request = (body: unknown, headers: Record<string, string> = {}) => new Request(url, { method: "POST", body: JSON.stringify(body), headers: { origin: "https://runlumi.app", "content-type": "application/json", ...headers } });
   const session = memorySession();
   const denied: [string, Parameters<typeof optionsRoute>[0], number][] = [
@@ -133,4 +133,24 @@ test("passkey endpoints: allowed same-origin JSON for a member; denied for beare
   assert.doesNotMatch(String(audits.at(-1)![5]), /signature|clientData/, "the assertion itself is never stored");
   assert.equal(await stepUpFresh(session, "alice"), true);
   assert.equal((await optionsRoute({ session: memorySession(), locals: { workspace: makeUser({ id: "nokey", name: "N", email: "n@example.test" }, false, ["employee"]) } as App.Locals, request: request({}), url }, creds)).status, 409, "no passkey yet");
+});
+
+test("failed passkey checks are rate limited per person, and nothing more is audited while limited", async () => {
+  const user = makeUser({ id: "mallory", name: "M", email: "m@example.test" }, false, ["employee"]);
+  const key = syntheticPasskey("cred_m"), creds = source(stored(key, "mallory"));
+  const url = new URL("https://runlumi.app/api/workspace/passkey/verify");
+  const audits: unknown[][] = [];
+  const db = { prepare: () => ({ bind: (...args: unknown[]) => ({ run: async () => { audits.push(args); }, first: async () => ({ n: audits.filter((row) => row[3] === "passkey_failed" && row[1] === args[0]).length }) }) }) } as unknown as D1Database;
+  const session = memorySession();
+  const attempt = async (flags: number) => {
+    const started = await (await optionsRoute({ session, locals: { workspace: user } as App.Locals, request: new Request(url, { method: "POST", body: "{}", headers: { origin: "https://runlumi.app", "content-type": "application/json" } }), url }, creds)).json();
+    return verifyRoute({ session, locals: { workspace: user } as App.Locals, request: new Request(url, { method: "POST", body: JSON.stringify({ credential: key.assert(started.options.challenge, { flags }) }), headers: { origin: "https://runlumi.app", "content-type": "application/json" } }), url }, { credentials: creds, db });
+  };
+  for (let index = 0; index < FAILURE_LIMIT; index++) assert.equal((await attempt(0x01)).status, 401);
+  assert.equal(audits.length, FAILURE_LIMIT);
+  const limited = await attempt(0x05);
+  assert.equal(limited.status, 429, "even a correct passkey waits out the window");
+  assert.equal(limited.headers.get("retry-after"), String(FAILURE_WINDOW_MS / 1000));
+  assert.equal(audits.length, FAILURE_LIMIT, "no audit rows while limited");
+  assert.equal(await stepUpFresh(session, "mallory"), false);
 });

@@ -62,21 +62,27 @@ export async function dispatchNotifications(deps: DispatchDeps): Promise<{ sent:
   const events = (await deps.db.prepare(`SELECT e.id, e.opportunity_id, e.account_id, e.actor_name, e.kind, e.body, e.created_at, p.playbook_key AS playbook_id, o.estimated_value_vnd AS value, o.outcome,
       COALESCE(o.owner_id, a.owner_id) AS owner_id
     FROM crm_events e LEFT JOIN crm_opportunities o ON o.id = e.opportunity_id LEFT JOIN crm_accounts a ON a.id = e.account_id LEFT JOIN crm_playbooks p ON p.id = o.playbook_id
-    WHERE e.kind IN (${kinds.map(() => "?").join(", ")}) AND e.created_at >= ? AND e.created_at >= ? ORDER BY e.created_at LIMIT ?`)
+    WHERE e.kind IN (${kinds.map(() => "?").join(", ")}) AND e.created_at >= ? AND e.created_at >= ?
+      AND NOT EXISTS (SELECT 1 FROM workspace_notification_settled s WHERE s.event_id = e.id)
+    ORDER BY e.created_at LIMIT ?`)
     .bind(...kinds, since, oldest, EVENTS_PER_RUN * 5).all<EventRow>()).results;
   const destinations = new Map((await deps.db.prepare("SELECT id, platform, url_sealed FROM workspace_notification_destinations WHERE status = 'active'").all<{ id: string; platform: Platform; url_sealed: string }>()).results.map((row) => [row.id, row]));
   const done = new Set((await deps.db.prepare("SELECT rule_id || '|' || event_id || '|' || target AS k FROM workspace_notification_deliveries WHERE created_at >= ? AND status IN ('sent', 'skipped')").bind(since).all<{ k: string }>()).results.map((row) => row.k));
+  // An event is settled once no target can still be sent: then later runs skip it in SQL.
+  const settle = (eventId: string) => deps.db.prepare("INSERT INTO workspace_notification_settled (event_id, settled_at) VALUES (?, ?) ON CONFLICT(event_id) DO NOTHING").bind(eventId, now().toISOString()).run();
   let handled = 0;
   for (const event of events) {
     const matching = rules.filter((rule) => event.created_at >= rule.created_at && matches(rule, { kind: event.kind, playbook_id: event.playbook_id, value: event.value, outcome: event.outcome, owner_id: event.owner_id }));
-    if (!matching.length) continue;
+    if (!matching.length) { await settle(event.id); continue; }
     if (++handled > EVENTS_PER_RUN) break;
+    const state = { pending: false };
     let card: ReturnType<typeof plainFromLarkCard> | undefined;
     const message = async () => card !== undefined ? card : (card = plainFromLarkCard(eventCard(await eventFacts(deps.db, deps.contentDb, event)) ?? {}));
     for (const rule of matching) {
       for (const id of rule.destinations) {
         const target = `webhook:${id}`;
-        if (done.has(`${rule.id}|${event.id}|${target}`) || !await claim(deps.db, rule.id, event.id, target, now())) continue;
+        if (done.has(`${rule.id}|${event.id}|${target}`)) continue;
+        if (!await claim(deps.db, rule.id, event.id, target, now())) { state.pending = true; continue; }
         const destination = destinations.get(id), plain = await message();
         if (!destination || !plain) { await finish(deps.db, rule.id, event.id, target, { skipped: destination ? "not_announced" : "destination_inactive" }, now()); outcome.skipped += 1; continue; }
         const url = deps.webhookKey ? await openUrl(deps.webhookKey, destination.url_sealed) : null;
@@ -84,19 +90,21 @@ export async function dispatchNotifications(deps: DispatchDeps): Promise<{ sent:
         const result = await postWebhook(destination.platform, url, platformPayload(destination.platform, plain), deps.send);
         await finish(deps.db, rule.id, event.id, target, result.ok ? { ok: true } : result, now());
         await recordDestination(deps.db, id, result.ok, result.ok ? "ok" : result.reason, now());
-        if (result.ok) outcome.sent += 1; else outcome.failed += 1;
+        if (result.ok) outcome.sent += 1; else { outcome.failed += 1; state.pending = true; }
       }
-      if (rule.email) await emailRule(deps, rule, event, message, outcome, done, now);
+      if (rule.email) await emailRule(deps, rule, event, message, outcome, done, now, state);
     }
+    if (!state.pending) await settle(event.id);
   }
   return outcome;
 }
 
-async function emailRule(deps: DispatchDeps, rule: Rule, event: EventRow, message: () => Promise<ReturnType<typeof plainFromLarkCard>>, outcome: { sent: number; failed: number; skipped: number }, done: Set<string>, now: () => Date): Promise<void> {
+async function emailRule(deps: DispatchDeps, rule: Rule, event: EventRow, message: () => Promise<ReturnType<typeof plainFromLarkCard>>, outcome: { sent: number; failed: number; skipped: number }, done: Set<string>, now: () => Date, state: { pending: boolean }): Promise<void> {
   const people = await recipientsFor(deps.db, deps.contentDb, rule, { owner_id: event.owner_id });
   for (const person of people) {
     const target = `email:${person.id}`;
-    if (done.has(`${rule.id}|${event.id}|${target}`) || !await claim(deps.db, rule.id, event.id, target, now())) continue;
+    if (done.has(`${rule.id}|${event.id}|${target}`)) continue;
+    if (!await claim(deps.db, rule.id, event.id, target, now())) { state.pending = true; continue; }
     const plain = await message();
     const mail = plain ? await composeWorkspaceEmail(deps.db, { ...person, vi: true }, {
       subject: plain.title, lines: [...(plain.quote ? [plain.quote] : []), ...plain.fields.map(([label, value]) => `${label}: ${value}`), plain.footer], link: plain.link ? { label: plain.link.label, href: plain.link.url } : undefined,
@@ -106,7 +114,7 @@ async function emailRule(deps: DispatchDeps, rule: Rule, event: EventRow, messag
     if (skipped) { await finish(deps.db, rule.id, event.id, target, { skipped }, now()); outcome.skipped += 1; continue; }
     const result = await deps.email!(mail!).catch(() => ({ ok: false, reason: "email_failed" }));
     await finish(deps.db, rule.id, event.id, target, result.ok ? { ok: true } : { ok: false, reason: result.reason ?? "email_failed", retry: true }, now());
-    if (result.ok) outcome.sent += 1; else outcome.failed += 1;
+    if (result.ok) outcome.sent += 1; else { outcome.failed += 1; state.pending = true; }
   }
 }
 
