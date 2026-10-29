@@ -30,7 +30,7 @@ const query = (changes: Record<string, string>) => {
   </form>
   <section class="md-section" aria-labelledby="list-h">
     <div class="md-section-head"><h2 class="crm-h2" id="list-h">{vi ? "Danh sách hồ sơ" : "Applications"}<span class="crm-count">{applications.length}</span></h2><p class="crm-meta" style="margin:0">{vi ? "Hiển thị tối đa 500 hồ sơ gần nhất." : "Shows the latest 500 at most."}</p></div>
-    {applications.length ? <DataTable vi={vi} label={vi ? "Danh sách hồ sơ" : "Applications"} frozen={1} frozenNames={vi ? "Ứng viên" : "Candidate"}>
+    {applications.length ? <DataTable vi={vi} label={vi ? "Danh sách hồ sơ" : "Applications"} frozen={1} frozenNames={vi ? "Ứng viên" : "Candidate"} minWidth="52rem">
       <thead><tr>
         <th scope="col">{vi ? "Ứng viên" : "Candidate"}</th>
         <th scope="col">{vi ? "Giai đoạn" : "Stage"}</th>

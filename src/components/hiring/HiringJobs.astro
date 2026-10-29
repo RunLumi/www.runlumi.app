@@ -23,7 +23,7 @@ const toReview = jobs.reduce((sum, job) => sum + (job.unread_count ?? 0), 0);
 
     <section aria-labelledby="jobs-h">
       <div class="md-section-head"><h2 class="crm-h2" id="jobs-h">{vi ? "Các vị trí" : "Roles"}<span class="crm-count">{jobs.length}</span></h2><a class="crm-link" href="#new-h">{vi ? "Tạo vị trí mới" : "New role"}</a></div>
-      {jobs.length ? <DataTable vi={vi} label={vi ? "Các vị trí" : "Roles"} frozen={1} frozenNames={vi ? "Vị trí" : "Role"}>
+      {jobs.length ? <DataTable vi={vi} label={vi ? "Các vị trí" : "Roles"} frozen={1} frozenNames={vi ? "Vị trí" : "Role"} minWidth="56rem">
         <thead><tr>
           <th scope="col">{vi ? "Vị trí" : "Role"}</th>
           <th scope="col">{vi ? "Trạng thái" : "Status"}</th>
