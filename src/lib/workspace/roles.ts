@@ -47,12 +47,12 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
 
 export const roleLabels: Record<Role | "admin", [string, string]> = {
   employee: ["Employee", "Nhân viên"],
-  people_manager: ["People Manager", "Quản lý nhân sự trực tiếp"],
+  people_manager: ["People Manager", "Quản lý trực tiếp"],
   hrm_officer: ["HRM Officer", "Chuyên viên nhân sự"],
   hrm_admin: ["HRM Admin", "Quản trị HRM"],
-  payroll_officer: ["Payroll Officer", "Phụ trách payroll"],
+  payroll_officer: ["Payroll Officer", "Phụ trách tính lương"],
   admin: ["System Super Admin", "Siêu quản trị hệ thống"],
-  hr: ["HR", "Nhân sự (HR)"],
+  hr: ["HR", "Nhân sự tuyển dụng (HR)"],
   sales_manager: ["Sales Manager", "Quản lý bán hàng"],
   sales_executive: ["Sales Executive", "Nhân viên bán hàng"],
   partner: ["Partner (freelance)", "Cộng tác viên"],
@@ -61,18 +61,18 @@ export const roleLabels: Record<Role | "admin", [string, string]> = {
 };
 
 export const roleDescriptions: Record<Role | "admin", [string, string]> = {
-  employee: ["Own profile, legal/COI documents, onboarding tasks and assigned asset handovers. No Hiring or CRM access.", "Hồ sơ, tài liệu pháp lý/COI, việc onboarding và bàn giao tài sản của mình. Không vào tuyển dụng hoặc CRM."],
+  employee: ["Own profile, legal/COI documents, onboarding tasks and assigned asset handovers. No Hiring or CRM access.", "Hồ sơ, tài liệu pháp lý, khai báo xung đột lợi ích (COI), việc khi mới gia nhập và bàn giao tài sản của mình. Không vào Tuyển dụng hoặc CRM."],
   people_manager: ["Work information for current direct reports. No identity documents or pay.", "Thông tin công việc của nhân viên đang quản lý trực tiếp. Không xem giấy tờ định danh hoặc lương."],
   hrm_officer: ["Employee records and identity verification. No banking, tax, user administration or other modules.", "Hồ sơ nhân viên và xác minh định danh. Không xem ngân hàng, thuế, quản trị tài khoản hoặc phân hệ khác."],
   hrm_admin: ["HRM configuration and records; approves within HRM without self-approval. No user/role administration.", "Cấu hình, hồ sơ và phê duyệt HRM; không tự duyệt. Không quản trị tài khoản/vai trò."],
-  payroll_officer: ["Prepare payroll inputs and handle assigned payroll inquiries. Cannot approve or publish a run.", "Chuẩn bị đầu vào payroll và xử lý thắc mắc được giao; không được duyệt hoặc phát hành kỳ lương."],
+  payroll_officer: ["Prepare payroll inputs and handle assigned payroll inquiries. Cannot approve or publish a run.", "Chuẩn bị số liệu tính lương và xử lý thắc mắc về lương được giao. Không được duyệt hoặc phát hành kỳ lương."],
   admin: ["System-wide authority from EmDash role 50, including account administration and all Workspace modules.", "Quyền toàn hệ thống từ EmDash role 50, gồm quản lý tài khoản và mọi phân hệ Workspace."],
-  hr: ["Hiring desk: roles, application tests, candidates, notes, export and candidate files. No CRM.", "Tuyển dụng: vị trí, bài test, ứng viên, ghi chú, xuất dữ liệu và hồ sơ ứng viên. Không vào CRM."],
-  sales_manager: ["CRM for the whole team: every opportunity, assignment, inbound queue, cohorts and team reports. No hiring.", "CRM của cả đội: mọi cơ hội, phân công, hàng chờ inbound, cohort và báo cáo đội. Không vào tuyển dụng."],
+  hr: ["Hiring desk: roles, application tests, candidates, notes, export and candidate files. No CRM.", "Tuyển dụng: vị trí, bài test, ứng viên, ghi chú, xuất dữ liệu và tệp hồ sơ ứng viên. Không vào CRM."],
+  sales_manager: ["CRM for the whole team: every opportunity, assignment, inbound queue, cohorts and team reports. No hiring.", "CRM của cả đội: mọi cơ hội, phân công, yêu cầu khách gửi đến, đợt thử nghiệm (cohort) và báo cáo đội. Không vào Tuyển dụng."],
   sales_executive: ["CRM for opportunities assigned to them; may report payments for confirmation.", "CRM với các cơ hội được giao cho mình; được báo đã nhận tiền để tài chính xác nhận."],
   partner: ["Freelance seller: works only their own opportunities or refers businesses to the team and follows the referral status. Never handles payments; commission follows their seller terms.", "Người bán tự do: chỉ làm cơ hội của mình hoặc giới thiệu khách cho đội và theo dõi trạng thái. Không nhận tiền của khách; hoa hồng theo loại người bán đã khai báo."],
   finance: ["Confirms payments, refunds and corrections; records commission payouts.", "Xác nhận thanh toán, hoàn tiền, điều chỉnh; ghi nhận chi hoa hồng."],
-  fulfillment: ["Delivery after the sale: handoff, owner approval, launch checks.", "Bàn giao sau bán: thông tin bàn giao, chủ duyệt, kiểm tra trước live."],
+  fulfillment: ["Delivery after the sale: handoff, owner approval, launch checks.", "Bàn giao sau bán: thông tin bàn giao, chủ doanh nghiệp duyệt, kiểm tra trước khi đưa lên mạng."],
 };
 
 export interface WorkspaceUser {
