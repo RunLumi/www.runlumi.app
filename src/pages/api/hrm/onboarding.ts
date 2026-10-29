@@ -41,7 +41,7 @@ function failure(error:unknown,lang:"en"|"vi",back:URL):Response{
     onboarding_owner_required:["Assign every required task owner before creating the plan.","Hãy phân công đủ người phụ trách trước khi tạo kế hoạch."],
     onboarding_owner_unavailable:["An owner lacks the required active Workspace permission.","Người phụ trách thiếu quyền Workspace đang hoạt động."],
     onboarding_dependency_blocked:["Complete the prerequisite tasks first.","Hãy hoàn tất các todo phụ thuộc trước."],
-    onboarding_plan_inactive:["This onboarding plan is not active.","Kế hoạch onboarding này không còn hoạt động."],
+    onboarding_plan_inactive:["This onboarding plan is not active.","Kế hoạch hội nhập này không còn hoạt động."],
     evidence_pending:["The uploaded evidence is still waiting for review.","Bằng chứng tải lên vẫn đang chờ rà soát."],
     self_approval:["A person cannot approve their own submission or evidence.","Không thể tự duyệt nội dung hoặc bằng chứng của chính mình."],
     conflict:["This record changed. Reload it and review the latest version.","Hồ sơ đã đổi. Hãy tải lại và kiểm tra phiên bản mới nhất."],
@@ -54,7 +54,7 @@ function failure(error:unknown,lang:"en"|"vi",back:URL):Response{
   };
   const message=messages[code]?.[lang==="vi"?1:0]??(lang==="vi"?"Không thể hoàn tất yêu cầu này.":"Could not complete this request.");
   const title=lang==="vi"?"Chưa hoàn tất":"Could not complete";
-  return new Response(`<!doctype html><html lang="${lang}"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><body style="font-family:system-ui;max-width:640px;margin:10vh auto;padding:0 20px;line-height:1.6"><main><h1>${title}</h1><p>${message}</p><a href="${back.pathname+back.search}">${lang==="vi"?"Quay lại onboarding":"Back to onboarding"}</a></main></body></html>`,{status,headers:{"Content-Type":"text/html; charset=utf-8","Cache-Control":"private, no-store","X-Content-Type-Options":"nosniff"}});
+  return new Response(`<!doctype html><html lang="${lang}"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><body style="font-family:system-ui;max-width:640px;margin:10vh auto;padding:0 20px;line-height:1.6"><main><h1>${title}</h1><p>${message}</p><a href="${back.pathname+back.search}">${lang==="vi"?"Quay lại hội nhập":"Back to onboarding"}</a></main></body></html>`,{status,headers:{"Content-Type":"text/html; charset=utf-8","Cache-Control":"private, no-store","X-Content-Type-Options":"nosniff"}});
 }
 export const POST:APIRoute=async context=>{
   const user=context.locals.workspace;if(!user)return new Response("Forbidden",{status:403,headers:{"Cache-Control":"private, no-store"}});

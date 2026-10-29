@@ -41,9 +41,9 @@ const scaleHelp = vi ? "1 = chưa đạt · 2 = còn thiếu · 3 = đạt · 4 
         <div class="crm-field"><label for="iv-at">{vi ? "Thời gian (giờ Việt Nam)" : "Time (Vietnam time)"}</label><input class="crm-input" id="iv-at" name="scheduled_at" type="datetime-local" required /></div>
         <div class="crm-field"><label for="iv-dur">{vi ? "Thời lượng (phút)" : "Duration (minutes)"}</label><input class="crm-input" id="iv-dur" name="duration_minutes" inputmode="numeric" value="45" /></div>
         <div class="crm-field"><label for="iv-who">{vi ? "Người phỏng vấn" : "Interviewers"}</label><input class="crm-input" id="iv-who" name="interviewers" required maxlength="300" value={user.name} /></div>
-        <div class="crm-field wide"><label for="iv-where">{vi ? "Địa điểm hoặc link họp" : "Place or meeting link"}</label><input class="crm-input" id="iv-where" name="location" maxlength="300" /></div>
+        <div class="crm-field wide"><label for="iv-where">{vi ? "Địa điểm hoặc đường dẫn cuộc họp" : "Place or meeting link"}</label><input class="crm-input" id="iv-where" name="location" maxlength="300" /></div>
       </div>
-      <p class="crm-help">{vi ? "CRM không tự gửi lời mời; hãy gửi lịch cho ứng viên qua kênh đã thống nhất." : "The desk sends no invitations; send the time to the candidate through your usual channel."}</p>
+      <p class="crm-help">{vi ? "Hệ thống không gửi lời mời; hãy gửi lịch cho ứng viên qua kênh đã thống nhất." : "The desk sends no invitations; send the time to the candidate through your usual channel."}</p>
       <div class="crm-actions"><button class="crm-button secondary" type="submit">{vi ? "Lưu lịch" : "Save interview"}</button></div>
     </form>
   </details>}
