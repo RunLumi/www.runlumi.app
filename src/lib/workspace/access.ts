@@ -83,8 +83,9 @@ export async function accessRows(db: D1Database, contentDb: D1Database, onlyUser
 
 export interface AuditEntry { id: string; actor_name: string; action: string; target_user_id: string; detail: string; created_at: string }
 
+/** Grants and revocations only; other modules also write workspace_audit (for example hiring retention runs). */
 export async function auditFor(db: D1Database, userId?: string, limit = 50): Promise<AuditEntry[]> {
-  const sql = `SELECT id, actor_name, action, target_user_id, detail, created_at FROM workspace_audit ${userId ? "WHERE target_user_id = ?" : ""} ORDER BY created_at DESC LIMIT ?`;
+  const sql = `SELECT id, actor_name, action, target_user_id, detail, created_at FROM workspace_audit WHERE action IN ('access_saved', 'access_revoked') ${userId ? "AND target_user_id = ?" : ""} ORDER BY created_at DESC LIMIT ?`;
   return (await db.prepare(sql).bind(...(userId ? [userId, limit] : [limit])).all<AuditEntry>()).results;
 }
 
