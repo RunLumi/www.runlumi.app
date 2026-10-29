@@ -43,7 +43,7 @@ Remaining gaps, not built:
 
 ## 2. Roles
 
-**System Super Admin is the EmDash admin (role 50).** It holds every permission and is never stored in Workspace tables. HRM Admin is a separate grant for HRM configuration and operations; it cannot manage Workspace accounts or enter ATS/CRM unless separately granted another role. Payroll Officer can read and prepare payroll runs and handle payroll inquiries, but cannot approve, publish, confirm payment, read identity/bank/tax records, or see another employee's payslip. HRM Admin and System Super Admin may review, approve and publish; the preparer cannot approve their own run. All grantable roles are assigned to existing EmDash accounts on **Admin → Users and roles** (`/workspace/users`) and can be combined. Nobody can edit their own access; the System Super Admin controls grants, while HRM Admin controls the HRM business module.
+**System Super Admin is the EmDash admin (role 50).** It holds every permission and is never stored in Workspace tables. HRM Admin is a separate grant for HRM configuration and operations; it cannot manage Workspace accounts or enter ATS/CRM unless separately granted another role. Payroll Officer can read and prepare payroll runs and handle payroll inquiries, but cannot approve, publish, confirm payment, read identity/bank/tax records, or see another employee's payslip. HRM Admin and System Super Admin may review, approve and publish; the preparer cannot approve their own run. All grantable roles are assigned to existing EmDash accounts on **Admin → Users** (`/workspace/users`, each person on `/workspace/users/<id>`; the permission matrix is on `/workspace/roles`) and can be combined. Nobody can edit their own access; the System Super Admin controls grants, while HRM Admin controls the HRM business module.
 
 | Permission | System Super Admin | HR (ATS) | Employee | People Manager | HRM Officer | HRM Admin | Payroll Officer | Sales Manager | Sales Executive | Partner | Finance | Fulfillment |
 | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :--: | :-: | :-: | :-: | :-: | :-: |
@@ -109,20 +109,26 @@ The old tables are kept for recovery and are no longer read.
 ## 3. Navigation (information architecture)
 
 ```text
-Overview            /workspace                 counts per module the person can open
-Hiring              /admin/jobs                Roles · Candidates
-CRM                 /crm                       grouped sidebar (Menu disclosure below 1024px):
+Overview            /workspace                 figures per module the person can open; each figure links to its list
+Hiring              /admin/jobs                tabs: Roles · Candidates
+CRM                 /crm                       grouped sidebar (Pages disclosure below 1024px):
   Selling                                      Today · Pipeline · New opportunity · Referrals (refer)
   Customers                                    Companies · Contacts
-  Results                                      Reports · Commission
+  Results                                      Reports · Commission · Business model (team)
   Operations                                   Fulfillment (fulfillment or team) · Assignment and cohorts (team)
   Setup                                        Playbooks · Offers and prices (configure)
-  Guides and tools                             Sales process · Connect an AI agent
-HRM                 /hrm                       My overview · My profile · Legal · Onboarding · Time/leave · My payslips · My HR requests · Notifications · Payroll · HR service desk (each entry permission-gated)
-Admin               /workspace/users           Users and roles
+  Guides and tools                             Sales process · Files · Connect an AI agent
+HRM                 /hrm                       grouped sidebar; every entry permission-gated:
+  My HR (Của tôi)                              My overview · My profile · documents · COI · onboarding · attendance · leave · payslips · HR requests · assets · benefits · reviews · training · Notifications
+  People operations                            People · Job descriptions · Onboarding plans · Offboarding · Schedules · Leave · Payroll · HR service desk · Assets · Benefits · Performance · Training
+  Policies and compliance                      Policies and documents · COI review · Retention and legal holds · Report policies and holds
+  Reports and settings                         Reports · Settings
+Finance             /finance                   grouped sidebar: Review · Monthly work · Statements · Controls
+Admin               /workspace/users           grouped sidebar: People and access → Users (table → /workspace/users/<id>, /workspace/users/new) · Roles and permissions (/workspace/roles)
+My account          /workspace/account         from the account menu, not a module tab: Profile (workstream 4 adds Security and Notifications)
 ```
 
-The whole map lives in `src/lib/workspace/nav.ts`; each entry declares the permission it needs, its group and its icon. Icons are one owned set in `src/components/workspace/NavIcon.astro` (1.75px line glyphs, DESIGN.md §10); a new page gets its own distinct glyph. Groups with nothing the person may open are hidden. The middleware (`src/middleware.ts`) uses the same permission names:
+The whole map lives in `src/lib/workspace/nav.ts`; each entry declares the permission it needs, its group and its icon. In a module with groups every link must name one (a unit test enforces it). Icons are one owned set in `src/components/workspace/NavIcon.astro` (1.75px line glyphs, DESIGN.md §10); a new page gets its own distinct glyph. Groups with nothing the person may open are hidden. Shared screen components (frozen-column tables, breadcrumbs, equal-height panels, grouped menus) are described in [UI.md](UI.md). The middleware (`src/middleware.ts`) uses the same permission names:
 - a person who reaches a URL they cannot use gets a bilingual 403 page with a link back to the Workspace;
 - an API call gets a plain 403;
 - anyone not signed in goes to the EmDash sign-in page.
