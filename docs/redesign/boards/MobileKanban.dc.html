@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Kanban trên điện thoại</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}
+.mtb{width:44px;height:44px;border:0;background:none;color:#102A43;display:inline-flex;align-items:center;justify-content:center;padding:0;border-radius:8px}
+.mstage{flex:none;height:36px;padding:0 18px 0 22px;display:flex;align-items:center;gap:6px;font:600 13px Geist,system-ui,sans-serif;border:0;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 50%,calc(100% - 10px) 100%,0 100%,10px 50%)}
+.mstage:first-child{padding-left:14px;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 50%,calc(100% - 10px) 100%,0 100%);border-radius:6px 0 0 6px}
+</style>
+</helmet>
+<div class="root" style="width: 390px; height: 844px; display: flex; flex-direction: column; overflow: hidden; background: #F4F0E8">
+<header style="background: #fff; border-bottom: 1px solid #D9DEE8; padding: 4px 4px 8px">
+<div style="display: flex; align-items: center; gap: 2px">
+<button type="button" class="mtb" aria-label="Quay lại"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></button>
+<div style="flex: 1; min-width: 0">
+<div class="eyebrow" style="font-size: 11px">Cơ hội</div>
+<div style="font: 650 17px/1.2 Geist, system-ui, sans-serif; color: #102A43; display: flex; gap: 4px; align-items: center">Đang mở · Pipeline thi công <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></div>
+</div>
+<button type="button" class="mtb" aria-label="Tìm"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg></button>
+<button type="button" class="mtb" aria-label="Hiển thị dạng"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="5" height="16" rx="1"></rect><rect x="10" y="4" width="5" height="10" rx="1"></rect><rect x="17" y="4" width="4" height="13" rx="1"></rect></svg></button>
+</div>
+<div style="display: flex; gap: 3px; overflow-x: auto; padding: 4px 12px 0" role="tablist" aria-label="Giai đoạn">
+<button type="button" role="tab" aria-selected="false" class="mstage" style="background: #E4F3FC; color: #102A43">Đã hẹn khảo sát · 3</button>
+<button type="button" role="tab" aria-selected="true" class="mstage" style="background: #006093; color: #fff">Đã gửi báo giá · 3</button>
+<button type="button" role="tab" aria-selected="false" class="mstage" style="background: #E4F3FC; color: #102A43">Đã duyệt báo giá · 2</button>
+<button type="button" role="tab" aria-selected="false" class="mstage" style="background: #E4F3FC; color: #102A43">Đã khởi công · 2</button>
+</div>
+</header>
+
+<div style="padding: 10px 16px 6px; display: flex; justify-content: space-between; align-items: baseline">
+<b class="num" style="font: 650 18px Geist, system-ui, sans-serif; color: #102A43">3.960.000.000 ₫</b><span class="muted" style="font-size: 13px">3 cơ hội · xác suất 30%</span>
+</div>
+
+<div style="flex: 1; overflow: hidden; display: flex; gap: 10px; padding: 0 0 0 16px">
+<div class="lane" style="flex: 0 0 322px; min-height: 0; overflow: hidden">
+<article class="kc">
+<div class="kc-top"><a class="kc-title" href="DealRecord.dc.html" style="font-size: 15px">Quán cà phê The Lối – Q.3</a><button type="button" class="mtb" aria-label="Hành động" style="width: 44px; height: 44px; margin: -10px -8px -10px 0"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div>
+<dl class="kc-f" style="padding-left: 0; font-size: 14px"><dt>Đối tác</dt><dd>The Lối Coffee</dd><dt>Giá trị</dt><dd style="font-weight: 600">540.000.000 ₫</dd><dt>Ngày chốt dự kiến</dt><dd>08/11/2026</dd></dl>
+<div class="kc-foot" style="padding-left: 0"><span class="av">MA</span><span class="muted" style="font-size: 12px">4 ngày ở giai đoạn này</span><span class="badge b-neutral">Dự báo: Có thể chốt</span></div>
+</article>
+<article class="kc kc-warn">
+<div class="kc-top"><a class="kc-title" href="DealRecord.dc.html" style="font-size: 15px">Phòng khám nha Smile Care</a><span class="kc-alert" role="img" aria-label="Cảnh báo: 2 vấn đề"><svg class="ic" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2 1 21h22zm-1 7h2v6h-2zm0 8h2v2h-2z"></path></svg></span></div>
+<dl class="kc-f" style="padding-left: 0; font-size: 14px"><dt>Đối tác</dt><dd>Smile Care</dd><dt>Giá trị</dt><dd style="font-weight: 600">1.120.000.000 ₫</dd><dt>Ngày chốt dự kiến</dt><dd>15/11/2026</dd></dl>
+<div class="kc-foot" style="padding-left: 0"><span class="av">TQ</span><span class="badge b-warn"><span class="dot"></span>Không có hoạt động sắp tới</span></div>
+</article>
+<article class="kc">
+<div class="kc-top"><a class="kc-title" href="DealRecord.dc.html" style="font-size: 15px">Nhà phố Thủ Đức</a></div>
+<dl class="kc-f" style="padding-left: 0; font-size: 14px"><dt>Đối tác</dt><dd>Hộ gia đình Trần Bảo</dd><dt>Giá trị</dt><dd style="font-weight: 600">2.300.000.000 ₫</dd><dt>Ngày chốt dự kiến</dt><dd>30/11/2026</dd></dl>
+</article>
+</div>
+<div class="lane" style="flex: 0 0 322px; min-height: 0; opacity: .7" aria-hidden="true">
+<article class="kc"><div class="kc-title">Spa Hoa Sen – Phú Nhuận</div></article>
+</div>
+</div>
+
+<div style="position: relative; height: 0">
+<div class="pop" role="dialog" aria-label="Hành động cho Quán cà phê The Lối – Q.3" style="position: absolute; left: 0; right: 0; bottom: 0; border-radius: 16px 16px 0 0; padding: 8px 12px 20px">
+<div style="width: 40px; height: 4px; border-radius: 2px; background: #C8D0DE; margin: 4px auto 10px"></div>
+<div style="font: 600 15px Geist, system-ui, sans-serif; color: #102A43; padding: 0 8px 8px">Quán cà phê The Lối – Q.3</div>
+<button type="button" class="mi" style="height: 48px; font-size: 16px">Đổi giai đoạn…</button>
+<button type="button" class="mi" style="height: 48px; font-size: 16px">Ghi cuộc gọi</button>
+<button type="button" class="mi" style="height: 48px; font-size: 16px">Tạo lịch hẹn</button>
+<button type="button" class="mi" style="height: 48px; font-size: 16px">Sửa</button>
+<button type="button" class="mi mi-danger" style="height: 48px; font-size: 16px">Xóa</button>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

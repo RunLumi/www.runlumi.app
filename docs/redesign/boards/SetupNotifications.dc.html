@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Tài khoản · Thông báo</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}
+.nt .c{width:150px}
+.nt td:first-child b{display:block;color:#102A43;font-weight:600}
+.nt td:first-child span{display:block;font-size:13px;color:#5E6677;margin-top:2px}
+.set-row{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:12px 20px;border-top:1px solid #E7EAF0}
+.set-row p{margin:2px 0 0;font-size:13px;color:#5E6677}
+.set-row b{color:#102A43;font-weight:600;font-size:14px}
+.tm{display:flex;gap:8px;align-items:center}
+.tm .in{width:110px;font-size:14px}
+</style>
+</helmet>
+<div class="root" style="min-height: 1000px">
+<dc-import name="TopNav" app="account" active="Thông báo" hint-size="100%,104px"></dc-import>
+<main class="page">
+<div style="display: flex; flex-direction: column; gap: 12px">
+<section class="panel" style="padding: 16px 20px; display: flex; justify-content: space-between; align-items: flex-start; gap: 16px">
+<div>
+<ol class="crumbs" aria-label="Vị trí"><li><a href="AccountProfile.dc.html">Tài khoản của tôi</a></li><li><span aria-current="page">Thông báo</span></li></ol>
+<h1 class="h1" style="margin-top: 6px">Thông báo <span class="badge b-neutral" style="vertical-align: middle">Dữ liệu minh họa</span></h1>
+<p class="muted" style="margin: 6px 0 0; font-size: 14px">Chọn cách bạn nhận từng loại thông báo. Quy tắc của tổ chức có thể gửi thêm cho bạn; admin quản lý chúng ở Quy tắc thông báo. Thông báo bảo mật luôn được gửi.</p>
+</div>
+<button type="button" class="btn btn-primary" style="flex: none">Lưu thay đổi</button>
+</section>
+
+<section class="panel" aria-labelledby="ch-h" style="overflow: hidden">
+<div class="oh" style="padding-bottom: 10px; align-items: center"><h2 class="sec-h" id="ch-h">Kênh nhận theo loại sự kiện</h2><span class="muted" style="font-size: 13px">Email gửi tới minhanh@mocgia.vn, luôn kèm mã chống lừa đảo của bạn</span></div>
+<table class="mx nt"><thead><tr><th>Loại sự kiện</th><th class="c">Email</th><th class="c">Trong ứng dụng</th><th>Ghi chú</th></tr></thead>
+<tbody>
+<sc-for list="{{events}}" as="e" hint-placeholder-count="8">
+<tr><td><b>{{e.name}}</b><span>{{e.desc}}</span></td>
+<td class="c"><button type="button" class="{{e.mailCls}}" aria-label="{{e.mailLabel}}" aria-pressed="{{e.mailOn}}"></button></td>
+<td class="c"><button type="button" class="{{e.appCls}}" aria-label="{{e.appLabel}}" aria-pressed="{{e.appOn}}"></button></td>
+<td><sc-if value="{{e.locked}}" hint-placeholder-val="{{false}}"><span class="badge b-info">Bắt buộc, không tắt được</span></sc-if><span class="muted" style="font-size: 13px">{{e.note}}</span></td></tr>
+</sc-for>
+</tbody></table>
+</section>
+
+<div class="split">
+<section class="panel" aria-labelledby="qh-h" style="flex: 1 1 520px; overflow: hidden">
+<div class="oh" style="padding-bottom: 12px; align-items: center"><h2 class="sec-h" id="qh-h">Giờ yên lặng</h2><button type="button" class="tog tog-on" aria-label="Bật giờ yên lặng" aria-pressed="true"></button></div>
+<div class="set-row"><div><b>Khung giờ</b><p>Không gửi email và không hiện thông báo trong ứng dụng trong khung giờ này.</p></div>
+<div class="tm"><span class="in in-sel">21:00<svg class="ic-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span><span class="muted">đến</span><span class="in in-sel">07:00<svg class="ic-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></div></div>
+<div class="set-row"><div><b>Áp dụng vào</b></div>
+<div style="display: flex; gap: 6px; flex-wrap: wrap"><button type="button" class="chip chip-on">Thứ 2 – Thứ 6</button><button type="button" class="chip chip-on">Thứ 7</button><button type="button" class="chip chip-on">Chủ nhật</button></div></div>
+<p class="muted" style="margin: auto 0 0; padding: 10px 20px 14px; font-size: 13px; border-top: 1px solid #E7EAF0">Thông báo bảo mật vẫn gửi ngay trong giờ yên lặng. Các thông báo khác được gom vào bản tổng hợp kế tiếp. Múi giờ: Việt Nam (GMT+7).</p>
+</section>
+
+<section class="panel" aria-labelledby="dg-h" style="flex: 1 1 520px; overflow: hidden">
+<div class="oh" style="padding-bottom: 12px; align-items: center"><h2 class="sec-h" id="dg-h">Bản tổng hợp hằng ngày</h2><button type="button" class="tog tog-on" aria-label="Bật bản tổng hợp hằng ngày" aria-pressed="true"></button></div>
+<div class="set-row"><div><b>Gửi lúc</b><p>Một email gồm việc đến hạn hôm nay, việc quá hạn và các thay đổi bạn được giao.</p></div>
+<div class="tm"><span class="in in-sel">07:30<svg class="ic-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></div></div>
+<div class="set-row"><div><b>Gửi vào</b></div>
+<div class="seg" role="group" aria-label="Ngày gửi bản tổng hợp"><button type="button" class="on">Ngày làm việc</button><button type="button">Mọi ngày</button></div></div>
+<div class="set-row"><div><b>Gom thông báo trong ứng dụng</b><p>Các thông báo đánh dấu “Gom vào tổng hợp” ở bảng trên chỉ xuất hiện trong bản tổng hợp.</p></div>
+<button type="button" class="tog tog-on" aria-label="Gom thông báo vào bản tổng hợp" aria-pressed="true"></button></div>
+</section>
+</div>
+
+<section class="panel" aria-labelledby="rm-h" style="overflow: hidden">
+<div class="oh" style="padding-bottom: 10px; align-items: center"><h2 class="sec-h" id="rm-h">Nhắc trước ngày quan trọng</h2><span class="muted" style="font-size: 13px">Chỉ áp dụng cho bản ghi bạn phụ trách hoặc được giao</span></div>
+<table class="mx"><thead><tr><th>Ngày</th><th>Nhắc trước</th><th>Kênh</th></tr></thead>
+<tbody>
+<sc-for list="{{reminders}}" as="r" hint-placeholder-count="4">
+<tr><td><b style="color: #102A43">{{r.name}}</b><div class="muted" style="font-size: 13px; margin-top: 2px">{{r.desc}}</div></td>
+<td><div style="display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{r.offsets}}" as="o" hint-placeholder-count="4"><button type="button" class="{{o.cls}}">{{o.label}}</button></sc-for></div></td>
+<td>{{r.ch}}</td></tr>
+</sc-for>
+</tbody></table>
+<p class="muted" style="margin: 0; padding: 10px 20px 14px; font-size: 13px">Nhắc trong ngày gửi lúc 08:00. Nếu trùng giờ yên lặng, nhắc được gửi ngay khi giờ yên lặng kết thúc.</p>
+</section>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var E = function (name, desc, mail, app, note, locked) {
+      return {
+        name: name, desc: desc, note: note || '', locked: !!locked,
+        mailOn: mail ? 'true' : 'false', appOn: app ? 'true' : 'false',
+        mailCls: locked ? 'tog tog-lock' : (mail ? 'tog tog-on' : 'tog'),
+        appCls: locked ? 'tog tog-lock' : (app ? 'tog tog-on' : 'tog'),
+        mailLabel: 'Email cho ' + name, appLabel: 'Trong ứng dụng cho ' + name
+      };
+    };
+    var O = function (label, on) { return { label: label, cls: on ? 'chip chip-on' : 'chip' }; };
+    var opts = function (a, b, c, d) { return [O('7 ngày', a), O('3 ngày', b), O('1 ngày', c), O('Trong ngày', d)]; };
+    return {
+      events: [
+        E('Bảo mật tài khoản', 'Đăng nhập từ thiết bị mới, thêm hoặc xóa passkey, đổi mã chống lừa đảo, khôi phục tài khoản', true, true, '', true),
+        E('Được giao việc', 'Có người giao công việc, cơ hội hoặc Lead cho bạn', true, true, ''),
+        E('Đổi người phụ trách', 'Bản ghi bạn phụ trách được chuyển cho người khác', true, true, ''),
+        E('Được nhắc tên', 'Có người nhắc @Minh Anh trong bình luận hoặc tin nhắn', false, true, 'Gom vào tổng hợp khi tắt email'),
+        E('Yêu cầu xác nhận của AI agent', 'Agent của bạn cần bạn xác nhận trước khi ghi, gửi ra ngoài, xử lý tiền hoặc xóa', true, true, 'Yêu cầu hết hạn sau 15 phút'),
+        E('Cần bạn duyệt', 'Giảm giá, báo giá hoặc yêu cầu khôi phục tài khoản chờ bạn duyệt', true, true, ''),
+        E('Rủi ro và cam kết', 'Rủi ro mới ở dự án bạn tham gia, cam kết sắp trễ hạn', false, true, 'Gom vào tổng hợp khi tắt email'),
+        E('Bình luận trên bản ghi bạn theo dõi', 'Hoạt động mới trên công việc, cơ hội, dự án bạn theo dõi', false, false, 'Đang tắt cả hai kênh')
+      ],
+      reminders: [
+        { name: 'Hạn công việc', desc: 'Công việc bạn phụ trách', offsets: opts(false, false, true, true), ch: 'Email và trong ứng dụng' },
+        { name: 'Hạn cọc cơ hội', desc: 'Ví dụ: Văn phòng Lumen Tech', offsets: opts(true, true, true, false), ch: 'Email và trong ứng dụng' },
+        { name: 'Ngày bàn giao dự án', desc: 'Ví dụ: Nhà hàng Bếp Mộc – Q.7', offsets: opts(true, false, true, true), ch: 'Email' },
+        { name: 'Lịch hẹn với khách', desc: 'Lịch hẹn trong Lumi CRM', offsets: opts(false, false, true, true), ch: 'Trong ứng dụng' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

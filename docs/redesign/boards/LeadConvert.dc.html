@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Chuyển Lead thành cơ hội</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}
+.cv{border:1px solid #D9DEE8;border-radius:8px;overflow:hidden}
+.cv-h{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#F7F8FA;border-bottom:1px solid #E7EAF0;font:600 15px Geist,system-ui,sans-serif;color:#102A43}
+.cv-b{display:grid;grid-template-columns:minmax(0,1fr) 56px minmax(0,1fr);align-items:start;padding:14px}
+.cv-or{align-self:center;text-align:center;font:600 12px Geist,system-ui,sans-serif;color:#5E6677}
+.opt{border:1px solid #D9DEE8;border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.opt-on{border:2px solid #006093;background:#F7FBFE}
+.opt-l{display:flex;gap:10px;align-items:center;font:600 14px Geist,system-ui,sans-serif;color:#102A43}
+</style>
+</helmet>
+<div class="root scrim" style="width: 1440px; height: 820px; padding: 24px 0; display: flex; justify-content: center">
+<section class="dlg" role="dialog" aria-labelledby="cv-t" style="width: 1040px; height: 772px">
+<div class="dlg-h" id="cv-t">Chuyển Lead thành cơ hội: Chị Ngọc · Salon Ngọc Hair
+<button type="button" class="btn btn-ghost icon-btn btn-sm btn-neutral" aria-label="Đóng" style="position: absolute; right: 12px; top: 12px"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+</div>
+<div class="dlg-b" style="overflow: auto; flex: 1; gap: 12px">
+
+<section class="cv" aria-label="Đối tác">
+<div class="cv-h"><span class="rl-i" style="background: #5B4FC4">A</span>Đối tác <span class="badge b-warn" style="margin-left: auto"><span class="dot"></span>1 đối tác trùng</span></div>
+<div class="cv-b">
+<div class="opt">
+<label class="opt-l"><input type="radio" name="acc" class="cb">Tạo mới</label>
+<label class="fld"><span class="fld-l">Tên đối tác</span><input class="in" value="Salon Ngọc Hair"></label>
+</div>
+<div class="cv-or">HOẶC</div>
+<div class="opt opt-on">
+<label class="opt-l"><input type="radio" name="acc" class="cb" checked>Chọn đối tác có sẵn</label>
+<span class="in in-sel"><span style="display: flex; gap: 8px; align-items: center"><span class="rl-i" style="background: #5B4FC4">A</span>Ngọc Hair</span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></span>
+<span class="muted" style="font-size: 13px">Cùng số điện thoại · tạo 12/2025 · người phụ trách: Hải Ngân</span>
+</div>
+</div>
+</section>
+
+<section class="cv" aria-label="Liên hệ">
+<div class="cv-h"><span class="rl-i" style="background: #0F7B7B">C</span>Liên hệ <span class="badge b-warn" style="margin-left: auto"><span class="dot"></span>1 liên hệ trùng</span></div>
+<div class="cv-b">
+<div class="opt">
+<label class="opt-l"><input type="radio" name="con" class="cb">Tạo mới</label>
+<label class="fld"><span class="fld-l">Họ tên</span><input class="in" value="Chị Ngọc"></label>
+</div>
+<div class="cv-or">HOẶC</div>
+<div class="opt opt-on">
+<label class="opt-l"><input type="radio" name="con" class="cb" checked>Chọn liên hệ có sẵn</label>
+<span class="in in-sel"><span style="display: flex; gap: 8px; align-items: center"><span class="rl-i" style="background: #0F7B7B">C</span>Ngọc · Ngọc Hair</span><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></span>
+<label style="display: flex; gap: 8px; align-items: center; font-size: 13px"><input type="checkbox" class="cb" checked>Cập nhật nguồn Lead của liên hệ thành Zalo OA</label>
+</div>
+</div>
+</section>
+
+<section class="cv" aria-label="Cơ hội">
+<div class="cv-h"><span class="rl-i" style="background: #006093">O</span>Cơ hội</div>
+<div class="cv-b">
+<div class="opt opt-on">
+<label class="opt-l"><input type="radio" name="opp" class="cb" checked>Tạo mới</label>
+<label class="fld"><span class="fld-l">Tên cơ hội <span class="req">*</span></span><input class="in" value="Salon Ngọc Hair – cải tạo 80 m²"></label>
+<div class="fgrid2">
+<label class="fld"><span class="fld-l">Pipeline · giai đoạn đầu</span><span class="in in-sel">Pipeline thi công · Đã hẹn khảo sát</span></label>
+<label class="fld"><span class="fld-l">Giá trị</span><input class="in" value="350.000.000"></label>
+</div>
+<label style="display: flex; gap: 8px; align-items: center; font-size: 13px"><input type="checkbox" class="cb">Không tạo cơ hội khi chuyển đổi</label>
+</div>
+<div class="cv-or">HOẶC</div>
+<div class="opt">
+<label class="opt-l"><input type="radio" name="opp" class="cb">Chọn cơ hội có sẵn</label>
+<span class="in in-sel muted">Tìm cơ hội của Ngọc Hair…</span>
+<span class="muted" style="font-size: 13px">Đối tác Ngọc Hair không có cơ hội đang mở.</span>
+</div>
+</div>
+</section>
+
+<div class="fgrid2">
+<label class="fld"><span class="fld-l">Người phụ trách bản ghi mới <span class="req">*</span></span><span class="in in-sel">Minh Anh<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></label>
+<label class="fld"><span class="fld-l">Trạng thái Lead sau chuyển đổi <span class="req">*</span></span><span class="in in-sel">Đã thành cơ hội<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></label>
+</div>
+<p style="margin: 0; font-size: 13px; color: #5E6677">Sau khi chuyển đổi: hoạt động, tệp và bình luận của Lead chuyển sang liên hệ và cơ hội. Lead chuyển sang chế độ chỉ đọc. Chỉ trạng thái Lead loại chuyển đổied xuất hiện trong ô trên.</p>
+</div>
+<div class="dlg-f"><button type="button" class="btn">Hủy</button><a class="btn btn-primary" href="LeadConverted.dc.html">Chuyển đổi</a></div>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":820}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Quy tắc thông báo</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}
+.nr .c-n{left:44px;width:250px;min-width:250px}
+.nr td.wrap{white-space:normal;min-width:240px;line-height:1.35;padding-top:8px;padding-bottom:8px}
+</style>
+</helmet>
+<div class="root" style="min-height: 1000px">
+<dc-import name="TopNav" app="setup" active="" hint-size="100%,104px"></dc-import>
+<main class="page">
+<div class="split">
+<div style="flex: 0 0 260px"><dc-import name="SetupNav" active="Quy tắc thông báo" hint-size="260px,820px"></dc-import></div>
+<div style="flex: 999 1 900px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+<section class="panel">
+<div class="oh" style="align-items: flex-start">
+<div>
+<ol class="crumbs" aria-label="Vị trí"><li><a href="MembersTeams.dc.html">Cài đặt tổ chức</a></li><li><span aria-current="page">Quy tắc thông báo</span></li></ol>
+<h1 class="h1" style="margin-top: 6px">Quy tắc thông báo <span class="badge b-neutral" style="vertical-align: middle">Dữ liệu minh họa</span></h1>
+<p class="muted" style="margin: 4px 0 0; font-size: 13px">Mỗi quy tắc nói rõ: khi sự kiện nào xảy ra, với điều kiện gì, gửi qua Email hay Webhook, cho ai và nhắc trước bao lâu. Mỗi người vẫn tự chọn kênh nhận của mình ở Tài khoản của tôi › Thông báo.</p>
+</div>
+<a class="btn btn-primary" href="NotificationRuleEdit.dc.html" style="flex: none">Tạo quy tắc</a>
+</div>
+<div style="padding: 0 20px 14px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center">
+<span class="muted" style="font-size: 13px">Lọc nhanh</span>
+<button type="button" class="chip chip-on">Tất cả (8)</button>
+<button type="button" class="chip">Đang bật (6)</button>
+<button type="button" class="chip">Có lỗi gửi (1)</button>
+<button type="button" class="chip">Có nhắc trước (3)</button>
+<button type="button" class="chip">Đang tắt (1)</button>
+</div>
+</section>
+
+<section class="panel rail-danger" style="padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; gap: 16px">
+<span style="font-size: 14px; color: #344054"><span class="badge b-danger"><span class="dot"></span>Lỗi gửi</span> Quy tắc “Rủi ro mức cao ở dự án” không gửi được qua Webhook Discord · Đội hiện trường từ 28/10 15:20: Discord trả về 401, 6 lần liên tiếp.</span>
+<a class="btn" href="Webhooks.dc.html" style="flex: none">Mở Webhook</a>
+</section>
+
+<section class="panel" style="overflow: hidden">
+<div class="lv-meta" style="padding-top: 12px"><p>8 quy tắc · sắp xếp theo tên · bấm một dòng để sửa quy tắc</p>
+<div class="tools">
+<label class="search" style="width: 240px"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><span class="sr">Tìm quy tắc</span><input type="search" placeholder="Tìm quy tắc"></label>
+<button type="button" class="btn icon-btn" aria-label="Lọc"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 4h18l-7 8v6l-4 2v-8z"></path></svg></button>
+</div></div>
+<div class="tbl-wrap"><table class="tbl nr" style="min-width: 1640px">
+<thead><tr><th class="fz fz0"><input type="checkbox" class="cb" aria-label="Chọn tất cả"></th><th class="fz c-n fz-last">Tên quy tắc</th><th>Module</th><th>Sự kiện kích hoạt</th><th>Điều kiện</th><th>Kênh</th><th>Người nhận</th><th>Nhắc trước</th><th>Trạng thái</th><th>Gửi gần nhất</th><th>Lỗi 7 ngày</th></tr></thead>
+<tbody>
+<sc-for list="{{rules}}" as="r" hint-placeholder-count="8">
+<tr><td class="fz fz0"><input type="checkbox" class="cb" aria-label="{{r.selLabel}}"></td><td class="fz c-n fz-last"><a href="NotificationRuleEdit.dc.html">{{r.name}}</a></td><td>{{r.mod}}</td><td>{{r.ev}}</td><td class="wrap">{{r.cond}}</td><td>{{r.ch}}</td><td class="wrap">{{r.to}}</td><td>{{r.rem}}</td><td><span class="{{r.stCls}}"><span class="dot"></span>{{r.st}}</span></td><td>{{r.last}}</td><td><span class="{{r.errCls}}">{{r.err}}</span></td></tr>
+</sc-for>
+</tbody></table></div>
+<div class="scroll-hint"><span>Cột Tên quy tắc cố định khi cuộn ngang. Quy tắc “Sự kiện bảo mật” do Lumi đặt, không tắt được.</span><span>1–8 trên 8</span></div>
+</section>
+</div>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var R = function (name, mod, ev, cond, ch, to, rem, st, last, err) {
+      return { name: name, mod: mod, ev: ev, cond: cond, ch: ch, to: to, rem: rem, st: st, last: last, err: err, selLabel: 'Chọn ' + name,
+        stCls: st === 'Đang bật' ? 'badge b-ok' : st === 'Bắt buộc' ? 'badge b-info' : st === 'Có lỗi gửi' ? 'badge b-danger' : 'badge b-neutral',
+        errCls: err === '0' ? 'muted' : 'badge b-danger' };
+    };
+    return {
+      rules: [
+        R('Đổi người phụ trách', 'Công việc', 'Người phụ trách thay đổi', 'Mọi công việc', 'Email', 'Người phụ trách cũ và mới', 'Không', 'Đang bật', '29/10 09:41', '0'),
+        R('Hạn cọc cơ hội sắp đến', 'Lumi CRM', 'Đến ngày hạn cọc', 'Chưa Thắng hoặc Mất · giá trị từ 500.000.000 ₫ · chưa nhận cọc', 'Email · Webhook Lark', 'Người phụ trách bản ghi · phòng ban Kinh doanh HCM · vai trò Quản lý · Hải Ngân', '7, 3, 1 ngày', 'Đang bật', '29/10 08:00', '0'),
+        R('Lead mới từ website', 'Lumi CRM', 'Tạo Lead', 'Nguồn Lead là Website', 'Webhook Lark', 'Phòng ban Kinh doanh HCM', 'Không', 'Đang bật', '28/10 21:14', '0'),
+        R('Công việc quá hạn', 'Công việc', 'Quá hạn công việc', 'Trạng thái chưa xong', 'Email', 'Người phụ trách bản ghi', 'Trong ngày', 'Đang bật', '29/10 08:00', '0'),
+        R('Ngày bàn giao dự án', 'Công việc', 'Đến ngày bàn giao', 'Mọi dự án đang chạy', 'Email · Webhook Slack', 'Nhóm của dự án · Thanh Quân', '7, 1 ngày', 'Đang bật', '27/10 08:00', '0'),
+        R('Rủi ro mức cao ở dự án', 'Thông minh', 'Có rủi ro mới', 'Mức độ cao', 'Email · Webhook Discord', 'Vai trò Quản lý · người phụ trách dự án', 'Không', 'Có lỗi gửi', '28/10 15:20', '6'),
+        R('Báo giá chờ duyệt', 'Lumi CRM', 'Gửi duyệt báo giá', 'Giảm giá trên 10%', 'Email · Webhook Microsoft Teams', 'Vai trò Admin', 'Không', 'Đang tắt', '12/10 10:02', '0'),
+        R('Sự kiện bảo mật', 'Tài khoản', 'Đăng nhập lạ, đổi passkey, khôi phục', 'Mọi thành viên', 'Email', 'Chính người đó · mọi admin', 'Không', 'Bắt buộc', '29/10 07:52', '0')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

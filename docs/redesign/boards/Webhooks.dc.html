@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Webhook</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}
+.wh .c-n{left:44px;width:260px;min-width:260px}
+.wh td.wrap{white-space:normal;min-width:260px;line-height:1.35;padding-top:8px;padding-bottom:8px}
+</style>
+</helmet>
+<div class="root" style="min-height: 1000px">
+<dc-import name="TopNav" app="setup" active="" hint-size="100%,104px"></dc-import>
+<main class="page">
+<div class="split">
+<div style="flex: 0 0 260px"><dc-import name="SetupNav" active="Webhook" hint-size="260px,820px"></dc-import></div>
+<div style="flex: 999 1 900px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+<section class="panel">
+<div class="oh" style="align-items: flex-start">
+<div>
+<ol class="crumbs" aria-label="Vị trí"><li><a href="MembersTeams.dc.html">Cài đặt tổ chức</a></li><li><span aria-current="page">Webhook</span></li></ol>
+<h1 class="h1" style="margin-top: 6px">Webhook <span class="badge b-neutral" style="vertical-align: middle">Dữ liệu minh họa</span></h1>
+<p class="muted" style="margin: 4px 0 0; font-size: 13px">Gửi sự kiện của Mộc Gia ra Lark, Slack, Discord, Microsoft Teams hoặc một URL tùy chỉnh. Địa chỉ đích và khóa ký chỉ hiện một phần. Sau 10 lần lỗi liên tiếp, Webhook tự tạm dừng.</p>
+</div>
+<button type="button" class="btn btn-primary" style="flex: none">Tạo Webhook</button>
+</div>
+<div style="padding: 0 20px 14px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center">
+<span class="muted" style="font-size: 13px">Lọc nhanh</span>
+<button type="button" class="chip chip-on">Tất cả (5)</button>
+<button type="button" class="chip">Đang lỗi (2)</button>
+<button type="button" class="chip">Tạm dừng (0)</button>
+<button type="button" class="chip">Lark</button><button type="button" class="chip">Slack</button><button type="button" class="chip">Discord</button><button type="button" class="chip">Microsoft Teams</button><button type="button" class="chip">URL tùy chỉnh</button>
+</div>
+</section>
+
+<section class="panel rail-danger" style="padding: 12px 20px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 14px; color: #344054"><span class="badge b-danger"><span class="dot"></span>Đang lỗi</span> Discord · Đội hiện trường: Discord trả về 401 từ 28/10 15:20, 6 lần liên tiếp. Địa chỉ Webhook trên Discord có thể đã bị xóa; dán lại địa chỉ mới.</span>
+<span style="font-size: 14px; color: #344054"><span class="badge b-danger"><span class="dot"></span>Đang lỗi</span> URL tùy chỉnh · Hệ thống kế toán: hết thời gian chờ 3 lần liên tiếp từ 29/10 07:30. Còn 7 lần lỗi nữa sẽ tự tạm dừng.</span>
+</section>
+
+<section class="panel" style="overflow: hidden">
+<div class="lv-meta" style="padding-top: 12px"><p>5 Webhook · sắp xếp theo trạng thái · bấm một dòng để xem chi tiết và nhật ký gửi</p>
+<div class="tools">
+<label class="search" style="width: 240px"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><span class="sr">Tìm Webhook</span><input type="search" placeholder="Tìm Webhook"></label>
+</div></div>
+<div class="tbl-wrap"><table class="tbl wh" style="min-width: 1580px">
+<thead><tr><th class="fz fz0"><input type="checkbox" class="cb" aria-label="Chọn tất cả"></th><th class="fz c-n fz-last">Tên</th><th>Nền tảng</th><th>Địa chỉ đích</th><th>Sự kiện</th><th>Trạng thái</th><th>Gửi gần nhất</th><th>Thành công 7 ngày</th><th>Lỗi liên tiếp</th><th>Tạo bởi</th></tr></thead>
+<tbody>
+<sc-for list="{{hooks}}" as="h" hint-placeholder-count="5">
+<tr><td class="fz fz0"><input type="checkbox" class="cb" aria-label="{{h.selLabel}}"></td><td class="fz c-n fz-last"><a href="WebhookDetail.dc.html">{{h.name}}</a></td><td>{{h.pf}}</td><td><span class="code">{{h.url}}</span></td><td class="wrap">{{h.ev}}</td><td><span class="{{h.stCls}}"><span class="dot"></span>{{h.st}}</span></td><td>{{h.last}}</td><td class="num">{{h.rate}}</td><td><span class="{{h.failCls}}">{{h.fail}}</span></td><td>{{h.by}}</td></tr>
+</sc-for>
+</tbody></table></div>
+<div class="scroll-hint"><span>Cột Tên cố định khi cuộn ngang.</span><span>1–5 trên 5</span></div>
+</section>
+</div>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var H = function (name, pf, url, ev, st, last, rate, fail, by) {
+      return { name: name, pf: pf, url: url, ev: ev, st: st, last: last, rate: rate, fail: fail, by: by, selLabel: 'Chọn ' + name,
+        stCls: st === 'Hoạt động' ? 'badge b-ok' : st === 'Đang lỗi' ? 'badge b-danger' : 'badge b-neutral',
+        failCls: fail === '0' ? 'muted' : 'badge b-danger' };
+    };
+    return {
+      hooks: [
+        H('Discord · Đội hiện trường', 'Discord', 'discord.com/api/webhooks/••••', 'Rủi ro mức cao ở dự án', 'Đang lỗi', '28/10 15:20 · 401', '62%', '6', 'Thanh Quân'),
+        H('URL tùy chỉnh · Hệ thống kế toán', 'URL tùy chỉnh', 'https://••••/lumi/su-kien', 'Cơ hội thắng · tiền cọc ghi nhận', 'Đang lỗi', '29/10 09:30 · hết thời gian chờ', '81%', '3', 'Minh Anh'),
+        H('Lark · Nhóm kinh doanh', 'Lark', 'open.larksuite.com/••••', 'Lead mới từ website · hạn cọc cơ hội', 'Hoạt động', '29/10 08:00 · 200', '100%', '0', 'Minh Anh'),
+        H('Slack · Kỹ thuật thi công', 'Slack', 'hooks.slack.com/services/••••', 'Ngày bàn giao dự án', 'Hoạt động', '27/10 08:00 · 200', '100%', '0', 'Hải Ngân'),
+        H('Microsoft Teams · Ban giám đốc', 'Microsoft Teams', '••••.webhook.office.com/••••', 'Báo giá chờ duyệt (quy tắc đang tắt)', 'Không có quy tắc bật', '12/10 10:02 · 200', 'Không có lần gửi', '0', 'Minh Anh')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

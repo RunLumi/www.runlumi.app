@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>AI agent (MCP)</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}
+.ag .c-m{left:44px;width:190px;min-width:190px}
+.ag .c-a{left:234px;width:170px;min-width:170px}
+.pm td:first-child b{display:block;color:#102A43;font-weight:600}
+.pm td:first-child span{display:block;font-size:13px;color:#5E6677;margin-top:2px}
+.seg .lk{color:#9AA3B2;cursor:not-allowed}
+.ac{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:4px 20px 16px}
+.ac div{border:1px solid #E7EAF0;border-radius:8px;padding:12px 14px;background:#F7F8FA}
+.ac b{display:block;color:#102A43;font-size:14px;margin-bottom:4px}
+.ac p{margin:0;font-size:13px;color:#5E6677;line-height:1.45}
+</style>
+</helmet>
+<div class="root" style="min-height: 1400px">
+<dc-import name="TopNav" app="setup" active="" hint-size="100%,104px"></dc-import>
+<main class="page">
+<div class="split">
+<div style="flex: 0 0 260px"><dc-import name="SetupNav" active="AI agent (MCP)" hint-size="260px,820px"></dc-import></div>
+<div style="flex: 999 1 900px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+<section class="panel">
+<div class="oh" style="align-items: flex-start">
+<div>
+<ol class="crumbs" aria-label="Vị trí"><li><a href="MembersTeams.dc.html">Cài đặt tổ chức</a></li><li><span aria-current="page">AI agent (MCP)</span></li></ol>
+<h1 class="h1" style="margin-top: 6px">AI agent (MCP) <span class="badge b-neutral" style="vertical-align: middle">Dữ liệu minh họa</span></h1>
+<p class="muted" style="margin: 4px 0 0; font-size: 13px">Mỗi thành viên tự kết nối AI agent của mình (Claude Desktop, Cursor, ChatGPT...) qua MCP. Agent dùng quyền của chính người đó, và chỉ trong các module, mức bạn cho phép dưới đây.</p>
+</div>
+<button type="button" class="btn btn-primary" style="flex: none">Lưu chính sách</button>
+</div>
+<div style="padding: 0 20px 14px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 14px">
+<span class="muted">Địa chỉ MCP server</span><span class="code">[chưa chốt]</span>
+<span class="muted">· Kết nối bằng OAuth, người dùng phải chạm passkey để đồng ý</span>
+</div>
+</section>
+
+<section class="panel" aria-labelledby="pm-h" style="overflow: hidden">
+<div class="oh" style="padding-bottom: 10px; align-items: center"><h2 class="sec-h" id="pm-h">Module và mức cho phép</h2><span class="muted" style="font-size: 13px">Hạ mức có hiệu lực ngay với mọi agent đã kết nối</span></div>
+<table class="mx pm"><thead><tr><th>Module</th><th>Mức cho phép</th><th>Agent đang dùng</th><th>Bị từ chối 7 ngày</th></tr></thead>
+<tbody>
+<sc-for list="{{mods}}" as="m" hint-placeholder-count="6">
+<tr><td><b>{{m.name}}</b><span>{{m.desc}}</span></td>
+<td><div class="seg" role="radiogroup" aria-label="{{m.aria}}"><button type="button" class="{{m.c0}}">Tắt</button><button type="button" class="{{m.c1}}">Đọc</button><button type="button" class="{{m.c2}}">Đọc và ghi (ghi phải xác nhận)</button></div><sc-if value="{{m.locked}}" hint-placeholder-val="{{false}}"> <span class="badge b-neutral">Cố định</span></sc-if></td>
+<td class="num">{{m.using}}</td>
+<td><span class="{{m.denCls}}">{{m.den}}</span></td></tr>
+</sc-for>
+</tbody></table>
+</section>
+
+<section class="panel" aria-labelledby="ac-h" style="overflow: hidden">
+<div class="oh" style="padding-bottom: 8px; align-items: center"><h2 class="sec-h" id="ac-h">Luôn phải do người xác nhận <span class="badge b-neutral">Cố định</span></h2></div>
+<p style="margin: 0; padding: 0 20px 10px; font-size: 14px; color: #344054">Dù module ở mức nào, agent chỉ tạo yêu cầu; người kết nối agent phải xác nhận trên web hoặc điện thoại bằng passkey.</p>
+<div class="ac">
+<div><b>Gửi ra ngoài</b><p>Email, tin nhắn Zalo OA, Webhook, chia sẻ tệp cho người ngoài tổ chức.</p></div>
+<div><b>Tiền</b><p>Báo giá, giảm giá, tiền cọc, thanh toán, đổi giá trị cơ hội.</p></div>
+<div><b>Xóa</b><p>Xóa bất kỳ bản ghi, tệp hoặc tin nhắn nào.</p></div>
+</div>
+</section>
+
+<section class="panel" aria-labelledby="cn-h" style="overflow: hidden">
+<div class="oh" style="padding-bottom: 6px; align-items: center">
+<h2 class="sec-h" id="cn-h">Agent đã kết nối (6)</h2>
+<div class="tools">
+<label class="search" style="width: 240px"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><span class="sr">Tìm agent hoặc thành viên</span><input type="search" placeholder="Tìm agent hoặc thành viên"></label>
+<button type="button" class="btn icon-btn" aria-label="Lọc"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 4h18l-7 8v6l-4 2v-8z"></path></svg></button>
+</div>
+</div>
+<div class="bulk" role="region" aria-label="Thao tác hàng loạt"><b style="font-size: 13px">1 agent đã chọn</b><button type="button" class="btn">Thu hồi đã chọn (cần xác thực lại)</button><button type="button" class="btn">Bỏ chọn</button></div>
+<div class="tbl-wrap"><table class="tbl ag" style="min-width: 1560px">
+<thead><tr><th class="fz fz0"><input type="checkbox" class="cb" aria-label="Chọn tất cả"></th><th class="fz c-m">Thành viên</th><th class="fz c-a fz-last">Agent</th><th>Phòng ban</th><th>Module được dùng</th><th>Kết nối lúc</th><th>Gọi gần nhất</th><th>Lần gọi 7 ngày</th><th>Bị từ chối 7 ngày</th><th>Chờ xác nhận</th><th><span class="sr">Hành động</span></th></tr></thead>
+<tbody>
+<sc-for list="{{agents}}" as="a" hint-placeholder-count="6">
+<tr class="{{a.rowCls}}"><td class="fz fz0"><input type="checkbox" class="cb" aria-label="{{a.selLabel}}" checked="{{a.sel}}"></td><td class="fz c-m"><a href="MemberDetail.dc.html">{{a.member}}</a></td><td class="fz c-a fz-last"><b style="color: #102A43">{{a.agent}}</b></td><td>{{a.dept}}</td><td>{{a.mods}}</td><td>{{a.at}}</td><td>{{a.last}}</td><td class="num">{{a.calls}}</td><td><span class="{{a.denCls}}">{{a.den}}</span></td><td><span class="{{a.penCls}}">{{a.pen}}</span></td><td style="text-align: right"><button type="button" class="btn btn-sm btn-lost">Thu hồi</button></td></tr>
+</sc-for>
+</tbody></table></div>
+<div class="scroll-hint"><span>Cột Thành viên và Agent cố định khi cuộn ngang. Thu hồi phải xác thực lại bằng passkey.</span><span>1–6 trên 6</span></div>
+</section>
+</div>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1400}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var M = function (name, desc, lvl, using, den, locked) {
+      return { name: name, desc: desc, aria: 'Mức cho ' + name, locked: !!locked, using: using, den: den, denCls: den === '0' ? 'muted' : 'badge b-warn',
+        c0: lvl === 0 ? 'on' : (locked ? 'lk' : ''), c1: lvl === 1 ? 'on' : (locked ? 'lk' : ''), c2: lvl === 2 ? 'on' : (locked ? 'lk' : '') };
+    };
+    var A = function (member, agent, dept, mods, at, last, calls, den, pen, sel) {
+      return { member: member, agent: agent, dept: dept, mods: mods, at: at, last: last, calls: calls, den: den, pen: pen,
+        denCls: den === '0' ? 'muted' : 'badge b-warn', penCls: pen === '0' ? 'muted' : 'badge b-info',
+        sel: !!sel, rowCls: sel ? 'sel' : '', selLabel: 'Chọn ' + agent + ' của ' + member };
+    };
+    return {
+      mods: [
+        M('Công việc', 'Dự án, công việc, định kỳ, chấm công', 2, '4', '0'),
+        M('Thông minh', 'CEO Brief, cam kết, rủi ro, quyết định', 1, '3', '1 · tạo cam kết'),
+        M('Lumi CRM', 'Lead, cơ hội, đối tác, liên hệ, lịch', 0, '0', '1 · đọc cơ hội'),
+        M('Kết nối', 'Hub công ty, tin nhắn', 1, '2', '0'),
+        M('Thư', 'Hộp thư; gửi email luôn do người xác nhận', 1, '2', '1 · gửi email'),
+        M('Cài đặt tổ chức', 'Thành viên, vai trò, bảo mật, tích hợp', 0, '0', '0', true)
+      ],
+      agents: [
+        A('Nguyễn Minh Anh', 'Claude Desktop', 'Kinh doanh HCM', 'Công việc · Thông minh · Thư', '29/10/2026', '10 phút trước', '214', '2', '0', true),
+        A('Nguyễn Minh Anh', 'Cursor', 'Kinh doanh HCM', 'Công việc', '27/10/2026', 'Hôm qua', '38', '0', '0'),
+        A('Hải Ngân', 'Cursor', 'Dự án', 'Công việc · Kết nối', '24/10/2026', 'Hôm nay 08:12', '96', '0', '1'),
+        A('Thanh Quân', 'ChatGPT', 'Dự án', 'Công việc · Thông minh', '20/10/2026', 'Hôm qua 17:02', '41', '1', '0'),
+        A('Đặng Quốc Bảo', 'Claude Desktop', 'Kinh doanh HCM', 'Công việc · Thông minh · Kết nối · Thư', '22/10/2026', '25/10/2026', '12', '0', '0'),
+        A('Lê Hoàng Phúc', 'Claude Desktop', 'Thiết kế', 'Công việc', '02/10/2026', '03/10/2026 · không dùng 26 ngày', '0', '0', '0')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

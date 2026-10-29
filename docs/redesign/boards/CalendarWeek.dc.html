@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Lịch · tuần</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="root" style="min-height: 1180px">
+
+<dc-import name="TopNav" app="crm" active="Lịch" hint-size="100%,104px"></dc-import>
+
+<main class="page">
+<section class="panel">
+<div class="oh" style="padding-bottom: 14px; align-items: center">
+<div class="oh-id">
+<span class="oi oi-cal"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg></span>
+<div>
+<div class="eyebrow">Lịch <span class="badge b-neutral" style="text-transform: none; letter-spacing: 0">Dữ liệu minh họa</span></div>
+<h1 class="h1">26/10 – 01/11/2026</h1>
+</div>
+<div class="bg" style="margin-left: 12px">
+<button type="button" class="btn icon-btn" aria-label="Tuần trước"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></button>
+<button type="button" class="btn icon-btn" aria-label="Tuần sau"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></button>
+</div>
+<button type="button" class="btn">Hôm nay</button>
+</div>
+<div class="tools">
+<div class="bg" role="group" aria-label="Chế độ xem lịch">
+<button type="button" class="btn">Ngày</button>
+<button type="button" class="btn btn-on" aria-pressed="true">Tuần</button>
+<a class="btn" href="Calendar.dc.html">Tháng</a>
+<a class="btn" href="Tasks.dc.html">Danh sách</a>
+</div>
+<button type="button" class="btn icon-btn" aria-label="Làm mới"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7L20 8"></path><path d="M20 3v5h-5"></path></svg></button>
+<a class="btn btn-primary" href="NewEvent.dc.html">Tạo lịch hẹn</a>
+</div>
+</div>
+</section>
+
+<div class="split">
+<aside class="panel" aria-label="Lịch đang hiển thị" style="flex: 0 0 272px; padding: 14px; display: flex; flex-direction: column; gap: 16px">
+<div>
+<b style="font-size: 14px; color: #102A43; display: block; margin-bottom: 6px">Tháng 10, 2026</b>
+<div class="mini" aria-label="Lịch nhỏ">
+<b>T2</b><b>T3</b><b>T4</b><b>T5</b><b>T6</b><b>T7</b><b>CN</b>
+<sc-for list="{{mini}}" as="m" hint-placeholder-count="35"><span class="{{m.cls}}">{{m.d}}</span></sc-for>
+</div>
+</div>
+<div>
+<div style="font: 600 12px Geist, system-ui, sans-serif; color: #5E6677; text-transform: uppercase; letter-spacing: .06em; padding: 0 8px 4px">Lịch của tôi</div>
+<div class="cal-legend">
+<label class="cal-cb"><input type="checkbox" class="cb" checked><span class="sw sw-ev"></span>Lịch hẹn của tôi</label>
+<label class="cal-cb"><input type="checkbox" class="cb" checked><span class="sw sw-deal"></span>Cơ hội theo ngày chốt dự kiến</label>
+<label class="cal-cb"><input type="checkbox" class="cb" checked><span class="sw sw-dep"></span>Cơ hội theo Hạn cọc</label>
+<label class="cal-cb"><input type="checkbox" class="cb" checked><span class="sw sw-task"></span>Công việc của tôi</label>
+</div>
+</div>
+<div>
+<div style="font: 600 12px Geist, system-ui, sans-serif; color: #5E6677; text-transform: uppercase; letter-spacing: .06em; padding: 0 8px 4px">Lịch của người khác</div>
+<div class="cal-legend">
+<label class="cal-cb"><input type="checkbox" class="cb" checked><span class="sw sw-tq"></span>Thanh Quân</label>
+<label class="cal-cb"><input type="checkbox" class="cb"><span class="sw sw-hn"></span>Hải Ngân</label>
+</div>
+</div>
+<div role="status" style="padding: 10px; border-radius: 6px; background: #E4F3FC; font-size: 13px; line-height: 1.45; color: #004F80"><b>Đang dời lịch hẹn:</b> Xem mẫu vật liệu – The Lối<br>T7 31/10 14:00 → T6 30/10 16:00. Thả để lưu giờ mới, Esc để hủy. Hệ thống hỏi bạn xác nhận trước khi gửi thông báo đổi giờ cho khách mời.</div>
+</aside>
+
+<section class="panel" aria-label="Lịch tuần 26/10–01/11" style="flex: 999 1 820px; min-width: 0; overflow: hidden">
+<div class="wg">
+<div class="wg-h" style="border-left: 0; display: flex; align-items: flex-end; justify-content: flex-end; font-size: 11px; color: #5E6677">GMT+7</div>
+<sc-for list="{{days}}" as="d" hint-placeholder-count="7">
+<div class="{{d.hcls}}"><div class="wg-dn">{{d.dn}}</div><div class="wg-dd">{{d.dd}}</div></div>
+</sc-for>
+<div style="font: 500 11px Geist, system-ui, sans-serif; color: #5E6677; text-align: right; padding: 8px; border-bottom: 1px solid #D9DEE8">Cả ngày</div>
+<sc-for list="{{days}}" as="d" hint-placeholder-count="7">
+<div class="wg-ad">
+<sc-for list="{{d.allday}}" as="a" hint-placeholder-count="1"><button type="button" class="{{a.cls}}"><span>{{a.label}}</span></button></sc-for>
+</div>
+</sc-for>
+</div>
+<div style="display: grid; grid-template-columns: 64px repeat(7, minmax(0, 1fr)); height: 744px; overflow: hidden; padding-top: 8px">
+<div>
+<sc-for list="{{hours}}" as="h" hint-placeholder-count="13"><div class="wg-time">{{h}}</div></sc-for>
+</div>
+<sc-for list="{{days}}" as="d" hint-placeholder-count="7">
+<div style="{{d.colStyle}}">
+<sc-for list="{{d.blocks}}" as="b" hint-placeholder-count="2">
+<div class="blk" style="{{b.style}}"><b>{{b.title}}</b>{{b.time}}</div>
+</sc-for>
+<sc-if value="{{d.today}}" hint-placeholder-val="{{false}}"><div class="now" style="top: 205px" aria-label="Bây giờ 10:40"></div></sc-if>
+</div>
+</sc-for>
+</div>
+</section>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const H = 56;
+    const tone = {
+      ev: 'background:#E4F3FC;color:#004F80;border:1px solid #9FCFEA;',
+      task: 'background:#E3F4F3;color:#0B5F5F;border:1px solid #A8D8D5;',
+      tq: 'background:#FFF1EC;color:#9A3412;border:1px solid #F3C3AE;',
+      drag: 'background:#006093;color:#fff;border:1px solid #004F80;box-shadow:0 14px 28px rgba(16,42,67,.3);transform:rotate(-1.5deg);z-index:4;',
+      ghost: 'background:transparent;color:#5E6677;border:2px dashed #9AA3B2;'
+    };
+    const B = (start, dur, title, time, kind, extra) => ({ title: title, time: time, style: 'top:' + ((start - 7) * H + 2) + 'px;height:' + (dur * H - 4) + 'px;' + tone[kind] + (extra || '') });
+    const A = (cls, label) => ({ cls: 'ev ' + cls, label: label });
+    const lines = 'position:relative;border-left:1px solid #E7EAF0;height:728px;background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 55px,#EEF0F4 55px,#EEF0F4 56px);';
+    const day = (dn, dd, allday, blocks, today, wknd) => ({
+      dn: dn, dd: dd, allday: allday, blocks: blocks, today: !!today,
+      hcls: 'wg-h' + (today ? ' wg-today' : ''),
+      colStyle: lines + (today ? 'background-color:#F7FBFE;' : wknd ? 'background-color:#FBFBFC;' : '')
+    });
+    const hours = [];
+    for (let h = 7; h <= 19; h++) hours.push((h < 10 ? '0' : '') + h + ':00');
+    const mini = [];
+    const pre = [28, 29, 30];
+    pre.forEach((d) => mini.push({ d: d, cls: 'o' }));
+    for (let d = 1; d <= 31; d++) mini.push({ d: d, cls: d === 29 ? 't' : d >= 26 ? 'wk' : '' });
+    mini.push({ d: 1, cls: 'o wk' });
+    return {
+      hours: hours,
+      mini: mini,
+      days: [
+        day('Thứ 2', '26', [], [B(9, 1, 'Giao ban tuần', '09:00–10:00', 'ev'), B(14, 1.5, 'Khảo sát bổ sung Spa Hoa Sen', '14:00–15:30 · 102 Phan Xích Long', 'ev')]),
+        day('Thứ 3', '27', [A('ev-task', 'Công việc đến hạn: Gửi báo giá v2')], [B(9, 0.5, 'Gửi báo giá v2 – The Lối', '09:00', 'task'), B(13.5, 1.5, 'Gặp KTS Nhà Xinh Decor', '13:30–15:00', 'ev'), B(15.5, 1, 'Thanh Quân · Đo đạc Smile Care', '15:30–16:30', 'tq')]),
+        day('Thứ 4', '28', [A('ev-over', 'Quá Hạn cọc · Hoa Sen Spa')], [B(10, 1.5, 'Họp Bếp Mộc tại công trình', '10:00–11:30 · Q.7', 'ev')]),
+        day('Thứ 5', '29', [], [B(9, 1.5, 'Khảo sát văn phòng An Phát', '09:00–10:30 · Tầng 12, Q.1', 'ev'), B(11, 0.5, 'Gọi lại Smile Care', '11:00', 'task'), B(16, 1, 'Duyệt báo giá nội bộ', '16:00–17:00', 'ev')], true),
+        day('Thứ 6', '30', [], [B(14, 1.5, 'Họp Lumen Tech', '14:00–15:30', 'ev'), B(16, 1.5, 'Xem mẫu vật liệu – The Lối', '16:00–17:30 · đang dời', 'drag')]),
+        day('Thứ 7', '31', [], [B(14, 1.5, 'Xem mẫu vật liệu – The Lối', '14:00–15:30', 'ghost')], false, true),
+        day('Chủ nhật', '01', [], [], false, true)
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Dự báo</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}
+.fc td,.fc th{text-align:right}
+.fc td:first-child,.fc th:first-child{text-align:left}
+.fc .cur{box-shadow:inset 0 0 0 2px #006093;background:#E4F3FC}
+.fc .tot td{font-weight:650;color:#102A43;background:#F7F8FA}
+.tree a{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;color:#172033;font-size:14px}
+.tree a:hover{background:#F7F8FA;text-decoration:none}
+.tree .on{background:#E4F3FC;color:#004F80;font-weight:600}
+</style>
+</helmet>
+<div class="root" style="min-height: 1000px">
+
+<dc-import name="TopNav" app="crm" active="Dự báo" hint-size="100%,104px"></dc-import>
+
+<main class="page">
+<section class="panel">
+<div class="oh" style="padding-bottom: 14px; align-items: center">
+<div class="oh-id">
+<span class="oi oi-fc"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m3 17 6-6 4 4 8-8"></path><path d="M15 7h6v6"></path></svg></span>
+<div>
+<div class="eyebrow">Dự báo <span class="badge b-neutral" style="text-transform: none; letter-spacing: 0">Dữ liệu minh họa</span></div>
+<h1 class="h1">Doanh thu cơ hội · theo giá trị</h1>
+</div>
+</div>
+<div class="tools">
+<span class="in in-sel" style="width: 220px; height: 36px; font-size: 14px" role="combobox" aria-label="Kỳ dự báo" aria-expanded="false" tabindex="0">Quý 4/2026 (T10–T12)<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span>
+<span class="in in-sel" style="width: 200px; height: 36px; font-size: 14px" role="combobox" aria-label="Pipeline" aria-expanded="false" tabindex="0">Pipeline thi công<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span>
+<button type="button" class="btn">Đặt chỉ tiêu</button>
+</div>
+</div>
+</section>
+
+<div class="split">
+<aside class="panel" aria-label="Phân cấp dự báo" style="flex: 0 0 260px; padding: 12px">
+<div style="font: 600 12px Geist, system-ui, sans-serif; color: #5E6677; text-transform: uppercase; letter-spacing: .06em; padding: 4px 10px 8px">Người dùng</div>
+<div class="tree">
+<a href="#" class="on"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg>Cả đội kinh doanh</a>
+<a href="#" style="padding-left: 34px"><span class="av av-a">MA</span>Minh Anh</a>
+<a href="#" style="padding-left: 34px"><span class="av av-b">TQ</span>Thanh Quân</a>
+<a href="#" style="padding-left: 34px"><span class="av av-c">HN</span>Hải Ngân</a>
+</div>
+</aside>
+
+<div style="flex: 999 1 820px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+<section class="panel" aria-label="Bảng dự báo" style="overflow: hidden">
+<div class="tbl-wrap" style="border-top: 0">
+<table class="tbl fc" style="min-width: 900px">
+<thead><tr><th>Tháng</th><th>Chỉ tiêu</th><th>Đã thắng</th><th>Chốt trong kỳ</th><th>Có thể chốt</th><th>Chưa chắc chốt</th><th>% chỉ tiêu</th></tr></thead>
+<tbody>
+<tr><td>Tháng 10/2026</td><td><a href="#">[chưa đặt]</a></td><td>1.200.000.000 ₫</td><td>0 ₫</td><td>0 ₫</td><td>0 ₫</td><td class="muted">—</td></tr>
+<tr><td>Tháng 11/2026</td><td><a href="#">[chưa đặt]</a></td><td>0 ₫</td><td class="cur">3.580.000.000 ₫</td><td>540.000.000 ₫</td><td>6.830.000.000 ₫</td><td class="muted">—</td></tr>
+<tr><td>Tháng 12/2026</td><td><a href="#">[chưa đặt]</a></td><td>0 ₫</td><td>5.450.000.000 ₫</td><td>0 ₫</td><td>0 ₫</td><td class="muted">—</td></tr>
+<tr class="tot"><td>Quý 4/2026</td><td>—</td><td>1.200.000.000 ₫</td><td>9.030.000.000 ₫</td><td>540.000.000 ₫</td><td>6.830.000.000 ₫</td><td>—</td></tr>
+</tbody>
+</table>
+</div>
+<p style="margin: 0; padding: 10px 16px; font-size: 13px; color: #5E6677; border-top: 1px solid #E7EAF0">Mỗi ô là tổng giá trị của các cơ hội có ngày chốt dự kiến trong tháng, chia theo nhóm dự báo. Nhóm “Không tính dự báo” không được cộng. Mỗi loại tiền tệ hiển thị một dòng riêng, không quy đổi. Tên từng nhóm dự báo do tổ chức đặt trong Cấu hình CRM.</p>
+</section>
+
+<section class="panel" aria-label="Cơ hội trong ô đang chọn" style="overflow: hidden">
+<div style="padding: 12px 16px; display: flex; justify-content: space-between; align-items: center">
+<h2 class="sec-h">Cơ hội · Chốt trong kỳ · Tháng 11/2026 <span class="badge b-neutral">2</span></h2>
+<span class="muted" style="font-size: 13px">Sửa nhóm dự báo ngay trong bảng</span>
+</div>
+<div class="tbl-wrap">
+<table class="tbl" style="min-width: 900px">
+<thead><tr><th>Tên cơ hội</th><th>Đối tác</th><th class="r">Giá trị</th><th>Ngày chốt dự kiến</th><th>Giai đoạn</th><th>Người phụ trách</th><th>Nhóm dự báo</th></tr></thead>
+<tbody>
+<tr><td><a href="DealRecord.dc.html">Biệt thự Thảo Điền</a></td><td>Hộ gia đình Lê Minh</td><td class="r">1.900.000.000 ₫</td><td>02/11/2026</td><td>Đã nghiệm thu</td><td>Thanh Quân</td><td><span class="in in-sel" style="height: 32px; width: 160px; font-size: 14px">Chốt trong kỳ<svg class="ic-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></td></tr>
+<tr><td><a href="DealRecord.dc.html">Văn phòng Lumen Tech</a></td><td>Lumen Tech</td><td class="r">1.680.000.000 ₫</td><td>10/11/2026</td><td>Đã duyệt báo giá</td><td>Thanh Quân</td><td><span class="in in-sel" style="height: 32px; width: 160px; font-size: 14px">Chốt trong kỳ<svg class="ic-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></td></tr>
+</tbody>
+</table>
+</div>
+</section>
+</div>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Sửa quy tắc thông báo</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}
+.blk-b{padding:4px 20px 16px;display:flex;flex-direction:column;gap:12px}
+.cnd{display:grid;grid-template-columns:28px minmax(0,1.2fr) minmax(0,1fr) minmax(0,1.4fr) 36px;gap:8px;align-items:center}
+.cnd .in{font-size:14px}
+.cnd-j{font:600 12px Geist,system-ui,sans-serif;color:#5E6677;text-align:center}
+.ch-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #E7EAF0}
+.ch-row:last-child{border-bottom:0}
+.ch-row b{color:#102A43;font-size:14px}
+.ch-row p{margin:2px 0 0;font-size:13px;color:#5E6677}
+.rc-g{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.rc-t{font:500 12px Geist,system-ui,sans-serif;color:#5E6677;width:150px;flex:none}
+.x{border:0;background:none;color:#5E6677;width:20px;height:20px;padding:0;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.lark{border:1px solid #D9DEE8;border-radius:8px;overflow:hidden;background:#fff}
+.lark-h{background:#E4F3FC;padding:10px 14px;font:600 14px Geist,system-ui,sans-serif;color:#004F80}
+.lark-b{padding:10px 14px;font-size:13px;color:#344054;display:grid;grid-template-columns:96px 1fr;gap:4px 8px}
+</style>
+</helmet>
+<div class="root" style="min-height: 1450px">
+<dc-import name="TopNav" app="setup" active="" hint-size="100%,104px"></dc-import>
+<main class="page">
+<div class="split">
+<div style="flex: 0 0 260px"><dc-import name="SetupNav" active="Quy tắc thông báo" hint-size="260px,820px"></dc-import></div>
+<div style="flex: 999 1 900px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+<section class="panel" style="padding: 16px 20px">
+<ol class="crumbs" aria-label="Vị trí"><li><a href="MembersTeams.dc.html">Cài đặt tổ chức</a></li><li><a href="NotificationRules.dc.html">Quy tắc thông báo</a></li><li><span aria-current="page">Hạn cọc cơ hội sắp đến</span></li></ol>
+<div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-top: 8px">
+<div>
+<h1 class="h1">Hạn cọc cơ hội sắp đến</h1>
+<p class="muted" style="margin: 6px 0 0; font-size: 14px">Lumi CRM · <span class="badge b-ok"><span class="dot"></span>Đang bật</span> · sửa lần cuối 27/10/2026 bởi Minh Anh · <span class="badge b-neutral">Dữ liệu minh họa</span></p>
+</div>
+<div style="display: flex; gap: 8px; flex: none"><button type="button" class="btn">Tắt quy tắc</button><button type="button" class="btn">Gửi thử cho tôi</button><button type="button" class="btn btn-primary">Lưu quy tắc</button></div>
+</div>
+</section>
+
+<div class="split">
+<div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+<section class="panel" aria-labelledby="tr-h">
+<div class="oh" style="padding-bottom: 8px"><h2 class="sec-h" id="tr-h">1. Sự kiện kích hoạt</h2></div>
+<div class="blk-b" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+<label class="fld"><span class="fld-l">Module</span><span class="in in-sel" style="font-size: 14px">Lumi CRM<svg class="ic-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></label>
+<label class="fld"><span class="fld-l">Sự kiện</span><span class="in in-sel" style="font-size: 14px">Đến ngày hạn cọc của cơ hội<svg class="ic-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></label>
+</div>
+</section>
+
+<section class="panel" aria-labelledby="cd-h">
+<div class="oh" style="padding-bottom: 8px; align-items: center"><h2 class="sec-h" id="cd-h">2. Điều kiện</h2><div class="seg" role="radiogroup" aria-label="Cách kết hợp điều kiện"><button type="button" class="on">Thỏa mọi điều kiện</button><button type="button">Thỏa một điều kiện</button></div></div>
+<div class="blk-b">
+<sc-for list="{{conds}}" as="c" hint-placeholder-count="3">
+<div class="cnd"><span class="cnd-j">{{c.j}}</span>
+<span class="in in-sel">{{c.f}}<svg class="ic-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span>
+<span class="in in-sel">{{c.op}}<svg class="ic-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span>
+<span class="in in-sel">{{c.v}}</span>
+<button type="button" class="btn btn-ghost icon-btn btn-sm btn-neutral" aria-label="{{c.rm}}"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button></div>
+</sc-for>
+<div><button type="button" class="btn btn-sm">Thêm điều kiện</button></div>
+</div>
+</section>
+
+<section class="panel" aria-labelledby="rm-h">
+<div class="oh" style="padding-bottom: 8px"><h2 class="sec-h" id="rm-h">3. Nhắc trước</h2></div>
+<div class="blk-b">
+<div style="display: flex; gap: 6px; flex-wrap: wrap"><button type="button" class="chip chip-on">7 ngày</button><button type="button" class="chip chip-on">3 ngày</button><button type="button" class="chip chip-on">1 ngày</button><button type="button" class="chip">Trong ngày</button><button type="button" class="chip">Tự nhập số ngày</button></div>
+<label class="fld" style="max-width: 240px"><span class="fld-l">Giờ gửi</span><span class="in in-sel" style="font-size: 14px">08:00<svg class="ic-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></label>
+<p class="muted" style="margin: 0; font-size: 13px">Ngừng nhắc khi cơ hội chuyển sang Thắng hoặc Mất, hoặc khi tiền cọc đã ghi nhận.</p>
+</div>
+</section>
+
+<section class="panel" aria-labelledby="ch-h">
+<div class="oh" style="padding-bottom: 4px"><h2 class="sec-h" id="ch-h">4. Kênh</h2></div>
+<div class="blk-b" style="gap: 0">
+<div class="ch-row"><div><b>Email</b><p>Gửi tới từng người nhận, kèm mã chống lừa đảo riêng của họ. Người nhận đã tắt email cho loại này vẫn nhận trong ứng dụng.</p></div><button type="button" class="tog tog-on" aria-label="Gửi qua Email" aria-pressed="true"></button></div>
+<div class="ch-row"><div><b>Webhook</b><p>Gửi một tin vào kênh chung, không theo từng người.</p></div>
+<div style="display: flex; gap: 8px; align-items: center"><span class="in in-sel" style="width: 260px; font-size: 14px">Lark · Nhóm kinh doanh<svg class="ic-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span><button type="button" class="tog tog-on" aria-label="Gửi qua Webhook" aria-pressed="true"></button></div></div>
+</div>
+</section>
+
+<section class="panel" aria-labelledby="rc-h">
+<div class="oh" style="padding-bottom: 8px; align-items: center"><h2 class="sec-h" id="rc-h">5. Người nhận qua Email</h2><span class="muted" style="font-size: 13px">Hiện tại: 4 người</span></div>
+<div class="blk-b">
+<sc-for list="{{recips}}" as="g" hint-placeholder-count="5">
+<div class="rc-g"><span class="rc-t">{{g.t}}</span><sc-for list="{{g.items}}" as="i" hint-placeholder-count="1"><span class="chip-x">{{i}}<button type="button" class="x" aria-label="Bỏ người nhận"><svg class="ic-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button></span></sc-for><button type="button" class="btn btn-sm btn-ghost">{{g.add}}</button></div>
+</sc-for>
+</div>
+</section>
+</div>
+
+<div style="flex: 1 1 360px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+<section class="panel" aria-labelledby="pv-h" style="overflow: hidden">
+<div class="oh" style="padding-bottom: 8px; align-items: center"><h2 class="sec-h" id="pv-h">Xem trước</h2><div class="seg" role="tablist" aria-label="Kênh xem trước"><button type="button" class="on">Email</button><button type="button">Lark</button></div></div>
+<div style="padding: 0 16px 16px">
+<div class="mail">
+<div class="mail-h"><span>Từ</span><span>Lumi Workspace &lt;thongbao@runlumi.app&gt;</span><span>Tới</span><span>Minh Anh</span><span>Tiêu đề</span><span style="color: #172033; font-weight: 600">Còn 3 ngày đến hạn cọc: Văn phòng Lumen Tech</span></div>
+<div class="apc"><span>Mã chống lừa đảo của bạn</span><b>Mây ••••••</b></div>
+<div style="padding: 0 16px 16px; font-size: 14px; color: #344054; line-height: 1.5">
+<p style="margin: 0 0 8px">Cơ hội <b>Văn phòng Lumen Tech</b> có hạn cọc ngày 01/11/2026.</p>
+<p style="margin: 0 0 8px">Giá trị 2.050.000.000 ₫ · giai đoạn Thương lượng · người phụ trách Minh Anh.</p>
+<a class="btn btn-sm" href="DealRecord.dc.html">Mở cơ hội</a>
+</div>
+</div>
+</div>
+</section>
+<section class="panel" style="overflow: hidden">
+<div class="oh" style="padding-bottom: 8px"><h2 class="sec-h">Tin Lark sẽ gửi</h2></div>
+<div style="padding: 0 16px 16px"><div class="lark"><div class="lark-h">Còn 3 ngày đến hạn cọc</div><div class="lark-b"><span>Cơ hội</span><span>Văn phòng Lumen Tech</span><span>Hạn cọc</span><span>01/11/2026</span><span>Giá trị</span><span>2.050.000.000 ₫</span><span>Phụ trách</span><span>Minh Anh</span></div></div>
+<p class="muted" style="margin: 8px 0 0; font-size: 13px">Tin Webhook không chứa mã chống lừa đảo vì gửi vào kênh chung.</p></div>
+</section>
+<section class="panel" style="padding: 12px 16px; flex: 1">
+<h2 class="sec-h">Sẽ khớp hôm nay</h2>
+<p style="margin: 6px 0 0; font-size: 14px; color: #344054">2 cơ hội: Văn phòng Lumen Tech (còn 3 ngày), Biệt thự Thảo Điền (còn 7 ngày).</p>
+</section>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1450}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var C = function (j, f, op, v) { return { j: j, f: f, op: op, v: v, rm: 'Bỏ điều kiện ' + f }; };
+    return {
+      conds: [
+        C('NẾU', 'Giai đoạn', 'không thuộc', 'Thắng, Mất'),
+        C('VÀ', 'Giá trị', 'lớn hơn hoặc bằng', '500.000.000 ₫'),
+        C('VÀ', 'Tiền cọc đã nhận', 'bằng', 'Chưa nhận')
+      ],
+      recips: [
+        { t: 'Người phụ trách bản ghi', items: ['Người phụ trách cơ hội'], add: 'Thêm' },
+        { t: 'Phòng ban', items: ['Kinh doanh HCM'], add: 'Thêm phòng ban' },
+        { t: 'Nhóm', items: [], add: 'Thêm nhóm' },
+        { t: 'Vai trò', items: ['Quản lý'], add: 'Thêm vai trò' },
+        { t: 'Người dùng', items: ['Hải Ngân'], add: 'Thêm người dùng' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Thông báo</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="root" style="min-height: 1000px">
+<dc-import name="TopNav" app="work" active="" hint-size="100%,104px"></dc-import>
+<main class="page" style="max-width: 1040px">
+<section class="panel">
+<div class="oh" style="align-items: center">
+<div class="oh-id"><span class="oi oi-cal" style="background: #102A43"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4"></path></svg></span>
+<div><div class="eyebrow">Thông báo <span class="badge b-neutral" style="text-transform: none; letter-spacing: 0">Dữ liệu minh họa</span></div><h1 class="h1">4 chưa đọc</h1></div></div>
+<div class="tools"><button type="button" class="btn">Đánh dấu tất cả đã đọc</button><a class="btn" href="SetupNotifications.dc.html">Cài đặt thông báo của tôi</a></div>
+</div>
+<div class="rtabs" role="tablist" style="border-top: 1px solid #E7EAF0"><button type="button" role="tab" aria-selected="true" class="rtab rtab-on">Tất cả</button><button type="button" role="tab" aria-selected="false" class="rtab">Chưa đọc · 4</button><button type="button" role="tab" aria-selected="false" class="rtab">Cần tôi xử lý · 2</button><button type="button" role="tab" aria-selected="false" class="rtab">Bảo mật</button></div>
+<sc-for list="{{items}}" as="n" hint-placeholder-count="6">
+<article class="{{n.cls}}">
+<span class="rl-i" style="{{n.style}}">{{n.letter}}</span>
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px">
+<div style="display: flex; gap: 8px; align-items: baseline; justify-content: space-between"><a href="{{n.href}}" style="font: 600 15px Geist, system-ui, sans-serif">{{n.title}}</a><span class="muted" style="font-size: 12px; white-space: nowrap">{{n.time}}</span></div>
+<span style="font-size: 14px; color: #172033">{{n.body}}</span>
+<span class="ev-src">Bạn nhận vì: {{n.why}}</span>
+</div>
+<sc-if value="{{n.unread}}" hint-placeholder-val="{{false}}"><span class="dot" style="color: #006093; width: 8px; height: 8px; margin-top: 8px" aria-label="Chưa đọc"></span></sc-if>
+</article>
+</sc-for>
+</section>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const N = (letter, color, title, body, why, time, href, unread, rail) => ({ letter: letter, style: 'background:' + color, title: title, body: body, why: why, time: time, href: href, unread: !!unread, cls: 'item' + (rail ? ' ' + rail : '') + (unread ? '' : '') });
+    return {
+      items: [
+        N('C', '#0F7B7B', 'Lead quá 24 giờ chưa liên hệ: Chị Hà · Hà Boutique', 'Lead vào lúc 07:10 hôm qua từ Google Maps, đang ở hàng chờ “Hàng chờ chung”.', 'quy tắc “Lead quá 24 giờ” gửi nhóm Kinh doanh HCM', '09:12', 'LeadRecord.dc.html', true, 'rail-warn'),
+        N('A', '#5B4FC4', 'Yêu cầu duyệt chờ bạn: Giảm giá 8% báo giá v2', 'Minh Anh gửi lúc 10:15 hôm qua. Chờ 23 giờ.', 'bạn là người duyệt bước 1', '08:40', 'Approvals.dc.html', true),
+        N('V', '#006093', 'Công việc quá hạn 1 ngày: Gửi biên bản nghiệm thu cho anh Minh', 'Dự án Biệt thự Thảo Điền · Hạn 28/10.', 'bạn phụ trách công việc này', '08:00', 'TaskRecord.dc.html', true, 'rail-warn'),
+        N('S', '#C2410C', 'Passkey mới được thêm vào tài khoản', 'iPhone của Minh Anh · TP.HCM · 07:52. Nếu không phải bạn, thu hồi passkey này.', 'thông báo bảo mật bắt buộc', '07:52', 'SetupSecurity.dc.html', true, 'rail-danger'),
+        N('T', '#102A43', 'CEO Brief hôm nay đã có', '2 quyết định chờ bạn, 1 rủi ro mức cao.', 'bạn là chủ sở hữu tổ chức', '06:30', 'Brief.dc.html'),
+        N('K', '#5B4FC4', 'Hải Ngân nhắc bạn trong #thi-cong', '“@Minh Anh Bếp Mộc xin dời nghiệm thu sang thứ 6.”', 'bạn được nhắc tên', 'Hôm qua 17:40', 'Messages.dc.html')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

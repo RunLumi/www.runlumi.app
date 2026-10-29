@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Công việcs</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}
+.ti{display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid #E7EAF0;align-items:flex-start}
+.ti-on{background:#E4F3FC;box-shadow:inset 3px 0 0 #006093}
+.grp{font:600 12px Geist,system-ui,sans-serif;color:#5E6677;text-transform:uppercase;letter-spacing:.06em;padding:10px 14px 6px;background:#F7F8FA;border-bottom:1px solid #E7EAF0}
+</style>
+</helmet>
+<div class="root" style="min-height: 1000px">
+
+<dc-import name="TopNav" app="crm" active="Công việc" hint-size="100%,104px"></dc-import>
+
+<main class="page">
+<div class="split" style="align-items: stretch">
+<section class="panel" aria-label="Danh sách công việc" style="flex: 0 1 420px; min-width: 0; overflow: hidden">
+<div class="oh" style="padding-bottom: 12px">
+<div class="oh-id">
+<span class="oi oi-task"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"></rect><path d="m8 12 3 3 5-6"></path></svg></span>
+<div>
+<div class="eyebrow">Công việc CRM</div>
+<h1 class="h1" style="font-size: 20px">Việc của tôi <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></h1>
+</div>
+</div>
+<button type="button" class="btn">Tạo công việc</button>
+</div>
+<div class="lv-meta" style="padding-bottom: 10px"><p>9 mục · Sắp xếp theo hạn</p>
+<div class="tools"><button type="button" class="btn icon-btn btn-sm" aria-label="bộ lọc"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 4h18l-7 8v6l-4 2v-8z"></path></svg></button></div></div>
+<sc-for list="{{groups}}" as="g" hint-placeholder-count="3">
+<div class="grp">{{g.name}} · {{g.count}}</div>
+<sc-for list="{{g.items}}" as="t" hint-placeholder-count="3">
+<div class="{{t.cls}}">
+<input type="checkbox" class="cb" aria-label="Hoàn tất {{t.subj}}" style="margin-top: 2px">
+<div style="min-width: 0; flex: 1">
+<a href="#" style="font: 500 14px/1.3 Geist, system-ui, sans-serif">{{t.subj}}</a>
+<div class="muted" style="font-size: 13px; margin-top: 2px">{{t.rel}}</div>
+</div>
+<span class="{{t.dueCls}}">{{t.due}}</span>
+</div>
+</sc-for>
+</sc-for>
+</section>
+
+<section class="panel" aria-label="Chi tiết công việc" style="flex: 999 1 640px; min-width: 0">
+<div class="oh" style="padding-bottom: 14px">
+<div class="oh-id">
+<span class="oi oi-task"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"></rect><path d="m8 12 3 3 5-6"></path></svg></span>
+<div>
+<div class="eyebrow">Công việc <span class="badge b-warn" style="text-transform: none; letter-spacing: 0"><span class="dot"></span>Quá hạn 1 ngày</span></div>
+<h2 class="h1">Gửi biên bản nghiệm thu cho anh Minh</h2>
+</div>
+</div>
+<div class="bg"><button type="button" class="btn">Đánh dấu hoàn tất</button><button type="button" class="btn">Sửa</button><button type="button" class="btn">Tạo công việc tiếp theo</button><button type="button" class="btn icon-btn" aria-label="Thêm hành động"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></div>
+</div>
+<div style="padding: 0 20px 20px">
+<div class="rgrid">
+<div class="f"><div><span class="f-l">Chủ đề</span><span class="f-v">Gửi biên bản nghiệm thu cho anh Minh</span></div><button type="button" class="pen" aria-label="Sửa chủ đề"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"></path></svg></button></div>
+<div class="f"><div><span class="f-l">Hạn</span><span class="f-v" style="color: #9A5B00">28/10/2026</span></div><button type="button" class="pen" aria-label="Sửa hạn"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"></path></svg></button></div>
+<div class="f"><div><span class="f-l">Trạng thái</span><span class="f-v">Chưa bắt đầu</span></div></div>
+<div class="f"><div><span class="f-l">Ưu tiên</span><span class="f-v">Cao</span></div></div>
+<div class="f"><div><span class="f-l">Liên quan đến</span><a class="f-v" href="DealRecord.dc.html">Biệt thự Thảo Điền</a></div></div>
+<div class="f"><div><span class="f-l">Liên hệ</span><a class="f-v" href="#">Anh Lê Minh</a></div></div>
+<div class="f"><div><span class="f-l">Người phụ trách</span><span class="f-v">Thanh Quân</span></div></div>
+<div class="f"><div><span class="f-l">Nhắc nhở</span><span class="f-v">28/10/2026 08:00</span></div></div>
+</div>
+<div class="f" style="display: block"><span class="f-l">Ghi chú</span><span class="f-v" style="font-weight: 400">Kèm ảnh hiện trạng phòng khách và danh sách hạng mục còn sửa (2 mục).</span></div>
+</div>
+</section>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const T = (subj, rel, due, tone, on) => ({ subj: subj, rel: rel, due: due, cls: on ? 'ti ti-on' : 'ti', dueCls: tone === 'warn' ? 'badge b-warn' : tone === 'today' ? 'badge b-info' : 'muted' });
+    return {
+      groups: [
+        { name: 'Quá hạn', count: 2, items: [
+          T('Gửi biên bản nghiệm thu cho anh Minh', 'Biệt thự Thảo Điền', '28/10', 'warn', true),
+          T('Nhắc cọc Hoa Sen Spa', 'Spa Hoa Sen – Phú Nhuận', '27/10', 'warn')
+        ] },
+        { name: 'Hôm nay', count: 2, items: [
+          T('Gọi lại Smile Care', 'Phòng khám nha Smile Care', 'Hôm nay', 'today'),
+          T('Chuẩn bị bản vẽ An Phát', 'Văn phòng tầng 12 – Q.1', 'Hôm nay', 'today')
+        ] },
+        { name: 'Sắp tới', count: 5, items: [
+          T('Báo giá Nhà Xinh Decor', 'Showroom nội thất Thảo Điền', '06/11'),
+          T('Gửi hồ sơ hoàn công', 'Biệt thự Thảo Điền', '03/11'),
+          T('Xác nhận lịch đo đạc', 'Nhà phố Thủ Đức', '12/11'),
+          T('Cập nhật dự báo T12', 'Dự báo', '25/11'),
+          T('Hỏi thăm sau nghiệm thu', 'Nhà hàng Bếp Mộc – Q.7', '20/12')
+        ] }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

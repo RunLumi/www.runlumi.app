@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Xác thực lại</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="root" style="width: 1440px; height: 760px; position: relative; overflow: hidden">
+<dc-import name="TopNav" app="crm" active="Cơ hội" hint-size="100%,104px"></dc-import>
+<main class="page" aria-hidden="true">
+<section class="panel" style="padding: 16px 20px; display: flex; justify-content: space-between; align-items: center">
+<div><div class="eyebrow">Cơ hội</div><div class="h1">Đang mở · Pipeline thi công</div></div>
+<div class="bg"><span class="btn">Tạo</span><span class="btn">Nhập</span><span class="btn btn-on">Xuất CSV</span></div>
+</section>
+<section class="panel" style="height: 420px"></section>
+</main>
+<div class="scrim" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center">
+<section class="dlg" role="dialog" aria-labelledby="su-h" style="width: 480px">
+<div class="dlg-h" id="su-h">Xác thực lại để xuất dữ liệu</div>
+<div class="dlg-b">
+<p style="margin: 0; font-size: 15px; line-height: 1.55">Xuất 11 cơ hội ra file CSV là thao tác nhạy cảm. Lần xác thực passkey gần nhất của bạn là 32 phút trước, quá giới hạn 5 phút.</p>
+<div class="kpi-card" style="flex-direction: row; gap: 10px; align-items: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#006093" stroke-width="2" aria-hidden="true"><path d="M8 11V8a4 4 0 0 1 8 0v3M6 11h12v9H6z"></path></svg><span style="font-size: 14px">Dùng passkey <b>MacBook của Minh Anh</b> hoặc một passkey khác của bạn.</span></div>
+<p class="muted" style="margin: 0; font-size: 13px">Lần xác thực này có hiệu lực 5 phút cho mọi thao tác nhạy cảm. Lần thử thất bại được ghi vào nhật ký kiểm toán.</p>
+</div>
+<div class="dlg-f"><button type="button" class="btn">Hủy</button><button type="button" class="btn btn-primary">Xác thực bằng passkey</button></div>
+</section>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":760}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Tài khoản · Hồ sơ</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}
+.pf-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 20px;padding:4px 20px 18px}
+.av-lg{width:72px;height:72px;border-radius:36px;background:#006093;color:#fff;display:flex;align-items:center;justify-content:center;font:600 26px Geist,system-ui,sans-serif;flex:none}
+</style>
+</helmet>
+<div class="root" style="min-height: 1000px">
+<dc-import name="TopNav" app="account" active="Hồ sơ" hint-size="100%,104px"></dc-import>
+<main class="page">
+<div style="display: flex; flex-direction: column; gap: 12px">
+<section class="panel" style="padding: 16px 20px">
+<ol class="crumbs" aria-label="Vị trí"><li><a href="AccountProfile.dc.html">Tài khoản của tôi</a></li><li><span aria-current="page">Hồ sơ</span></li></ol>
+<div style="display: flex; gap: 16px; align-items: center; margin-top: 12px">
+<span class="av-lg" aria-hidden="true">MA</span>
+<div style="flex: 1; min-width: 0">
+<h1 class="h1">Nguyễn Minh Anh <span class="badge b-neutral" style="vertical-align: middle">Dữ liệu minh họa</span></h1>
+<p class="muted" style="margin: 4px 0 0; font-size: 14px">minhanh@mocgia.vn · Admin · Tổ chức Mộc Gia · thành viên từ 03/2026</p>
+</div>
+<button type="button" class="btn">Đổi ảnh đại diện</button>
+</div>
+</section>
+
+<div class="split">
+<section class="panel" aria-labelledby="pi-h" style="flex: 999 1 640px; overflow: hidden">
+<div class="oh" style="padding-bottom: 6px; align-items: center"><h2 class="sec-h" id="pi-h">Thông tin cá nhân</h2><button type="button" class="btn btn-primary">Lưu thay đổi</button></div>
+<div class="pf-grid">
+<label class="fld"><span class="fld-l">Họ và tên</span><input class="in" value="Nguyễn Minh Anh"></label>
+<label class="fld"><span class="fld-l">Tên hiển thị</span><input class="in" value="Minh Anh"></label>
+<label class="fld"><span class="fld-l">Chức danh</span><input class="in" value="Trưởng phòng kinh doanh"></label>
+<label class="fld"><span class="fld-l">Số điện thoại</span><input class="in" value="[chưa chốt]"></label>
+<label class="fld"><span class="fld-l">Email công việc</span><input class="in" value="minhanh@mocgia.vn" disabled><span class="muted" style="font-size: 12px">Admin đổi email trong Cài đặt tổ chức › Thành viên và nhóm.</span></label>
+<label class="fld"><span class="fld-l">Phòng ban</span><input class="in" value="Kinh doanh HCM" disabled><span class="muted" style="font-size: 12px">Do admin gán. Quy tắc thông báo theo phòng ban dùng giá trị này.</span></label>
+</div>
+</section>
+
+<section class="panel" aria-labelledby="pr-h" style="flex: 1 1 380px; overflow: hidden">
+<div class="oh" style="padding-bottom: 6px"><h2 class="sec-h" id="pr-h">Ngôn ngữ và khu vực</h2></div>
+<div style="padding: 4px 20px 18px; display: flex; flex-direction: column; gap: 14px">
+<label class="fld"><span class="fld-l">Ngôn ngữ</span><span class="in in-sel">Tiếng Việt<svg class="ic-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></label>
+<label class="fld"><span class="fld-l">Múi giờ</span><span class="in in-sel">(GMT+7) Hồ Chí Minh<svg class="ic-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></label>
+<label class="fld"><span class="fld-l">Định dạng ngày</span><span class="in in-sel">29/10/2026<svg class="ic-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></label>
+<label class="fld"><span class="fld-l">Tuần bắt đầu từ</span><span class="in in-sel">Thứ Hai<svg class="ic-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span></label>
+</div>
+</section>
+</div>
+
+<section class="panel" aria-labelledby="ac-h" style="overflow: hidden">
+<div class="oh" style="padding-bottom: 6px"><h2 class="sec-h" id="ac-h">Thiết lập khác của tài khoản</h2></div>
+<div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding: 4px 20px 18px">
+<a class="kpi-card" href="SetupSecurity.dc.html" style="text-decoration: none"><b style="color: #102A43">Bảo mật</b><span style="font-size: 14px; color: #344054">3 passkey · mã chống lừa đảo · 3 phiên đăng nhập · 2 AI agent</span></a>
+<a class="kpi-card" href="SetupNotifications.dc.html" style="text-decoration: none"><b style="color: #102A43">Thông báo</b><span style="font-size: 14px; color: #344054">Kênh nhận, giờ yên lặng và bản tin tổng hợp của riêng bạn</span></a>
+<div class="kpi-card"><b style="color: #102A43">Rời tổ chức</b><span style="font-size: 14px; color: #344054">Chỉ admin xóa được tài khoản khỏi Mộc Gia. Liên hệ admin của tổ chức.</span></div>
+</div>
+</section>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

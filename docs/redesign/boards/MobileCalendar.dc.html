@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Lịch trên điện thoại</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}
+.mtb{width:44px;height:44px;border:0;background:none;color:#102A43;display:inline-flex;align-items:center;justify-content:center;padding:0;border-radius:8px}
+.wd{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 0;border:0;background:none;border-radius:10px;min-height:64px;cursor:pointer}
+.wd-n{font:500 12px Geist,system-ui,sans-serif;color:#5E6677}
+.wd-d{font:650 17px/32px Geist,system-ui,sans-serif;color:#102A43;width:32px;height:32px;border-radius:16px;text-align:center}
+.wd-on .wd-d{background:#006093;color:#fff}
+.wd-dots{display:flex;gap:3px;height:6px}
+.wd-dots i{width:6px;height:6px;border-radius:3px;display:block}
+.ag{display:flex;gap:12px;padding:12px 16px;background:#fff;border-bottom:1px solid #E7EAF0}
+.ag-t{width:52px;flex:none;font:600 13px/1.3 Geist,system-ui,sans-serif;color:#102A43;text-align:right}
+.ag-t span{display:block;font-weight:400;color:#5E6677}
+.ag-bar{width:4px;border-radius:2px;flex:none}
+</style>
+</helmet>
+<div class="root" style="width: 390px; height: 844px; display: flex; flex-direction: column; overflow: hidden; position: relative">
+<header style="background: #fff; border-bottom: 1px solid #D9DEE8; padding: 4px 4px 6px">
+<div style="display: flex; align-items: center; gap: 2px">
+<button type="button" class="mtb" aria-label="Menu"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"></path></svg></button>
+<div style="flex: 1; font: 650 18px Geist, system-ui, sans-serif; color: #102A43">Tháng 10, 2026</div>
+<button type="button" class="mtb" aria-label="Hôm nay" style="width: auto; padding: 0 10px; font: 500 14px Geist, system-ui, sans-serif; color: #006093">Hôm nay</button>
+<button type="button" class="mtb" aria-label="Chọn Lịch hiển thị"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 4h18l-7 8v6l-4 2v-8z"></path></svg></button>
+</div>
+<div style="display: flex; padding: 4px 8px 0" role="tablist" aria-label="Ngày trong tuần">
+<sc-for list="{{week}}" as="w" hint-placeholder-count="7">
+<button type="button" role="tab" class="{{w.cls}}" aria-selected="{{w.sel}}"><span class="wd-n">{{w.n}}</span><span class="wd-d">{{w.d}}</span><span class="wd-dots"><sc-for list="{{w.dots}}" as="c" hint-placeholder-count="1"><i style="{{c}}"></i></sc-for></span></button>
+</sc-for>
+</div>
+</header>
+
+<div style="padding: 12px 16px 6px; font: 600 13px Geist, system-ui, sans-serif; color: #5E6677; text-transform: uppercase; letter-spacing: .06em">Thứ 5, 29/10 · Hôm nay</div>
+<div style="flex: 1; overflow: hidden">
+<sc-for list="{{items}}" as="a" hint-placeholder-count="4">
+<a class="ag" href="{{a.href}}" style="color: inherit; text-decoration: none">
+<div class="ag-t">{{a.t}}<span>{{a.e}}</span></div>
+<div class="ag-bar" style="{{a.bar}}"></div>
+<div style="min-width: 0; flex: 1"><div style="font: 600 15px/1.3 Geist, system-ui, sans-serif; color: #102A43">{{a.title}}</div><div class="muted" style="font-size: 13px; margin-top: 2px">{{a.sub}}</div></div>
+</a>
+</sc-for>
+<div style="padding: 14px 16px 6px; font: 600 13px Geist, system-ui, sans-serif; color: #5E6677; text-transform: uppercase; letter-spacing: .06em">Thứ 6, 30/10</div>
+<a class="ag" href="#" style="color: inherit; text-decoration: none"><div class="ag-t">14:00<span>15:30</span></div><div class="ag-bar" style="background: #006093"></div><div><div style="font: 600 15px/1.3 Geist, system-ui, sans-serif; color: #102A43">Họp Lumen Tech</div><div class="muted" style="font-size: 13px">Cơ hội: Văn phòng Lumen Tech</div></div></a>
+</div>
+
+<a href="NewEvent.dc.html" aria-label="Tạo lịch hẹn" style="position: absolute; right: 20px; bottom: 28px; width: 56px; height: 56px; border-radius: 28px; background: #006093; color: #fff; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 24px rgba(16,42,67,.3)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></a>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const C = { ev: 'background:#006093', deal: 'background:#102A43', dep: 'background:#F4A62A', over: 'background:#C2410C', task: 'background:#0F7B7B' };
+    const W = (n, d, dots, on) => ({ n: n, d: d, dots: dots.map((k) => C[k]), cls: on ? 'wd wd-on' : 'wd', sel: on ? 'true' : 'false' });
+    const A = (t, e, kind, title, sub, href) => ({ t: t, e: e, bar: C[kind], title: title, sub: sub, href: href || '#' });
+    return {
+      week: [W('T2', 26, ['ev', 'ev']), W('T3', 27, ['task', 'ev']), W('T4', 28, ['over', 'ev']), W('T5', 29, ['ev', 'task', 'ev'], true), W('T6', 30, ['ev']), W('T7', 31, ['ev']), W('CN', 1, [])],
+      items: [
+        A('Cả ngày', '', 'task', 'Gọi lại Smile Care', 'công việc · cơ hội: Phòng khám nha Smile Care'),
+        A('09:00', '10:30', 'ev', 'Khảo sát văn phòng An Phát', 'Tầng 12, Q.1 · cơ hội: Văn phòng tầng 12 – Q.1'),
+        A('16:00', '17:00', 'ev', 'Duyệt báo giá nội bộ', 'Văn phòng'),
+        A('Quá hạn', '28/10', 'over', 'Quá Hạn cọc · Hoa Sen Spa', 'Cơ hội: Spa Hoa Sen – Phú Nhuận', 'DealRecord.dc.html')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

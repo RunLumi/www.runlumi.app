@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Đăng nhập trên điện thoại</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="root" style="width: 390px; height: 844px; display: flex; flex-direction: column; background: #F4F0E8; position: relative; overflow: hidden">
+<div style="padding: 72px 24px 0; display: flex; flex-direction: column; gap: 18px">
+<span class="gh-brand"><span class="gh-logo" aria-hidden="true">L</span>Lumi Workspace</span>
+<h1 class="auth-h">Đăng nhập</h1>
+<p style="margin: 0; font-size: 16px; line-height: 1.5; color: #344054">Mở bằng Face ID. Lumi Workspace không dùng mật khẩu.</p>
+<label class="fld"><span class="fld-l">Email công việc</span><input class="in" type="email" value="minhanh@mocgia.vn"></label>
+<button type="button" class="btn btn-primary btn-lg btn-block" style="height: 52px">Đăng nhập bằng passkey</button>
+<a href="Recovery.dc.html" style="font-size: 15px; text-align: center; padding: 12px 0">Mất thiết bị có passkey?</a>
+</div>
+<div role="dialog" aria-label="Hộp thoại passkey của iOS (minh họa)" style="position: absolute; left: 0; right: 0; bottom: 0; background: #fff; border-radius: 18px 18px 0 0; box-shadow: 0 -12px 32px rgba(16,42,67,.2); padding: 18px 20px 34px; display: flex; flex-direction: column; gap: 12px; align-items: center; text-align: center">
+<div style="width: 40px; height: 4px; border-radius: 2px; background: #C8D0DE"></div>
+<span class="badge b-neutral">Minh họa: hộp thoại của iOS</span>
+<b style="font-size: 17px; color: #102A43">Đăng nhập vào “runlumi.app”?</b>
+<span style="font-size: 14px; color: #344054">Passkey cho minhanh@mocgia.vn</span>
+<span style="width: 56px; height: 56px; border-radius: 14px; background: #E4F3FC; color: #006093; display: flex; align-items: center; justify-content: center"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M9 10v1M15 10v1M12 10v4h-1M9 16c1.7 1 4.3 1 6 0"></path></svg></span>
+<button type="button" class="btn btn-primary btn-lg btn-block" style="height: 50px">Tiếp tục với Face ID</button>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

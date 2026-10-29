@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Vai trò &amp; Phân quyền</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}
+.rm th.c{width:150px}
+.rm th.c span{display:block;font:400 12px Geist,system-ui,sans-serif;text-transform:none;letter-spacing:0;color:#5E6677;margin-top:3px}
+.rm .grp td{background:#F7F8FA;font:600 12px Geist,system-ui,sans-serif;text-transform:uppercase;letter-spacing:.06em;color:#5E6677;padding:8px 10px}
+.y{color:#1F7A4D;font-weight:600}
+.n{color:#9AA3B2}
+.p{color:#9A5B00}
+</style>
+</helmet>
+<div class="root" style="min-height: 1500px">
+<dc-import name="TopNav" app="setup" active="" hint-size="100%,104px"></dc-import>
+<main class="page">
+<div class="split">
+<div style="flex: 0 0 260px"><dc-import name="SetupNav" active="Vai trò &amp; Phân quyền" hint-size="260px,820px"></dc-import></div>
+<div style="flex: 999 1 900px; min-width: 0; display: flex; flex-direction: column; gap: 12px">
+<section class="panel">
+<div class="oh" style="align-items: flex-start">
+<div>
+<ol class="crumbs" aria-label="Vị trí"><li><a href="MembersTeams.dc.html">Cài đặt tổ chức</a></li><li><span aria-current="page">Vai trò &amp; Phân quyền</span></li></ol>
+<h1 class="h1" style="margin-top: 6px">Vai trò &amp; Phân quyền <span class="badge b-neutral" style="vertical-align: middle">Dữ liệu minh họa</span></h1>
+<p class="muted" style="margin: 4px 0 0; font-size: 13px">Mỗi thành viên có một vai trò. Quyền của AI agent không bao giờ vượt quyền của người kết nối nó. Đổi quyền của vai trò hoặc đổi vai trò của ai đó đều phải xác thực lại.</p>
+</div>
+<div style="display: flex; gap: 8px; flex: none"><button type="button" class="btn">Sao chép vai trò</button><button type="button" class="btn btn-primary">Tạo vai trò</button></div>
+</div>
+</section>
+
+<section class="panel rail-danger" style="padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; gap: 16px">
+<span style="font-size: 14px; color: #344054"><span class="badge b-danger"><span class="dot"></span>Cần xử lý</span> Vai trò Admin chỉ có 1 người. Khôi phục tài khoản cần 2 admin duyệt.</span>
+<a class="btn" href="MembersTeams.dc.html" style="flex: none">Chọn admin thứ hai</a>
+</section>
+
+<section class="panel" aria-labelledby="mx-h" style="overflow: hidden">
+<div class="oh" style="padding-bottom: 10px; align-items: center"><h2 class="sec-h" id="mx-h">Quyền theo vai trò</h2>
+<div style="display: flex; gap: 12px; font-size: 13px; color: #5E6677"><span><b class="y">Có</b> được phép</span><span><b class="p">Của mình</b> chỉ bản ghi mình phụ trách hoặc được giao</span><span><b class="n">Không</b></span></div></div>
+<table class="mx rm"><thead><tr><th>Quyền</th>
+<sc-for list="{{roles}}" as="r" hint-placeholder-count="4"><th class="c">{{r.name}}<span>{{r.count}}</span></th></sc-for>
+</tr></thead>
+<tbody>
+<sc-for list="{{groups}}" as="g" hint-placeholder-count="5">
+<tr class="grp"><td colspan="5">{{g.name}}</td></tr>
+<sc-for list="{{g.caps}}" as="c" hint-placeholder-count="3">
+<tr><td>{{c.name}}</td><sc-for list="{{c.vals}}" as="v" hint-placeholder-count="4"><td class="c"><span class="{{v.cls}}">{{v.t}}</span></td></sc-for></tr>
+</sc-for>
+</sc-for>
+</tbody></table>
+<p class="muted" style="margin: 0; padding: 10px 20px 14px; font-size: 13px">Vai trò Admin không sửa được và luôn có đủ quyền. Thao tác gắn dấu * phải xác thực lại bằng passkey dù vai trò cho phép.</p>
+</section>
+</div>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1500}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var V = function (t) { return { t: t, cls: t === 'Có' ? 'y' : t === 'Không' ? 'n' : 'p' }; };
+    var C = function (name, a, b, c, d) { return { name: name, vals: [V(a), V(b), V(c), V(d)] }; };
+    return {
+      roles: [
+        { name: 'Admin', count: '1 người' },
+        { name: 'Quản lý', count: '1 người' },
+        { name: 'Thành viên', count: '6 người' },
+        { name: 'Chỉ xem', count: '0 người' }
+      ],
+      groups: [
+        { name: 'Công việc', caps: [
+          C('Xem dự án và công việc', 'Có', 'Có', 'Có', 'Có'),
+          C('Tạo và sửa công việc', 'Có', 'Có', 'Của mình', 'Không'),
+          C('Xóa công việc *', 'Có', 'Có', 'Của mình', 'Không'),
+          C('Duyệt chấm công', 'Có', 'Có', 'Không', 'Không')
+        ] },
+        { name: 'Lumi CRM', caps: [
+          C('Xem Lead và cơ hội', 'Có', 'Có', 'Của mình', 'Có'),
+          C('Sửa Lead và cơ hội', 'Có', 'Có', 'Của mình', 'Không'),
+          C('Duyệt báo giá và giảm giá', 'Có', 'Có', 'Không', 'Không'),
+          C('Xuất dữ liệu *', 'Có', 'Có', 'Không', 'Không')
+        ] },
+        { name: 'Thông minh', caps: [
+          C('Xem CEO Brief', 'Có', 'Có', 'Không', 'Không'),
+          C('Xem cam kết, rủi ro, quyết định', 'Có', 'Có', 'Của mình', 'Có'),
+          C('Nhập liệu', 'Có', 'Có', 'Có', 'Không')
+        ] },
+        { name: 'Kết nối và Thư', caps: [
+          C('Đăng lên Hub công ty', 'Có', 'Có', 'Có', 'Không'),
+          C('Gửi email từ hộp thư chung', 'Có', 'Có', 'Không', 'Không')
+        ] },
+        { name: 'Cài đặt tổ chức', caps: [
+          C('Thêm và tạm khóa thành viên', 'Có', 'Không', 'Không', 'Không'),
+          C('Đổi vai trò *', 'Có', 'Không', 'Không', 'Không'),
+          C('Sửa chính sách bảo mật *', 'Có', 'Không', 'Không', 'Không'),
+          C('Đặt chính sách AI agent', 'Có', 'Không', 'Không', 'Không'),
+          C('Quản lý quy tắc thông báo và Webhook', 'Có', 'Có', 'Không', 'Không'),
+          C('Duyệt khôi phục tài khoản', 'Có', 'Không', 'Không', 'Không'),
+          C('Xem Nhật ký kiểm toán', 'Có', 'Không', 'Không', 'Không'),
+          C('Xem gói và thanh toán', 'Có', 'Không', 'Không', 'Không')
+        ] }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

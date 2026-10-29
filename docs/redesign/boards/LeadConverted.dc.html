@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Lead chuyển đổied</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}
+.rc{border:1px solid #D9DEE8;border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:8px;min-width:0;background:#fff}
+.rc-h{display:flex;gap:8px;align-items:center;font:600 12px Geist,system-ui,sans-serif;color:#5E6677;text-transform:uppercase;letter-spacing:.06em}
+.rc-t{font:600 16px/1.3 Geist,system-ui,sans-serif}
+.new{box-shadow:0 0 0 3px rgba(0,96,147,.35);border-color:#006093}
+</style>
+</helmet>
+<div class="root" style="width: 1440px; height: 820px; display: grid; grid-template-columns: minmax(0, 1fr) 420px">
+
+<div class="scrim" style="display: flex; align-items: center; justify-content: center; padding: 24px">
+<section class="dlg" role="dialog" aria-labelledby="ok-t" style="width: 900px">
+<div class="dlg-h" id="ok-t" style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 24px">
+<span style="width: 48px; height: 48px; border-radius: 24px; background: #E9F7EF; color: #1F7A4D; display: flex; align-items: center; justify-content: center"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="m5 12 5 5 9-10"></path></svg></span>
+Đã Chuyển Lead thành cơ hội
+<span style="font: 400 14px Geist, system-ui, sans-serif; color: #5E6677">Chị Ngọc · Salon Ngọc Hair · trạng thái Lead: Đã thành cơ hội</span>
+</div>
+<div class="dlg-b" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+<div class="rc">
+<div class="rc-h"><span class="rl-i" style="background: #5B4FC4">A</span>Đối tác · dùng bản ghi có sẵn</div>
+<a class="rc-t" href="AccountRecord.dc.html">Ngọc Hair</a>
+<div class="rl-f" style="font-size: 13px"><span>Điện thoại</span><span>[số điện thoại]</span></div>
+<div class="rl-f" style="font-size: 13px"><span>Người phụ trách</span><span>Hải Ngân</span></div>
+</div>
+<div class="rc">
+<div class="rc-h"><span class="rl-i" style="background: #0F7B7B">C</span>Liên hệ · dùng bản ghi có sẵn</div>
+<a class="rc-t" href="Contacts.dc.html">Ngọc</a>
+<div class="rl-f" style="font-size: 13px"><span>Chức danh</span><span>Chủ salon</span></div>
+<div class="rl-f" style="font-size: 13px"><span>Nguồn Lead</span><span>Zalo OA</span></div>
+</div>
+<div class="rc new">
+<div class="rc-h" style="color: #006093"><span class="rl-i" style="background: #006093">O</span>Cơ hội · tạo mới</div>
+<a class="rc-t" href="DealRecord.dc.html">Salon Ngọc Hair – cải tạo 80 m²</a>
+<div class="rl-f" style="font-size: 13px"><span>Giai đoạn</span><span>Đã hẹn khảo sát · xác suất 10%</span></div>
+<div class="rl-f" style="font-size: 13px"><span>Giá trị</span><span>350.000.000 ₫</span></div>
+</div>
+</div>
+<div class="dlg-f" style="justify-content: space-between">
+<a class="btn" href="Leads.dc.html">Về Leads</a>
+<div style="display: flex; gap: 8px"><a class="btn" href="Main.dc.html">Xem trên Kanban</a><a class="btn btn-primary" href="DealRecord.dc.html">Mở cơ hội</a></div>
+</div>
+</section>
+</div>
+
+<aside aria-label="Cơ hội Kanban sau khi chuyển đổi" style="background: #F4F0E8; border-left: 1px solid #D9DEE8; padding: 24px 20px; display: flex; flex-direction: column; gap: 10px">
+<div class="eyebrow">Cơ hội · Kanban</div>
+<p style="margin: 0; font-size: 14px; color: #172033">Cơ hội vừa tạo nằm ở giai đoạn đầu tiên của Pipeline. Thẻ có nhãn “Từ Lead” trong 7 ngày đầu.</p>
+<div class="col">
+<div class="chev chev-first"><span class="chev-name">Đã hẹn khảo sát (4)</span></div>
+<div class="col-sum"><b>2.980.000.000 ₫</b><span>Xác suất 10%</span></div>
+<div class="lane" style="min-height: 0">
+<article class="kc new">
+<div class="kc-top"><a class="kc-title" href="DealRecord.dc.html">Salon Ngọc Hair – cải tạo 80 m²</a></div>
+<dl class="kc-f"><dt>Đối tác</dt><dd>Ngọc Hair</dd><dt>Giá trị</dt><dd style="font-weight: 600">350.000.000 ₫</dd><dt>Ngày chốt dự kiến</dt><dd>[chưa đặt]</dd></dl>
+<div class="kc-foot"><span class="av">MA</span><span class="badge b-info"><span class="dot"></span>Từ Lead · nguồn Lead: Zalo OA</span></div>
+</article>
+<article class="kc"><div class="kc-top"><span class="kc-title" style="color: #006093">Văn phòng tầng 12 – Q.1</span></div><dl class="kc-f"><dt>Giá trị</dt><dd>860.000.000 ₫</dd></dl></article>
+<article class="kc"><div class="kc-top"><span class="kc-title" style="color: #006093">Showroom nội thất Thảo Điền</span></div><dl class="kc-f"><dt>Giá trị</dt><dd>1.450.000.000 ₫</dd></dl></article>
+</div>
+</div>
+</aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":820}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

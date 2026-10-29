@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Danh sách Lead</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="root" style="min-height: 1000px">
+
+<dc-import name="TopNav" app="crm" active="Lead" hint-size="100%,104px"></dc-import>
+
+<main class="page">
+<section class="panel" aria-label="Danh sách Lead" style="overflow: hidden">
+<div class="oh">
+<div class="oh-id">
+<span class="oi" style="background: #0F7B7B"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="10" cy="8" r="4"></circle><path d="M2 21a8 8 0 0 1 13-6.2M17 14v7M13.5 17.5h7"></path></svg></span>
+<div>
+<div class="eyebrow">Leads <span class="badge b-neutral" style="text-transform: none; letter-spacing: 0">Dữ liệu minh họa</span></div>
+<h1 class="h1">Lead đang mở
+<button type="button" class="btn btn-ghost icon-btn btn-sm btn-neutral" aria-label="Chọn danh sách" aria-haspopup="listbox"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
+<button type="button" class="btn btn-ghost icon-btn btn-sm" aria-label="Bỏ ghim danh sách" aria-pressed="true"><svg class="ic" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M15 3l6 6-3 1-4 4 1 5-2 1-4-4-5 5-1-1 5-5-4-4 1-2 5 1 4-4z"></path></svg></button>
+</h1>
+</div>
+</div>
+<div class="bg">
+<button type="button" class="btn">Tạo</button>
+<a class="btn" href="Import.dc.html">Nhập</a>
+<button type="button" class="btn">Thêm vào chiến dịch</button>
+<button type="button" class="btn">Đổi người phụ trách</button>
+<button type="button" class="btn icon-btn" aria-label="Thêm hành động: Đổi trạng thái Lead, Xóa"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
+</div>
+</div>
+<div class="lv-meta">
+<p>9 mục · 1 mục đã chọn · Sắp xếp theo tên · Lọc theo trạng thái Lead đang mở · Cập nhật vài giây trước</p>
+<div class="tools">
+<label class="search" style="width: 240px"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><span class="sr">Tìm trong danh sách</span><input type="search" placeholder="Tìm trong danh sách này"></label>
+<button type="button" class="btn icon-btn" aria-label="Tùy chỉnh danh sách"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3"></path></svg></button>
+<a class="btn" href="LeadsKanban.dc.html" aria-label="Đang xem dạng bảng; chọn để đổi sang Kanban" aria-haspopup="menu"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M3 10h18M3 15h18M9 4v16"></path></svg><svg class="ic-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></a>
+<button type="button" class="btn icon-btn" aria-label="Làm mới"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.7L20 8"></path><path d="M20 3v5h-5"></path></svg></button>
+<button type="button" class="btn icon-btn" aria-label="Sửa nhanh trong bảng"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"></path></svg></button>
+<button type="button" class="btn icon-btn" aria-label="biểu đồ"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"></path></svg></button>
+<button type="button" class="btn icon-btn" aria-label="bộ lọc"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 4h18l-7 8v6l-4 2v-8z"></path></svg></button>
+</div>
+</div>
+<div class="tbl-wrap">
+<table class="tbl tbl-wide">
+<thead><tr>
+<th class="rownum fz fzr"><span class="sr">Số dòng</span></th>
+<th class="fz fzc"><input type="checkbox" class="cb" aria-label="Chọn tất cả"></th>
+<th class="fz fzn fz-last" aria-sort="ascending"><span class="th-in">Tên <svg class="ic-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m6 15 6-6 6 6"></path></svg></span></th>
+<th>Chức danh</th><th>Công ty</th><th>Email</th><th>Điện thoại</th><th>Nguồn Lead</th><th>Trạng thái Lead</th><th>Nhu cầu</th><th>Người phụ trách</th>
+<th style="width: 44px"><span class="sr">Hành động</span></th>
+</tr></thead>
+<tbody>
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="9">
+<tr class="{{r.tr}}">
+<td class="rownum fz fzr">{{r.n}}</td>
+<td class="fz fzc"><input type="checkbox" class="cb" checked="{{r.sel}}" aria-label="Chọn {{r.name}}"></td>
+<td class="fz fzn fz-last"><a href="LeadRecord.dc.html">{{r.name}}</a></td>
+<td>{{r.title}}</td>
+<td>{{r.company}}</td>
+<td class="muted">[email]</td>
+<td><span style="display: inline-flex; gap: 6px; align-items: center"><svg class="ic-s" viewBox="0 0 24 24" fill="none" stroke="#006093" stroke-width="2" aria-hidden="true"><path d="M5 4h4l2 5-3 2a11 11 0 0 0 5 5l2-3 5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"></path></svg><span class="muted">[số điện thoại]</span></span></td>
+<td>{{r.src}}</td>
+<td><span class="{{r.stCls}}">{{r.st}}</span></td>
+<td>{{r.need}}</td>
+<td>{{r.owner}}</td>
+<td><button type="button" class="menu-btn" aria-label="Hành động cho {{r.name}}: Sửa, chuyển đổi, Đổi người phụ trách, Xóa"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button></td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+<div class="scroll-hint"><span>Cột số dòng, ô chọn và Tên cố định khi cuộn ngang.</span><span>Bấm tên để mở trang chi tiết</span></div>
+<p style="margin: 0; padding: 10px 16px; font-size: 13px; color: #5E6677; border-top: 1px solid #E7EAF0">Lead từ Google Maps, Zalo OA, Facebook và form trên website được tạo trong hàng chờ “Hàng chờ chung”; quy tắc phân Lead gán người phụ trách. Lead ở trạng thái “Đã tiếp nhận” quá 24 giờ hiện cảnh báo. Tên các trạng thái Lead do tổ chức đặt trong Cấu hình CRM.</p>
+</section>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const cls = { 'Đã tiếp nhận': 'badge b-info', 'Đã liên hệ được': 'badge b-neutral', 'Hẹn liên hệ lại': 'badge b-neutral', 'Đã tiếp nhận · quá 24 giờ': 'badge b-warn' };
+    const R = (n, name, title, company, src, st, need, owner, sel) => ({ n: n, name: name, title: title, company: company, src: src, st: st, stCls: cls[st], need: need, owner: owner, sel: !!sel, tr: sel ? 'sel' : '' });
+    return {
+      rows: [
+        R(1, 'Anh Đức', 'Quản lý', 'Nhà hàng Lửa Hồng', 'Form web', 'Đã tiếp nhận', 'Nhà hàng 200 m²', 'Hải Ngân'),
+        R(2, 'Anh Long', 'Trưởng phòng hành chính', 'Sao Việt Logistics', 'Website', 'Đã liên hệ được', 'Văn phòng 350 m²', 'Thanh Quân'),
+        R(3, 'Anh Phong', 'Giám đốc', 'Phong Fitness', 'Facebook', 'Đã liên hệ được', 'Phòng gym 400 m²', 'Thanh Quân'),
+        R(4, 'Anh Quang', 'Chủ quán', 'Quán nướng Than Hồng', 'Facebook', 'Hẹn liên hệ lại', 'Quán 150 m²', 'Minh Anh'),
+        R(5, 'Bác sĩ Tâm', 'Giám đốc', 'Nha khoa An Tâm', 'Giới thiệu', 'Đã liên hệ được', 'Phòng khám 90 m²', 'Minh Anh'),
+        R(6, 'Chị Hà', 'Chủ shop', 'Hà Boutique', 'Google Maps', 'Đã tiếp nhận · quá 24 giờ', 'Shop 60 m²', 'Hàng chờ chung'),
+        R(7, 'Chị Mai', 'Chủ tiệm', 'Tiệm bánh Mây', 'Google Maps', 'Đã tiếp nhận', 'Tiệm bánh 45 m²', 'Minh Anh'),
+        R(8, 'Chị Ngọc', 'Chủ salon', 'Salon Ngọc Hair', 'Zalo OA', 'Đã liên hệ được', 'Salon 80 m²', 'Minh Anh', true),
+        R(9, 'Chị Thảo', 'Chủ nhà', 'Hộ gia đình Phạm Thảo', 'Giới thiệu', 'Hẹn liên hệ lại', 'Nhà phố 3 tầng', 'Hải Ngân')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

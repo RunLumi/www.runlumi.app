@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Chi tiết yêu cầu duyệt</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="root" style="min-height: 900px">
+
+<dc-import name="TopNav" app="crm" active="Duyệt" hint-size="100%,104px"></dc-import>
+
+<main class="page" style="max-width: 1200px">
+<section class="panel" aria-label="Chi tiết yêu cầu duyệt">
+<div class="oh" style="padding-bottom: 12px">
+<div><ol class="crumbs" aria-label="Vị trí"><li><a href="Home.dc.html">Lumi CRM</a></li><li><a href="Approvals.dc.html">Duyệt</a></li><li><span aria-current="page">Giảm giá 8% báo giá v2</span></li></ol><h1 class="h1" style="margin-top: 6px">Giảm giá 8% báo giá v2 <span class="badge b-neutral" style="vertical-align: middle">Dữ liệu minh họa</span></h1><p class="muted" style="margin: 4px 0 0; font-size: 14px">Cơ hội <a href="DealRecord.dc.html">Quán cà phê The Lối – Q.3</a> · gửi bởi Minh Anh lúc 28/10/2026 10:15 · bước 1/2</p></div>
+<span class="badge b-warn"><span class="dot"></span>Đang chờ duyệt</span>
+</div>
+<div style="padding: 0 20px 14px; display: flex; gap: 8px; flex-wrap: wrap">
+<button type="button" class="btn btn-won">Duyệt yêu cầu</button>
+<button type="button" class="btn btn-lost">Từ chối yêu cầu</button>
+<button type="button" class="btn">Giao người khác duyệt</button>
+</div>
+<div style="padding: 0 20px">
+<div class="rgrid" style="grid-template-columns: repeat(4, minmax(0, 1fr))">
+<div class="f"><div><span class="f-l">Giá gốc</span><span class="f-v">587.000.000 ₫</span></div></div>
+<div class="f"><div><span class="f-l">Sau giảm 8%</span><span class="f-v">540.000.000 ₫</span></div></div>
+<div class="f"><div><span class="f-l">Ngưỡng giảm giá không cần duyệt</span><span class="f-v">5%</span></div></div>
+<div class="f"><div><span class="f-l">Người duyệt</span><span class="f-v">Khang</span></div></div>
+</div>
+<label class="fld" style="margin-top: 14px"><span class="fld-l">Ý kiến (gửi kèm quyết định)</span><textarea class="in" rows="2" placeholder="Ví dụ: đồng ý nếu khách cọc trước 10/11"></textarea></label>
+</div>
+<div style="padding: 16px 20px; display: flex; flex-direction: column; gap: 12px">
+<h2 class="sec-h">Lịch sử duyệt</h2><p class="muted" style="margin: 0; font-size: 13px">Bước 2 · Giám đốc duyệt nếu giảm trên 5%. Quyết định của bạn được ghi vào nhật ký kiểm toán.</p>
+<div class="tl"><span class="tl-ic" style="background: #FFF4DC; color: #9A5B00"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></span><div class="tl-b"><div class="tl-t">Bước 1 · Chờ Khang duyệt</div><div class="tl-m">Từ 28/10/2026 10:15</div></div></div>
+<div class="tl"><span class="tl-ic" style="background: #F2F4F7; color: #344054"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 12h12M12 6l6 6-6 6"></path></svg></span><div class="tl-b" style="border-bottom: 0"><div class="tl-t">Minh Anh gửi duyệt</div><div class="tl-m">28/10/2026 10:15 · “Khách so giá với bên khác, xin 8% để chốt tuần này.”</div></div></div>
+</div>
+</section>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

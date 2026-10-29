@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Danh mục ứng dụng</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="root" style="min-height: 900px; position: relative">
+<dc-import name="TopNav" app="work" active="Hôm nay" hint-size="100%,104px"></dc-import>
+<div class="scrim" style="position: absolute; left: 0; right: 0; top: 104px; bottom: 0; display: flex; justify-content: center; padding-top: 32px">
+<section class="dlg" role="dialog" aria-labelledby="al-h" style="width: 960px; max-width: calc(100% - 32px); align-self: flex-start">
+<div class="dlg-h" id="al-h" style="text-align: left">App Launcher</div>
+<div class="dlg-b">
+<label class="search"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><span class="sr">Tìm ứng dụng hoặc mục</span><input type="search" placeholder="Tìm ứng dụng hoặc mục, ví dụ: Forecasts"></label>
+<div class="eyebrow">Ứng dụng</div>
+<div class="lgrid">
+<sc-for list="{{apps}}" as="a" hint-placeholder-count="6">
+<a class="{{a.cls}}" href="{{a.href}}">
+<span class="oi" style="{{a.style}}">{{a.letter}}</span>
+<span style="display: flex; flex-direction: column; gap: 4px; min-width: 0"><b style="color: #102A43; font-size: 15px">{{a.name}}</b><span class="muted" style="font-size: 13px; line-height: 1.4">{{a.items}}</span></span>
+</a>
+</sc-for>
+</div>
+<div class="eyebrow">Mục dùng gần đây</div>
+<div style="display: flex; gap: 8px; flex-wrap: wrap">
+<a class="chip" href="Brief.dc.html">Thông minh › CEO Brief</a>
+<a class="chip" href="Main.dc.html">Lumi CRM › Cơ hội</a>
+<a class="chip" href="ProjectBoard.dc.html">Công việc › Nhà hàng Bếp Mộc</a>
+<a class="chip" href="Messages.dc.html">Kết nối › #thi-cong</a>
+</div>
+<p class="muted" style="margin: 0; font-size: 13px">Lumi HQ chỉ hiện với nhân viên Lumi.</p>
+</div>
+</section>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const A = (name, letter, color, items, href, on) => ({ name: name, letter: letter, style: 'background:' + color + ';font:700 16px Geist,system-ui,sans-serif', items: items, href: href, cls: on ? 'ltile ltile-on' : 'ltile' });
+    return {
+      apps: [
+        A('Công việc', 'V', '#006093', 'Hôm nay · Sắp tới · Dự án · Công việc · Định kỳ · Báo cáo nhóm · Chấm công', 'Today.dc.html', true),
+        A('Thông minh', 'T', '#102A43', 'CEO Brief · Báo cáo hằng ngày · Cam kết · Rủi ro · Quyết định · Theo dõi · Hộp thư tín hiệu · Nhập liệu', 'Brief.dc.html'),
+        A('Lumi CRM', 'C', '#0F7B7B', 'Lead · Cơ hội · Đối tác · Liên hệ · Lịch · Dự báo · Duyệt', 'Main.dc.html'),
+        A('Kết nối', 'K', '#5B4FC4', 'Hub công ty · Thông báo nội bộ · Tài liệu · Tin nhắn', 'HubHome.dc.html'),
+        A('Thư', 'M', '#9A5B00', 'Hộp thư của tổ chức · Chuỗi thư · Gửi từ tên miền riêng', 'MailInbox.dc.html'),
+        A('Cài đặt tổ chức', 'Đ', '#5E6677', 'Thành viên · Vai trò · Chính sách bảo mật · Nhật ký kiểm toán · Quy tắc thông báo · AI agent (MCP) · Webhook · Nguồn kết nối', 'OrgSecurity.dc.html')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

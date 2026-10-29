@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Cơ hội · dòng thời gian</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="./lumi.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div class="root" style="min-height: 900px">
+
+<dc-import name="TopNav" app="crm" active="Cơ hội" hint-size="100%,104px"></dc-import>
+
+<main class="page">
+<section class="panel" style="overflow: hidden">
+<div class="oh">
+<div class="oh-id">
+<span class="oi oi-deal"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2l3 7h7l-5.5 4.5 2 7.5L12 16.5 5.5 21l2-7.5L2 9h7z"></path></svg></span>
+<div>
+<div class="eyebrow">Cơ hội <span class="badge b-neutral" style="text-transform: none; letter-spacing: 0">Dữ liệu minh họa</span></div>
+<h1 class="h1">Đang mở · Pipeline thi công</h1>
+</div>
+</div>
+<div class="tools">
+<div class="bg" role="group" aria-label="Thang thời gian"><button type="button" class="btn">Tuần</button><button type="button" class="btn btn-on" aria-pressed="true">Tháng</button><button type="button" class="btn">Quý</button></div>
+<button type="button" class="btn" aria-label="Hiển thị dạng dòng thời gian" aria-haspopup="menu"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h9M7 12h11M4 18h7"></path></svg><svg class="ic-s" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></button>
+</div>
+</div>
+<div class="lv-meta"><p>11 mục · Mỗi thanh chạy từ ngày tạo đến ngày chốt dự kiến, màu theo giai đoạn · Kéo đầu phải của thanh để đổi ngày chốt dự kiến</p>
+<div class="tools" style="font-size: 13px; gap: 14px">
+<sc-for list="{{legend}}" as="l" hint-placeholder-count="5"><span style="display: inline-flex; gap: 6px; align-items: center"><span class="sw" style="{{l.style}}"></span>{{l.name}}</span></sc-for>
+</div></div>
+<div style="display: grid; grid-template-columns: 300px minmax(0, 1fr); border-top: 1px solid #E7EAF0">
+<div style="background: #F7F8FA; border-bottom: 1px solid #D9DEE8; border-right: 1px solid #E7EAF0; padding: 10px 16px; font: 600 12px Geist, system-ui, sans-serif; color: #344054; text-transform: uppercase; letter-spacing: .04em">Cơ hội</div>
+<div style="background: #F7F8FA; border-bottom: 1px solid #D9DEE8; display: grid; grid-template-columns: 31fr 30fr 31fr; font: 600 12px Geist, system-ui, sans-serif; color: #344054">
+<span style="padding: 10px; border-right: 1px solid #E7EAF0">Tháng 10</span><span style="padding: 10px; border-right: 1px solid #E7EAF0">Tháng 11</span><span style="padding: 10px">Tháng 12</span>
+</div>
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="11">
+<div style="padding: 0 16px; height: 52px; display: flex; flex-direction: column; justify-content: center; border-bottom: 1px solid #E7EAF0; border-right: 1px solid #E7EAF0; min-width: 0">
+<a href="DealRecord.dc.html" style="font: 500 14px Geist, system-ui, sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.title}}</a>
+<span class="muted" style="font-size: 12px">{{r.meta}}</span>
+</div>
+<div style="position: relative; height: 52px; border-bottom: 1px solid #E7EAF0; background-image: linear-gradient(to right, transparent calc(33.7% - 1px), #E7EAF0 calc(33.7% - 1px), #E7EAF0 33.7%, transparent 33.7%, transparent calc(66.3% - 1px), #E7EAF0 calc(66.3% - 1px), #E7EAF0 66.3%, transparent 66.3%)">
+<div style="{{r.bar}}"><span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{r.label}}</span></div>
+<div style="position: absolute; top: 0; bottom: 0; left: 30.4%; width: 2px; background: #C2410C"></div>
+</div>
+</sc-for>
+</div>
+<p style="margin: 0; padding: 10px 16px; font-size: 12px; color: #5E6677; border-top: 1px solid #E7EAF0">Vạch cam đỏ: hôm nay 29/10/2026.</p>
+</section>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const color = { 'Đã hẹn khảo sát': '#9FCFEA', 'Đã gửi báo giá': '#4DA3D3', 'Đã duyệt báo giá': '#006093', 'Đã khởi công': '#003E6A', 'Đã nghiệm thu': '#102A43' };
+    const ink = { 'Đã hẹn khảo sát': '#102A43', 'Đã gửi báo giá': '#102A43' };
+    const day = (dd, mm) => (mm === 10 ? dd - 1 : mm === 11 ? 30 + dd : 60 + dd);
+    const R = (title, stage, owner, s, e, amount, warn) => {
+      const left = (s / 92) * 100, width = Math.max(((e - s) / 92) * 100, 3);
+      return {
+        title: title, meta: stage + ' · ' + owner,
+        label: amount,
+        bar: 'position:absolute;top:13px;height:26px;border-radius:5px;padding:0 8px;display:flex;align-items:center;font:500 12px Geist,system-ui,sans-serif;left:' + left.toFixed(1) + '%;width:' + width.toFixed(1) + '%;background:' + color[stage] + ';color:' + (ink[stage] || '#fff') + (warn ? ';box-shadow:inset 0 0 0 2px #F4A62A' : '')
+      };
+    };
+    return {
+      legend: Object.keys(color).map((k) => ({ name: k, style: 'background:' + color[k] })),
+      rows: [
+        R('Biệt thự Thảo Điền', 'Đã nghiệm thu', 'Thanh Quân', day(2, 10), day(2, 11), '1,9 tỷ ₫', true),
+        R('Spa Hoa Sen – Phú Nhuận', 'Đã duyệt báo giá', 'Minh Anh', day(8, 10), day(5, 11), '780 tr ₫', true),
+        R('Quán cà phê The Lối – Q.3', 'Đã gửi báo giá', 'Minh Anh', day(14, 10), day(8, 11), '540 tr ₫'),
+        R('Văn phòng Lumen Tech', 'Đã duyệt báo giá', 'Thanh Quân', day(6, 10), day(10, 11), '1,68 tỷ ₫'),
+        R('Văn phòng tầng 12 – Q.1', 'Đã hẹn khảo sát', 'Minh Anh', day(26, 10), day(12, 11), '860 tr ₫'),
+        R('Phòng khám nha Smile Care', 'Đã gửi báo giá', 'Thanh Quân', day(10, 10), day(15, 11), '1,12 tỷ ₫', true),
+        R('Showroom nội thất Thảo Điền', 'Đã hẹn khảo sát', 'Thanh Quân', day(24, 10), day(20, 11), '1,45 tỷ ₫', true),
+        R('Căn hộ Vinhomes Grand Park', 'Đã hẹn khảo sát', 'Hải Ngân', day(28, 10), day(28, 11), '320 tr ₫'),
+        R('Nhà phố Thủ Đức', 'Đã gửi báo giá', 'Hải Ngân', day(20, 10), day(30, 11), '2,3 tỷ ₫'),
+        R('Nhà hàng Bếp Mộc – Q.7', 'Đã khởi công', 'Hải Ngân', day(1, 10), day(18, 12), '2,05 tỷ ₫'),
+        R('Showroom xe điện Tân Bình', 'Đã khởi công', 'Minh Anh', day(5, 10), day(22, 12), '3,4 tỷ ₫')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
