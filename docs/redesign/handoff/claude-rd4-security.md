@@ -1,6 +1,6 @@
 # Handoff: workstream 4, security and integrations (`claude/rd4-security`)
 
-Status on 2026-10-29: all six slices built and pushed to `claude/rd4-security`. Gate results and open items are below. Contract reference: [docs/workspace/security.md](../../workspace/security.md).
+Status on 2026-10-29: done. All six slices built, reviewed (pre-release review found no blocker; its two defects are fixed in e3e6942), and merged into `claude/loving-pasteur-z7ly65`. Gate results and open items are below. Contract reference: [docs/workspace/security.md](../../workspace/security.md).
 
 ## What was built
 
@@ -23,22 +23,26 @@ Shared files changed in their own commits: `package.json`/lock (declare `@emdash
 - Integration sessions pass the passkey and code gates automatically, through `tests/integration/helpers.mjs`. `rawGet`/`rawPost` skip that, so a test can assert a denial.
 - HRM deletes and CRM deletes other than those listed above are **not** wired yet. Wire them in your area, or leave a "step-up pending" note.
 
-## Gates (see the PR comment for the final run on the merged head)
+## Gates (run on e3e6942, which contains rd1–rd3 through cca4cb9; only rd1's handoff doc was added since)
+
+Integration ran with `WORKSPACE_PASSKEY_REQUIRED=true` in the test Worker (production ships `"false"`).
 
 | Gate | Result |
 |---|---|
-| `npm run lint` | ok (569 source files) |
-| `npm test` | 438 pass, 0 fail |
-| `npm run db:migrate:local` | 0051–0054 applied |
-| `npm run build` | ok (`astro check`: 0 errors, 0 warnings) |
-| Integration: security (new, 12 tests) | 12/12 |
-| Integration: workspace, crm, api, finance, files, directory, dashboard, sales-process, business-model | all pass (counts in the commit/PR notes) |
-| Integration: HRM | see "Open" |
-| Visual review 320–430 px / 1280 px, keyboard focus | **not done** (no screenshots taken); pages use rd1's `PageHeader`, `Panel`, `PanelRow`, `DataTable`, `FactRow`. |
+| `npm run lint` | ok (593 source files) |
+| `npm test` | 453 pass, 0 fail |
+| `npm run db:migrate:local` | 0051–0056 applied (0055 is rd3's) |
+| `npm run build` | ok, `astro check` 0 errors |
+| Integration: security (rd4) | 12/12 |
+| Integration: crm, workspace, api, finance, files, directory, dashboard, sales-process, business-model | 18, 12, 7, 9, 6, 7, 5, 12, 5: all pass |
+| Integration: HRM P1, P3, P4 (separate scopes) | pass |
+| Integration: HRM P5 | passed on the rd1+rd2 head (enforcement off at the time); rerun with enforcement on was still running at merge time |
+| Integration: hrm-journey | not rerun; the integrator reports `hrm-recovery-drill.mjs:279` as a known container flake that passes on GitHub |
+| Visual review | 10 screens × 360 px and 1280 px (EN/VI): no horizontal overflow, visible keyboard focus (Playwright, synthetic data) |
 
 ## Open
 
-1. **HRM integration suite.** P4 (payroll `close_run`) failed in a run of slice 1. Slice 1 touches no payroll code. A baseline run of the untouched base commit is recorded in the PR notes.
+1. **HRM.** The P4 `close_run` failure was pre-existing and date-dependent; the integrator fixed it in 18bec37. A single full `hrm` scope can exceed the runner's 30-minute cap on this container, so the phases ran as separate scopes.
 2. **Email delivery.** The app sends no email, and no EmDash email provider is configured in `astro.config.mjs`. Rules record email as `email_not_configured`. EmDash's own system emails (magic link, invite, recovery) bypass plugin hooks, so they cannot carry the code without an EmDash change.
 3. **Recovery uses one admin, not two.** The boards ask for two admins. The Workspace often has one System Super Admin, so one admin plus an EmDash recovery link is implemented. EmDash 0.38 cannot delete another person's passkeys.
 4. **Double prompt at sign-in.** EmDash does not record the sign-in method, so a passkey sign-in is asked once more by the Workspace, once per session.
