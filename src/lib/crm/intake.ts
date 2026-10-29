@@ -11,6 +11,7 @@
 // reused with a different body. Success is returned only after D1 commits.
 import { newId, normalizePhone, nowIso, validRequestKey } from "./core";
 import { latestPlaybooks } from "./config";
+import { currentLeadProcess } from "./leads";
 import { phoneSuppressed } from "./records";
 
 export const INTAKE_SOURCES = ["local.runlumi.app"] as const;
@@ -115,9 +116,9 @@ export function parseIntakePayload(raw: unknown): IntakePayload | null {
   return { name, business, phone, email, note, locale, consent: true, consent_text_version: clean(data.consent_text_version, 40) || "unspecified", context };
 }
 
-export type IntakeResult = { status: 201 | 200; id: string; duplicate: boolean } | { status: 409 | 422 | 503; error: string };
+export type IntakeResult = { status: 201 | 200; id: string; duplicate: boolean } | { status: 409 | 422; error: string };
 
-/** Stores the enquiry and a queued, unassigned opportunity in one transaction. */
+/** Stores the enquiry and a queued, unassigned lead in one transaction. */
 export async function storeIntake(db: D1Database, verified: Extract<Verified, { ok: true }>): Promise<IntakeResult> {
   let raw: unknown;
   try { raw = JSON.parse(verified.body); } catch { return { status: 422, error: "invalid_json" }; }
@@ -127,33 +128,28 @@ export async function storeIntake(db: D1Database, verified: Extract<Verified, { 
   const existing = await db.prepare("SELECT id, payload_hash FROM crm_inbound WHERE idempotency_key = ?").bind(verified.key).first<{ id: string; payload_hash: string }>();
   if (existing) return existing.payload_hash === hash ? { status: 200, id: existing.id, duplicate: true } : { status: 409, error: "key_reused" };
 
-  const playbook = (await latestPlaybooks(db, { activeOnly: true })).find((item) => item.playbook_key === "local-preview");
-  if (!playbook) return { status: 503, error: "playbook_unavailable" };
+  // The enquiry becomes an unassigned lead in the team's queue: not a payment,
+  // company, contact or opportunity until someone qualifies and converts it.
+  const process = await currentLeadProcess(db);
+  const playbookKey = (await latestPlaybooks(db, { activeOnly: true })).some((item) => item.playbook_key === "local-preview") ? "local-preview" : "";
   const phoneNorm = normalizePhone(payload.phone);
   const suppressed = await phoneSuppressed(db, phoneNorm);
   const now = nowIso();
   const id = newId("inb");
-  const accountId = newId("acc");
-  const contactId = newId("con");
-  const opportunityId = newId("opp");
+  const leadId = newId("lead");
   const actor = `intake:${verified.source}`;
   const consentEvidence = `Web form consent on ${verified.source} (${payload.locale}, text ${payload.consent_text_version}) at ${now}`;
   const detail = payload.context ? `${payload.context.source} · intent ${payload.context.cta_intent} · offer ${payload.context.offer_interest}` : `${verified.source} (no page context)`;
   const statements = [
-    db.prepare("INSERT INTO crm_accounts (id, name, phone_norm, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)").bind(accountId, payload.business, phoneNorm, actor, now, now),
-    db.prepare("INSERT INTO crm_contacts (id, account_id, name, role, email, phone, phone_norm, contact_basis, preferred_channel, consent_status, consent_evidence, created_by, created_at, updated_at) VALUES (?, ?, ?, 'other', ?, ?, ?, ?, 'phone', 'granted', ?, ?, ?, ?)")
-      .bind(contactId, accountId, payload.name, payload.email, payload.phone, phoneNorm, "Submitted an enquiry to Lumi Local", consentEvidence, actor, now, now),
-    // Not a payment, account or qualified lead: it starts unassigned at the first stage.
-    db.prepare(`INSERT INTO crm_opportunities (id, account_id, primary_contact_id, title, playbook_id, stage_id, outcome, owner_id, seller_id, created_by, source_channel, source_detail, relation, next_action, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, 'open', NULL, NULL, ?, 'inbound_web', ?, 'new', ?, ?, ?)`)
-      .bind(opportunityId, accountId, contactId, payload.business, playbook.id, playbook.def.stages[0].id, actor, detail, payload.note ? `Enquiry note: ${payload.note.slice(0, 400)}` : "", now, now),
-    // Inserted after the opportunity it references (foreign keys are immediate).
-    db.prepare("INSERT INTO crm_inbound (id, idempotency_key, payload_hash, source, payload, opportunity_id, suppressed, received_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
-      .bind(id, verified.key, hash, verified.source, JSON.stringify(payload), opportunityId, suppressed ? 1 : 0, now),
-    db.prepare("INSERT INTO crm_stage_history (id, opportunity_id, playbook_id, from_stage, to_stage, reason, actor_id, created_at) VALUES (?, ?, ?, NULL, ?, 'inbound enquiry', ?, ?)")
-      .bind(newId("stg"), opportunityId, playbook.id, playbook.def.stages[0].id, actor, now),
-    db.prepare("INSERT INTO crm_events (id, opportunity_id, account_id, actor_id, actor_name, kind, body, created_at) VALUES (?, ?, ?, ?, ?, 'inbound', ?, ?)")
-      .bind(newId("evt"), opportunityId, accountId, actor, "Lumi Local intake", JSON.stringify({ inbound_id: id, locale: payload.locale, context: payload.context, suppressed }), now),
+    db.prepare(`INSERT INTO crm_lead_records (id, state, status_id, process_id, name, company, phone, phone_norm, email, need, playbook_key, source_channel, source_detail, owner_id, consent_status, consent_evidence, suppressed, next_action, created_by, created_at, updated_at)
+      VALUES (?, 'open', ?, ?, ?, ?, ?, ?, ?, ?, ?, 'inbound_web', ?, NULL, 'granted', ?, ?, ?, ?, ?, ?)`)
+      .bind(leadId, process.def.statuses[0].id, process.id, payload.name, payload.business, payload.phone, phoneNorm, payload.email, payload.note, playbookKey, detail, consentEvidence,
+        suppressed ? 1 : 0, payload.note ? `Enquiry note: ${payload.note.slice(0, 400)}` : "", actor, now, now),
+    // Inserted after the lead it references (foreign keys are immediate).
+    db.prepare("INSERT INTO crm_inbound (id, idempotency_key, payload_hash, source, payload, opportunity_id, lead_id, suppressed, received_at) VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?)")
+      .bind(id, verified.key, hash, verified.source, JSON.stringify(payload), leadId, suppressed ? 1 : 0, now),
+    db.prepare("INSERT INTO crm_events (id, lead_id, actor_id, actor_name, kind, body, created_at) VALUES (?, ?, ?, ?, 'lead_inbound', ?, ?)")
+      .bind(newId("evt"), leadId, actor, "Lumi Local intake", JSON.stringify({ inbound_id: id, locale: payload.locale, context: payload.context, suppressed }), now),
   ];
   try {
     await db.batch(statements);
@@ -165,7 +161,7 @@ export async function storeIntake(db: D1Database, verified: Extract<Verified, { 
   return { status: 201, id, duplicate: false };
 }
 
-export interface InboundRow { id: string; payload: string; opportunity_id: string; status: string; suppressed: number; received_at: string; source: string }
+export interface InboundRow { id: string; payload: string; opportunity_id: string | null; lead_id: string | null; status: string; suppressed: number; received_at: string; source: string }
 export async function inboundQueue(db: D1Database): Promise<InboundRow[]> {
-  return (await db.prepare("SELECT id, payload, opportunity_id, status, suppressed, received_at, source FROM crm_inbound WHERE status = 'queued' ORDER BY received_at LIMIT 100").all<InboundRow>()).results;
+  return (await db.prepare("SELECT id, payload, opportunity_id, lead_id, status, suppressed, received_at, source FROM crm_inbound WHERE status = 'queued' AND lead_id IS NULL ORDER BY received_at LIMIT 100").all<InboundRow>()).results;
 }

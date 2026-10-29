@@ -1,0 +1,7 @@
+---
+// CRM child-screen breadcrumbs (R-03): workstream 1's shared component.
+import Breadcrumbs, { type Crumb } from "../workspace/ui/Breadcrumbs.astro";
+interface Props { items: Crumb[]; vi: boolean }
+const { items, vi } = Astro.props;
+---
+<Breadcrumbs items={items} vi={vi} />

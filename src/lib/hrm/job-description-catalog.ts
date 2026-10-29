@@ -242,7 +242,7 @@ export const jobDescriptions: readonly JobDescription[] = [
               "COO ưu tiên bán hàng, điều phối bàn giao trong phạm vi và ngân sách đã duyệt; đề xuất nhân sự, giá và quy trình.",
               "CEO giữ chiến lược, hướng sản phẩm, phân bổ vốn, quyền ký, duyệt ngoại lệ thương mại và bảo trợ khách chiến lược. Hạn mức ủy quyền phải ghi rõ.",
               "CTO xác nhận khả thi, phiên bản sẵn sàng, công kỹ thuật và năng lực giao trước báo giá. Kế toán xác nhận tiền, hạch toán; HR phụ trách quy trình nhân sự; QC kiểm tra chất lượng bàn giao.",
-              "Chức danh COO không tự cấp quyền ứng dụng, Workspace Admin, HR hay Payroll. Quản trị viên có thẩm quyền cấp riêng; vị trí này không tự duyệt quyền truy cập, thu nhập hay thanh toán.",
+              "Chức danh COO không tự cấp quyền ứng dụng, Workspace Admin, HR hay bảng lương. Quản trị viên có thẩm quyền cấp riêng; vị trí này không tự duyệt quyền truy cập, thu nhập hay thanh toán.",
             ],
           },
           {

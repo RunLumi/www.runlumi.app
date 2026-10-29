@@ -1,0 +1,40 @@
+/* Module layer for Hiring, HRM and Finance (redesign workstream 2).
+   New markup uses the shared components in components/workspace/ui
+   (workspace.css). This file applies the same rules to the many existing
+   HRM (.crm-table, .crm-grid) and Finance (.fn-table, .fn-layout) blocks
+   without rewriting them: the leading table column stays frozen while the
+   table scrolls sideways (R-03) and panels in one row share a height (R-04). */
+
+.md-scope { min-width: 0; }
+
+/* Freeze the leading column of every module table, including the existing
+   HRM (.crm-table) and Finance (.fn-table) tables, so a wide table keeps the
+   record name in view while it scrolls sideways. */
+.md-scope .crm-table-wrap > .crm-table :is(th, td):first-child,
+.md-scope .fn-table-scroll > .fn-table :is(th, td):first-child { position: sticky; left: 0; z-index: 1; min-width: min(14rem, 45vw); box-shadow: 1px 0 0 var(--crm-line); }
+.md-scope .crm-table-wrap > .crm-table { border-collapse: separate; border-spacing: 0; }
+.md-scope .crm-table-wrap > .crm-table :where(th, td):first-child { background: var(--crm-sheet); }
+.md-scope .fn-table-scroll > .fn-table { border-collapse: separate; border-spacing: 0; }
+.md-scope .fn-table-scroll > .fn-table :where(td):first-child { background: var(--fn-sheet, #fff); }
+
+/* R-04: panels that share a row share a height. Stacks of panels inside a
+   column keep their natural heights. */
+.md-scope .crm-grid { align-items: stretch; }
+.md-scope .crm-grid > :is(div, aside):not(.crm-sheet) { align-content: start; }
+.md-scope .crm-grid > .crm-sheet { display: flex; flex-direction: column; }
+.md-scope .crm-grid > .crm-sheet > :last-child:is(.crm-actions, a.crm-button) { margin-top: auto; }
+.md-scope .fn-layout { align-items: stretch; }
+.md-scope .fn-layout > :is(.fn-sheet, form) { margin: 0; }
+.md-scope .fn-layout > :not(.fn-sheet, form) { align-self: start; }
+
+.md-section { margin-top: 24px; }
+.md-section-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px 16px; margin-bottom: 12px; }
+.md-section-head .crm-h2 { margin: 0; }
+
+@media (forced-colors: active) {
+  .md-scope :is(.crm-table, .fn-table) :is(th, td):first-child { border-right: 1px solid CanvasText; }
+}
+@media print {
+  .md-scope .crm-table-wrap > .crm-table :is(th, td):first-child,
+  .md-scope .fn-table-scroll > .fn-table :is(th, td):first-child { position: static; min-width: 0; box-shadow: none; }
+}

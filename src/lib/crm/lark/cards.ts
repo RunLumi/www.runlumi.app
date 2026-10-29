@@ -19,7 +19,11 @@ export interface EventFacts {
   fromStage?: string; ownerFrom?: string | null; ownerTo?: string | null;
   /** Offer name for quote events; playbook field labels for "fields" events. */
   offerName?: string | null; fieldLabels?: Record<string, string>;
+  /** Lead events: company, status label and owner; never the person's phone, email or need. */
+  lead?: LeadFacts | null;
 }
+
+export interface LeadFacts { id: string; company: string; status: string; channel: string; ownerName: string | null; fromStatus?: string; reason?: string }
 
 type Template = "blue" | "green" | "red" | "orange" | "turquoise" | "indigo" | "grey";
 type Field = [label: string, value: string];
@@ -144,6 +148,22 @@ export function eventCard(facts: EventFacts): Record<string, unknown> | null {
       return opp && card(`Chủ đã duyệt nội dung: ${opp.title}`, "green", [["Công ty", text(opp.accountName)], ["Ngày duyệt", body.approved_on ? vnDay(String(body.approved_on)) : "—"]], footer(facts), oppLink(opp));
     case "delivery_accepted":
       return opp && card(`Khách nghiệm thu: ${opp.title}`, "green", [["Công ty", text(opp.accountName)], ["Ngày", body.accepted_on ? vnDay(String(body.accepted_on)) : "—"]], footer(facts), oppLink(opp));
+    case "lead_inbound": case "lead_referred": case "lead_created": {
+      const lead = facts.lead;
+      if (!lead) return null;
+      const title = facts.kind === "lead_inbound" ? `Lead mới từ website: ${lead.company}` : facts.kind === "lead_referred" ? `Lead được giới thiệu: ${lead.company}` : `Lead mới: ${lead.company}`;
+      return card(title, facts.kind === "lead_created" ? "blue" : "orange", [["Công ty", text(lead.company)], ["Nguồn", label("vi", "channel", lead.channel)], ["Trạng thái", text(lead.status)], ["Phụ trách", lead.ownerName ? text(lead.ownerName) : "Chờ phân công"]], footer(facts), leadLink(lead));
+    }
+    case "lead_assigned":
+      return facts.lead ? card(`Đã giao Lead: ${facts.lead.company}`, "indigo", [["Công ty", text(facts.lead.company)], ["Từ", facts.ownerFrom ? text(facts.ownerFrom) : "Chưa phân công"], ["Cho", text(facts.ownerTo ?? "—")]], footer(facts), leadLink(facts.lead)) : null;
+    case "lead_status":
+      return facts.lead ? card(`Lead đổi trạng thái: ${facts.lead.company}`, "turquoise", [["Công ty", text(facts.lead.company)], ["Từ", text(facts.lead.fromStatus)], ["Sang", text(facts.lead.status)], ["Phụ trách", text(facts.lead.ownerName ?? "—")]], footer(facts), leadLink(facts.lead)) : null;
+    case "lead_note":
+      return facts.lead ? card(`Ghi chú Lead: ${facts.lead.company}`, "grey", [["Công ty", text(facts.lead.company)], ["Trạng thái", text(facts.lead.status)]], footer(facts), leadLink(facts.lead), excerpt(body.text) || undefined) : null;
+    case "lead_disqualified":
+      return facts.lead ? card(`Lead không tiếp tục: ${facts.lead.company}`, "grey", [["Công ty", text(facts.lead.company)], ["Lý do", text(facts.lead.reason ?? body.reason_id, 120)], ["Phụ trách", text(facts.lead.ownerName ?? "—")]], footer(facts), leadLink(facts.lead), excerpt(body.note) || undefined) : null;
+    case "lead_converted":
+      return opp && card(`Lead thành cơ hội: ${opp.title}`, "blue", [...oppFields(opp), ["Kênh", label("vi", "channel", opp.channel)]], footer(facts), oppLink(opp));
     case "account_created":
       return card(`Công ty mới: ${facts.accountName ?? "—"}`, "blue", [["Quản lý", text(facts.ownerTo ?? "—")]], footer(facts), accountLink(facts));
     case "contact_added":
@@ -155,6 +175,7 @@ export function eventCard(facts: EventFacts): Record<string, unknown> | null {
   }
 }
 
+const leadLink = (lead: LeadFacts) => ({ label: "Mở Lead", url: `${CRM_BASE}/leads/${encodeURIComponent(lead.id)}` });
 const accountLink = (facts: EventFacts) => facts.accountId ? { label: "Mở công ty", url: `${CRM_BASE}/accounts/${encodeURIComponent(facts.accountId)}` } : null;
 
 /** dd/mm from YYYY-MM-DD. */
@@ -184,6 +205,7 @@ export const ANNOUNCED_KINDS = [
   "task_created", "task_completed", "meeting_confirmed", "help_requested",
   "handoff_created", "fulfillment_status", "fulfillment_blocked", "fulfillment_unblocked", "owner_approval", "delivery_accepted",
   "account_created", "contact_added", "account_owner_changed", "do_not_contact_set",
+  "lead_inbound", "lead_referred", "lead_created", "lead_assigned", "lead_status", "lead_note", "lead_disqualified", "lead_converted",
 ] as const;
 
 export interface DigestItem { id: string; title: string; ownerName: string | null; due: string | null }
@@ -193,6 +215,8 @@ export interface DigestFacts {
   created24h: number; won24h: number; wonValue24h: number; lost24h: number;
   overdue: number; dueToday: number; topOverdue: DigestItem[];
   missingNext: number; unassigned: number; pendingPayments: number; blocked: number;
+  /** Open leads nobody owns yet (website enquiries, referrals, the queue). */
+  unassignedLeads?: number;
 }
 
 /** Morning summary (Monday to Saturday). Every total says what it covers. */
@@ -216,6 +240,7 @@ export function digestCard(facts: DigestFacts): Record<string, unknown> {
         section("Cần chú ý", lines([
           `${facts.missingNext} cơ hội chưa có bước tiếp theo`,
           `${facts.unassigned} cơ hội chờ phân công`,
+          ...(facts.unassignedLeads === undefined ? [] : [`${facts.unassignedLeads} Lead chờ phân công`]),
           `${facts.pendingPayments} thanh toán chờ tài chính xác nhận`,
           `${facts.blocked} bàn giao đang bị chặn`,
         ])),

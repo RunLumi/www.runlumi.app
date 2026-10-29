@@ -1,0 +1,9 @@
+---
+import LeadsView from "../../../components/crm/LeadsView.astro";
+import { leadsRoute } from "../../../lib/crm/routes/leads";
+
+export const prerender = false;
+const result = await leadsRoute(Astro, "en");
+if (result instanceof Response) return result;
+---
+<LeadsView {...result} />

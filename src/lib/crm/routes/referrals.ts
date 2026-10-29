@@ -1,5 +1,6 @@
 import type { AstroGlobal } from "astro";
 import { latestPlaybooks } from "../config";
+import { leadProcessVersions } from "../leads";
 import type { Lang } from "../i18n";
 import { type Ctx, type FormState, context, emptyState, forbidden, handlePost } from "../page";
 import type { Playbook } from "../playbook";
@@ -18,6 +19,8 @@ export async function referralsRoute(astro: AstroGlobal, lang: Lang): Promise<Re
   const all = await latestPlaybooks(ctx.db);
   const stageNames: Record<string, string> = {};
   for (const playbook of all) for (const stage of playbook.def.stages) stageNames[`${playbook.playbook_key}:${stage.id}`] = lang === "vi" ? stage.vi : stage.en;
+  // Lead statuses, keyed by process version, for referrals not yet converted.
+  for (const process of await leadProcessVersions(ctx.db)) for (const status of process.def.statuses) stageNames[`lead:${process.id}:${status.id}`] = lang === "vi" ? status.vi : status.en;
   return {
     ctx, state: posted ?? emptyState, stageNames,
     playbooks: all.filter((item) => item.active && (REFERRAL_PLAYBOOK_KINDS as readonly string[]).includes(item.kind)),

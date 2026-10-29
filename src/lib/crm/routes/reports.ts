@@ -2,6 +2,7 @@ import type { AstroGlobal } from "astro";
 import { type Offer, latestOffers, latestPlaybooks } from "../config";
 import type { Lang } from "../i18n";
 import { type Ctx, context } from "../page";
+import { type LeadSourceRow, leadReport } from "../leads";
 import type { Playbook } from "../playbook";
 import { type Filters, filterSql, readFilters } from "../records";
 import { type CohortReport, type CohortRow, loadCohort } from "../reports";
@@ -10,7 +11,7 @@ export interface PipelineSummary { playbook: Playbook; stages: Record<string, nu
 export interface PendingPayment { id: string; opportunity_id: string; title: string; amount_vnd: number; occurred_on: string; evidence: string }
 export interface ReportsProps {
   ctx: Ctx; filters: Filters; summaries: PipelineSummary[]; offers: Offer[]; cohorts: CohortRow[];
-  cohort: { cohort: CohortRow; report: CohortReport; policySource: string } | null; pending: PendingPayment[];
+  cohort: { cohort: CohortRow; report: CohortReport; policySource: string } | null; pending: PendingPayment[]; leads: LeadSourceRow[];
 }
 
 export async function reportsRoute(astro: AstroGlobal, lang: Lang): Promise<ReportsProps | Response> {
@@ -43,5 +44,5 @@ export async function reportsRoute(astro: AstroGlobal, lang: Lang): Promise<Repo
     `SELECT l.id, l.opportunity_id, o.title, l.amount_vnd, l.occurred_on, l.evidence FROM crm_ledger l JOIN crm_opportunities o ON o.id = l.opportunity_id
      WHERE l.kind = 'payment' AND l.status = 'pending' ORDER BY l.created_at LIMIT 100`,
   ).all<PendingPayment>()).results : [];
-  return { ctx, filters, summaries, offers: await latestOffers(ctx.db), cohorts, cohort, pending };
+  return { ctx, filters, summaries, offers: await latestOffers(ctx.db), cohorts, cohort, pending, leads: await leadReport(ctx.db, ctx.actor) };
 }

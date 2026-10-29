@@ -1,0 +1,27 @@
+---
+import CrmShell from "../../layouts/CrmShell.astro";
+import Crumbs from "./Crumbs.astro";
+import type { LeadConvertedProps } from "../../lib/crm/routes/leads";
+import "../../styles/crm-sales.css";
+
+type Props = LeadConvertedProps;
+const { ctx, lead, account, contact, opportunity } = Astro.props;
+const { lang, vi, base } = ctx;
+---
+<CrmShell title={vi ? "Đã chuyển Lead thành cơ hội" : "Lead converted"} lang={lang} actor={ctx.actor} current="leads">
+  <Crumbs vi={vi} items={[{ label: "CRM", href: base }, { label: vi ? "Lead" : "Leads", href: `${base}/leads` }, { label: lead.name, href: `${base}/leads/${lead.id}` }, { label: vi ? "Đã chuyển đổi" : "Converted" }]} />
+  <div class="crm-head"><div>
+    <h1 class="crm-h1">{vi ? "Đã chuyển Lead thành cơ hội." : "Lead converted."}</h1>
+    <p class="crm-lede">{lead.name} · {lead.company}</p>
+  </div></div>
+  <div class="crm-row-panels">
+    <section class="crm-sheet"><p class="crm-eyebrow">{vi ? "Công ty" : "Company"}</p>{account ? <h2 class="crm-h2"><a class="crm-link" href={`${base}/accounts/${account.id}`}>{account.name}</a></h2> : <p class="crm-empty">—</p>}</section>
+    <section class="crm-sheet"><p class="crm-eyebrow">{vi ? "Liên hệ" : "Contact"}</p>{contact && account ? <h2 class="crm-h2"><a class="crm-link" href={`${base}/contacts/${contact.id}`}>{contact.name}</a></h2> : <p class="crm-empty">—</p>}</section>
+    <section class="crm-sheet"><p class="crm-eyebrow">{vi ? "Cơ hội · tạo mới" : "Opportunity · new"}</p>{opportunity ? <><h2 class="crm-h2"><a class="crm-link" href={`${base}/${opportunity.id}`}>{opportunity.title}</a></h2><p class="crm-meta">{vi ? "Giai đoạn" : "Stage"}: {opportunity.stage}</p></> : <p class="crm-empty">—</p>}</section>
+  </div>
+  <div class="crm-actions" style="margin-top:18px">
+    <a class="crm-button secondary" href={`${base}/leads`}>{vi ? "Về danh sách Lead" : "Back to leads"}</a>
+    <a class="crm-button secondary" href={`${base}/pipeline?view=board`}>{vi ? "Xem trên Kanban" : "View on the board"}</a>
+    {opportunity && <a class="crm-button" href={`${base}/${opportunity.id}`}>{vi ? "Mở cơ hội" : "Open opportunity"}</a>}
+  </div>
+</CrmShell>

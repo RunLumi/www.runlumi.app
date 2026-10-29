@@ -1,5 +1,7 @@
 ---
 import CrmShell from "../../layouts/CrmShell.astro";
+import Crumbs from "./Crumbs.astro";
+import "../../styles/crm-sales.css";
 import FormNotices from "./FormNotices.astro";
 import Hidden from "./Hidden.astro";
 import { formatDateTime } from "../../lib/crm/i18n";
@@ -21,6 +23,8 @@ const selectedOffers = posted ? (state.values.offers ?? "").split(",") : def.off
 const key = isNew ? "" : editing?.playbook_key ?? "";
 ---
 <CrmShell title="Playbooks" lang={lang} actor={ctx.actor} current="playbooks">
+  <Crumbs vi={vi} items={[{ label: "CRM", href: base }, { label: vi ? "Playbook" : "Playbooks" }]} />
+  <p class="crm-actions" style="margin:0 0 12px"><a class="crm-button small secondary" href={`${base}/admin/leads`}>{vi ? "Thiết lập trạng thái Lead" : "Lead status settings"}</a></p>
   <p class="crm-eyebrow"><a class="crm-link" href={`${base}/admin`}>{vi ? "Quản trị" : "Admin"}</a> / Playbooks</p>
   <div class="crm-head"><div>
     <h1 class="crm-h1">{vi ? "Quy trình bán có phiên bản." : "Versioned sales playbooks."}</h1>
