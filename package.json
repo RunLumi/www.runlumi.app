@@ -30,6 +30,7 @@
   "dependencies": {
     "@astrojs/cloudflare": "^14.3.2",
     "@astrojs/react": "6.0.5",
+    "@emdash-cms/auth": "0.38.0",
     "@emdash-cms/cloudflare": "0.38.0",
     "astro": "^7.3.3",
     "aws4fetch": "1.0.20",

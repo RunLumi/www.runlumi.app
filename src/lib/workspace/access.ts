@@ -2,6 +2,7 @@
 // matrix) and the shared access-form handler. Identity comes from EmDash;
 // grants, audit and API-token state from the hiring D1 database.
 import type { AstroGlobal } from "astro";
+import { stepUpGuard } from "./step-up";
 import { envFromLocals } from "../ats";
 import { sameOrigin } from "../http";
 import { chunks, AccessError, parseRoles, saveMember } from "./members";
@@ -110,6 +111,9 @@ export async function handleAccessPost(astro: AstroGlobal, success: (userId: str
   const user = astro.locals.workspace!;
   if (!user.can("users.manage")) return new Response("Forbidden", { status: 403 });
   if (!sameOrigin(astro.request)) return new Response("Invalid request origin.", { status: 400 });
+  // Access changes need a passkey check from the last five minutes (workstream 4 step-up).
+  const stepUp = await stepUpGuard({ session: astro.session, locals: astro.locals, request: astro.request, url: astro.url }, { next: astro.url.pathname });
+  if (stepUp) return stepUp;
   const form = await astro.request.formData().catch(() => null);
   if (!form) return new Response("Invalid form body.", { status: 400 });
   const intent = String(form.get("intent") ?? "");

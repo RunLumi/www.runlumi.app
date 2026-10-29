@@ -6,6 +6,8 @@ interface Env {
   FINANCE_LIVE_ENABLED?: string;
   /** HRM deployment kill switch; absent/off keeps production closed. */
   HRM_LIVE_ENABLED?: string;
+  /** R-08 enforcement switch: "true" requires a passkey check per session and an anti-phishing code for every Workspace user. Absent/other = off. */
+  WORKSPACE_PASSKEY_REQUIRED?: string;
   /** In-place D1 recovery fence; while true, all private routes/jobs stay unavailable. */
   WORKSPACE_RESTORE_MODE?: string;
   DB: D1Database;
@@ -23,6 +25,8 @@ interface Env {
   LARK_CRM_WEBHOOK_URL?: string;
   /** Lark custom bot signing secret (signature verification). */
   LARK_CRM_WEBHOOK_SECRET?: string;
+  /** Optional, ≥32 characters: encrypts admin-added Slack/Discord/Teams webhook URLs at rest. Absent = those webhooks cannot be added or used. */
+  WORKSPACE_WEBHOOK_KEY?: string;
 }
 
 declare namespace App {

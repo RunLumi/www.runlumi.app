@@ -1,0 +1,9 @@
+---
+import WorkspaceAccountSecurity from "../../../../components/workspace/WorkspaceAccountSecurity.astro";
+import { accountSecurityPage } from "../../../../lib/workspace/security-pages";
+
+export const prerender = false;
+const data = await accountSecurityPage(Astro, "vi");
+if (data instanceof Response) return data;
+---
+<WorkspaceAccountSecurity {...data} />

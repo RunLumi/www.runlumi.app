@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 import { envFromLocals } from "../../../../../lib/ats";
 import { badRequest, redirect303, sameOrigin } from "../../../../../lib/http";
+import { stepUpGuard } from "../../../../../lib/workspace/step-up";
 import { deskForbidden, deskPath, postLang } from "../../../../../lib/hiring/desk";
 
 export const prerender = false;
@@ -9,6 +10,8 @@ export const POST: APIRoute = async (context) => {
   const denied = deskForbidden(context.locals, "hiring.jobs.manage");
   if (denied) return denied;
   if (!sameOrigin(context.request)) return badRequest("Invalid request.");
+  const stepUp = await stepUpGuard(context);
+  if (stepUp) return stepUp;
   const form = await context.request.formData().catch(() => new FormData());
   if (form.get("confirm") !== "1") return badRequest("Confirm the deletion first.");
   const id = context.params.id ?? "";

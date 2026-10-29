@@ -3,6 +3,7 @@
 // Synthetic data only; never point this at production.
 import { execFileSync } from "node:child_process";
 import { createHmac, randomUUID } from "node:crypto";
+import { syntheticPasskey } from "../support/synthetic-passkey.mjs";
 
 export const BASE = process.env.CRM_BASE_URL ?? "http://localhost:4391";
 export const PERSIST = process.env.LUMI_PERSIST_TO;
@@ -41,7 +42,7 @@ export async function localFetch(url,options={}){
 }
 
 export class Session {
-  constructor(name) { this.name = name; this.cookies = new Map(); }
+  constructor(name) { this.name = name; this.cookies = new Map(); this.passkeyChecks = 0; }
   header() { return [...this.cookies].map(([key, value]) => `${key}=${value}`).join("; "); }
   absorb(response) {
     for (const line of response.headers.getSetCookie?.() ?? []) {
@@ -52,15 +53,64 @@ export class Session {
       if (/max-age=0|expires=thu, 01 jan 1970/i.test(line) || value === "") this.cookies.delete(key); else this.cookies.set(key, value);
     }
   }
+  /** True when the server asked for the Workspace passkey check (session gate or step-up). */
+  static asksForPasskey(status, location, body = "") {
+    return (status === 303 && /^\/(?:vi\/)?workspace\/(?:verify\?|account\/security\?setup=1)/.test(location ?? "")) || ((status === 401 || status === 403) && /"code":"(?:step_up_required|passkey_required)"/.test(body));
+  }
+  /** EmDash user ID of this session (dev-bypass admins learn it here). */
+  async userId() {
+    if (this.id) return this.id;
+    const response = await localFetch(`${BASE}/_emdash/api/auth/me`, { headers: { cookie: this.header() } });
+    this.id = (await response.json()).data?.id;
+    return this.id;
+  }
+  /**
+   * Touch the synthetic passkey: register it in EmDash's credentials table on
+   * first use (as EmDash's own registration would), then run the real
+   * Workspace options/verify ceremony. Returns the verify status.
+   */
+  async verifyPasskey(purpose = "step_up") {
+    const userId = await this.userId();
+    if (!this.passkey) {
+      this.passkey = syntheticPasskey(`test_cred_${randomUUID().replaceAll("-", "")}`);
+      content(`INSERT INTO credentials (id, user_id, public_key, algorithm, counter, device_type, backed_up, transports, name) VALUES (${q(this.passkey.id)}, ${q(userId)}, X'${this.passkey.publicKeyHex}', -7, 0, 'singleDevice', 0, '["internal"]', 'Synthetic test passkey')`);
+    }
+    const json = { cookie: this.header(), origin: BASE, "content-type": "application/json", accept: "application/json" };
+    const started = await localFetch(`${BASE}/api/workspace/passkey/options`, { method: "POST", headers: json, body: "{}" });
+    this.absorb(started);
+    if (started.status !== 200) return started.status;
+    const { options } = await started.json();
+    const verified = await localFetch(`${BASE}/api/workspace/passkey/verify`, { method: "POST", headers: { ...json, cookie: this.header() }, body: JSON.stringify({ purpose, credential: this.passkey.assert(options.challenge) }) });
+    this.absorb(verified);
+    if (verified.status === 200) {
+      this.passkeyChecks += 1;
+      // R-08: a Workspace person also sets an anti-phishing code once.
+      if (!jobs(`SELECT 1 AS x FROM workspace_anti_phishing WHERE user_id = ${q(userId)}`).length) {
+        await this.rawPost("/workspace/account/security", new URLSearchParams({ intent: "code", code: "Synthetic code 7", request_key: key() }));
+      }
+    }
+    return verified.status;
+  }
   async get(path) {
+    let result = await this.rawGet(path);
+    if (Session.asksForPasskey(result.status, result.location, result.html) && await this.verifyPasskey() === 200) result = await this.rawGet(path);
+    return result;
+  }
+  async rawGet(path) {
     const response = await localFetch(BASE + path, { headers: { cookie: this.header() }, redirect: "manual" });
     this.absorb(response);
     return { status: response.status, location: response.headers.get("location"), html: await response.text(), headers: response.headers };
   }
-  async post(path, fields, { origin = BASE } = {}) {
+  async post(path, fields, options = {}) {
     const body = new URLSearchParams();
     for (const [key, value] of Object.entries(fields)) for (const item of Array.isArray(value) ? value : [value]) body.append(key, String(item));
     if (!body.has("request_key")) body.set("request_key", key());
+    let result = await this.rawPost(path, body, options);
+    // The same body (and request_key) is retried once after the passkey check.
+    if (Session.asksForPasskey(result.status, result.location, result.html) && await this.verifyPasskey() === 200) result = await this.rawPost(path, body, options);
+    return result;
+  }
+  async rawPost(path, body, { origin = BASE } = {}) {
     const response = await localFetch(BASE + path, { method: "POST", body, headers: { cookie: this.header(), origin, "content-type": "application/x-www-form-urlencoded" }, redirect: "manual" });
     this.absorb(response);
     return { status: response.status, location: response.headers.get("location"), html: await response.text(), headers: response.headers };

@@ -79,9 +79,11 @@ export class AccessError extends Error {
   constructor(field: string, code: string) { super(code); this.field = field; }
 }
 
-function auditStatement(db: D1Database, actor: { id: string; name: string }, action: string, target: string, detail: Record<string, unknown>, now: string): D1PreparedStatement {
-  return db.prepare("INSERT INTO workspace_audit (id, actor_id, actor_name, action, target_user_id, detail, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
-    .bind(`aud_${crypto.randomUUID().replaceAll("-", "")}`, actor.id, actor.name, action, target, JSON.stringify(detail), now);
+/** One append-only workspace_audit row. Security events (passkey checks, exports) use it too. */
+export interface AuditMeta { module?: string; outcome?: "success" | "denied" | "failed"; via?: "web" | "api" | "mcp" | "system" }
+export function auditStatement(db: D1Database, actor: { id: string; name: string }, action: string, target: string, detail: Record<string, unknown>, now: string, meta: AuditMeta = {}): D1PreparedStatement {
+  return db.prepare("INSERT INTO workspace_audit (id, actor_id, actor_name, action, target_user_id, detail, created_at, module, outcome, via) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+    .bind(`aud_${crypto.randomUUID().replaceAll("-", "")}`, actor.id, actor.name, action, target, JSON.stringify(detail), now, meta.module ?? "admin", meta.outcome ?? "success", meta.via ?? "web");
 }
 
 export function parseRoles(values: readonly unknown[]): Role[] {
@@ -155,5 +157,5 @@ export async function prepareMemberDisableForOffboarding(
 }
 
 export async function recentAudit(db: D1Database): Promise<AuditRow[]> {
-  return (await db.prepare("SELECT id, actor_name, action, target_user_id, detail, created_at FROM workspace_audit ORDER BY created_at DESC LIMIT 50").all<AuditRow>()).results;
+  return (await db.prepare("SELECT id, actor_name, action, target_user_id, detail, created_at FROM workspace_audit WHERE action IN ('access_saved', 'access_revoked') ORDER BY created_at DESC LIMIT 50").all<AuditRow>()).results;
 }

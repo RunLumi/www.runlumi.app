@@ -6,13 +6,17 @@ import { workspaceUser } from "./lib/workspace/roles";
 import { sameOrigin } from "./lib/http";
 import { financeArea, financeBoundary, setFinanceReadiness } from "./lib/finance/access";
 import { restoreBlocksPath, restoreMaintenanceResponse } from "./lib/workspace/restore-maintenance";
+import { passkeyRegistrationGuard, passkeyRegistrationPath, passkeyRequired, workspaceGate } from "./lib/workspace/security-gate";
 
 /** Private areas and the permission each needs. The first match wins. */
 const areas: { test: (path: string) => boolean; permission: Permission; api?: boolean }[] = [
+  { test: (path) => path.startsWith("/api/workspace/"), permission: "workspace.access", api: true },
   { test: (path) => path.startsWith("/api/hrm/"), permission: "hrm.access", api: true },
   { test: (path) => under(path, "/hrm"), permission: "hrm.access" },
   { test: (path) => path.startsWith("/api/admin/"), permission: "hiring.access", api: true },
   { test: (path) => under(path, "/workspace/users") || under(path, "/workspace/roles"), permission: "users.manage" },
+  // Admin security and integrations (workstream 4): audit log, security overview, notifications, webhooks, AI agents.
+  { test: (path) => ["/workspace/audit", "/workspace/security", "/workspace/notifications", "/workspace/webhooks", "/workspace/agents"].some((root) => under(path, root)), permission: "users.manage" },
   { test: (path) => under(path, "/workspace"), permission: "workspace.access" },
   { test: (path) => under(path, "/admin/jobs"), permission: "hiring.access" },
   { test: (path) => under(path, "/admin/crm") || under(path, "/crm"), permission: "crm.access" },
@@ -36,6 +40,14 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const environment=envFromLocals(context.locals);
   if(restoreBlocksPath(environment.WORKSPACE_RESTORE_MODE,path))return restoreMaintenanceResponse(path,vi);
   if (financeArea(path)) return financeBoundary(context, next);
+  // Adding a passkey in EmDash needs proof of an existing one (security-gate.ts).
+  if (passkeyRegistrationPath(path)) {
+    const guard = await passkeyRegistrationGuard(context, environment.DB, environment.CONTENT_DB, passkeyRequired(environment));
+    if (guard instanceof Response) return guard;
+    const response = await next();
+    if (guard) await guard(response);
+    return response;
+  }
   const area = path === "/admin/jobs/login" ? undefined : areas.find((item) => item.test(path));
   const isPrivate = !!area || path.startsWith("/api/intake/") || path.startsWith("/api/crm/");
 
@@ -65,6 +77,9 @@ export const onRequest = defineMiddleware(async (context, next) => {
       if(area.api)return new Response("Forbidden",{status:403,headers:{"Cache-Control":"private, no-store"}});
       return forbidden(vi);
     }
+    // R-08: a passkey check in this session and a personal anti-phishing code (WORKSPACE_PASSKEY_REQUIRED).
+    const gate = await workspaceGate(context, user, DB, !!area.api, passkeyRequired(environment));
+    if (gate) return gate;
     const selfServiceOnly=user.can("hrm.profile.self")&&!user.can("hrm.records.manage")&&!user.can("hrm.team.read")&&!user.can("hrm.configure");
     let hrmReady = false;
     if(environment.HRM_LIVE_ENABLED === "true") {

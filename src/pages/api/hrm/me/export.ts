@@ -3,6 +3,7 @@ import { envFromLocals } from "../../../../lib/ats";
 import { HrmError } from "../../../../lib/hrm/fields";
 import { exportOwnHrmProfile } from "../../../../lib/hrm/profile-export";
 import { sameOrigin } from "../../../../lib/http";
+import { stepUpGuard } from "../../../../lib/workspace/step-up";
 
 export const prerender=false;
 const privateHeaders={"Cache-Control":"private, no-store","X-Content-Type-Options":"nosniff"};
@@ -14,6 +15,7 @@ export const POST:APIRoute=async context=>{
  if(!sameOrigin(context.request))return new Response(JSON.stringify({error:"invalid_origin"}),{status:400,headers:{...privateHeaders,"Content-Type":"application/json; charset=utf-8"}});
  if(!user.can("hrm.services.self")&&!user.can("hrm.services.manage"))return new Response(JSON.stringify({error:"forbidden"}),{status:403,headers:{...privateHeaders,"Content-Type":"application/json; charset=utf-8"}});
  if(!user.can("hrm.onboarding.self")&&!user.can("hrm.onboarding.manage"))return new Response(JSON.stringify({error:"forbidden"}),{status:403,headers:{...privateHeaders,"Content-Type":"application/json; charset=utf-8"}});
+ const stepUp=await stepUpGuard(context);if(stepUp)return stepUp;
  try{
   const result=await exportOwnHrmProfile(envFromLocals(context.locals).DB,user);
   return new Response(result.body,{headers:{...privateHeaders,"Content-Type":"application/json; charset=utf-8","Content-Disposition":"attachment; filename=\"lumi-hrm-self-data.json\""}});

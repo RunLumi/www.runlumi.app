@@ -1,0 +1,71 @@
+---
+// Admin › Audit log (R-11). Append-only events from workspace_audit and, when
+// Finance is ready, the Finance history. Filters are plain links and a GET
+// form; a row opens the event's child screen; CSV export needs step-up.
+import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
+import DataTable from "./ui/DataTable.astro";
+import PageHeader from "./ui/PageHeader.astro";
+import Panel from "./ui/Panel.astro";
+import { localized } from "../../lib/workspace/nav";
+import { type AuditFilters, actionLabel, filterQuery, moduleLabels } from "../../lib/workspace/audit-log";
+import type { AuditListData } from "../../lib/workspace/audit-pages";
+import { dateTime } from "../../lib/workspace/format";
+
+type Props = AuditListData;
+const { lang, vi, user, filters, rows, next, names, finance, actors } = Astro.props;
+const t = (en: string, viText: string) => (vi ? viText : en);
+const base = localized("/workspace/audit", vi);
+const chips: { kind: AuditFilters["kind"]; label: string }[] = [
+  { kind: "", label: t("All", "Tất cả") }, { kind: "security", label: t("Security events", "Sự kiện bảo mật") },
+  { kind: "agent", label: t("AI agent actions", "Hành động của AI agent") }, { kind: "access", label: t("Access and settings changes", "Thay đổi quyền và cài đặt") },
+  { kind: "data", label: t("Exports and deletions", "Xuất và xóa dữ liệu") }, { kind: "denied", label: t("Denied or failed", "Bị từ chối hoặc lỗi") },
+];
+const via: Record<string, [string, string]> = { web: ["Web", "Web"], api: ["API", "API"], mcp: ["AI agent (MCP)", "AI agent (MCP)"], system: ["System", "Hệ thống"] };
+const outcome: Record<string, [string, string, string]> = { success: ["Success", "Thành công", "green"], denied: ["Denied", "Bị từ chối", "red"], failed: ["Failed", "Lỗi", "amber"] };
+const label = (pair: [string, string] | undefined, fallback: string) => pair?.[vi ? 1 : 0] ?? fallback;
+const exportHref = `/api/workspace/audit/export.csv${filterQuery(filters, { cursor: "" })}${filterQuery(filters, { cursor: "" }) ? "&" : "?"}lang=${lang}`;
+const summary = (row: typeof rows[number]) => {
+  const detail = row.detail as Record<string, unknown>;
+  if (row.action === "agent_tool_called") return String(detail.tool ?? "");
+  if (row.action === "data_exported") return `${detail.export ?? ""} · ${detail.rows ?? 0} ${t("rows", "dòng")}`;
+  if (row.action === "passkey_failed") return String(detail.reason ?? "");
+  if (Array.isArray(detail.roles_after)) return (detail.roles_after as string[]).join(", ");
+  return "";
+};
+---
+<WorkspaceShell title={t("Audit log", "Nhật ký kiểm toán")} lang={lang} user={user} module="admin" current="audit">
+  <PageHeader vi={vi} eyebrow={t("Admin", "Quản trị")} title={t("Audit log", "Nhật ký kiểm toán")} lede={t("Append-only: nobody can change or delete an event, including the owner. Only System Super Admins open this page.", "Chỉ ghi thêm: không ai sửa hay xóa được sự kiện, kể cả chủ sở hữu. Chỉ Siêu quản trị hệ thống mở được trang này.")}>
+    <Fragment slot="actions"><a class="crm-button secondary" href={exportHref}>{t("Export CSV", "Xuất CSV")}</a></Fragment>
+  </PageHeader>
+  {!finance && <p class="crm-help">{t("Finance history appears here once Finance is set up and switched on.", "Lịch sử Tài chính hiện ở đây khi Tài chính đã được thiết lập và bật.")}</p>}
+  <Panel title={t("Events", "Sự kiện")} note={t("Newest first. Select a time to open the event. Export follows the filters (up to 5,000 rows) and asks for your passkey.", "Mới nhất trước. Bấm vào thời gian để mở sự kiện. Bản xuất theo bộ lọc (tối đa 5.000 dòng) và cần xác thực passkey.")} flush>
+    <div class="ws-toolbar">
+      <ul class="ws-chips" aria-label={t("Quick filters", "Lọc nhanh")}>
+        {chips.map((chip) => <li><a href={`${base}${filterQuery(filters, { kind: chip.kind, cursor: "" })}`} aria-current={filters.kind === chip.kind ? "true" : undefined}>{chip.label}</a></li>)}
+      </ul>
+    </div>
+    <form class="ws-toolbar crm-form" method="get" role="search" aria-label={t("Filter events", "Lọc sự kiện")}>
+      {filters.kind && <input type="hidden" name="kind" value={filters.kind} />}
+      <div class="crm-field"><label for="a-actor">{t("Who", "Người thực hiện")}</label><select class="crm-input" id="a-actor" name="actor"><option value="">{t("Everyone", "Mọi người")}</option>{actors.map((actor) => <option value={actor.id} selected={filters.actor === actor.id}>{actor.name}</option>)}</select></div>
+      <div class="crm-field"><label for="a-module">Module</label><select class="crm-input" id="a-module" name="module"><option value="">{t("All", "Tất cả")}</option>{Object.entries(moduleLabels).map(([key, names]) => <option value={key} selected={filters.module === key}>{names[vi ? 1 : 0]}</option>)}</select></div>
+      <div class="crm-field"><label for="a-outcome">{t("Outcome", "Kết quả")}</label><select class="crm-input" id="a-outcome" name="outcome"><option value="">{t("All", "Tất cả")}</option>{Object.entries(outcome).map(([key, names]) => <option value={key} selected={filters.outcome === key}>{names[vi ? 1 : 0]}</option>)}</select></div>
+      <div class="crm-field"><label for="a-source">{t("Source", "Nguồn")}</label><select class="crm-input" id="a-source" name="source"><option value="all">{t("All", "Tất cả")}</option><option value="workspace" selected={filters.source === "workspace"}>Workspace</option>{finance && <option value="finance" selected={filters.source === "finance"}>{t("Finance", "Tài chính")}</option>}</select></div>
+      <div class="crm-field"><label for="a-from">{t("From", "Từ ngày")}</label><input class="crm-input" id="a-from" name="from" type="date" value={filters.from} /></div>
+      <div class="crm-field"><label for="a-to">{t("To", "Đến ngày")}</label><input class="crm-input" id="a-to" name="to" type="date" value={filters.to} /></div>
+      <div class="crm-field"><label for="a-q">{t("Action or name", "Hành động hoặc tên")}</label><input class="crm-input" id="a-q" name="q" type="search" maxlength="80" value={filters.q} /></div>
+      <div class="crm-actions"><button class="crm-button secondary" type="submit">{t("Apply", "Lọc")}</button><a class="crm-link" href={base}>{t("Clear", "Xóa lọc")}</a></div>
+    </form>
+    {rows.length
+      ? <DataTable vi={vi} label={t("Audit events", "Sự kiện kiểm toán")} frozen={2} widths={["11rem", "13rem"]} frozenNames={t("Time and Who", "Thời gian và Người thực hiện")} minWidth="1100px" meta={t(`${rows.length} events on this page`, `${rows.length} sự kiện trên trang này`)}>
+          <thead><tr><th scope="col">{t("Time", "Thời gian")}</th><th scope="col">{t("Who", "Người thực hiện")}</th><th scope="col">{t("Via", "Qua")}</th><th scope="col">Module</th><th scope="col">{t("Action", "Hành động")}</th><th scope="col">{t("Detail", "Chi tiết")}</th><th scope="col">{t("Target", "Đối tượng")}</th><th scope="col">{t("Outcome", "Kết quả")}</th><th scope="col">{t("Event ID", "Mã sự kiện")}</th></tr></thead>
+          <tbody>{rows.map((row) => { const [en, viText, tone] = outcome[row.outcome] ?? [row.outcome, row.outcome, ""]; return <tr>
+            <th scope="row"><a class="ws-row-link" href={`${base}/${encodeURIComponent(row.id)}`}>{dateTime(row.created_at, vi)}</a></th>
+            <td>{names[row.actor_id] ?? row.actor_name}</td><td>{label(via[row.via], row.via)}</td><td>{label(moduleLabels[row.module], row.module)}</td>
+            <td>{actionLabel(row.action, vi)}</td><td>{summary(row)}</td><td>{names[row.target] ?? row.target}</td>
+            <td><span class:list={["crm-badge", tone]}>{vi ? viText : en}</span></td><td><code>{row.id}</code></td>
+          </tr>; })}</tbody>
+        </DataTable>
+      : <p class="crm-empty">{t("No events match these filters.", "Không có sự kiện khớp bộ lọc.")}</p>}
+    {(filters.cursor || next) && <div slot="foot" class="crm-actions">{filters.cursor && <a class="crm-link" href={`${base}${filterQuery(filters, { cursor: "" })}`}>{t("Newest", "Mới nhất")}</a>}{next && <a class="crm-button secondary small" href={`${base}${filterQuery(filters, { cursor: next })}`}>{t("Older events", "Sự kiện cũ hơn")}</a>}</div>}
+  </Panel>
+</WorkspaceShell>

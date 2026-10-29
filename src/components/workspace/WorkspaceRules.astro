@@ -1,0 +1,49 @@
+---
+// Admin › Notification rules (R-09). A row opens the rule's child screen.
+import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
+import DataTable from "./ui/DataTable.astro";
+import PageHeader from "./ui/PageHeader.astro";
+import Panel from "./ui/Panel.astro";
+import { localized } from "../../lib/workspace/nav";
+import type { RulesData } from "../../lib/workspace/admin-security-pages";
+import { platformLabels } from "../../lib/workspace/notify/destinations";
+import { eventLabel } from "../../lib/workspace/notify/labels";
+import { dateTime } from "../../lib/workspace/format";
+import { roleLabel } from "../../lib/workspace/roles";
+
+type Props = RulesData;
+const { lang, vi, user, rules, destinations, stats, saved } = Astro.props;
+const t = (en: string, viText: string) => (vi ? viText : en);
+const base = localized("/workspace/notifications", vi);
+const destinationName = (id: string) => { const item = destinations.find((destination) => destination.id === id); return item ? `${platformLabels[item.platform]} · ${item.name}` : t("Removed webhook", "Webhook đã gỡ"); };
+const recipients = (rule: typeof rules[number]) => [
+  ...(rule.recipients.record_owner ? [t("Record owner", "Người phụ trách bản ghi")] : []),
+  ...(rule.recipients.admins ? [roleLabel("admin", vi)] : []),
+  ...rule.recipients.roles.map((role) => roleLabel(role, vi)),
+  ...(rule.recipients.users.length ? [t(`${rule.recipients.users.length} people`, `${rule.recipients.users.length} người`)] : []),
+].join(" · ") || "—";
+---
+<WorkspaceShell title={t("Notification rules", "Quy tắc thông báo")} lang={lang} user={user} module="admin" current="notifications">
+  <PageHeader vi={vi} eyebrow={t("Admin", "Quản trị")} title={t("Notification rules", "Quy tắc thông báo")} lede={t("Each rule says which CRM event, under which conditions, goes by email to which internal people and to which webhooks. People only hear about records they may see. The Lark team group keeps receiving all CRM activity as before.", "Mỗi quy tắc nói rõ sự kiện CRM nào, với điều kiện gì, gửi email cho người nội bộ nào và tới Webhook nào. Mỗi người chỉ nhận tin về bản ghi họ được xem. Nhóm Lark vẫn nhận mọi hoạt động CRM như trước.")}>
+    <Fragment slot="actions"><a class="crm-button secondary" href={localized("/workspace/webhooks", vi)}>Webhook</a><a class="crm-button" href={`${base}/new`}>{t("Create rule", "Tạo quy tắc")}</a></Fragment>
+  </PageHeader>
+  {saved && <div class="crm-notice good" role="status">{t("Saved.", "Đã lưu.")}</div>}
+  <p class="crm-notice" role="note">{t("Email: no email provider is connected yet, so email deliveries are recorded as not sent. Webhooks deliver now. Every email will start with the recipient's anti-phishing code.", "Email: chưa kết nối nhà cung cấp email, nên lượt gửi email được ghi là chưa gửi. Webhook gửi được ngay. Mọi email sẽ bắt đầu bằng mã chống lừa đảo của người nhận.")}</p>
+  <Panel title={t("Rules", "Quy tắc")} flush>
+    {rules.length
+      ? <DataTable vi={vi} label={t("Notification rules", "Quy tắc thông báo")} frozen={1} widths={["15rem"]} frozenNames={t("Rule", "Tên quy tắc")} minWidth="1150px" meta={t(`${rules.length} rules`, `${rules.length} quy tắc`)}>
+          <thead><tr><th scope="col">{t("Rule", "Tên quy tắc")}</th><th scope="col">Module</th><th scope="col">{t("Events", "Sự kiện")}</th><th scope="col">{t("Conditions", "Điều kiện")}</th><th scope="col">{t("Channels", "Kênh")}</th><th scope="col">{t("Email recipients", "Người nhận email")}</th><th scope="col">{t("Status", "Trạng thái")}</th><th scope="col">{t("Last sent", "Gửi gần nhất")}</th><th scope="col" class="num">{t("Errors, 7 days", "Lỗi 7 ngày")}</th></tr></thead>
+          <tbody>{rules.map((rule) => <tr>
+            <th scope="row"><a class="ws-row-link" href={`${base}/${rule.id}`}>{rule.name}</a></th><td>CRM</td>
+            <td>{rule.events.map((event) => eventLabel(event, vi)).join(", ")}</td>
+            <td>{[rule.conditions.outcome && t(`Outcome ${rule.conditions.outcome}`, `Kết quả ${rule.conditions.outcome}`), rule.conditions.min_value_vnd !== null && `≥ ${rule.conditions.min_value_vnd.toLocaleString("vi-VN")} ₫`, rule.conditions.playbooks.length && t(`${rule.conditions.playbooks.length} playbooks`, `${rule.conditions.playbooks.length} playbook`)].filter(Boolean).join(" · ") || t("All", "Tất cả")}</td>
+            <td>{[...(rule.email ? ["Email"] : []), ...rule.destinations.map(destinationName)].join(" · ")}</td>
+            <td>{recipients(rule)}</td>
+            <td><span class:list={["crm-badge", rule.enabled ? "green" : ""]}>{rule.enabled ? t("On", "Đang bật") : t("Off", "Đang tắt")}</span></td>
+            <td>{stats[rule.id]?.last ? dateTime(stats[rule.id].last!, vi) : "—"}</td>
+            <td class="num">{stats[rule.id]?.failed7d ?? 0}</td>
+          </tr>)}</tbody>
+        </DataTable>
+      : <p class="crm-empty">{t("No rules yet.", "Chưa có quy tắc nào.")}</p>}
+  </Panel>
+</WorkspaceShell>

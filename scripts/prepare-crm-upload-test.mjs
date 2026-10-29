@@ -29,6 +29,8 @@ config.vars = {
   CRM_R2_ACCESS_KEY_ID:'test-crm-s3',CRM_R2_SECRET_ACCESS_KEY:'synthetic-local-only-not-for-production',
   CRM_R2_LOCAL_ENDPOINT:`${origin.origin}/cdn-cgi/local/r2/s3`,
   WORKSPACE_RESTORE_MODE:process.env.WORKSPACE_RESTORE_MODE==='true'?'true':'false',
+  // Tests run with R-08 enforcement on (production ships it off); set WORKSPACE_PASSKEY_REQUIRED=false to test the off state.
+  WORKSPACE_PASSKEY_REQUIRED:process.env.WORKSPACE_PASSKEY_REQUIRED==='false'?'false':'true',
 };
 const target = resolve(root,'.wrangler/crm-upload-test.jsonc');
 mkdirSync(dirname(target),{recursive:true});

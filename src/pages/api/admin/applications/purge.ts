@@ -1,6 +1,7 @@
 import type { APIRoute } from "astro";
 import { envFromLocals, nowIso } from "../../../../lib/ats";
 import { badRequest, redirect303, sameOrigin } from "../../../../lib/http";
+import { stepUpGuard } from "../../../../lib/workspace/step-up";
 import { deskActor, deskForbidden, deskPath, postLang } from "../../../../lib/hiring/desk";
 import { RETENTION_STATUSES, retentionCutoff } from "../../../../lib/hiring/interviews";
 
@@ -15,6 +16,8 @@ export const POST: APIRoute = async (context) => {
   const denied = deskForbidden(context.locals, "hiring.applications.delete");
   if (denied) return denied;
   if (!sameOrigin(context.request)) return badRequest("Invalid request.");
+  const stepUp = await stepUpGuard(context);
+  if (stepUp) return stepUp;
   const form = await context.request.formData();
   const back = deskPath(postLang(context.request, form), "/admin/jobs/applications");
   const cutoff = String(form.get("cutoff") ?? "");
@@ -33,7 +36,7 @@ export const POST: APIRoute = async (context) => {
     deleted += 1;
   }
   const actor = deskActor(context.locals);
-  await DB.prepare("INSERT INTO workspace_audit (id, actor_id, actor_name, action, target_user_id, detail, created_at) VALUES (?, ?, ?, 'candidates_purged', 'hiring', ?, ?)")
+  await DB.prepare("INSERT INTO workspace_audit (id, actor_id, actor_name, action, target_user_id, detail, created_at, module) VALUES (?, ?, ?, 'candidates_purged', 'hiring', ?, ?, 'hiring')")
     .bind(`aud_${crypto.randomUUID().replaceAll("-", "")}`, actor.id ?? "unknown", actor.name, JSON.stringify({ cutoff, deleted, statuses: RETENTION_STATUSES }), nowIso()).run();
   return redirect303(`${back}?purged=${deleted}#retention`);
 };

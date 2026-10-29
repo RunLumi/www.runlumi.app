@@ -1,12 +1,13 @@
 // Worker entry: Astro serves requests; scheduled handlers run only their
-// explicitly assigned CRM/Lark or HRM reminder/report jobs.
+// explicitly assigned CRM/Lark, notification-rule or HRM reminder/report jobs.
 import { cleanupUploads } from "./lib/crm/direct-uploads";
 import server from "@astrojs/cloudflare/entrypoints/server";
-import { isLarkCron, runScheduled } from "./lib/crm/lark/notify";
+import { RETRY_CRON, isLarkCron, runScheduled } from "./lib/crm/lark/notify";
 import { HRM_ASSET_REMINDER_CRON, runHrmAssetReminderSweep } from "./lib/hrm/asset-reminders";
 import { runHrmTrainingReminderSweep } from "./lib/hrm/training-reminders";
 import { runHrmReportScheduleSweep } from "./lib/hrm/report-snapshots";
 import { restoreMaintenanceEnabled } from "./lib/workspace/restore-maintenance";
+import { runNotificationRules } from "./lib/workspace/notify/dispatch";
 
 export default {
   fetch: server.fetch,
@@ -18,6 +19,10 @@ export default {
       }));
       ctx.waitUntil(runScheduled(controller.cron, env).catch((error: unknown) => {
         console.error("crm_lark_scheduled_failed", error instanceof Error ? error.name : "unknown"); // !# policy: console
+      }));
+      // Notification rules (Slack/Discord/Teams webhooks, internal email) ride the ten-minute pass.
+      if(controller.cron===RETRY_CRON)ctx.waitUntil(runNotificationRules(env).catch((error: unknown) => {
+        console.error("workspace_notifications_failed", error instanceof Error ? error.name : "unknown"); // !# policy: console
       }));
     }
     if(controller.cron===HRM_ASSET_REMINDER_CRON){
