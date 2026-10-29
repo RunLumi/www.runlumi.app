@@ -47,6 +47,7 @@
    place during horizontal scroll; widths come from --ws-fz-1..3. */
 .ws-table { min-width: 0; margin: 0; }
 .ws-table-scroll {
+  position: relative;
   overflow-x: auto; max-width: 100%; border-top: 1px solid var(--crm-line-soft);
   /* Edge shadow while more columns wait to the right; the cover scrolls with the content. */
   background:
@@ -200,3 +201,5 @@
 .ws-tbl td.ws-mx.none { color: var(--crm-line-strong); }
 .ws-tbl td.ws-mx.none::before { content: "·"; }
 .ws-tbl tbody th code { font-size: 13.5px; font-weight: 500; color: var(--crm-ink); overflow-wrap: anywhere; }
+.ws-tbl th.w-md { min-width: 12rem; }
+.ws-tbl th.w-sm { min-width: 8rem; }

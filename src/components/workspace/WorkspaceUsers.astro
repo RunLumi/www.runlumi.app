@@ -53,9 +53,9 @@ const status = (row: typeof rows[number]): [string, string] => !row.enabled ? ["
     {shown.length
       ? <DataTable vi={vi} label={t("People with access", "Người có quyền")} frozen={1} widths={["17rem"]} frozenNames={t("Name", "Tên")} minWidth="980px" meta={t(`${shown.length} people`, `${shown.length} người`)}>
           <thead><tr>
-            <th scope="col">{t("Name", "Tên")}</th><th scope="col">{t("Roles", "Vai trò")}</th><th scope="col">{t("Modules", "Phân hệ")}</th>
+            <th scope="col">{t("Name", "Tên")}</th><th scope="col" class="w-md">{t("Roles", "Vai trò")}</th><th scope="col" class="w-md">{t("Modules", "Phân hệ")}</th>
             <th scope="col" class="num">Passkey</th><th scope="col" class="num">{t("AI agent tokens", "Token AI agent")}</th>
-            <th scope="col">{t("Status", "Trạng thái")}</th><th scope="col">{t("Last change", "Thay đổi gần nhất")}</th>
+            <th scope="col" class="w-md">{t("Status", "Trạng thái")}</th><th scope="col">{t("Last change", "Thay đổi gần nhất")}</th>
           </tr></thead>
           <tbody>{shown.map((row) => { const [tone, label] = status(row); return <tr>
             <th scope="row"><a class="ws-row-link" href={`${base}/${encodeURIComponent(row.user_id)}`}>{row.name || t("EmDash account unavailable", "Không còn tài khoản EmDash")}</a><span class="ws-sub">{row.email}</span></th>
