@@ -118,7 +118,12 @@ CRM                 /crm                       grouped sidebar (Menu disclosure 
   Operations                                   Fulfillment (fulfillment or team) · Assignment and cohorts (team)
   Setup                                        Playbooks · Offers and prices (configure)
   Guides and tools                             Sales process · Connect an AI agent
-HRM                 /hrm                       My overview · My profile · Legal · Onboarding · Time/leave · My payslips · My HR requests · Notifications · Payroll · HR service desk (each entry permission-gated)
+HRM                 /hrm                       grouped sidebar (Menu disclosure below 1024px); each entry permission-gated:
+  My HR                                        My overview · My profile · documents, COI, onboarding, attendance, leave, payslips, requests, assets, benefits, reviews, training · Notifications
+  People                                       People · Job descriptions · Onboarding plans · Offboarding · Performance reviews · Training
+  Time, leave and pay                          Schedules and attendance · Leave · Payroll and payslips · Benefits
+  Service and compliance                       Policies and documents · COI review · HR service desk · Asset register
+  Reports and control                          Reports · Report policies and holds · Retention and legal holds · HRM settings
 Admin               /workspace/users           Users and roles
 ```
 
