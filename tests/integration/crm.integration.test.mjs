@@ -624,7 +624,7 @@ test("17. contact record, company breadcrumbs, Today leads and the lead report r
     assert.equal((await S.c.get(path)).status, 404, "another seller's contact is not found");
     const page = await S.a.get(path);
     assert.equal(page.status, 200);
-    assert.match(page.html, /class="crm-crumbs"/);
+    assert.match(page.html, /class="ws-crumbs"/);
   }
   assert.equal((await S.c.post(`/crm/contacts/${contactId}`, { intent: "contact", version: 1, name: "TEST probe" })).status, 404);
   const page = await S.a.get(`/crm/contacts/${contactId}`);
@@ -632,7 +632,7 @@ test("17. contact record, company breadcrumbs, Today leads and the lead report r
   assert.equal(jobs(`SELECT name FROM crm_contacts WHERE id = ${q(contactId)}`)[0].name, `TEST Contact Renamed ${run}`);
   assert.equal((await S.a.post(`/crm/contacts/${contactId}`, { intent: "contact", version: version(page.html), name: "TEST stale", role: "owner", consent_status: "unknown" })).status, 409);
   const accountId = jobs(`SELECT account_id AS id FROM crm_opportunities WHERE id = ${q(id)}`)[0].id;
-  assert.match((await S.a.get(`/vi/crm/accounts/${accountId}`)).html, /class="crm-crumbs"[\s\S]*Công ty/);
+  assert.match((await S.a.get(`/vi/crm/accounts/${accountId}`)).html, /class="ws-crumbs"[\s\S]*Công ty/);
   // Today lists the seller's own leads with a due or missing next step; the team sees the queue count.
   const lead = await S.a.post("/crm/leads", { intent: "lead_create", name: `TEST Today Lead ${run}`, company: `TEST Today Lead Co ${run}`, phone: phone(), source_channel: "event" });
   assert.equal(lead.status, 303);

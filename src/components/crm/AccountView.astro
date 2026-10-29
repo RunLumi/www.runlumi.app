@@ -23,7 +23,7 @@ const fieldLabels: Record<string, string> = vi
   : { contact_id: "Contact", playbook_key: "Sales playbook", source_channel: "Channel", owner_id: "Owner", name: "Name", phone: "Phone", email: "Email", consent_evidence: "Consent evidence", dnc_reason: "Reason" };
 ---
 <CrmShell title={account.name} lang={lang} actor={ctx.actor} current="companies">
-  <Crumbs label={vi ? "Đường dẫn" : "Breadcrumb"} items={[{ label: "CRM", href: base }, { label: vi ? "Công ty" : "Companies", href: `${base}/accounts` }, { label: account.name }]} />
+  <Crumbs vi={vi} items={[{ label: "CRM", href: base }, { label: vi ? "Công ty" : "Companies", href: `${base}/accounts` }, { label: account.name }]} />
   <div class="crm-head"><div>
     <h1 class="crm-h1">{account.name}</h1>
     <p class="crm-lede">{[account.industry, account.region, account.address].filter(Boolean).join(" · ") || (vi ? "Chưa có ngành hoặc khu vực." : "No industry or area yet.")}</p>

@@ -10,7 +10,7 @@ const { ctx, rows, names } = Astro.props;
 const { lang, vi, base } = ctx;
 ---
 <CrmShell title={vi ? "Bàn giao" : "Fulfillment"} lang={lang} actor={ctx.actor} current="fulfillment">
-  <Crumbs label={vi ? "Đường dẫn" : "Breadcrumb"} items={[{ label: "CRM", href: base }, { label: vi ? "Bàn giao" : "Fulfillment" }]} />
+  <Crumbs vi={vi} items={[{ label: "CRM", href: base }, { label: vi ? "Bàn giao" : "Fulfillment" }]} />
   <div class="crm-head"><div>
     <p class="crm-eyebrow">{vi ? "Bàn giao" : "Fulfillment"}</p>
     <h1 class="crm-h1">{vi ? "Việc đang thực hiện sau bán." : "Work in delivery after the sale."}</h1>

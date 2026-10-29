@@ -18,7 +18,7 @@ const person = (id: string | null) => id ? (names[id]?.name ?? (id === ctx.actor
 const blocked = !!contact.do_not_contact || !!contact.account_dnc;
 ---
 <CrmShell title={contact.name} lang={lang} actor={ctx.actor} current="contacts">
-  <Crumbs label={vi ? "Đường dẫn" : "Breadcrumb"} items={[{ label: "CRM", href: base }, { label: vi ? "Liên hệ" : "Contacts", href: `${base}/contacts` }, { label: contact.account_name, href: `${base}/accounts/${contact.account_id}` }, { label: contact.name }]} />
+  <Crumbs vi={vi} items={[{ label: "CRM", href: base }, { label: vi ? "Liên hệ" : "Contacts", href: `${base}/contacts` }, { label: contact.account_name, href: `${base}/accounts/${contact.account_id}` }, { label: contact.name }]} />
   <div class="crm-head"><div>
     <p class="crm-eyebrow">{vi ? "Liên hệ" : "Contact"} · {label(lang, "role", contact.role)}</p>
     <h1 class="crm-h1">{contact.name}</h1>

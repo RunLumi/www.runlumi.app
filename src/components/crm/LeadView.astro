@@ -47,7 +47,7 @@ const fieldLabels: Record<string, string> = vi
   : { name: "Name", company: "Company", phone: "Phone", email: "Email", account_id: "Existing company", account_name: "New company name", contact_id: "Existing contact", contact_mode: "Contact", playbook_key: "Playbook", title: "Opportunity name", owner_id: "Owner", reason_id: "Reason", status_id: "Status", consent: "Contact consent", estimated_value_vnd: "Expected value", win_probability: "Win probability", reopen_reason: "Reason to reopen" };
 ---
 <CrmShell title={`${lead.name} · ${lead.company}`} lang={lang} actor={ctx.actor} current="leads">
-  <Crumbs label={vi ? "Đường dẫn" : "Breadcrumb"} items={[{ label: "CRM", href: base }, { label: vi ? "Lead" : "Leads", href: `${base}/leads` }, { label: lead.name }]} />
+  <Crumbs vi={vi} items={[{ label: "CRM", href: base }, { label: vi ? "Lead" : "Leads", href: `${base}/leads` }, { label: lead.name }]} />
   <div class="crm-head">
     <div>
       <p class="crm-eyebrow">Lead · {label(lang, "channel", lead.source_channel)}</p>

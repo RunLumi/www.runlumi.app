@@ -1,15 +1,7 @@
 /* CRM selling surfaces (workstream 3): full-width tables with frozen leading
-   columns, Kanban boards, the stage path, breadcrumbs and the calendar.
-   Built on the crm.css tokens; no new colours. Replace the table and
-   breadcrumb rules with workstream 1's shared components once merged. */
-
-/* Breadcrumbs (R-03): a child screen names where it came from. */
-.crm-crumbs { margin: 0 0 14px; }
-.crm-crumbs ol { display: flex; flex-wrap: wrap; gap: 4px 8px; margin: 0; padding: 0; list-style: none; color: var(--crm-slate); font-size: var(--crm-meta); }
-.crm-crumbs li + li::before { content: "/"; margin-right: 8px; color: var(--crm-line-strong); }
-.crm-crumbs a { color: var(--crm-blue); text-decoration: none; font-weight: 600; }
-.crm-crumbs a:hover { text-decoration: underline; }
-.crm-crumbs [aria-current="page"] { color: var(--crm-navy); overflow-wrap: anywhere; }
+   columns, Kanban boards, the stage path and the calendar. Built on the
+   crm.css tokens; no new colours. Breadcrumbs come from workstream 1's shared
+   component. */
 
 /* View switch (List · Board · Calendar). */
 .crm-views { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--crm-line); border-radius: var(--crm-radius); background: white; }

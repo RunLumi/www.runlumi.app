@@ -1,9 +1,7 @@
 ---
-// Breadcrumbs for a CRM child screen (R-03). The last item is the current page.
-// Replace with workstream 1's shared breadcrumb component once it is merged.
-interface Props { items: { label: string; href?: string }[]; label: string }
-const { items, label } = Astro.props;
+// CRM child-screen breadcrumbs (R-03): workstream 1's shared component.
+import Breadcrumbs, { type Crumb } from "../workspace/ui/Breadcrumbs.astro";
+interface Props { items: Crumb[]; vi: boolean }
+const { items, vi } = Astro.props;
 ---
-<nav class="crm-crumbs" aria-label={label}>
-  <ol>{items.map((item, index) => <li>{item.href && index < items.length - 1 ? <a href={item.href}>{item.label}</a> : <span aria-current="page">{item.label}</span>}</li>)}</ol>
-</nav>
+<Breadcrumbs items={items} vi={vi} />

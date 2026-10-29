@@ -22,7 +22,7 @@ const paymentTone: Record<string, string> = { paid: "green", overpaid: "amber", 
 const saved = Astro.url.searchParams.get("saved");
 ---
 <CrmShell title={opp.title} lang={lang} actor={ctx.actor} current="pipeline">
-  <Crumbs label={vi ? "Đường dẫn" : "Breadcrumb"} items={[{ label: "CRM", href: base }, { label: vi ? "Cơ hội" : "Pipeline", href: `${base}/pipeline?playbook=${playbook.playbook_key}` }, { label: opp.account_name, href: `${base}/accounts/${opp.account_id}` }, { label: opp.title }]} />
+  <Crumbs vi={vi} items={[{ label: "CRM", href: base }, { label: vi ? "Cơ hội" : "Pipeline", href: `${base}/pipeline?playbook=${playbook.playbook_key}` }, { label: opp.account_name, href: `${base}/accounts/${opp.account_id}` }, { label: opp.title }]} />
   <p class="crm-eyebrow"><a class="crm-link" href={`${base}/pipeline?playbook=${playbook.playbook_key}`}>{vi ? playbook.name_vi : playbook.name_en}</a> · v{playbook.version} · {label(lang, "relation", opp.relation)}</p>
   <div class="crm-head">
     <div>

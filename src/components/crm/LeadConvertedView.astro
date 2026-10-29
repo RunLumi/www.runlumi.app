@@ -9,7 +9,7 @@ const { ctx, lead, account, contact, opportunity } = Astro.props;
 const { lang, vi, base } = ctx;
 ---
 <CrmShell title={vi ? "Đã chuyển Lead thành cơ hội" : "Lead converted"} lang={lang} actor={ctx.actor} current="leads">
-  <Crumbs label={vi ? "Đường dẫn" : "Breadcrumb"} items={[{ label: "CRM", href: base }, { label: vi ? "Lead" : "Leads", href: `${base}/leads` }, { label: lead.name, href: `${base}/leads/${lead.id}` }, { label: vi ? "Đã chuyển đổi" : "Converted" }]} />
+  <Crumbs vi={vi} items={[{ label: "CRM", href: base }, { label: vi ? "Lead" : "Leads", href: `${base}/leads` }, { label: lead.name, href: `${base}/leads/${lead.id}` }, { label: vi ? "Đã chuyển đổi" : "Converted" }]} />
   <div class="crm-head"><div>
     <h1 class="crm-h1">{vi ? "Đã chuyển Lead thành cơ hội." : "Lead converted."}</h1>
     <p class="crm-lede">{lead.name} · {lead.company}</p>

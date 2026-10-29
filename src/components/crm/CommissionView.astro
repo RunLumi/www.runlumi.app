@@ -42,7 +42,7 @@ const v = (intent: string, field: string, fallback: string | number = "") => val
 const e = (intent: string, field: string) => errorFor(state, intent, field);
 ---
 <CrmShell title={vi ? "Hoa hồng" : "Commission"} lang={lang} actor={ctx.actor} current="commission">
-  <Crumbs label={vi ? "Đường dẫn" : "Breadcrumb"} items={[{ label: "CRM", href: base }, { label: vi ? "Hoa hồng" : "Commission" }]} />
+  <Crumbs vi={vi} items={[{ label: "CRM", href: base }, { label: vi ? "Hoa hồng" : "Commission" }]} />
   <div class="crm-head"><div>
     <p class="crm-eyebrow">{vi ? "Hoa hồng" : "Commission"}</p>
     <h1 class="crm-h1">{vi ? "Trả cho khách đã thu tiền, đã bàn giao và còn ở lại." : "Paid for customers who paid, were delivered and stayed."}</h1>
