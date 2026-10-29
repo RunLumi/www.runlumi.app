@@ -2,6 +2,8 @@ import { activeUser, emdashLoginUrl } from "../admin-auth";
 import { envFromLocals } from "../ats";
 import { makeUser, type WorkspaceUser } from "../workspace/roles";
 import { getFinanceReadiness } from "./store";
+import type { SessionStore } from "../workspace/passkey";
+import { workspaceGate } from "../workspace/security-gate";
 
 export function financeArea(pathname: string): { api: boolean; vi: boolean } | null {
   const vi = pathname.startsWith("/vi/");
@@ -41,7 +43,7 @@ export async function setFinanceReadiness(db: D1Database, user: WorkspaceUser, d
   catch { user.financeEnabled = false; }
 }
 
-type BoundaryContext = { url: URL; request: Request; locals: App.Locals };
+type BoundaryContext = { url: URL; request: Request; locals: App.Locals; session?: SessionStore };
 
 /** A session-only boundary, intentionally independent of CRM tokens and HRM readiness. */
 export async function financeBoundary(context: BoundaryContext, next: () => Promise<Response>): Promise<Response> {
@@ -58,6 +60,9 @@ export async function financeBoundary(context: BoundaryContext, next: () => Prom
   const user = makeUser({ id: account.id, name: account.name || account.email, email: account.email }, true, []);
   context.locals.workspace = user;
   try {
+    // R-08: the same passkey session check and anti-phishing code as every Workspace area.
+    const gate = await workspaceGate(context, user, envFromLocals(context.locals).DB, area.api);
+    if (gate) return financePrivate(gate);
     if (context.request.method === "POST") context.locals.financeFormRequest = context.request.clone() as unknown as Request;
     const env = envFromLocals(context.locals);
     await setFinanceReadiness(env.DB, user, env.FINANCE_LIVE_ENABLED === "true");

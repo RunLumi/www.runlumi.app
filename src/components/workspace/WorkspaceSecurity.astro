@@ -1,0 +1,70 @@
+---
+// Admin › Security. The fixed R-08 rules, who still lacks a passkey, a second
+// passkey or an anti-phishing code, and passkey recovery windows.
+import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
+import DataTable from "./ui/DataTable.astro";
+import PageHeader from "./ui/PageHeader.astro";
+import Panel from "./ui/Panel.astro";
+import PanelRow from "./ui/PanelRow.astro";
+import { localized } from "../../lib/workspace/nav";
+import type { SecurityData } from "../../lib/workspace/admin-security-pages";
+import { dateTime } from "../../lib/workspace/format";
+import { RECOVERY_WINDOW_HOURS } from "../../lib/workspace/org-security";
+import { roleLabel } from "../../lib/workspace/roles";
+
+type Props = SecurityData;
+const { lang, vi, user, rows, error, saved } = Astro.props;
+const t = (en: string, viText: string) => (vi ? viText : en);
+const active = rows.filter((row) => row.enabled);
+const noPasskey = active.filter((row) => row.passkeys === 0).length, onePasskey = active.filter((row) => row.passkeys === 1).length, noCode = active.filter((row) => !row.codeSet).length;
+const errors: Record<string, [string, string]> = {
+  "user_id:self": ["You cannot open a recovery window for yourself; another admin must.", "Không tự mở khôi phục cho chính mình; admin khác phải làm."],
+  "user_id:not_found": ["That person is not an active Workspace account.", "Người này không phải tài khoản Workspace đang hoạt động."],
+  "reason:required": ["Write how you confirmed who the person is.", "Ghi rõ bạn đã xác minh danh tính người đó bằng cách nào."],
+};
+const rules: [string, string, string, string][] = [
+  ["Passkey for every member", "Passkey cho mọi thành viên", "Every Workspace session, admins included, verifies an EmDash passkey (up to 12 hours).", "Mọi phiên Workspace, kể cả admin, phải xác thực passkey EmDash (tối đa 12 giờ)."],
+  ["Anti-phishing code", "Mã chống lừa đảo", "Each person sets their own code; every email from this app starts with it.", "Mỗi người tự đặt mã; mọi email ứng dụng này gửi đều bắt đầu bằng mã đó."],
+  ["Step-up for sensitive actions", "Xác thực lại trước thao tác nhạy cảm", "Exports, deletions, access changes, API tokens, webhooks, notification rules and agent settings need a passkey check from the last 5 minutes.", "Xuất dữ liệu, xóa, đổi quyền, API token, Webhook, quy tắc thông báo và cài đặt AI agent cần xác thực passkey trong 5 phút gần nhất."],
+  ["New passkey needs an old one", "Thêm passkey cần passkey cũ", `Adding a passkey needs step-up, except the first one, or inside a ${RECOVERY_WINDOW_HOURS}-hour recovery window another admin opens.`, `Thêm passkey cần xác thực lại, trừ passkey đầu tiên hoặc trong cửa sổ khôi phục ${RECOVERY_WINDOW_HOURS} giờ do admin khác mở.`],
+];
+---
+<WorkspaceShell title={t("Security", "Bảo mật")} lang={lang} user={user} module="admin" current="security">
+  <PageHeader vi={vi} eyebrow={t("Admin", "Quản trị")} title={t("Security", "Bảo mật")} lede={t("These rules are fixed for everyone; there is no opt-out. Every change below is recorded in the audit log.", "Các quy tắc này cố định với mọi người, không có ngoại lệ. Mọi thay đổi bên dưới được ghi vào nhật ký kiểm toán.")}>
+    <Fragment slot="actions"><a class="crm-button secondary" href={`${localized("/workspace/audit", vi)}?kind=security`}>{t("Security events", "Sự kiện bảo mật")}</a></Fragment>
+  </PageHeader>
+  {saved === "recovery" && <div class="crm-notice good" role="status">{t("Recovery window opened. The person signs in with an EmDash recovery link and adds a new passkey.", "Đã mở cửa sổ khôi phục. Người đó đăng nhập bằng link khôi phục của EmDash rồi thêm passkey mới.")}</div>}
+  {error && <div class="crm-notice bad" role="alert">{errors[error]?.[vi ? 1 : 0] ?? error}</div>}
+  <PanelRow>
+    <Panel title={t("Needs attention", "Cần xử lý")} tone={noPasskey || noCode ? "warn" : undefined}>
+      <dl class="crm-facts">
+        <div><dt>{t("Without a passkey", "Chưa có passkey")}</dt><dd class="crm-figure">{noPasskey}</dd></div>
+        <div><dt>{t("Only one passkey", "Mới có một passkey")}</dt><dd class="crm-figure">{onePasskey}</dd></div>
+        <div><dt>{t("Without an anti-phishing code", "Chưa đặt mã chống lừa đảo")}</dt><dd class="crm-figure">{noCode}</dd></div>
+      </dl>
+      <p class="crm-help">{t("People without a passkey or code are asked for them the next time they open the Workspace. A second passkey on another device avoids a recovery.", "Người chưa có passkey hoặc mã sẽ được yêu cầu ở lần mở Workspace kế tiếp. Passkey thứ hai trên thiết bị khác giúp không phải khôi phục.")}</p>
+    </Panel>
+    <Panel title={t("Fixed rules", "Quy tắc cố định")}>
+      <dl class="crm-facts">{rules.map(([en, viText, enNote, viNote]) => <div><dt>{vi ? viText : en}</dt><dd>{vi ? viNote : enNote}</dd></div>)}</dl>
+    </Panel>
+  </PanelRow>
+  <Panel title={t("Members", "Thành viên")} flush>
+    <DataTable vi={vi} label={t("Passkeys and codes by member", "Passkey và mã theo thành viên")} frozen={1} widths={["15rem"]} frozenNames={t("Name", "Tên")} minWidth="1000px" meta={t(`${rows.length} people`, `${rows.length} người`)}>
+      <thead><tr><th scope="col">{t("Name", "Tên")}</th><th scope="col">{t("Roles", "Vai trò")}</th><th scope="col" class="num">Passkey</th><th scope="col">{t("Passkey last used", "Passkey dùng gần nhất")}</th><th scope="col">{t("Last Workspace check", "Xác thực Workspace gần nhất")}</th><th scope="col">{t("Anti-phishing code", "Mã chống lừa đảo")}</th><th scope="col">{t("Recovery", "Khôi phục")}</th></tr></thead>
+      <tbody>{rows.map((row) => <tr>
+        <th scope="row">{row.name || row.email}<br /><span class="crm-meta">{row.email}</span></th>
+        <td>{row.admin ? roleLabel("admin", vi) : row.roles.map((role) => roleLabel(role, vi)).join(", ") || "—"}{!row.enabled && <span class="crm-badge red"> {t("No access", "Không có quyền")}</span>}</td>
+        <td class="num"><span class:list={["crm-badge", row.passkeys === 0 ? "red" : row.passkeys === 1 ? "amber" : "green"]}>{row.passkeys}</span></td>
+        <td>{row.passkeyLastUsed ? dateTime(row.passkeyLastUsed, vi) : "—"}</td>
+        <td>{row.lastCheck ? dateTime(row.lastCheck, vi) : t("Never", "Chưa có")}</td>
+        <td>{row.codeSet ? t("Set", "Đã đặt") : <span class="crm-badge amber">{t("Not set", "Chưa đặt")}</span>}</td>
+        <td>{row.recoveryUntil ? `${t("Open until", "Mở đến")} ${dateTime(row.recoveryUntil, vi)}` : row.user_id === user.id ? "—" : <details><summary>{t("Open recovery", "Mở khôi phục")}</summary>
+          <form class="crm-form" method="post"><input type="hidden" name="intent" value="recovery" /><input type="hidden" name="user_id" value={row.user_id} />
+            <div class="crm-field"><label for={`reason-${row.user_id}`}>{t("How you confirmed it is them", "Bạn đã xác minh đúng người bằng cách nào")}</label><input class="crm-input" id={`reason-${row.user_id}`} name="reason" required minlength="5" maxlength="500" /></div>
+            <button class="crm-button small" type="submit">{t(`Allow a new passkey for ${RECOVERY_WINDOW_HOURS} h`, `Cho thêm passkey mới trong ${RECOVERY_WINDOW_HOURS} giờ`)}</button>
+            <p class="crm-help">{t("Then send them an EmDash recovery sign-in link from the EmDash admin. Needs your passkey.", "Sau đó gửi link đăng nhập khôi phục từ trang quản trị EmDash. Cần passkey của bạn.")}</p>
+          </form></details>}</td>
+      </tr>)}</tbody>
+    </DataTable>
+  </Panel>
+</WorkspaceShell>

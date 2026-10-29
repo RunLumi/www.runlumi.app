@@ -55,7 +55,7 @@ export class Session {
   }
   /** True when the server asked for the Workspace passkey check (session gate or step-up). */
   static asksForPasskey(status, location, body = "") {
-    return (status === 303 && /^\/(?:vi\/)?workspace\/verify\?/.test(location ?? "")) || ((status === 401 || status === 403) && /"code":"(?:step_up_required|passkey_required)"/.test(body));
+    return (status === 303 && /^\/(?:vi\/)?workspace\/(?:verify\?|account\/security\?setup=1)/.test(location ?? "")) || ((status === 401 || status === 403) && /"code":"(?:step_up_required|passkey_required)"/.test(body));
   }
   /** EmDash user ID of this session (dev-bypass admins learn it here). */
   async userId() {
@@ -82,7 +82,13 @@ export class Session {
     const { options } = await started.json();
     const verified = await localFetch(`${BASE}/api/workspace/passkey/verify`, { method: "POST", headers: { ...json, cookie: this.header() }, body: JSON.stringify({ purpose, credential: this.passkey.assert(options.challenge) }) });
     this.absorb(verified);
-    if (verified.status === 200) this.passkeyChecks += 1;
+    if (verified.status === 200) {
+      this.passkeyChecks += 1;
+      // R-08: a Workspace person also sets an anti-phishing code once.
+      if (!jobs(`SELECT 1 AS x FROM workspace_anti_phishing WHERE user_id = ${q(userId)}`).length) {
+        await this.rawPost("/workspace/account/security", new URLSearchParams({ intent: "code", code: "Synthetic code 7", request_key: key() }));
+      }
+    }
     return verified.status;
   }
   async get(path) {
