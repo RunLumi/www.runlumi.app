@@ -1,0 +1,9 @@
+---
+import LeadConvertedView from "../../../../../components/crm/LeadConvertedView.astro";
+import { leadConvertedRoute } from "../../../../../lib/crm/routes/leads";
+
+export const prerender = false;
+const result = await leadConvertedRoute(Astro, "vi", Astro.params.id ?? "");
+if (result instanceof Response) return result;
+---
+<LeadConvertedView {...result} />

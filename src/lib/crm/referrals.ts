@@ -1,10 +1,11 @@
 // Referrals: a partner (or any seller) passes a business to the Lumi team.
-// The opportunity starts unassigned, with the referrer recorded for
+// It starts as an unassigned lead, with the referrer recorded for
 // attribution. Referrers follow the status only; once assigned, the deal's
 // notes, contacts and money stay with its owner.
 import type { CrmActor } from "./access";
 import { latestPlaybooks } from "./config";
-import { Errors, ForbiddenError, emailPattern, eventStatement, fail, newId, normalizePhone, nowIso, once } from "./core";
+import { Errors, ForbiddenError, emailPattern, fail, newId, normalizePhone, once } from "./core";
+import { referralLeadStatements } from "./leads";
 import { vnDate } from "./money";
 import { phoneSuppressed } from "./records";
 
@@ -34,37 +35,39 @@ export async function submitReferral(db: D1Database, actor: CrmActor, form: Form
   errors.throwIfAny();
   if (await phoneSuppressed(db, phoneNorm)) fail("phone", "suppressed");
 
-  const now = nowIso();
-  const accountId = newId("acc");
-  const contactId = newId("con");
-  const id = newId("opp");
-  const first = playbook!.def.stages[0].id;
-  const fields = Object.fromEntries(Object.entries({ industry, location: region }).filter(([key, value]) => value && playbook!.def.fields.some((field) => field.key === key)));
+  const id = newId("lead");
   const evidence = `Referred by ${actor.name}, who confirmed on ${vnDate()} that the business agreed to be contacted by Lumi.`;
-  await once(db, actor, requestKey(form), "referral", id, [
-    db.prepare("INSERT INTO crm_accounts (id, name, industry, region, phone_norm, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
-      .bind(accountId, business, industry, region, phoneNorm, actor.id, now, now),
-    db.prepare("INSERT INTO crm_contacts (id, account_id, name, role, email, phone, phone_norm, contact_basis, preferred_channel, consent_status, consent_evidence, created_by, created_at, updated_at) VALUES (?, ?, ?, 'owner', ?, ?, ?, ?, 'phone', 'granted', ?, ?, ?, ?)")
-      .bind(contactId, accountId, contactName, email, phone, phoneNorm, `Introduced by ${actor.name}`, evidence, actor.id, now, now),
-    // Unassigned: a Sales Manager assigns it. seller_id stays empty until then;
-    // the referrer keeps referral attribution whoever sells it.
-    db.prepare(`INSERT INTO crm_opportunities (id, account_id, primary_contact_id, title, playbook_id, stage_id, outcome, owner_id, seller_id, referrer_id, created_by, source_channel, source_detail, relation, fields, next_action, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, 'open', NULL, NULL, ?, ?, 'referral', ?, 'new', ?, ?, ?, ?)`)
-      .bind(id, accountId, contactId, business, playbook!.id, first, actor.id, actor.id, `Referred by ${actor.name}`, JSON.stringify(fields), `Contact the referred business. Need: ${need.slice(0, 400)}`, now, now),
-    db.prepare("INSERT INTO crm_stage_history (id, opportunity_id, playbook_id, from_stage, to_stage, reason, actor_id, created_at) VALUES (?, ?, ?, NULL, ?, 'referral', ?, ?)")
-      .bind(newId("stg"), id, playbook!.id, first, actor.id, now),
-    eventStatement(db, actor, "referred", { referrer_id: actor.id, need }, { opportunityId: id, accountId }),
-  ]);
+  // Unassigned lead: a Sales Manager assigns it; the referrer keeps referral
+  // attribution, which conversion copies onto the opportunity.
+  await once(db, actor, requestKey(form), "referral", id, await referralLeadStatements(db, actor, id, {
+    business, industry, region, contactName, phone, phoneNorm, email, need, playbookKey: playbook!.playbook_key, evidence,
+  }));
   return id;
 }
 
-export interface MyReferral { id: string; title: string; created_at: string; stage_id: string; outcome: string; playbook_id: string; assigned: number }
+export interface MyReferral {
+  id: string; title: string; created_at: string; assigned: number;
+  /** "lead" while the team qualifies it; "opportunity" once converted (or for referrals made before leads existed). */
+  kind: "lead" | "opportunity";
+  stage_id: string; outcome: string; playbook_id: string;
+  lead_state: "" | "open" | "disqualified"; lead_status_id: string; lead_process_id: string;
+}
 
-/** What a referrer may see: name, date, stage, outcome and whether someone took it. */
+/**
+ * What a referrer may see: name, date, whether someone took it, the lead
+ * status and then the opportunity stage and outcome. Never notes, contacts or money.
+ */
 export async function myReferrals(db: D1Database, actorId: string): Promise<MyReferral[]> {
   return (await db.prepare(
-    "SELECT o.id, a.name AS title, o.created_at, o.stage_id, o.outcome, o.playbook_id, CASE WHEN o.owner_id IS NULL THEN 0 ELSE 1 END AS assigned FROM crm_opportunities o JOIN crm_accounts a ON a.id = o.account_id WHERE o.referrer_id = ? ORDER BY o.created_at DESC LIMIT 200",
-  ).bind(actorId).all<MyReferral>()).results;
+    `SELECT o.id, a.name AS title, o.created_at, CASE WHEN o.owner_id IS NULL THEN 0 ELSE 1 END AS assigned, 'opportunity' AS kind, o.stage_id, o.outcome, o.playbook_id,
+        '' AS lead_state, '' AS lead_status_id, '' AS lead_process_id
+      FROM crm_opportunities o JOIN crm_accounts a ON a.id = o.account_id WHERE o.referrer_id = ?
+     UNION ALL
+     SELECT l.id, l.company AS title, l.created_at, CASE WHEN l.owner_id IS NULL THEN 0 ELSE 1 END AS assigned, 'lead' AS kind, '' AS stage_id, '' AS outcome, '' AS playbook_id,
+        l.state AS lead_state, l.status_id AS lead_status_id, l.process_id AS lead_process_id
+      FROM crm_lead_records l WHERE l.referrer_id = ? AND l.state != 'converted'
+     ORDER BY created_at DESC LIMIT 200`,
+  ).bind(actorId, actorId).all<MyReferral>()).results;
 }
 
 export interface QueuedReferral { id: string; title: string; referrer_id: string | null; created_at: string; version: number; next_action: string }

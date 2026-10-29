@@ -11,7 +11,10 @@ export interface TodayData {
   missingNext: TodayOpp[]; renewals: TodayOpp[]; renewalCandidates: TodayOpp[]; credits: ExpiringCredit[];
   blocked: { id: string; opportunity_id: string; title: string; blocked_reason: string }[];
   unassigned: number; inactiveOwners: TodayOpp[]; pendingPayments: number;
+  /** The person's open leads whose next step is due, or that have none yet. */
+  leads: TodayLead[]; unassignedLeads: number;
 }
+export interface TodayLead { id: string; name: string; company: string; status_id: string; process_id: string; next_action: string; next_action_due: string | null; created_at: string; owner_id: string | null }
 
 const TASK_SELECT = `SELECT t.id, t.opportunity_id, t.kind, t.title, t.due_on, t.due_time, t.meeting_confirmed, t.needs_help, t.help_note, a.name AS account_name, o.title AS opp_title, o.owner_id
   FROM crm_tasks t JOIN crm_opportunities o ON o.id = t.opportunity_id JOIN crm_accounts a ON a.id = o.account_id`;
@@ -66,6 +69,12 @@ export async function loadToday(db: D1Database, actor: CrmActor, inactiveIds: re
         .bind(...inactiveIds.slice(0, 90)).all<TodayOpp>()).results;
     }
   }
+  // The person's own leads only, managers included: the team's unassigned
+  // queue is a separate count with a link, not part of anyone's to-do list.
+  const leads = (await db.prepare(`SELECT l.id, l.name, l.company, l.status_id, l.process_id, l.next_action, l.next_action_due, l.created_at, l.owner_id FROM crm_lead_records l
+     WHERE l.state = 'open' AND l.owner_id = ? AND (l.next_action_due IS NULL OR l.next_action_due <= ?) ORDER BY CASE WHEN l.next_action_due IS NULL THEN 1 ELSE 0 END, l.next_action_due, l.created_at LIMIT 100`)
+    .bind(actor.id, today).all<TodayLead>()).results;
+  const unassignedLeads = actor.manager ? (await db.prepare("SELECT COUNT(*) AS count FROM crm_lead_records WHERE owner_id IS NULL AND state = 'open'").first<{ count: number }>())?.count ?? 0 : 0;
   if (actor.finance) pendingPayments = (await db.prepare("SELECT COUNT(*) AS count FROM crm_ledger WHERE kind = 'payment' AND status = 'pending'").first<{ count: number }>())?.count ?? 0;
-  return { today, overdue, dueToday, upcoming, help, missingNext, renewals, renewalCandidates, credits, blocked, unassigned, inactiveOwners, pendingPayments };
+  return { today, overdue, dueToday, upcoming, help, missingNext, renewals, renewalCandidates, credits, blocked, unassigned, inactiveOwners, pendingPayments, leads, unassignedLeads };
 }

@@ -1,12 +1,13 @@
 ---
 import CrmShell from "../../layouts/CrmShell.astro";
+import "../../styles/crm-sales.css";
 import SalesDashboard from "./SalesDashboard.astro";
 import { formatDate, label } from "../../lib/crm/i18n";
 import type { TodayProps } from "../../lib/crm/routes/today";
 import type { TodayTask, TodayOpp } from "../../lib/crm/today";
 
 type Props = TodayProps;
-const { ctx, data, stageNames, dashboard, owners, playbooks, names } = Astro.props;
+const { ctx, data, stageNames, leadStatus, dashboard, owners, playbooks, names } = Astro.props;
 const { lang, vi, base } = ctx;
 const stageOf = (opp: TodayOpp) => stageNames[`${opp.playbook_id.split("@")[0]}:${opp.stage_id}`] ?? opp.stage_id;
 const total = data.overdue.length + data.dueToday.length;
@@ -26,7 +27,8 @@ const lanes: { title: string; tone: string; tasks: TodayTask[]; empty: string }[
     <a class="crm-button" href={`${base}/new`}>{vi ? "Tạo cơ hội mới" : "New opportunity"}</a>
   </div>
 
-  {ctx.actor.manager && (data.unassigned > 0 || data.inactiveOwners.length > 0) && <div class="crm-notice warn" role="status">
+  {ctx.actor.manager && (data.unassigned > 0 || data.inactiveOwners.length > 0 || data.unassignedLeads > 0) && <div class="crm-notice warn" role="status">
+    {data.unassignedLeads > 0 && <p style="margin:0"><a class="crm-link" href={`${base}/admin#leads`}>{vi ? `${data.unassignedLeads} Lead đang chờ phân công.` : `${data.unassignedLeads} leads are waiting for an owner.`}</a></p>}
     {data.unassigned > 0 && <p style="margin:0"><a class="crm-link" href={`${base}/admin#inbound`}>{vi ? `${data.unassigned} cơ hội đang chờ phân công.` : `${data.unassigned} opportunities are waiting for assignment.`}</a></p>}
     {data.inactiveOwners.length > 0 && <p style="margin:0"><a class="crm-link" href={`${base}/pipeline?owner=inactive&playbook=all`}>{vi ? `${data.inactiveOwners.length} cơ hội có người phụ trách không còn hoạt động — cần giao lại.` : `${data.inactiveOwners.length} opportunities belong to inactive owners — reassign them.`}</a></p>}
   </div>}
@@ -46,6 +48,11 @@ const lanes: { title: string; tone: string; tasks: TodayTask[]; empty: string }[
   </div>
 
   <div class="crm-grid cols" style="margin-top:18px">
+    <section class="crm-sheet" aria-labelledby="today-leads">
+      <h2 class="crm-h2" id="today-leads">{vi ? "Lead cần liên hệ" : "Leads to contact"}<span class="crm-count">{data.leads.length}</span></h2>
+      <p class="crm-help">{vi ? "Lead của bạn có bước tiếp theo đến hạn, hoặc chưa có bước tiếp theo." : "Your leads with a next step due, or with no next step yet."}</p>
+      {data.leads.length ? <ul class="crm-list">{data.leads.map((lead) => <li class="crm-row"><a class="crm-row-title" href={`${base}/leads/${lead.id}`}>{lead.name}</a><span class="crm-badge blue">{leadStatus[`${lead.process_id}:${lead.status_id}`] ?? lead.status_id}</span><span class="crm-row-meta"><span>{lead.company}</span><span>{lead.next_action_due ? `${lead.next_action || (vi ? "Bước tiếp theo" : "Next step")} · ${formatDate(lead.next_action_due, lang)}` : (vi ? "Chưa có bước tiếp theo" : "No next step yet")}</span></span></li>)}</ul> : <p class="crm-empty">{vi ? "Không có Lead cần liên hệ." : "No leads to contact."}</p>}
+    </section>
     <section class="crm-sheet" aria-labelledby="missing-next">
       <h2 class="crm-h2" id="missing-next">{vi ? "Thiếu bước tiếp theo" : "Missing a next step"}<span class="crm-count">{data.missingNext.length}</span></h2>
       <p class="crm-help">{vi ? "Cơ hội đang mở chưa có bước tiếp theo kèm ngày và chưa có việc nào." : "Open opportunities with no dated next step and no open task."}</p>

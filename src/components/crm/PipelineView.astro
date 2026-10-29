@@ -3,9 +3,14 @@ import CrmShell from "../../layouts/CrmShell.astro";
 import { formatDate, formatVnd } from "../../lib/crm/view";
 import { label, options } from "../../lib/crm/i18n";
 import type { PipelineProps } from "../../lib/crm/routes/pipeline";
+import Hidden from "./Hidden.astro";
+import FormNotices from "./FormNotices.astro";
+import { errorText } from "../../lib/crm/i18n";
+import { requirementLabel } from "../../lib/crm/playbook";
+import "../../styles/crm-sales.css";
 
 type Props = PipelineProps;
-const { ctx, filters, playbooks, offers, rows, total, page, pages, counts, owners, ownerNames, cohorts } = Astro.props;
+const { ctx, state, view, filters, playbooks, offers, rows, total, page, pages, board, counts, owners, ownerNames, cohorts, failedId } = Astro.props;
 const { lang, vi, base } = ctx;
 const playbook = playbooks.find((item) => item.playbook_key === filters.playbook);
 const byId = new Map(playbooks.map((item) => [item.playbook_key, item]));
@@ -15,11 +20,23 @@ const stageName = (playbookId: string, stage: string) => {
   return found ? (vi ? found.vi : found.en) : stage;
 };
 const query = (changes: Record<string, string>) => {
-  const params = new URLSearchParams(Object.entries({ ...filters, ...changes }).filter(([, value]) => value));
+  const params = new URLSearchParams(Object.entries({ ...filters, view: view === "list" ? "" : view, ...changes }).filter(([, value]) => value));
   const text = params.toString();
   return text ? `?${text}` : "?";
 };
 const outcomeTone: Record<string, string> = { open: "blue", won: "green", lost: "", paused: "amber" };
+const ownerLabel = (id: string | null) => id ? `${ownerNames[id]?.name ?? (id === ctx.actor.id ? ctx.actor.name : (vi ? "Tài khoản không hoạt động" : "Inactive account"))}${ownerNames[id] && !ownerNames[id].active ? (vi ? " (không hoạt động)" : " (inactive)") : ""}` : (vi ? "Chưa phân công" : "Unassigned");
+const canEdit = (row: { owner_id: string | null }) => ctx.actor.manager || row.owner_id === ctx.actor.id;
+const days = (iso: string | null) => iso ? Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000)) : null;
+const today = new Date(Date.now() + 7 * 3_600_000).toISOString().slice(0, 10);
+const openStages = playbook ? playbook.def.stages.filter((stage) => stage.outcome === "open" || stage.outcome === "paused") : [];
+const closingStages = playbook ? playbook.def.stages.filter((stage) => stage.outcome === "won" || stage.outcome === "lost") : [];
+const stageError = state.intent === "stage" ? state.errors.to_stage : undefined;
+const missing = stageError?.startsWith("missing:") ? stageError.slice(8).split(",") : [];
+const failedRow = [...board, ...rows].find((row) => row.id === failedId);
+const failedPlaybook = failedRow ? byId.get(failedRow.playbook_id.split("@")[0]) : undefined;
+const sum = (items: { estimated_value_vnd: number | null }[]) => { const known = items.filter((item) => item.estimated_value_vnd !== null); return { known: known.length, total: known.reduce((acc, item) => acc + (item.estimated_value_vnd ?? 0), 0) }; };
+const cellError = (id: string, field: string) => state.intent === "inline" && state.values.opportunity_id === id && state.values.field === field ? state.errors.value : undefined;
 ---
 <CrmShell title={vi ? "Cơ hội" : "Pipeline"} lang={lang} actor={ctx.actor} current="pipeline">
   <div class="crm-head">
@@ -36,7 +53,23 @@ const outcomeTone: Record<string, string> = { open: "blue", won: "green", lost: 
     <a class:list={["crm-button small", filters.playbook === "all" ? "" : "secondary"]} href={query({ playbook: "all", stage: "", page: "" })}>{vi ? "Tất cả (chỉ danh sách)" : "All (list only)"}</a>
   </nav>
 
-  {playbook && <ol class="crm-stages" aria-label={vi ? "Số cơ hội theo giai đoạn" : "Opportunities per stage"}>
+  <FormNotices state={state} lang={lang} saved={Astro.url.searchParams.get("saved")} intents={["inline"]} />
+  {state.intent === "stage" && (stageError || state.conflict) && <div class="crm-notice bad" role="alert">
+    <strong>{failedRow ? failedRow.title : ""}: {state.conflict ? (vi ? "Người khác vừa đổi cơ hội này; giai đoạn chưa đổi." : "Someone else changed this opportunity; the stage was not changed.") : errorText(lang, stageError)}</strong>
+    {missing.length > 0 && failedPlaybook && <>{vi ? "Còn thiếu: " : "Missing: "}{missing.map((item) => requirementLabel(failedPlaybook.def, item, vi)).join(" · ")}. </>}
+    {failedRow && <a href={`${base}/${failedRow.id}#stage`}>{vi ? "Mở cơ hội để bổ sung" : "Open the opportunity to complete it"}</a>}
+  </div>}
+
+  <div class="crm-toolbar">
+    <nav class="crm-views" aria-label={vi ? "Cách xem" : "View"}>
+      <a href={query({ view: "", page: "" })} aria-current={view === "list" ? "page" : undefined}>{vi ? "Danh sách" : "List"}</a>
+      {filters.playbook !== "all" && <a href={query({ view: "board", page: "", stage: "" })} aria-current={view === "board" ? "page" : undefined}>Kanban</a>}
+      <a href={query({ view: "table", page: "" })} aria-current={view === "table" ? "page" : undefined}>{vi ? "Bảng" : "Table"}</a>
+    </nav>
+    {view === "board" && <p class="crm-meta">{vi ? `${board.length} cơ hội đang mở · nhóm theo giai đoạn · tổng theo giá trị đã biết` : `${board.length} open opportunities · grouped by stage · totals of known values`}</p>}
+  </div>
+
+  {view !== "board" && playbook && <ol class="crm-stages" aria-label={vi ? "Số cơ hội theo giai đoạn" : "Opportunities per stage"}>
     {playbook.def.stages.map((stage) => <li><a href={query({ stage: filters.stage === stage.id ? "" : stage.id, page: "" })} aria-current={filters.stage === stage.id ? "true" : undefined} class:list={{ terminal: stage.outcome !== "open" }}><span>{vi ? stage.vi : stage.en}</span><strong>{counts[stage.id] ?? 0}</strong></a></li>)}
   </ol>}
 
@@ -53,7 +86,7 @@ const outcomeTone: Record<string, string> = { open: "blue", won: "green", lost: 
     <div class="crm-actions"><button class="crm-button secondary" type="submit">{vi ? "Lọc" : "Apply"}</button><a class="crm-link" href={`${base}/pipeline?playbook=${filters.playbook}`}>{vi ? "Xóa lọc" : "Clear"}</a></div>
   </form>
 
-  <section class="crm-sheet" aria-label={vi ? "Danh sách cơ hội" : "Opportunity list"} style="margin-top:18px">
+  {view === "list" && <section class="crm-sheet" aria-label={vi ? "Danh sách cơ hội" : "Opportunity list"} style="margin-top:18px">
     {rows.length ? <ul class="crm-list">{rows.map((row) => <li class="crm-row">
       <a class="crm-row-title" href={`${base}/${row.id}`}>{row.title}</a>
       <span class="crm-row-side"><span class="crm-badge blue">{stageName(row.playbook_id, row.stage_id)}</span><span class:list={["crm-badge", outcomeTone[row.outcome]]}>{label(lang, "outcome", row.outcome)}</span>{row.needs_review ? <span class="crm-badge amber">{vi ? "Cần xem lại" : "Needs review"}</span> : null}</span>
@@ -71,5 +104,78 @@ const outcomeTone: Record<string, string> = { open: "blue", won: "green", lost: 
       <span class="crm-meta">{vi ? `Trang ${page} / ${pages}` : `Page ${page} of ${pages}`}</span>
       <span class="crm-actions">{page > 1 && <a class="crm-button small secondary" href={query({ page: String(page - 1) })}>{vi ? "Trước" : "Previous"}</a>}{page < pages && <a class="crm-button small secondary" href={query({ page: String(page + 1) })}>{vi ? "Tiếp" : "Next"}</a>}</span>
     </nav>}
-  </section>
+  </section>}
+
+  {view === "table" && <section aria-label={vi ? "Bảng cơ hội" : "Opportunity table"} style="margin-top:18px">
+    {rows.length ? <div class="crm-grid-table-wrap" tabindex="0" role="region" aria-label={vi ? "Bảng cơ hội, cuộn ngang được" : "Opportunity table, scrolls sideways"}>
+      <table class="crm-grid-table">
+        <thead><tr>
+          <th class="frozen frozen-1" scope="col">#</th><th class="frozen frozen-2" scope="col">{vi ? "Tên cơ hội" : "Opportunity"}</th>
+          <th scope="col">{vi ? "Công ty" : "Company"}</th><th scope="col">{vi ? "Giai đoạn" : "Stage"}</th><th scope="col" class="num">{vi ? "Giá trị HĐ mong đợi" : "Expected value"}</th>
+          <th scope="col" class="num">{vi ? "Tỉ lệ thành công" : "Win probability"}</th><th scope="col">{vi ? "Bước tiếp theo" : "Next step"}</th><th scope="col">{vi ? "Hạn" : "Due"}</th>
+          <th scope="col">{vi ? "Người phụ trách" : "Owner"}</th><th scope="col">{vi ? "Kênh" : "Channel"}</th>
+        </tr></thead>
+        <tbody>{rows.map((row, index) => { const editable = canEdit(row) && (row.outcome === "open" || row.outcome === "paused"); const cell = (field: string, value: string, attrs: Record<string, string>) => editable
+          ? <form class="crm-cell-form" method="post"><Hidden intent="inline" state={state} version={row.version} /><input type="hidden" name="opportunity_id" value={row.id} /><input type="hidden" name="field" value={field} />
+              <label class="crm-sr" for={`in-${field}-${row.id}`}>{`${row.title}: ${attrs.label}`}</label>
+              <input class="crm-input" id={`in-${field}-${row.id}`} name="value" value={state.intent === "inline" && state.values.opportunity_id === row.id && state.values.field === field ? state.values.value : value} type={attrs.type === "date" ? "date" : "text"} inputmode={attrs.inputmode as "numeric" | undefined} maxlength={attrs.maxlength ? Number(attrs.maxlength) : undefined} aria-invalid={cellError(row.id, field) ? "true" : undefined} />
+              <button class="crm-button small secondary" type="submit">{vi ? "Lưu" : "Save"}</button>
+              {cellError(row.id, field) && <span class="crm-error">{errorText(lang, cellError(row.id, field))}</span>}</form>
+          : <span>{value || "—"}</span>; return <tr>
+          <td class="frozen frozen-1 rowno">{(page - 1) * 50 + index + 1}</td>
+          <td class="frozen frozen-2"><a href={`${base}/${row.id}`}>{row.title}</a></td>
+          <td class="wrap">{row.account_name}</td>
+          <td><span class="crm-badge blue">{stageName(row.playbook_id, row.stage_id)}</span> <span class:list={["crm-badge", outcomeTone[row.outcome]]}>{label(lang, "outcome", row.outcome)}</span></td>
+          <td class="num">{editable ? cell("estimated_value_vnd", row.estimated_value_vnd === null ? "" : String(row.estimated_value_vnd), { label: vi ? "Giá trị (VND)" : "Value (VND)", inputmode: "numeric", maxlength: "20" }) : formatVnd(row.estimated_value_vnd, vi)}</td>
+          <td class="num">{editable ? cell("win_probability", row.win_probability === null ? "" : String(row.win_probability), { label: vi ? "Tỉ lệ %" : "Probability %", inputmode: "numeric", maxlength: "5" }) : (row.win_probability === null ? (vi ? "Chưa biết" : "Unknown") : `${row.win_probability}%`)}</td>
+          <td class="wrap">{editable ? cell("next_action", row.next_action, { label: vi ? "Bước tiếp theo" : "Next step", maxlength: "500" }) : (row.next_action || "—")}</td>
+          <td class:list={{ warn: !!row.next_action_due && row.next_action_due < today && row.outcome === "open" }}>{editable ? cell("next_action_due", row.next_action_due ?? "", { label: vi ? "Hạn" : "Due", type: "date" }) : formatDate(row.next_action_due, lang)}</td>
+          <td>{ownerLabel(row.owner_id)}</td><td>{label(lang, "channel", row.source_channel)}</td>
+        </tr>; })}</tbody>
+      </table>
+    </div> : <p class="crm-empty crm-sheet">{vi ? "Không có cơ hội khớp bộ lọc." : "No opportunities match these filters."}</p>}
+    <p class="crm-table-note">{vi ? "Cột số dòng và Tên cơ hội cố định khi cuộn ngang. Sửa giá trị, tỉ lệ, bước tiếp theo hoặc hạn ngay trong bảng; mỗi ô lưu riêng và không ghi đè thay đổi mới hơn của người khác." : "The row number and Opportunity stay in place when scrolling sideways. Edit value, probability, next step or due date in place; each cell saves on its own and never overwrites someone else's newer change."}</p>
+    {pages > 1 && <nav class="crm-pagination" aria-label={vi ? "Phân trang" : "Pagination"}>
+      <span class="crm-meta">{vi ? `Trang ${page} / ${pages}` : `Page ${page} of ${pages}`}</span>
+      <span class="crm-actions">{page > 1 && <a class="crm-button small secondary" href={query({ page: String(page - 1) })}>{vi ? "Trước" : "Previous"}</a>}{page < pages && <a class="crm-button small secondary" href={query({ page: String(page + 1) })}>{vi ? "Tiếp" : "Next"}</a>}</span>
+    </nav>}
+  </section>}
+
+  {view === "board" && playbook && <section class="crm-board-wrap" data-board-wrap aria-label={vi ? "Kanban cơ hội" : "Opportunity board"} style="margin-top:12px"
+      data-drag-hint={vi ? "Đang kéo {name}. Thả vào một cột để đổi giai đoạn, hoặc vào vùng Thắng / Thua ở cuối. Esc để hủy." : "Dragging {name}. Drop on a column to change stage, or on Won / Lost below. Esc cancels."}
+      data-moving-hint={vi ? "Đang chuyển {name}…" : "Moving {name}…"} data-cancel-hint={vi ? "Đã hủy kéo." : "Drag cancelled."}>
+    <p class="crm-help crm-drag-status" data-drag-status role="status" aria-live="polite">{vi ? "Mỗi thẻ có ô \"Chuyển sang\" để đổi giai đoạn bằng bàn phím; đóng cơ hội (thắng/thua) trên trang cơ hội." : "Every card has a \"Move to\" control for keyboard use; close (won/lost) from the opportunity page."}</p>
+    <div class="crm-board">
+      {openStages.map((stage) => { const cards = board.filter((row) => row.stage_id === stage.id); const totals = sum(cards); return <section class:list={["crm-col", { terminal: stage.outcome === "paused" }]} data-column={stage.id} aria-labelledby={`bc-${stage.id}`}>
+        <div class="crm-col-head"><h2 id={`bc-${stage.id}`}>{vi ? stage.vi : stage.en} ({cards.length})</h2><p>{totals.known ? formatVnd(totals.total, vi) : (vi ? "Chưa biết giá trị" : "No known value")}{totals.known && totals.known < cards.length ? (vi ? ` · ${cards.length - totals.known} chưa biết` : ` · ${cards.length - totals.known} unknown`) : ""}</p></div>
+        {cards.map((row) => { const editable = canEdit(row); const inStage = days(row.stage_since); return <article class="crm-card" data-card={editable ? row.id : undefined} data-name={row.title} data-current={row.stage_id}
+            data-zone-won={editable ? `${base}/${row.id}?close=won#close` : undefined} data-zone-lost={editable ? `${base}/${row.id}?close=lost#close` : undefined}>
+          <a class="crm-card-title" href={`${base}/${row.id}`}>{row.title}</a>
+          <dl>
+            {row.account_name !== row.title && <><dt>{vi ? "Công ty" : "Company"}</dt><dd>{row.account_name}</dd></>}
+            <dt>{vi ? "Giá trị" : "Value"}</dt><dd>{formatVnd(row.estimated_value_vnd, vi)}</dd>
+            <dt>{vi ? "Tỉ lệ" : "Probability"}</dt><dd>{row.win_probability === null ? (vi ? "Chưa biết" : "Unknown") : `${row.win_probability}%`}</dd>
+            <dt>{vi ? "Hạn bước tiếp" : "Next due"}</dt><dd>{formatDate(row.next_action_due, lang)}</dd>
+            <dt>{vi ? "Phụ trách" : "Owner"}</dt><dd>{ownerLabel(row.owner_id)}</dd>
+            {inStage !== null && <><dt>{vi ? "Ở giai đoạn" : "In stage"}</dt><dd>{vi ? `${inStage} ngày` : `${inStage} days`}</dd></>}
+          </dl>
+          {row.overdue_tasks > 0 && <p class="crm-card-alert">{vi ? `${row.overdue_tasks} công việc quá hạn` : `${row.overdue_tasks} overdue task(s)`}</p>}
+          {row.open_tasks === 0 && !row.next_action_due && <p class="crm-card-alert">{vi ? "Không có hoạt động sắp tới" : "No upcoming activity"}</p>}
+          {editable && <form class="crm-move" method="post" data-move>
+            <Hidden intent="stage" state={state} version={row.version} /><input type="hidden" name="opportunity_id" value={row.id} />
+            <label class="crm-sr" for={`mv-${row.id}`}>{vi ? `Chuyển ${row.title} sang giai đoạn` : `Move ${row.title} to stage`}</label>
+            <select class="crm-select" id={`mv-${row.id}`} name="to_stage" data-move-to>{openStages.map((item) => <option value={item.id} selected={item.id === row.stage_id}>{vi ? item.vi : item.en}</option>)}</select>
+            <button class="crm-button small secondary" type="submit">{vi ? "Chuyển" : "Move"}</button>
+            <a class="crm-link" href={`${base}/${row.id}?close=won#close`}>{vi ? "Đóng" : "Close"}</a>
+          </form>}
+        </article>; })}
+        {!cards.length && <p class="crm-empty crm-meta">{vi ? "Không có cơ hội." : "No opportunities."}</p>}
+      </section>; })}
+    </div>
+    <div class="crm-dropzones" aria-hidden="true">
+      {closingStages.some((stage) => stage.outcome === "won") && <div class="crm-dropzone won" data-zone="won">{closingStages.filter((stage) => stage.outcome === "won").map((stage) => vi ? stage.vi : stage.en).join(" / ")} · {vi ? "Thắng" : "Won"}</div>}
+      {closingStages.some((stage) => stage.outcome === "lost") && <div class="crm-dropzone lost" data-zone="lost">{closingStages.filter((stage) => stage.outcome === "lost").map((stage) => vi ? stage.vi : stage.en).join(" / ")} · {vi ? "Thua, cần lý do" : "Lost, reason required"}</div>}
+    </div>
+  </section>}
 </CrmShell>
+<script>import "../../scripts/crm-board";</script>

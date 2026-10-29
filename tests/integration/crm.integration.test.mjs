@@ -306,14 +306,70 @@ test("11. intake from Lumi Local: signed, idempotent, queued for assignment", as
   assert.equal((await signedIntake(intakeSecret, body, { timestamp: Math.floor(Date.now() / 1000) - 900 })).status, 401);
   assert.equal((await signedIntake(intakeSecret, { ...body, context: { ...body.context, offer_interest: "trust-kit" } })).status, 422, "forged context is rejected");
   assert.equal(jobs(`SELECT COUNT(*) AS n FROM crm_inbound WHERE idempotency_key = ${q(idem)}`)[0].n, 1);
-  const opp = jobs(`SELECT o.id, o.owner_id, o.source_channel, o.stage_id FROM crm_inbound i JOIN crm_opportunities o ON o.id = i.opportunity_id WHERE i.id = ${q(firstJson.id)}`)[0];
-  assert.deepEqual([opp.owner_id, opp.source_channel, opp.stage_id], [null, "inbound_web", "new"]);
-  assert.equal(jobs(`SELECT COUNT(*) AS n FROM crm_ledger WHERE opportunity_id = ${q(opp.id)}`)[0].n, 0, "an enquiry is not a payment");
+  // The enquiry is an unassigned lead, not an opportunity, company or payment.
+  const lead = jobs(`SELECT l.id, l.owner_id, l.source_channel, l.status_id, l.version FROM crm_inbound i JOIN crm_lead_records l ON l.id = i.lead_id WHERE i.id = ${q(firstJson.id)}`)[0];
+  assert.deepEqual([lead.owner_id, lead.source_channel, lead.status_id], [null, "inbound_web", "received"]);
+  assert.equal(jobs(`SELECT opportunity_id FROM crm_inbound WHERE id = ${q(firstJson.id)}`)[0].opportunity_id, null);
   assert.match((await S.admin.get("/crm/admin")).html, /TEST Inbound Garage/);
-  assert.equal((await S.a.get(`/crm/${opp.id}`)).status, 404);
-  await S.admin.post("/crm/admin", { intent: "inbound_assign", inbound_id: firstJson.id, owner_id: S.a.id });
+  assert.equal((await S.a.get(`/crm/leads/${lead.id}`)).status, 404);
+  assert.equal((await S.admin.post("/crm/admin", { intent: "lead_assign", lead_id: lead.id, version: lead.version, owner_id: S.a.id })).status, 303);
+  assert.equal(jobs(`SELECT status FROM crm_inbound WHERE id = ${q(firstJson.id)}`)[0].status, "assigned");
+  const page = await S.a.get(`/crm/leads/${lead.id}`);
+  assert.equal(page.status, 200);
+  assert.match(page.html, /\/nganh\/garage\//);
+  const converted = await S.a.post(`/crm/leads/${lead.id}`, { intent: "lead_convert", version: version(page.html), account_mode: "new", account_name: body.business, contact_mode: "new", contact_role: "owner", playbook_key: "local-preview", title: body.business });
+  assert.equal(converted.status, 303);
+  const opp = jobs(`SELECT o.id, o.owner_id, o.seller_id, o.source_channel, o.stage_id FROM crm_inbound i JOIN crm_opportunities o ON o.id = i.opportunity_id WHERE i.id = ${q(firstJson.id)}`)[0];
+  assert.deepEqual([opp.owner_id, opp.seller_id, opp.source_channel, opp.stage_id], [S.a.id, S.a.id, "inbound_web", "new"]);
+  assert.equal(jobs(`SELECT COUNT(*) AS n FROM crm_ledger WHERE opportunity_id = ${q(opp.id)}`)[0].n, 0, "an enquiry is not a payment");
   assert.equal((await S.a.get(`/crm/${opp.id}`)).status, 200);
-  assert.match((await S.a.get(`/crm/${opp.id}`)).html, /\/nganh\/garage\//);
+  assert.equal((await S.b.get(`/crm/${opp.id}`)).status, 404);
+});
+
+test("11b. leads: pages, board move, settings and conversion are allowed and denied per role", async () => {
+  for (const path of ["/crm/leads", "/vi/crm/leads", "/crm/leads?view=board", "/vi/crm/admin/leads"]) assert.equal((await S.outsider.get(path)).status, 403, `${path} needs CRM access`);
+  for (const path of ["/crm/leads", "/vi/crm/leads", "/crm/leads?view=board", "/vi/crm/leads?view=board"]) assert.equal((await S.a.get(path)).status, 200, path);
+  for (const path of ["/crm/admin/leads", "/vi/crm/admin/leads"]) {
+    assert.equal((await S.a.get(path)).status, 403, `${path} needs crm.configure`);
+    assert.equal((await S.admin.get(path)).status, 200);
+  }
+  const bad = await S.a.post("/crm/leads", { intent: "lead_create", name: "", company: "TEST Kept Lead Co", source_channel: "field_visit" });
+  assert.equal(bad.status, 422);
+  assert.match(bad.html, /value="TEST Kept Lead Co"/);
+  const made = await S.a.post("/crm/leads", { intent: "lead_create", name: "TEST Lead Person", company: `TEST Lead Co ${run}`, phone: phone(), source_channel: "field_visit" });
+  assert.equal(made.status, 303);
+  const id = /\/crm\/leads\/(lead_[a-f0-9]+)/.exec(made.location)[1];
+  assert.equal((await S.b.get(`/crm/leads/${id}`)).status, 404, "another seller's lead is hidden");
+  assert.equal((await S.b.post(`/crm/leads/${id}`, { intent: "lead_note", note: "TEST probe" })).status, 404);
+  assert.equal((await S.fin.get(`/vi/crm/leads/${id}`)).status, 404, "finance gets no lead access");
+  const board = await S.a.get("/crm/leads?view=board");
+  assert.match(board.html, new RegExp(`data-card="${id}"`), "the owner's card is draggable");
+  assert.match(board.html, /name="status_id"[^>]*data-move-to/, "every card has a keyboard move control");
+  assert.equal((await S.a.post("/crm/leads?view=board", { intent: "lead_status", lead_id: id, version: 1, status_id: "reached" })).status, 303);
+  assert.equal(jobs(`SELECT status_id FROM crm_lead_records WHERE id = ${q(id)}`)[0].status_id, "reached");
+  assert.equal((await S.a.post("/crm/leads", { intent: "lead_status", lead_id: id, version: 1, status_id: "callback" })).status, 409, "a stale move keeps the newer status");
+  assert.equal((await S.b.post("/crm/leads", { intent: "lead_status", lead_id: id, version: 2, status_id: "callback" })).status, 404);
+  assert.equal((await S.a.get(`/crm/leads/${id}/converted`)).status, 303, "the summary exists only after conversion");
+  // Admin saves lead process v2; existing leads keep their version's labels.
+  const saved = await S.admin.post("/crm/admin/leads", { intent: "lead_process", "status.0.id": "received", "status.0.en": "New", "status.0.vi": "Mới", "status.1.id": "reached", "status.1.en": "Reached", "status.1.vi": "Đã liên hệ", "reason.0.id": "not_fit", "reason.0.en": "Not a fit", "reason.0.vi": "Không phù hợp" });
+  assert.equal(saved.status, 303);
+  assert.equal(jobs("SELECT MAX(version) AS v FROM crm_policies WHERE policy_key = 'crm-lead-process'")[0].v >= 2, true);
+  assert.equal((await S.a.post("/crm/admin/leads", { intent: "lead_process", "status.0.id": "x1", "status.0.en": "X", "status.0.vi": "X", "reason.0.id": "y1", "reason.0.en": "Y", "reason.0.vi": "Y" })).status, 403);
+  const page = await S.a.get(`/crm/leads/${id}?convert=1`);
+  const converted = await S.a.post(`/crm/leads/${id}`, { intent: "lead_convert", version: version(page.html), account_mode: "new", account_name: `TEST Lead Co ${run}`, contact_mode: "new", contact_role: "owner", playbook_key: "lumi-solution", title: `TEST Lead Co ${run}` });
+  assert.equal(converted.status, 303);
+  assert.match(converted.location, new RegExp(`/crm/leads/${id}/converted`));
+  const again = await S.a.post(`/crm/leads/${id}`, { intent: "lead_convert", version: version(page.html), account_mode: "new", account_name: `TEST Lead Co ${run}`, contact_mode: "new", contact_role: "owner", playbook_key: "lumi-solution", title: `TEST Lead Co ${run}` });
+  assert.equal(again.status, 303, "a repeated convert goes to the summary");
+  assert.match(again.location, new RegExp(`/crm/leads/${id}/converted`));
+  assert.equal(jobs(`SELECT COUNT(*) AS n FROM crm_opportunities WHERE title = ${q(`TEST Lead Co ${run}`)}`)[0].n, 1, "and creates nothing");
+  const summary = await S.a.get(`/vi/crm/leads/${id}/converted`);
+  assert.equal(summary.status, 200);
+  assert.match(summary.html, /Đã chuyển Lead thành cơ hội/);
+  assert.equal((await S.b.get(`/crm/leads/${id}/converted`)).status, 404);
+  const oppId = jobs(`SELECT converted_opportunity_id AS id FROM crm_lead_records WHERE id = ${q(id)}`)[0].id;
+  assert.match((await S.a.get(`/crm/${oppId}`)).html, /From lead: TEST Lead Person/);
+  assert.equal((await S.a.post(`/crm/leads/${id}`, { intent: "lead_note", note: "TEST after conversion" })).status, 403, "a converted lead is read-only");
 });
 
 test("12. conflicts keep the user's edit; double submits write once", async () => {
@@ -508,4 +564,83 @@ test("14. commission: proposal is admin-only simulation; approval shows each sel
   // Restore the proposal so later runs start from an unapproved policy again.
   // Voided handoffs stay as append-only history; they no longer hold any line.
   jobs("DELETE FROM crm_commission_payouts; DELETE FROM crm_policies WHERE policy_key = 'local-commission' AND version > 1");
+});
+
+test("15. pipeline board, table inline edit and close dialog keep checks, versions and ownership", async () => {
+  // B was revoked earlier; a fresh seller checks cross-access.
+  S.c = await userSession(S.admin, { email: `test-c-${run}@example.test`, name: `TEST Seller C ${run}` });
+  assert.equal((await S.admin.post("/workspace/users", { intent: "grant", email: S.c.email, roles: ["sales_executive"] })).status, 303);
+  const id = await create(S.a, { playbook_key: "lumi-solution", account_name: `TEST Board Co ${run}`, contact_name: "TEST Board Owner", phone: phone() });
+  for (const path of ["/crm/pipeline?playbook=lumi-solution&view=board", "/vi/crm/pipeline?playbook=lumi-solution&view=board", "/crm/pipeline?view=table", "/vi/crm/pipeline?view=table"]) {
+    assert.equal((await S.outsider.get(path)).status, 403, `${path} needs CRM access`);
+    assert.equal((await S.a.get(path)).status, 200, path);
+  }
+  const board = await S.a.get("/crm/pipeline?playbook=lumi-solution&view=board");
+  assert.match(board.html, new RegExp(`data-card="${id}"`));
+  assert.match(board.html, /data-zone="won"[\s\S]*data-zone="lost"/, "won/lost zones are rendered for dragging");
+  assert.doesNotMatch((await S.c.get("/crm/pipeline?playbook=lumi-solution&view=board")).html, new RegExp(id), "others' cards are not on the board");
+  // "Move to" on the board runs the playbook's checks: contacted needs a primary contact, which quick create set.
+  const v1 = await oppVersion(S.a, id);
+  assert.equal((await S.c.post("/crm/pipeline?playbook=lumi-solution&view=board", { intent: "stage", opportunity_id: id, version: v1, to_stage: "contacted" })).status, 404);
+  assert.equal((await S.a.post("/crm/pipeline?playbook=lumi-solution&view=board", { intent: "stage", opportunity_id: id, version: v1, to_stage: "contacted" })).status, 303);
+  const blocked = await S.a.post("/crm/pipeline?playbook=lumi-solution&view=board", { intent: "stage", opportunity_id: id, version: v1 + 1, to_stage: "qualified" });
+  assert.equal(blocked.status, 422, "a drop that skips requirements is refused");
+  assert.match(blocked.html, /Missing:/);
+  // Table inline edit changes one field and keeps the rest.
+  const v2 = await oppVersion(S.a, id);
+  assert.equal((await S.a.post("/crm/pipeline?view=table", { intent: "inline", opportunity_id: id, version: v2, field: "estimated_value_vnd", value: "15000000" })).status, 303);
+  const after = jobs(`SELECT estimated_value_vnd, title, stage_id FROM crm_opportunities WHERE id = ${q(id)}`)[0];
+  assert.deepEqual([after.estimated_value_vnd, after.title, after.stage_id], [15000000, `TEST Board Co ${run}`, "contacted"]);
+  assert.equal((await S.a.post("/crm/pipeline?view=table", { intent: "inline", opportunity_id: id, version: v2, field: "win_probability", value: "40" })).status, 409, "a stale cell edit writes nothing");
+  assert.equal((await S.a.post("/crm/pipeline?view=table", { intent: "inline", opportunity_id: id, version: v2 + 1, field: "win_probability", value: "140" })).status, 422);
+  assert.equal((await S.a.post("/crm/pipeline?view=table", { intent: "inline", opportunity_id: id, version: v2 + 1, field: "title", value: "x" })).status, 422, "only listed fields are editable in place");
+  assert.equal((await S.c.post("/crm/pipeline?view=table", { intent: "inline", opportunity_id: id, version: v2 + 1, field: "next_action", value: "probe" })).status, 404);
+  // Close dialog from a drop zone: lost needs a reason.
+  const dialog = await S.a.get(`/vi/crm/${id}?close=lost`);
+  assert.match(dialog.html, /Đóng cơ hội/);
+  assert.equal((await S.a.post(`/crm/${id}`, { intent: "close", version: v2 + 1, to_stage: "lost" })).status, 422);
+  assert.equal((await S.a.post(`/crm/${id}`, { intent: "close", version: v2 + 1, to_stage: "contacted", reason: "x" })).status, 422, "only closing stages are accepted");
+  assert.equal((await S.a.post(`/crm/${id}`, { intent: "close", version: v2 + 1, to_stage: "lost", reason: "TEST chose another vendor" })).status, 303);
+  assert.deepEqual(Object.values(jobs(`SELECT outcome, lost_reason FROM crm_opportunities WHERE id = ${q(id)}`)[0]), ["lost", "TEST chose another vendor"]);
+});
+
+test("16. calendar: month and week per locale, own items only, events go through task checks", async () => {
+  for (const path of ["/crm/calendar", "/vi/crm/calendar", "/crm/calendar?view=week", "/vi/crm/calendar?view=week&activity=1", "/crm/calendar?month=bad&view=x"]) {
+    assert.equal((await S.outsider.get(path)).status, 403, `${path} needs CRM access`);
+    assert.equal((await S.a.get(path)).status, 200, path);
+  }
+  const id = await create(S.a, { playbook_key: "lumi-solution", account_name: `TEST Calendar Co ${run}`, contact_name: "TEST Cal Owner", phone: phone() });
+  const day = isoDaysAgo(-3);
+  assert.equal((await S.a.post("/crm/calendar", { intent: "task_create", opportunity_id: id, kind: "meeting", title: `TEST calendar meeting ${run}`, due_on: day, due_time: "09:30" })).status, 303);
+  assert.equal((await S.a.post("/crm/calendar", { intent: "task_create", opportunity_id: id, kind: "meeting", title: "TEST no date" })).status, 422, "a meeting needs a date");
+  assert.equal((await S.c.post("/crm/calendar", { intent: "task_create", opportunity_id: id, kind: "internal", title: "TEST probe" })).status, 404, "another seller cannot schedule on this deal");
+  const week = await S.a.get(`/vi/crm/calendar?view=week&week=${day}`);
+  assert.match(week.html, new RegExp(`TEST calendar meeting ${run}`));
+  assert.doesNotMatch((await S.c.get(`/crm/calendar?view=week&week=${day}`)).html, new RegExp(`TEST calendar meeting ${run}`), "others' tasks are not shown");
+  assert.match((await S.admin.get(`/crm/calendar?view=week&week=${day}`)).html, new RegExp(`TEST calendar meeting ${run}`), "the team sees everyone's");
+});
+
+test("17. contact record, company breadcrumbs, Today leads and the lead report respect scope", async () => {
+  const id = await create(S.a, { playbook_key: "lumi-solution", account_name: `TEST Contact Page Co ${run}`, contact_name: `TEST Contact Page ${run}`, phone: phone() });
+  const contactId = jobs(`SELECT primary_contact_id AS id FROM crm_opportunities WHERE id = ${q(id)}`)[0].id;
+  for (const path of [`/crm/contacts/${contactId}`, `/vi/crm/contacts/${contactId}`]) {
+    assert.equal((await S.outsider.get(path)).status, 403);
+    assert.equal((await S.c.get(path)).status, 404, "another seller's contact is not found");
+    const page = await S.a.get(path);
+    assert.equal(page.status, 200);
+    assert.match(page.html, /class="ws-crumbs"/);
+  }
+  assert.equal((await S.c.post(`/crm/contacts/${contactId}`, { intent: "contact", version: 1, name: "TEST probe" })).status, 404);
+  const page = await S.a.get(`/crm/contacts/${contactId}`);
+  assert.equal((await S.a.post(`/crm/contacts/${contactId}`, { intent: "contact", version: version(page.html), name: `TEST Contact Renamed ${run}`, role: "owner", consent_status: "unknown" })).status, 303);
+  assert.equal(jobs(`SELECT name FROM crm_contacts WHERE id = ${q(contactId)}`)[0].name, `TEST Contact Renamed ${run}`);
+  assert.equal((await S.a.post(`/crm/contacts/${contactId}`, { intent: "contact", version: version(page.html), name: "TEST stale", role: "owner", consent_status: "unknown" })).status, 409);
+  const accountId = jobs(`SELECT account_id AS id FROM crm_opportunities WHERE id = ${q(id)}`)[0].id;
+  assert.match((await S.a.get(`/vi/crm/accounts/${accountId}`)).html, /class="ws-crumbs"[\s\S]*Công ty/);
+  // Today lists the seller's own leads with a due or missing next step; the team sees the queue count.
+  const lead = await S.a.post("/crm/leads", { intent: "lead_create", name: `TEST Today Lead ${run}`, company: `TEST Today Lead Co ${run}`, phone: phone(), source_channel: "event" });
+  assert.equal(lead.status, 303);
+  assert.match((await S.a.get("/crm")).html, new RegExp(`TEST Today Lead ${run}`));
+  assert.doesNotMatch((await S.c.get("/crm")).html, new RegExp(`TEST Today Lead ${run}`));
+  assert.match((await S.a.get("/vi/crm/reports")).html, /Lead theo nguồn/);
 });
