@@ -69,5 +69,5 @@ INSERT INTO crm_policies (id, policy_key, version, body, source_ref, effective_f
   'crm-lead-process@1', 'crm-lead-process', 1,
   '{"statuses":[{"id":"received","en":"Received","vi":"Đã tiếp nhận","target_hours":24},{"id":"reached","en":"Reached","vi":"Đã liên hệ được"},{"id":"callback","en":"Call back later","vi":"Hẹn liên hệ lại"}],"disqualify_reasons":[{"id":"not_fit","en":"Not a fit","vi":"Không phù hợp"},{"id":"no_response","en":"No response","vi":"Không phản hồi"},{"id":"duplicate","en":"Duplicate","vi":"Trùng lặp"},{"id":"spam","en":"Spam or misdirected","vi":"Spam hoặc gửi nhầm"},{"id":"declined","en":"Declined to be contacted","vi":"Từ chối được liên hệ"}]}',
   'Workspace redesign decision R-01 (2026-10-29): labels are org data; initial labels from the approved Leads boards.',
-  '2026-10-29', 'system:migration-0051', '2026-10-29T00:00:00.000Z'
+  '2026-10-29', 'system:migration-0052', '2026-10-29T00:00:00.000Z'
 );
