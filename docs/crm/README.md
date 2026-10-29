@@ -150,7 +150,7 @@ production signing secrets and bucket CORS must be configured before release.
 
 ## Leads, board, table and calendar (Workspace redesign, workstream 3, 2026-10-29)
 
-**Lead object** (`crm_lead_records`, migration `0052`; `src/lib/crm/leads.ts`). A Lead is a person at a business before anyone has a company, contact or opportunity for them. It is separate from the frozen legacy `crm_leads` table.
+**Lead object** (`crm_lead_records`, migration `0055`; `src/lib/crm/leads.ts`). A Lead is a person at a business before anyone has a company, contact or opportunity for them. It is separate from the frozen legacy `crm_leads` table.
 
 | Topic | Rule | Evidence |
 |---|---|---|

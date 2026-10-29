@@ -6,7 +6,7 @@ Date: 2026-10-29. Scope: row 3 of [../README.md](../README.md). Every CRM contra
 
 | Area | What exists now | Routes (EN and `/vi` peers, all inside `WorkspaceShell`) |
 |---|---|---|
-| Lead object | `crm_lead_records` (migration `0052`, additive). Lead statuses and disqualification reasons are versioned org data (`crm-lead-process@N` in `crm_policies`, R-01). A lead is read-only once converted (database trigger) and is never deleted. | `/crm/leads` (list with frozen columns, or Kanban by status), `/crm/leads/[id]`, `/crm/leads/[id]/converted`, `/crm/admin/leads` (statuses, `crm.configure`) |
+| Lead object | `crm_lead_records` (migration `0055`, additive). Lead statuses and disqualification reasons are versioned org data (`crm-lead-process@N` in `crm_policies`, R-01). A lead is read-only once converted (database trigger) and is never deleted. | `/crm/leads` (list with frozen columns, or Kanban by status), `/crm/leads/[id]`, `/crm/leads/[id]/converted`, `/crm/admin/leads` (statuses, `crm.configure`) |
 | Joined to referrals and intake | Referrals (`crm.refer`, consent required) and signed `local.runlumi.app` enquiries now create **unassigned leads** instead of opportunities. Referrers follow the lead status, then the opportunity stage, on *Referrals*, and never see notes, contacts or money. `/api/intake/local` keeps the same HTTP contract (201/200/409/422). Earlier queued enquiries and referrals are still listed on *Assignment* until handled. | `/crm/referrals`, `/crm/admin` (lead queue first) |
 | Lead conversion | The owner or the team converts an assigned lead into a new or existing company and contact. The choices are limited to records the person may edit, and duplicate hints come from phone, email and name. Conversion opens an opportunity at the first stage of the chosen playbook. Owner = seller = the lead's owner. The source and the referrer are carried over. Do-not-contact or refused consent stops the conversion. It is versioned and idempotent. | `/crm/leads/[id]?convert=1` |
 | Opportunity Kanban | Columns are the open stages of one playbook, with totals of known values; unknown values are counted separately. Won/lost drop zones appear only while a card is dragged, and they open the close dialog. Every card has a keyboard and no-JS **Move to** control. A drop goes through the requirement-checked, versioned stage move, and a refused drop names what is missing. | `/crm/pipeline?playbook=…&view=board` |
@@ -27,7 +27,7 @@ Run on this branch. Synthetic data only, local Worker and D1 only.
 |---|---|
 | `npm run lint` | ok (check-src) |
 | `npm test` | 417 pass, 0 fail. This includes new `tests/crm-leads.test.ts` and `tests/crm-calendar.test.ts`, which run against real SQLite with every migration applied (`tests/fixtures/d1-sqlite.ts`). |
-| `npm run db:migrate:local` | applied 0001–0050 and `0052_crm_lead_records.sql` |
+| `npm run db:migrate:local` | applied 0001–0050 and `0055_crm_lead_records.sql` |
 | `RUNLUMI_INTEGRATION_SCOPE=crm npm run test:integration` | 18 pass, 0 fail. New blocks: 11 (rewritten for leads), 11b, 15, 16 and 17, with allowed and denied cases for every new route. |
 | Scoped regressions (before merging the integration branch) | workspace 10/10, directory 7/7, api 7/7, dashboard 5/5, files 6/6, sales-process 12/12, business-model 5/5 |
 | Full `npm run test:integration` after merging `claude/loving-pasteur-z7ly65` (18bec37) | FULL_RESULT |
@@ -44,7 +44,7 @@ Run on this branch. Synthetic data only, local Worker and D1 only.
 - **Sources are still code.** Source channels (`field_visit`, `referral`, …) and contact roles are still code lists, as before. R-01 says sources are org data. Moving them to versioned data is a separate change that touches the API, reports and commission.
 - **Not built from the boards:** Forecast, DealsTimeline, Import, Approvals/ApprovalDetail, Settings (Kanban settings), and campaign actions ("Thêm vào chiến dịch"). These either need features the founder excluded ("no other new features") or need decisions. Bulk owner and stage changes from the table were not built.
 - **Commission, fulfillment, playbooks, offers, assignment.** They have breadcrumbs, the lead queue table and a link to the Lead settings. Their forms and calculations are unchanged, and a deeper layout redesign of these pages is still open.
-- **Migration number.** `claude/rd4-security` also adds a `0051_*`, so this branch uses `0052_crm_lead_records.sql`. Whoever merges later keeps numbering after the highest number on the integration branch.
+- **Migration number.** `claude/rd4-security` adds 0051–0054, so this branch uses `0055_crm_lead_records.sql`, as agreed with the integrator. It is additive only.
 
 ## Decisions needed from the founder
 
