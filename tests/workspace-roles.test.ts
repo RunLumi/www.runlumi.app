@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { ROLE_PERMISSIONS, makeUser, permissions, permissionsFor, roles } from "../src/lib/workspace/roles.ts";
-import { modules, moduleForPath, switchLocale, visibleGroups, visibleLinks, visibleModules } from "../src/lib/workspace/nav.ts";
+import { accountModule, moduleByKey, modules, moduleForPath, switchLocale, visibleGroups, visibleLinks, visibleModules } from "../src/lib/workspace/nav.ts";
 import { readFileSync } from "node:fs";
 
 const user = (granted: (typeof roles)[number][], admin = false) => makeUser({ id: "u", name: "U", email: "u@example.test" }, admin, granted);
@@ -97,4 +97,28 @@ test("the business model page is listed only for the Sales Manager and System Su
   assert.ok(sees(["sales_manager"]));
   for (const role of ["finance", "sales_executive", "partner", "fulfillment"] as const) assert.ok(!sees([role]), `${role} does not see company economics`);
   assert.ok(!visibleModules(user(["hr"])).some((module) => module.key === "crm"), "HR has no CRM");
+});
+
+test("grouped menus: every page of a grouped module sits in a labelled group (R-05)", () => {
+  for (const module of modules.filter((item) => item.groups?.length)) {
+    const keys = new Set(module.groups!.map((group) => group.key));
+    for (const link of module.links) assert.ok(link.group && keys.has(link.group), `${module.key}/${link.key} belongs to a group`);
+    for (const group of module.groups!) assert.ok(group.en && group.vi, `${module.key}/${group.key} is labelled in both languages`);
+  }
+  const hrm = modules.find((module) => module.key === "hrm")!;
+  assert.deepEqual(visibleGroups(user(["employee"]), hrm).map(({ group }) => group.key), ["me"], "an employee sees only their own HR pages");
+  assert.ok(visibleGroups(user(["hrm_admin"]), hrm).some(({ group }) => group.key === "control"));
+});
+
+test("the account area is personal: every member reaches it, it is not a module tab, admin pages stay admin-only", () => {
+  assert.ok(!visibleModules(user([], true)).some((module) => module.key === "account"), "account is reached from the account menu");
+  assert.equal(moduleByKey("account"), accountModule);
+  assert.equal(accountModule.permission, "workspace.access");
+  for (const role of roles) assert.ok(user([role]).can(accountModule.permission), `${role} reaches My account`);
+  assert.equal(moduleForPath("/vi/workspace/account"), "account");
+  assert.equal(moduleForPath("/workspace/roles"), "admin");
+  assert.equal(moduleForPath("/workspace/users/abc"), "admin");
+  const admin = modules.find((module) => module.key === "admin")!;
+  assert.equal(admin.permission, "users.manage");
+  for (const role of roles) assert.ok(!visibleModules(user([role])).includes(admin), `${role} never sees Admin`);
 });
