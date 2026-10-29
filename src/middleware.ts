@@ -6,7 +6,7 @@ import { workspaceUser } from "./lib/workspace/roles";
 import { sameOrigin } from "./lib/http";
 import { financeArea, financeBoundary, setFinanceReadiness } from "./lib/finance/access";
 import { restoreBlocksPath, restoreMaintenanceResponse } from "./lib/workspace/restore-maintenance";
-import { passkeyRegistrationGuard, passkeyRegistrationPath, workspaceGate } from "./lib/workspace/security-gate";
+import { passkeyRegistrationGuard, passkeyRegistrationPath, passkeyRequired, workspaceGate } from "./lib/workspace/security-gate";
 
 /** Private areas and the permission each needs. The first match wins. */
 const areas: { test: (path: string) => boolean; permission: Permission; api?: boolean }[] = [
@@ -42,7 +42,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   if (financeArea(path)) return financeBoundary(context, next);
   // Adding a passkey in EmDash needs proof of an existing one (security-gate.ts).
   if (passkeyRegistrationPath(path)) {
-    const guard = await passkeyRegistrationGuard(context, environment.DB, environment.CONTENT_DB);
+    const guard = await passkeyRegistrationGuard(context, environment.DB, environment.CONTENT_DB, passkeyRequired(environment));
     if (guard instanceof Response) return guard;
     const response = await next();
     if (guard) await guard(response);
@@ -77,8 +77,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
       if(area.api)return new Response("Forbidden",{status:403,headers:{"Cache-Control":"private, no-store"}});
       return forbidden(vi);
     }
-    // R-08: a passkey check in this session and a personal anti-phishing code.
-    const gate = await workspaceGate(context, user, DB, !!area.api);
+    // R-08: a passkey check in this session and a personal anti-phishing code (WORKSPACE_PASSKEY_REQUIRED).
+    const gate = await workspaceGate(context, user, DB, !!area.api, passkeyRequired(environment));
     if (gate) return gate;
     const selfServiceOnly=user.can("hrm.profile.self")&&!user.can("hrm.records.manage")&&!user.can("hrm.team.read")&&!user.can("hrm.configure");
     let hrmReady = false;
