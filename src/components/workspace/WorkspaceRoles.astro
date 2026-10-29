@@ -1,0 +1,44 @@
+---
+// Admin › Roles and permissions: the permission map in src/lib/workspace/roles.ts
+// as one matrix. Read-only: roles change only in code and migrations.
+import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
+import DataTable from "./ui/DataTable.astro";
+import PageHeader from "./ui/PageHeader.astro";
+import Panel from "./ui/Panel.astro";
+import { localized } from "../../lib/workspace/nav";
+import type { rolesPage } from "../../lib/workspace/pages";
+import { permissionGroups, roleAreas } from "../../lib/workspace/access";
+import { ROLE_PERMISSIONS, roleDescriptions, roleLabel } from "../../lib/workspace/roles";
+
+type Props = Exclude<ReturnType<typeof rolesPage>, Response>;
+const { lang, vi, user } = Astro.props;
+const t = (en: string, viText: string) => vi ? viText : en;
+const columns = roleAreas.flatMap((area) => area.roles);
+const groups = permissionGroups();
+const title = t("Roles and permissions", "Vai trò và quyền");
+---
+<WorkspaceShell title={title} lang={lang} user={user} module="admin" current="roles">
+  <PageHeader vi={vi} eyebrow={t("Admin", "Quản trị")} title={title} lede={t("What each role may do. Pages, APIs and queries check these permissions, never role names. Roles combine; a person gets every permission of every role they hold.", "Mỗi vai trò được làm gì. Trang, API và truy vấn đều kiểm tra các quyền này, không kiểm tra tên vai trò. Vai trò có thể kết hợp; một người có mọi quyền của mọi vai trò họ giữ.")}>
+    <a slot="actions" class="crm-button secondary" href={localized("/workspace/users", vi)}>{t("Users", "Người dùng")}</a>
+  </PageHeader>
+
+  <Panel title={t("Roles", "Vai trò")} flush>
+    <DataTable vi={vi} label={t("Roles and what they allow", "Vai trò và phạm vi")} frozen={1} widths={["15rem"]} frozenNames={t("Role", "Vai trò")} minWidth="760px">
+      <thead><tr><th scope="col">{t("Role", "Vai trò")}</th><th scope="col">{t("Module", "Phân hệ")}</th><th scope="col">{t("What it allows", "Được làm gì")}</th><th scope="col" class="num">{t("Permissions", "Số quyền")}</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">{roleLabel("admin", vi)}</th><td>{t("All", "Tất cả")}</td><td>{roleDescriptions.admin[vi ? 1 : 0]}</td><td class="num">{t("All", "Tất cả")}</td></tr>
+        {roleAreas.flatMap((area) => area.roles.map((role) => <tr><th scope="row">{roleLabel(role, vi)}</th><td>{vi ? area.vi : area.en}</td><td>{roleDescriptions[role][vi ? 1 : 0]}</td><td class="num">{ROLE_PERMISSIONS[role].length}</td></tr>))}
+      </tbody>
+    </DataTable>
+  </Panel>
+
+  <Panel title={t("Permission matrix", "Ma trận quyền")} note={t("✓ means the role holds the permission. The System Super Admin holds all of them. Finance permissions belong to the System Super Admin only.", "✓ nghĩa là vai trò có quyền đó. Siêu quản trị hệ thống có tất cả. Quyền Tài chính chỉ thuộc về Siêu quản trị hệ thống.")} flush>
+    <DataTable vi={vi} label={t("Permission matrix", "Ma trận quyền")} frozen={1} widths={["17rem"]} frozenNames={t("Permission", "Quyền")} minWidth={`${17 * 16 + (columns.length + 1) * 112}px`}>
+      <thead><tr><th scope="col">{t("Permission", "Quyền")}</th><th scope="col" class="ws-mx-col">{roleLabel("admin", vi)}</th>{columns.map((role) => <th scope="col" class="ws-mx-col">{roleLabel(role, vi)}</th>)}</tr></thead>
+      <tbody>{groups.map((group) => <>
+        <tr class="ws-tbl-group"><th scope="rowgroup">{vi ? group.vi : group.en}</th><td colspan={columns.length + 1}></td></tr>
+        {group.items.map((permission) => <tr><th scope="row"><code>{permission}</code></th><td class="ws-mx">✓</td>{columns.map((role) => ROLE_PERMISSIONS[role].includes(permission) ? <td class="ws-mx">✓</td> : <td class="ws-mx none"><span class="crm-sr">{t("No", "Không")}</span></td>)}</tr>)}
+      </>)}</tbody>
+    </DataTable>
+  </Panel>
+</WorkspaceShell>

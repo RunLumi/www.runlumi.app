@@ -1,0 +1,18 @@
+---
+// Role checkboxes grouped by the module each role opens, with what each role
+// allows written next to it. Roles combine.
+import { roleAreas } from "../../lib/workspace/access";
+import { type Role, roleDescriptions, roleLabel } from "../../lib/workspace/roles";
+
+interface Props { vi: boolean; checked?: Role[]; disabled?: boolean; idPrefix: string }
+const { vi, checked = [], disabled = false, idPrefix } = Astro.props;
+---
+<div class="ws-role-areas">
+  {roleAreas.map((area) => <fieldset class="crm-fieldset ws-role-area">
+    <legend>{vi ? area.vi : area.en}</legend>
+    {area.roles.map((role) => <label class="crm-check ws-role-check" for={`${idPrefix}-${role}`}>
+      <input type="checkbox" id={`${idPrefix}-${role}`} name="roles" value={role} checked={checked.includes(role)} disabled={disabled} />
+      <span><strong>{roleLabel(role, vi)}</strong><span class="crm-help">{roleDescriptions[role][vi ? 1 : 0]}</span></span>
+    </label>)}
+  </fieldset>)}
+</div>

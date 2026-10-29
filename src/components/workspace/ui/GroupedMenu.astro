@@ -1,0 +1,19 @@
+---
+// R-05: a menu in labelled groups. The group label is a caption, not a link,
+// and the list is named by it, so screen readers announce "Selling, list".
+import NavIcon from "../NavIcon.astro";
+import type { IconName } from "../../../lib/workspace/nav";
+
+export interface MenuItem { key: string; label: string; href: string; icon?: IconName; current?: boolean }
+export interface MenuGroup { key: string; label: string; items: MenuItem[] }
+interface Props { groups: MenuGroup[]; label: string; class?: string; idPrefix?: string; columns?: boolean }
+const { groups, label, idPrefix = "menu", columns = false } = Astro.props;
+---
+<nav class:list={["ws-gmenu", columns && "cols", Astro.props.class]} aria-label={label}>
+  {groups.map((group) => <div class="ws-gmenu-group">
+    <p class="ws-gmenu-label" id={`${idPrefix}-${group.key}`}>{group.label}</p>
+    <ul aria-labelledby={`${idPrefix}-${group.key}`}>
+      {group.items.map((item) => <li><a href={item.href} aria-current={item.current ? "page" : undefined}>{item.icon && <NavIcon name={item.icon} size={18} />}<span>{item.label}</span></a></li>)}
+    </ul>
+  </div>)}
+</nav>

@@ -10,8 +10,8 @@ const S = {};
 const ids = {};
 
 const nav = (html) => [...html.matchAll(/<nav class="ws-modules"[^>]*>([\s\S]*?)<\/nav>/g)].map((match) => match[1]).join("");
-// Module pages: the horizontal bar (hiring, admin) or the grouped CRM sidebar.
-const pages = (html) => [...html.matchAll(/<nav class="(?:crm-shell ws-pages|ws-side)"[^>]*>([\s\S]*?)<\/nav>/g)].map((match) => match[1]).join("");
+// Module pages: the tab bar (hiring, account) or the grouped menu (CRM, HRM, Admin).
+const pages = (html) => [...html.matchAll(/<nav class="(?:ws-pages|ws-gmenu[^"]*)"[^>]*>([\s\S]*?)<\/nav>/g)].map((match) => match[1]).join("");
 
 test("setup: roles are granted on the users page, by email, with an audit trail", async () => {
   S.admin = await adminSession();
@@ -76,6 +76,54 @@ test("sales manager works the whole team; sales executive only their own", async
   assert.equal((await S.manager.post(`/crm/${ids.execOpp}`, { intent: "referrer", version: execVersion, referrer_id: S.manager.id })).status, 403, "managers cannot set referral credit");
   const commission = await S.manager.get("/crm/commission");
   assert.doesNotMatch(commission.html, /mô phỏng|simulated/, "managers see no commission simulation");
+});
+
+test("admin screens: users table opens a member child screen; only users.manage reaches them", async () => {
+  const list = await S.admin.get("/workspace/users");
+  assert.equal(list.status, 200);
+  assert.match(list.html, /<table class="ws-tbl" data-frozen="1"/, "the users table freezes the name column");
+  assert.match(list.html, new RegExp(`href="/workspace/users/${S.hr.id}"`), "a row opens the member's child screen");
+  // The first table on the page lists people; the second lists recent access changes.
+  const people = (html) => /<table class="ws-tbl"[\s\S]*?<\/table>/.exec(html)?.[0] ?? "";
+  const filtered = people((await S.admin.get(`/workspace/users?q=${encodeURIComponent(S.manager.email)}`)).html);
+  assert.match(filtered, new RegExp(S.manager.email.replace(/[.]/g, "\\.")));
+  assert.doesNotMatch(filtered, new RegExp(`href="/workspace/users/${S.hr.id}"`), "search narrows the table");
+  for (const path of [`/workspace/users/${S.hr.id}`, `/vi/workspace/users/${S.hr.id}`]) {
+    const page = await S.admin.get(path);
+    assert.equal(page.status, 200, path);
+    assert.match(page.html, /class="ws-crumbs"/, "child screens carry breadcrumbs");
+    assert.match(page.html, new RegExp(S.hr.email.replace(/[.]/g, "\\.")));
+  }
+  assert.equal((await S.admin.get("/workspace/users/not_a_real_user")).status, 404);
+  for (const path of ["/workspace/roles", "/vi/workspace/roles", "/workspace/users/new", "/vi/workspace/users/new"]) assert.equal((await S.admin.get(path)).status, 200, path);
+  assert.match((await S.admin.get("/workspace/roles")).html, /hiring\.applications\.delete/);
+  for (const session of [S.hr, S.manager, S.exec]) {
+    for (const path of [`/workspace/users/${S.exec.id}`, "/workspace/users/new", "/workspace/roles", "/vi/workspace/roles"]) assert.equal((await session.get(path)).status, 403, `${session.name} ${path}`);
+    assert.equal((await session.post(`/workspace/users/${S.exec.id}`, { intent: "update", user_id: S.exec.id, roles: ["sales_manager"], enabled: "1" })).status, 403, `${session.name} cannot change access`);
+  }
+  assert.equal(jobs(`SELECT role FROM workspace_roles WHERE user_id = ${q(S.exec.id)}`).map((row) => row.role).join(), "sales_executive", "a denied POST changes nothing");
+  const saved = await S.admin.post(`/workspace/users/${S.exec.id}`, { intent: "update", user_id: S.exec.id, roles: ["sales_executive"], enabled: "1" });
+  assert.equal(saved.status, 303);
+  assert.equal(saved.location, `/workspace/users/${S.exec.id}?saved=1`, "saving on the child screen returns to it");
+  const empty = await S.admin.post(`/vi/workspace/users/${S.exec.id}`, { intent: "update", user_id: S.exec.id, enabled: "1" });
+  assert.equal(empty.status, 422);
+  assert.match(empty.html, /Chọn ít nhất một vai trò/);
+});
+
+test("my account: everyone with access sees only their own identity, in both languages", async () => {
+  for (const [session, other] of [[S.hr, S.exec], [S.exec, S.hr]]) {
+    for (const path of ["/workspace/account", "/vi/workspace/account"]) {
+      const page = await session.get(path);
+      assert.equal(page.status, 200, `${session.name} ${path}`);
+      assert.match(page.html, new RegExp(session.email.replace(/[.]/g, "\\.")));
+      assert.doesNotMatch(page.html, new RegExp(other.email.replace(/[.]/g, "\\.")), "no one else's identity");
+    }
+  }
+  assert.match((await S.hr.get("/workspace/account")).html, /Personal tokens currently work with the CRM only/, "HR has no CRM tokens");
+  assert.match((await S.exec.get("/vi/workspace/account")).html, /href="\/vi\/crm\/api"/, "CRM roles reach their token page");
+  assert.equal((await S.none.get("/workspace/account")).status, 403, "no role means no account page");
+  const home = await S.hr.get("/workspace");
+  assert.match(home.html, /href="\/workspace\/account"/, "the account menu links to My account");
 });
 
 test("hiring desk: bilingual pages, real actors in history, confirmed deletes", async () => {

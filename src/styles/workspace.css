@@ -1,0 +1,205 @@
+/* Workspace UI rules shared by every private module (docs/redesign/README.md
+   R-03..R-05). Loaded by WorkspaceShell after crm.css and built on its
+   tokens; components live in src/components/workspace/ui/. */
+
+/* R-03 · Page header and breadcrumbs for child screens. */
+.ws-page-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 16px 24px; margin: 0 0 20px; }
+.ws-page-head > div:first-child { min-width: 0; flex: 1 1 32rem; }
+.ws-page-head .crm-h1 { font-size: clamp(26px, 3.2vw, 36px); }
+.ws-page-head .crm-lede { font-size: 16px; }
+.ws-page-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.ws-crumbs ol { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin: 0 0 10px; padding: 0; list-style: none; color: var(--crm-slate); font-size: 14px; line-height: 1.4; }
+.ws-crumbs li { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.ws-crumbs li + li::before { content: "›"; color: var(--crm-line-strong); }
+.ws-crumbs a { color: var(--crm-blue); text-decoration: none; padding-block: 4px; }
+.ws-crumbs a:hover { text-decoration: underline; }
+.ws-crumbs [aria-current="page"] { color: var(--crm-ink); font-weight: 600; overflow-wrap: anywhere; }
+
+/* R-04 · Panels on one row share the row's height; actions sit at the foot. */
+.ws-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--ws-row-min, 300px)), 1fr)); gap: 16px; align-items: stretch; margin: 0 0 16px; }
+.ws-row > * { min-width: 0; margin: 0; }
+.ws-stack { display: grid; gap: 16px; }
+.ws-panel { display: flex; flex-direction: column; min-width: 0; background: var(--crm-sheet); border: 1px solid var(--crm-line); border-radius: var(--crm-radius); box-shadow: var(--crm-lift); }
+.ws-panel { margin: 0 0 16px; }
+.ws-row > .ws-panel, .ws-stack > .ws-panel { margin: 0; }
+.ws-panel-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; padding: 16px clamp(16px, 2.2vw, 22px) 0; }
+.ws-panel-head .crm-h2 { margin: 0; font-size: 18px; }
+.ws-panel-head p { flex-basis: 100%; margin: 0; color: var(--crm-slate); font-size: var(--crm-meta); }
+.ws-panel-body { flex: 1 1 auto; padding: 14px clamp(16px, 2.2vw, 22px) 18px; min-width: 0; }
+.ws-panel-body.flush { padding: 12px 0 0; }
+.ws-panel-foot { margin-top: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px clamp(16px, 2.2vw, 22px); border-top: 1px solid var(--crm-line-soft); }
+.ws-panel.rail-warn { border-left: 3px solid var(--color-signal-amber, #f4a62a); }
+.ws-panel.rail-bad { border-left: 3px solid var(--crm-red); }
+
+/* Summary facts across the top of a child screen. */
+.ws-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); margin: 0; padding: 0; border: 1px solid var(--crm-line); border-radius: var(--crm-radius); background: var(--crm-sheet); }
+.ws-facts > div { min-width: 0; padding: 12px 16px; border-left: 1px solid var(--crm-line-soft); }
+.ws-facts > div:first-child { border-left: 0; }
+.ws-facts dt { color: var(--crm-slate); font-size: var(--crm-meta); }
+.ws-facts dd { margin: 4px 0 0; color: var(--crm-navy); font-size: 16px; font-weight: 650; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.ws-kv { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 0 24px; margin: 0; }
+.ws-kv > div { display: grid; gap: 2px; padding: 10px 0; border-bottom: 1px solid var(--crm-line-soft); min-width: 0; }
+.ws-kv dt { color: var(--crm-slate); font-size: var(--crm-meta); }
+.ws-kv dd { margin: 0; color: var(--crm-ink); overflow-wrap: anywhere; }
+@media (max-width: 640px) { .ws-facts > div { border-left: 0; border-top: 1px solid var(--crm-line-soft); } .ws-facts > div:first-child { border-top: 0; } }
+
+/* R-03 · Full-width tables. The leading columns named by data-frozen stay in
+   place during horizontal scroll; widths come from --ws-fz-1..3. */
+.ws-table { min-width: 0; margin: 0; }
+.ws-table-scroll {
+  position: relative;
+  overflow-x: auto; max-width: 100%; border-top: 1px solid var(--crm-line-soft);
+  /* Edge shadow while more columns wait to the right; the cover scrolls with the content. */
+  background:
+    linear-gradient(to left, var(--crm-sheet) 30%, transparent) right center / 40px 100% no-repeat local,
+    radial-gradient(farthest-side at 100% 50%, rgba(16, 42, 67, .16), transparent) right center / 14px 100% no-repeat scroll;
+}
+.ws-table-scroll:focus-visible { outline: 2px solid var(--crm-blue); outline-offset: -2px; }
+.ws-tbl { width: 100%; min-width: var(--ws-table-min, 0); border-collapse: separate; border-spacing: 0; font-size: 15px; line-height: 1.35; }
+.ws-tbl caption { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.ws-tbl th, .ws-tbl td { box-sizing: border-box; padding: 10px 12px; border-bottom: 1px solid var(--crm-line-soft); text-align: left; vertical-align: middle; }
+.ws-tbl thead th { position: sticky; top: 0; z-index: 2; background: #f7f8fa; color: var(--crm-slate); font-size: var(--crm-small); font-weight: 650; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; border-bottom-color: var(--crm-line); }
+.ws-tbl tbody th { font-weight: 600; color: var(--crm-navy); }
+.ws-tbl tbody tr:hover > * { background: #f7fafd; }
+.ws-tbl tbody tr:last-child > * { border-bottom: 0; }
+.ws-tbl .num { text-align: right; font-variant-numeric: tabular-nums; }
+.ws-tbl .nowrap { white-space: nowrap; }
+.ws-tbl .ws-row-link { color: var(--crm-navy); font-weight: 650; text-decoration: none; overflow-wrap: anywhere; }
+.ws-tbl .ws-row-link:hover { color: var(--crm-blue); text-decoration: underline; }
+.ws-tbl .ws-sub { display: block; color: var(--crm-slate); font-size: var(--crm-meta); font-weight: 400; overflow-wrap: anywhere; }
+.ws-tbl tr.ws-tbl-group > * { background: #f7f8fa; color: var(--crm-slate); font-size: var(--crm-small); font-weight: 650; letter-spacing: .06em; text-transform: uppercase; }
+.ws-tbl[data-frozen] > * > tr > :is(th, td):nth-child(1) { position: sticky; left: 0; z-index: 1; background: var(--crm-sheet); width: var(--ws-fz-1); min-width: var(--ws-fz-1); max-width: var(--ws-fz-1); }
+.ws-tbl[data-frozen="2"] > * > tr > :is(th, td):nth-child(2), .ws-tbl[data-frozen="3"] > * > tr > :is(th, td):nth-child(2) { position: sticky; left: var(--ws-fz-1); z-index: 1; background: var(--crm-sheet); width: var(--ws-fz-2); min-width: var(--ws-fz-2); max-width: var(--ws-fz-2); }
+.ws-tbl[data-frozen="3"] > * > tr > :is(th, td):nth-child(3) { position: sticky; left: calc(var(--ws-fz-1) + var(--ws-fz-2)); z-index: 1; background: var(--crm-sheet); width: var(--ws-fz-3); min-width: var(--ws-fz-3); max-width: var(--ws-fz-3); }
+.ws-tbl[data-frozen] > thead > tr > th:is(:nth-child(1), :nth-child(2), :nth-child(3)) { z-index: 3; background: #f7f8fa; }
+.ws-tbl[data-frozen] > tbody > tr:hover > :is(th, td):is(:nth-child(1), :nth-child(2), :nth-child(3)) { background: #f7fafd; }
+.ws-tbl[data-frozen] > tbody > tr.ws-tbl-group > :first-child { background: #f7f8fa; }
+.ws-tbl[data-frozen="1"] > * > tr > :nth-child(1), .ws-tbl[data-frozen="2"] > * > tr > :nth-child(2), .ws-tbl[data-frozen="3"] > * > tr > :nth-child(3) { box-shadow: 6px 0 6px -4px rgba(16, 42, 67, .14); border-right: 1px solid var(--crm-line); }
+.ws-table-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; padding: 8px 16px; border-top: 1px solid var(--crm-line-soft); background: #f7f8fa; color: var(--crm-slate); font-size: var(--crm-meta); border-radius: 0 0 var(--crm-radius) var(--crm-radius); }
+.ws-table-empty { margin: 0; padding: 18px clamp(16px, 2.2vw, 22px); color: var(--crm-slate); }
+@media (forced-colors: active) { .ws-tbl[data-frozen] > * > tr > :nth-child(1) { border-right: 2px solid CanvasText; } }
+
+/* Toolbar above a table: quick filters (links) and a GET search form. */
+.ws-toolbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px 16px; padding: 0 clamp(16px, 2.2vw, 22px) 12px; }
+.ws-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.ws-chips a { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border: 1px solid var(--crm-line); border-radius: 999px; background: white; color: var(--crm-ink); font-size: 14px; text-decoration: none; }
+.ws-chips a:hover { border-color: var(--crm-navy); }
+.ws-chips a[aria-current="true"] { border-color: var(--crm-blue); background: var(--crm-blue-soft); color: var(--crm-navy); font-weight: 650; }
+.ws-search { display: flex; gap: 6px; align-items: center; }
+.ws-search input { min-height: 40px; width: min(100%, 260px); }
+.ws-search .crm-button { min-height: 40px; }
+
+/* R-05 · Grouped, labelled menus. A group label is a small caption with a
+   rule; it has no hover, no padding box and no pointer, so it never reads as
+   a menu item. */
+.ws-gmenu { display: grid; align-content: start; gap: 14px; }
+.ws-gmenu-group { min-width: 0; }
+.ws-gmenu-label { display: flex; align-items: center; gap: 8px; margin: 0 0 4px; padding: 0 2px; color: #6b7385; font-size: 11px; font-weight: 650; letter-spacing: .09em; line-height: 1.6; text-transform: uppercase; cursor: default; user-select: none; }
+.ws-gmenu-label::after { content: ""; flex: 1; height: 1px; background: var(--crm-line-soft); }
+.ws-gmenu ul { display: grid; gap: 1px; margin: 0; padding: 0; list-style: none; }
+.ws-gmenu a { display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 6px 10px; border-left: 3px solid transparent; border-radius: 6px; color: var(--crm-ink); font-size: 15px; line-height: 1.3; text-decoration: none; }
+.ws-gmenu a .ws-icon { color: var(--crm-slate); }
+.ws-gmenu a:hover { background: rgba(16, 42, 67, .05); color: var(--crm-navy); }
+.ws-gmenu a[aria-current="page"] { border-left-color: var(--crm-blue); border-radius: 0 6px 6px 0; background: var(--crm-blue-soft); color: var(--crm-navy); font-weight: 650; }
+.ws-gmenu a[aria-current="page"] .ws-icon { color: var(--crm-blue); }
+.ws-gmenu.cols { grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); gap: 14px 20px; }
+@media (max-width: 1023px) { .ws-gmenu a { min-height: 44px; } }
+@media (forced-colors: active) { .ws-gmenu a[aria-current="page"] { outline: 2px solid CanvasText; } }
+
+/* Shell: row 1 (brand, modules, account), row 2 (current module and its pages). */
+.ws .ws-wide { width: min(calc(100% - 2 * var(--crm-gutter)), 1480px); margin-inline: auto; }
+.ws .ws-header { position: sticky; top: 0; z-index: 30; background: #f9f7f2; border-bottom: 1px solid var(--crm-line); backdrop-filter: none; }
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .ws .ws-header { background: rgba(249, 247, 242, .9); -webkit-backdrop-filter: blur(16px) saturate(1.2); backdrop-filter: blur(16px) saturate(1.2); }
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) { .ws .ws-header { background: #f9f7f2; -webkit-backdrop-filter: none; backdrop-filter: none; } }
+.ws .ws-bar { display: flex; align-items: center; gap: 8px 16px; min-height: 60px; flex-wrap: nowrap; padding-block: 6px; }
+.ws .ws-modules { display: flex; gap: 2px; flex: 1 1 auto; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.ws .ws-modules::-webkit-scrollbar { display: none; }
+.ws .ws-account { display: flex; align-items: center; gap: 4px; margin-left: auto; flex: none; }
+
+/* Pop-overs built on <details>: they work without script and close on a second click. */
+.ws details.ws-launcher, .ws details.ws-me { position: relative; }
+.ws-launcher > summary, .ws-me > summary { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; min-width: 44px; justify-content: center; padding: 0 6px; border-radius: 8px; color: var(--crm-navy); cursor: pointer; list-style: none; }
+.ws-launcher > summary::-webkit-details-marker, .ws-me > summary::-webkit-details-marker { display: none; }
+.ws-launcher > summary:hover, .ws-me > summary:hover, .ws-launcher[open] > summary, .ws-me[open] > summary { background: rgba(16, 42, 67, .06); }
+.ws-pop { position: absolute; top: calc(100% + 6px); z-index: 40; display: grid; gap: 8px; padding: 14px; border: 1px solid var(--crm-line); border-radius: 12px; background: var(--crm-sheet); box-shadow: 0 1px 2px -1px rgba(16, 42, 67, .1), 0 18px 40px -18px rgba(16, 42, 67, .32); }
+.ws-pop ul { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.ws-pop a { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px 10px; border-radius: 8px; color: var(--crm-ink); text-decoration: none; }
+.ws-pop a:hover { background: rgba(16, 42, 67, .05); }
+.ws-pop a[aria-current="page"] { background: var(--crm-blue-soft); color: var(--crm-navy); }
+.ws-pop a .ws-icon { color: var(--crm-slate); }
+.ws-launcher-pop { left: 0; width: min(360px, calc(100vw - 32px)); }
+.ws-launcher-pop a > span { display: grid; gap: 2px; }
+.ws-launcher-pop a strong { color: var(--crm-navy); font-weight: 650; }
+.ws-launcher-pop a span span { color: var(--crm-slate); font-size: var(--crm-meta); line-height: 1.35; }
+.ws-me-pop { right: 0; width: min(300px, calc(100vw - 32px)); }
+.ws-me-id { display: grid; gap: 2px; margin: 0 0 4px; padding: 0 2px 10px; border-bottom: 1px solid var(--crm-line-soft); }
+.ws-me-id strong { color: var(--crm-navy); overflow-wrap: anywhere; }
+.ws-me-id span { color: var(--crm-slate); font-size: var(--crm-meta); overflow-wrap: anywhere; }
+.ws-me-pop form { margin: 4px 0 0; padding-top: 8px; border-top: 1px solid var(--crm-line-soft); }
+.ws-me-pop button { width: 100%; min-height: 44px; padding: 0 10px; border: 0; border-radius: 8px; background: none; color: var(--crm-ink); font: inherit; text-align: left; cursor: pointer; }
+.ws-me-pop button:hover { background: rgba(16, 42, 67, .05); }
+.ws-avatar { display: inline-grid; place-items: center; inline-size: 34px; block-size: 34px; flex: none; border-radius: 999px; background: var(--crm-navy); color: white; font-size: 13px; font-weight: 650; letter-spacing: .02em; }
+.ws .ws-user { display: grid; line-height: 1.2; max-width: 200px; text-align: left; }
+
+/* Row 2. */
+.ws-appbar { border-top: 1px solid var(--crm-line-soft); background: rgba(255, 255, 255, .55); }
+.ws-appbar-in { display: flex; align-items: center; gap: 4px 20px; min-height: 48px; }
+.ws-app-name { display: inline-flex; align-items: center; gap: 8px; flex: none; padding-right: 16px; border-right: 1px solid var(--crm-line); color: var(--crm-navy); font-size: 16px; font-weight: 700; letter-spacing: -.01em; text-decoration: none; }
+.ws-app-name .ws-icon { color: var(--crm-blue); }
+.ws .ws-pages { display: flex; gap: 2px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.ws .ws-pages a { min-height: 48px; border-radius: 0; }
+.ws .ws-menu { flex: 1 1 auto; min-width: 0; }
+.ws .ws-menu > summary { min-height: 48px; }
+.ws .ws-menu .ws-gmenu { padding-block: 12px 16px; max-block-size: calc(100vh - 160px); overflow: auto; }
+.ws .ws-side { position: sticky; top: 118px; max-block-size: calc(100vh - 118px); overflow: auto; padding-block: 24px; scrollbar-width: thin; }
+.ws .ws-frame { width: min(calc(100% - 2 * var(--crm-gutter)), 1480px); grid-template-columns: 15.5rem minmax(0, 1fr); }
+.ws .crm-footer-in { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
+
+/* Wide screens show the module tabs; narrow ones use the launcher. */
+@media (min-width: 1024px) { .ws .ws-launcher { display: none; } }
+@media (max-width: 1023px) {
+  .ws .ws-modules { display: none; }
+  .ws .ws-user { display: none; }
+  .ws .ws-side { display: none; }
+}
+@media (max-width: 640px) {
+  .ws .ws-header { position: static; }
+  .ws .crm-brand img { width: 64px; height: auto; }
+  .ws .crm-brand span { display: none; }
+  .ws-appbar-in { flex-wrap: wrap; gap: 0 12px; }
+  .ws-app-name { border-right: 0; padding-block: 10px 0; }
+  .ws .ws-pages { flex-basis: 100%; }
+}
+@media (forced-colors: active) { .ws-pop { border: 1px solid CanvasText; } .ws-avatar { border: 1px solid CanvasText; } }
+
+/* Overview figures: each number links to the list it counts. */
+.ws-home-figures { display: grid; gap: 0; margin: 0; }
+.ws-home-figures > div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--crm-line-soft); }
+.ws-home-figures > div:last-child { border-bottom: 0; }
+.ws-home-figures dt { color: var(--crm-ink); font-size: 15px; }
+.ws-home-figures dd { margin: 0; }
+.ws-home-figures a { display: inline-block; min-width: 44px; padding: 2px 0; color: var(--crm-navy); font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.02em; text-align: right; text-decoration: none; }
+.ws-home-figures a:hover { color: var(--crm-blue); text-decoration: underline; }
+.ws-home-roles { margin: 0; color: var(--crm-navy); font-weight: 600; }
+.ws-badges { display: inline-flex; flex-wrap: wrap; gap: 4px 6px; }
+.ws-role-areas { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 16px 24px; align-items: start; }
+.ws-role-area { display: grid; gap: 10px; margin: 0; }
+.ws-role-check { align-items: flex-start; }
+.ws-role-check > span { display: grid; gap: 2px; }
+.ws-role-check strong { color: var(--crm-navy); font-weight: 600; }
+.ws-member-id { display: flex; align-items: center; gap: 14px; }
+.ws-member-id .ws-avatar { inline-size: 52px; block-size: 52px; font-size: 18px; }
+.ws-list { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+.ws-list > li { display: grid; gap: 2px; padding: 10px 0; border-bottom: 1px solid var(--crm-line-soft); }
+.ws-list > li:last-child { border-bottom: 0; }
+.ws-list strong { color: var(--crm-navy); }
+.ws-list .crm-help { margin: 0; }
+.ws-tbl th.ws-mx-col { white-space: normal; min-width: 104px; text-transform: none; letter-spacing: 0; font-size: 13px; }
+.ws-tbl td.ws-mx { text-align: center; color: var(--crm-green); font-weight: 700; }
+.ws-tbl td.ws-mx.none { color: var(--crm-line-strong); }
+.ws-tbl td.ws-mx.none::before { content: "·"; }
+.ws-tbl tbody th code { font-size: 13.5px; font-weight: 500; color: var(--crm-ink); overflow-wrap: anywhere; }
+.ws-tbl th.w-md { min-width: 12rem; }
+.ws-tbl th.w-sm { min-width: 8rem; }

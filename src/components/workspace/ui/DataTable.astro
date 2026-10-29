@@ -1,0 +1,27 @@
+---
+// R-03: a table that fills the content area. Pass the <thead>/<tbody> as the
+// default slot. `frozen` (1–3) keeps the leading columns in place while the
+// rest scroll sideways; `widths` sets those columns' widths (capped on phones
+// so the scrolling part stays visible). The scroll region is focusable, so
+// keyboard users can scroll it, and the footer says which columns stay put.
+interface Props { label: string; vi: boolean; frozen?: 0 | 1 | 2 | 3; widths?: string[]; minWidth?: string; frozenNames?: string; meta?: string; id?: string }
+const { label, vi, frozen = 0, widths = [], minWidth, frozenNames, meta } = Astro.props;
+const id = Astro.props.id ?? `t-${label.toLowerCase().normalize("NFD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40)}`;
+const defaults = ["14rem", "10rem", "10rem"];
+const style = [
+  ...Array.from({ length: frozen }, (_, index) => `--ws-fz-${index + 1}: min(${widths[index] ?? defaults[index]}, ${index === 0 ? 46 : 26}vw)`),
+  minWidth ? `--ws-table-min: ${minWidth}` : "",
+].filter(Boolean).join("; ");
+const hint = frozen > 0
+  ? vi ? `${frozenNames ? `Cột ${frozenNames}` : "Cột đầu"} cố định khi cuộn ngang.` : `${frozenNames ? `The ${frozenNames} column${frozen > 1 ? "s stay" : " stays"}` : "Leading columns stay"} in place when you scroll sideways.`
+  : "";
+---
+<div class="ws-table">
+  <div class="ws-table-scroll" role="region" aria-labelledby={id} tabindex="0">
+    <table class="ws-tbl" data-frozen={frozen > 0 ? String(frozen) : undefined} style={style || undefined}>
+      <caption id={id}>{label}</caption>
+      <slot />
+    </table>
+  </div>
+  {(hint || meta) && <div class="ws-table-foot"><span>{hint}</span>{meta && <span>{meta}</span>}</div>}
+</div>
