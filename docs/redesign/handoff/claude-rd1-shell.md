@@ -49,9 +49,21 @@
 
 ## Gates
 
-See the "Gate results" section below for the final run on the merged head.
+The head is `claude/rd1-shell` after merging `origin/claude/loving-pasteur-z7ly65` at `18bec37` (the HRM P4 test fix). Every gate ran locally in the cloud container.
 
-- **Unit and integration tests.** New tests:
+| Gate | Result |
+|---|---|
+| `npm run lint` | pass (518 source files) |
+| `npm test` | 410 pass, 0 fail |
+| `npm run db:migrate:local` | pass (up to 0050) |
+| `npm run build` (astro check + build) | 0 errors; build complete |
+| Integration, workspace scope | 12/12 pass, including the 2 new tests ("admin screens…", "my account…") |
+| Integration regressions, one scope at a time | crm 14/14, directory 7/7, api 7/7, dashboard 5/5, files 6/6, sales-process 12/12, business-model 5/5, finance 9/9 |
+| Integration, HRM | P1, P3 and P4 pass. P4 needed the integrator's fix `18bec37`; before it, P4 also failed on the base branch. P5 passes on its own (one earlier run hit a local workerd "internal error" in `wrangler d1 execute`). |
+| Integration, HRM journey | **Fails intermittently on the base branch too.** `fetch failed` / `UND_ERR_SOCKET other side closed` inside `tests/integration/hrm-recovery-drill.mjs`, which uses bare `fetch` to a second, restored dev Worker. The failing point moves (lines 279 and 373, and a closeout file API). The base branch at `18bec37` passed once and failed once at line 373 with the same error. Not caused by this workstream; reported to the integrator. |
+
+- **Full `npm run test:integration` in one run.** On this container the HRM suite alone takes more than the runner's 30-minute cap (P1 430 s, P3 345 s, P4 237 s), so the full run was split by scope as shown above.
+- **New tests:**
   - unit tests in `tests/workspace-roles.test.ts`: every grouped link has a group; an employee sees only "Của tôi"; account visibility; Admin is never visible to non-admins;
   - integration "admin screens…" (allowed and denied for `/workspace/users/<id>`, `/new` and `/workspace/roles` in both locales; a denied POST changes nothing; 404 for an unknown ID; 422 in Vietnamese);
   - integration "my account…" (own identity only; HR without CRM; no role gives 403).
