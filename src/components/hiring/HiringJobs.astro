@@ -1,6 +1,7 @@
 ---
 import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
-import Breadcrumbs from "../modules/Breadcrumbs.astro";
+import PageHeader from "../workspace/ui/PageHeader.astro";
+import DataTable from "../workspace/ui/DataTable.astro";
 import "../../styles/modules.css";
 import { deskPath, statusName, statusTone } from "../../lib/hiring/desk";
 import type { jobsPage } from "../../lib/hiring/pages";
@@ -12,20 +13,17 @@ const toReview = jobs.reduce((sum, job) => sum + (job.unread_count ?? 0), 0);
 ---
 <WorkspaceShell title={vi ? "Vị trí tuyển dụng" : "Roles"} lang={lang} user={user} module="hiring" current="jobs">
   <div class="md-scope">
-    <Breadcrumbs vi={vi} items={[{ label: vi ? "Tuyển dụng" : "Hiring", href: deskPath(lang, "/admin/jobs") }, { label: vi ? "Vị trí" : "Roles" }]} />
-    <div class="md-head"><div>
-      <h1 class="crm-h1">{vi ? "Vị trí tuyển dụng" : "Roles"}</h1>
-      <p class="crm-lede">{vi ? "Tạo vị trí ở dạng nháp, đăng khi sẵn sàng tuyển và đóng khi đủ người. Ứng viên chỉ thấy vị trí đã đăng." : "Create a role as a draft, publish it when you are ready to hire and close it when it is filled. Candidates see published roles only."}</p>
-    </div>
-    <dl class="crm-facts" style="min-width:min(100%,320px)">
-      <div><dt>{vi ? "Đang tuyển" : "Open roles"}</dt><dd class="crm-figure">{open}</dd></div>
-      <div><dt>{vi ? "Hồ sơ cần xem" : "To review"}</dt><dd class="crm-figure"><a class="crm-link" href={deskPath(lang, "/admin/jobs/applications?status=new")}>{toReview}</a></dd></div>
-    </dl></div>
+    <PageHeader vi={vi} title={vi ? "Vị trí tuyển dụng" : "Roles"} crumbs={[{ label: vi ? "Tuyển dụng" : "Hiring", href: deskPath(lang, "/admin/jobs") }, { label: vi ? "Vị trí" : "Roles" }]} lede={vi ? "Tạo vị trí ở dạng nháp, đăng khi sẵn sàng tuyển và đóng khi đủ người. Ứng viên chỉ thấy vị trí đã đăng." : "Create a role as a draft, publish it when you are ready to hire and close it when it is filled. Candidates see published roles only."}>
+      <dl class="crm-facts" slot="actions" style="min-width:min(100%,320px)">
+        <div><dt>{vi ? "Đang tuyển" : "Open roles"}</dt><dd class="crm-figure">{open}</dd></div>
+        <div><dt>{vi ? "Hồ sơ cần xem" : "To review"}</dt><dd class="crm-figure"><a class="crm-link" href={deskPath(lang, "/admin/jobs/applications?status=new")}>{toReview}</a></dd></div>
+      </dl>
+    </PageHeader>
     {error === "slug" && <div class="crm-notice bad" role="alert">{vi ? "Đường dẫn (slug) đã được dùng. Hãy chọn đường dẫn khác." : "That slug is already in use. Choose another."}</div>}
 
     <section aria-labelledby="jobs-h">
       <div class="md-section-head"><h2 class="crm-h2" id="jobs-h">{vi ? "Các vị trí" : "Roles"}<span class="crm-count">{jobs.length}</span></h2><a class="crm-link" href="#new-h">{vi ? "Tạo vị trí mới" : "New role"}</a></div>
-      {jobs.length ? <div class="md-table-wrap" tabindex="0" role="region" aria-labelledby="jobs-h"><table class="md-table">
+      {jobs.length ? <DataTable vi={vi} label={vi ? "Các vị trí" : "Roles"} frozen={1} frozenNames={vi ? "Vị trí" : "Role"}>
         <thead><tr>
           <th scope="col">{vi ? "Vị trí" : "Role"}</th>
           <th scope="col">{vi ? "Trạng thái" : "Status"}</th>
@@ -36,7 +34,7 @@ const toReview = jobs.reduce((sum, job) => sum + (job.unread_count ?? 0), 0);
           <th scope="col">{vi ? "Trang công khai" : "Public page"}</th>
         </tr></thead>
         <tbody>{jobs.map((job) => <tr>
-          <td class="md-lead"><a href={deskPath(lang, `/admin/jobs/${job.id}`)}>{job.title}</a></td>
+          <th scope="row"><a class="ws-row-link" href={deskPath(lang, `/admin/jobs/${job.id}`)}>{job.title}</a></th>
           <td><span class:list={["crm-badge", statusTone(job.status)]}>{statusName(job.status, lang)}</span></td>
           <td class="num"><a class="crm-link" href={deskPath(lang, `/admin/jobs/applications?job=${job.id}`)}>{job.application_count ?? 0}</a></td>
           <td class="num">{job.unread_count ?? 0}</td>
@@ -44,7 +42,7 @@ const toReview = jobs.reduce((sum, job) => sum + (job.unread_count ?? 0), 0);
           <td>{job.location || "—"}</td>
           <td class="nowrap crm-meta">/jobs/{job.slug}</td>
         </tr>)}</tbody>
-      </table></div> : <p class="crm-empty">{vi ? "Chưa có vị trí. Tạo nháp ở bên dưới; vị trí chỉ công khai khi bạn đăng." : "No roles yet. Create a draft below; it stays private until you publish it."}</p>}
+      </DataTable> : <p class="crm-empty">{vi ? "Chưa có vị trí. Tạo nháp ở bên dưới; vị trí chỉ công khai khi bạn đăng." : "No roles yet. Create a draft below; it stays private until you publish it."}</p>}
     </section>
 
     <section class="crm-sheet md-section" aria-labelledby="new-h">

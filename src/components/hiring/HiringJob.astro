@@ -1,6 +1,6 @@
 ---
 import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
-import Breadcrumbs from "../modules/Breadcrumbs.astro";
+import PageHeader from "../workspace/ui/PageHeader.astro";
 import "../../styles/modules.css";
 import { deskDate, deskPath, statusName, statusTone } from "../../lib/hiring/desk";
 import type { jobPage } from "../../lib/hiring/pages";
@@ -14,12 +14,10 @@ const transitions = job.status === "published" ? [["closed", vi ? "Đóng vị t
 ---
 <WorkspaceShell title={job.title} lang={lang} user={user} module="hiring" current="jobs">
   <div class="md-scope">
-  <Breadcrumbs vi={vi} items={[{ label: vi ? "Tuyển dụng" : "Hiring", href: deskPath(lang, "/admin/jobs") }, { label: vi ? "Vị trí" : "Roles", href: deskPath(lang, "/admin/jobs") }, { label: job.title }]} />
-  <div class="md-head"><div>
-    <h1 class="crm-h1">{job.title}</h1>
-    <p class="crm-lede"><span class:list={["crm-badge", statusTone(job.status)]}>{statusName(job.status, lang)}</span> · {vi ? "Cập nhật" : "Updated"} {deskDate(job.updated_at, lang)} · <a class="crm-link" href={`/jobs/${job.slug}`}>{vi ? "Trang công khai" : "Public page"}</a> · <a class="crm-link" href={deskPath(lang, `/admin/jobs/applications?job=${job.id}`)}>{total} {vi ? "hồ sơ" : "applications"}{open ? ` (${open} ${vi ? "cần xem" : "to review"})` : ""}</a></p>
-  </div>
-  <div class="md-head-actions">{transitions.map(([status, label, tone]) => <form method="post" action={`/api/admin/jobs/${job.id}/state`}><input type="hidden" name="lang" value={lang} /><input type="hidden" name="status" value={status} /><button class:list={["crm-button", tone]} type="submit">{label}</button></form>)}</div></div>
+  <PageHeader vi={vi} title={job.title} crumbs={[{ label: vi ? "Tuyển dụng" : "Hiring", href: deskPath(lang, "/admin/jobs") }, { label: vi ? "Vị trí" : "Roles", href: deskPath(lang, "/admin/jobs") }, { label: job.title }]}>
+    <p class="crm-lede" slot="lede"><span class:list={["crm-badge", statusTone(job.status)]}>{statusName(job.status, lang)}</span> · {vi ? "Cập nhật" : "Updated"} {deskDate(job.updated_at, lang)} · <a class="crm-link" href={`/jobs/${job.slug}`}>{vi ? "Trang công khai" : "Public page"}</a> · <a class="crm-link" href={deskPath(lang, `/admin/jobs/applications?job=${job.id}`)}>{total} {vi ? "hồ sơ" : "applications"}{open ? ` (${open} ${vi ? "cần xem" : "to review"})` : ""}</a></p>
+    <div slot="actions" class="crm-actions">{transitions.map(([status, label, tone]) => <form method="post" action={`/api/admin/jobs/${job.id}/state`}><input type="hidden" name="lang" value={lang} /><input type="hidden" name="status" value={status} /><button class:list={["crm-button", tone]} type="submit">{label}</button></form>)}</div>
+  </PageHeader>
   {errors.slug && <div class="crm-notice bad" role="alert">{vi ? "Đường dẫn (slug) đã được dùng. Hãy chọn đường dẫn khác." : "That slug is already in use. Choose another."}</div>}
   <div class="crm-grid two">
     <section class="crm-sheet" aria-labelledby="role-h">

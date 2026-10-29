@@ -1,6 +1,6 @@
 ---
 import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
-import Breadcrumbs from "../modules/Breadcrumbs.astro";
+import PageHeader from "../workspace/ui/PageHeader.astro";
 import "../../styles/modules.css";
 import HiringInterviews from "./HiringInterviews.astro";
 import { applicationStatuses } from "../../lib/ats";
@@ -13,18 +13,18 @@ const saved = flash.saved === "1" || (!!flash.saved && !["interview", "scorecard
 ---
 <WorkspaceShell title={application.full_name} lang={lang} user={user} module="hiring" current="applications">
   <div class="md-scope">
-  <Breadcrumbs vi={vi} items={[{ label: vi ? "Tuyển dụng" : "Hiring", href: deskPath(lang, "/admin/jobs") }, { label: vi ? "Ứng viên" : "Candidates", href: deskPath(lang, "/admin/jobs/applications") }, { label: application.full_name }]} />
-  <div class="md-head"><div>
-    <h1 class="crm-h1">{application.full_name}</h1>
-    <p class="crm-lede"><span class:list={["crm-badge", statusTone(application.status)]}>{statusName(application.status, lang)}</span> · {application.job_title} · {vi ? "Nộp" : "Applied"} {deskDate(application.created_at, lang)} · <span class="crm-num">{application.public_id}</span></p>
-  </div>
-  {user.can("hiring.applications.manage") && <form class="md-head-actions" method="post" action={`/api/admin/applications/${application.id}/status`}>
+  <PageHeader vi={vi} title={application.full_name} crumbs={[{ label: vi ? "Tuyển dụng" : "Hiring", href: deskPath(lang, "/admin/jobs") }, { label: vi ? "Ứng viên" : "Candidates", href: deskPath(lang, "/admin/jobs/applications") }, { label: application.full_name }]}>
+    <p class="crm-lede" slot="lede"><span class:list={["crm-badge", statusTone(application.status)]}>{statusName(application.status, lang)}</span> · {application.job_title} · {vi ? "Nộp" : "Applied"} {deskDate(application.created_at, lang)} · <span class="crm-num">{application.public_id}</span></p>
+    <div slot="actions" class="crm-actions">
+      {user.can("hiring.applications.manage") && <form class="crm-actions" method="post" action={`/api/admin/applications/${application.id}/status`}>
     <input type="hidden" name="lang" value={lang} />
     <label class="crm-label" for="status">{vi ? "Giai đoạn" : "Stage"}</label>
     <select class="crm-select" style="width:auto" id="status" name="status">{applicationStatuses.map((value) => <option value={value} selected={application.status === value}>{statusName(value, lang)}</option>)}</select>
     <button class="crm-button" type="submit">{vi ? "Cập nhật" : "Update stage"}</button>
   </form>}
-  {application.status==="hired"&&user.can("hiring.applications.manage")&&user.can("hrm.records.manage")&&user.hrmEnabled===true&&<a class="crm-button secondary" href={`${vi?"/vi":""}/hrm/transfers/${encodeURIComponent(application.id)}`}>{vi?"Xem trước chuyển sang HRM":"Preview HRM transfer"}</a>}</div>
+      {application.status==="hired"&&user.can("hiring.applications.manage")&&user.can("hrm.records.manage")&&user.hrmEnabled===true&&<a class="crm-button secondary" href={`${vi?"/vi":""}/hrm/transfers/${encodeURIComponent(application.id)}`}>{vi?"Xem trước chuyển sang HRM":"Preview HRM transfer"}</a>}
+    </div>
+  </PageHeader>
   {saved && <div class="crm-notice good" role="status">{vi ? "Đã lưu." : "Saved."}</div>}
   <div class="crm-grid two">
     <div>

@@ -1,6 +1,7 @@
 ---
 import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
-import Breadcrumbs, { type Crumb } from "../modules/Breadcrumbs.astro";
+import PageHeader from "../workspace/ui/PageHeader.astro";
+import type { Crumb } from "../workspace/ui/Breadcrumbs.astro";
 import "../../styles/modules.css";
 import { localized, modules } from "../../lib/workspace/nav";
 import type { Failure, PageBase } from "../../lib/hrm/pages";
@@ -247,10 +248,7 @@ if(path!=="/hrm"||title!=="HRM")crumbs.push({label:title});
 ---
 <WorkspaceShell title={title} lang={data.lang} user={data.user} module={Astro.props.module??"hrm"} current={Astro.props.current}>
   <div class="md-scope">
-  <Breadcrumbs vi={vi} items={crumbs} />
-  <div class="md-head"><div>
-    <h1 class="crm-h1">{title}</h1>
-  </div></div>
+  <PageHeader vi={vi} title={title} crumbs={crumbs} />
   {error && <div class="crm-notice bad" role="alert"><strong>{vi?"Chưa hoàn tất":"Could not complete"}</strong><p>{messages[error]?.[vi?1:0]??(vi?"Yêu cầu không hợp lệ hoặc hồ sơ không còn khả dụng.":"The request is invalid or the record is no longer available.")}</p></div>}
   {savedMessages[saved]&&<div class="crm-notice good" role="status">{savedMessages[saved][vi?1:0]}</div>}
   {import.meta.env.DEV&&error?.startsWith("internal_error:")&&<pre class="crm-meta">{error.slice(15)}</pre>}
