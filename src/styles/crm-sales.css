@@ -20,7 +20,7 @@
 
 /* Full-width table: the sheet fills the content area; the table scrolls
    inside it and its leading columns stay put (R-03). */
-.crm-grid-table-wrap { overflow: auto; max-width: 100%; max-block-size: min(72vh, 900px); border: 1px solid var(--crm-line); border-radius: var(--crm-radius); background: white; }
+.crm-grid-table-wrap { position: relative; overflow: auto; max-width: 100%; max-block-size: min(72vh, 900px); border: 1px solid var(--crm-line); border-radius: var(--crm-radius); background: white; }
 .crm-grid-table { width: max-content; min-width: 100%; border-collapse: separate; border-spacing: 0; font-size: 15px; }
 .crm-grid-table th, .crm-grid-table td { padding: 8px 12px; border-bottom: 1px solid var(--crm-line-soft); text-align: left; vertical-align: middle; white-space: nowrap; background: white; }
 .crm-grid-table thead th { position: sticky; top: 0; z-index: 2; background: #f7f8fa; color: var(--crm-slate); font-size: var(--crm-small); font-weight: 650; letter-spacing: .06em; text-transform: uppercase; border-bottom-color: var(--crm-line); }

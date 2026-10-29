@@ -17,7 +17,8 @@ const fmt = (date: string, opts: Intl.DateTimeFormatOptions) => new Date(`${date
 const byDay = new Map<string, CalendarItem[]>();
 for (const item of items) byDay.set(item.date, [...(byDay.get(item.date) ?? []), item]);
 const weekdays = range.days.slice(0, 7).map((day) => fmt(day, { weekday: "short" }));
-const monthTitle = fmt(range.anchor, { month: "long", year: "numeric" });
+const capital = (text: string) => text.charAt(0).toLocaleUpperCase(locale) + text.slice(1);
+const monthTitle = capital(fmt(range.anchor, { month: "long", year: "numeric" }));
 const weekTitle = `${fmt(range.from, { day: "numeric", month: "short" })} – ${fmt(range.to, { day: "numeric", month: "short", year: "numeric" })}`;
 const activityNames: Record<string, [string, string]> = {
   stage: ["Stage changed", "Đổi giai đoạn"], note: ["Note", "Ghi chú"], task_completed: ["Task done", "Hoàn thành việc"], meeting_confirmed: ["Meeting confirmed", "Khách xác nhận lịch hẹn"],
