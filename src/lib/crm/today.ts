@@ -1,6 +1,5 @@
 // "Today": the work due for the signed-in person, scoped like every other read.
 import { type CrmActor, opportunityScope } from "./access";
-import { leadScope } from "./leads";
 import { addDays, vnDate } from "./money";
 
 export interface TodayTask { id: string; opportunity_id: string; kind: string; title: string; due_on: string | null; due_time: string | null; meeting_confirmed: number; needs_help: number; help_note: string; account_name: string; opp_title: string; owner_id: string | null }
@@ -70,11 +69,11 @@ export async function loadToday(db: D1Database, actor: CrmActor, inactiveIds: re
         .bind(...inactiveIds.slice(0, 90)).all<TodayOpp>()).results;
     }
   }
-  const leadsIn = leadScope(actor);
-  // Owned leads only: the team's unassigned queue is a count with a link, not a to-do list.
+  // The person's own leads only, managers included: the team's unassigned
+  // queue is a separate count with a link, not part of anyone's to-do list.
   const leads = (await db.prepare(`SELECT l.id, l.name, l.company, l.status_id, l.process_id, l.next_action, l.next_action_due, l.created_at, l.owner_id FROM crm_lead_records l
-     WHERE l.state = 'open' AND l.owner_id IS NOT NULL AND ${leadsIn.sql} AND (l.next_action_due IS NULL OR l.next_action_due <= ?) ORDER BY CASE WHEN l.next_action_due IS NULL THEN 1 ELSE 0 END, l.next_action_due, l.created_at LIMIT 100`)
-    .bind(...leadsIn.args, today).all<TodayLead>()).results;
+     WHERE l.state = 'open' AND l.owner_id = ? AND (l.next_action_due IS NULL OR l.next_action_due <= ?) ORDER BY CASE WHEN l.next_action_due IS NULL THEN 1 ELSE 0 END, l.next_action_due, l.created_at LIMIT 100`)
+    .bind(actor.id, today).all<TodayLead>()).results;
   const unassignedLeads = actor.manager ? (await db.prepare("SELECT COUNT(*) AS count FROM crm_lead_records WHERE owner_id IS NULL AND state = 'open'").first<{ count: number }>())?.count ?? 0 : 0;
   if (actor.finance) pendingPayments = (await db.prepare("SELECT COUNT(*) AS count FROM crm_ledger WHERE kind = 'payment' AND status = 'pending'").first<{ count: number }>())?.count ?? 0;
   return { today, overdue, dueToday, upcoming, help, missingNext, renewals, renewalCandidates, credits, blocked, unassigned, inactiveOwners, pendingPayments, leads, unassignedLeads };
