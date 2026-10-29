@@ -1,0 +1,7 @@
+---
+// R-04: panels placed side by side share one height. Columns wrap below
+// `min` (default 300px), so phones get a single column.
+interface Props { min?: string; label?: string }
+const { min, label } = Astro.props;
+---
+<div class="ws-row" style={min ? `--ws-row-min: ${min}` : undefined} role={label ? "group" : undefined} aria-label={label}><slot /></div>
