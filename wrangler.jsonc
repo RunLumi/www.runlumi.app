@@ -9,7 +9,10 @@
   "vars": {
     // Company data remains unavailable until Super Admin completes book setup.
     "FINANCE_LIVE_ENABLED": "true",
-    "WORKSPACE_RESTORE_MODE": "false"
+    "WORKSPACE_RESTORE_MODE": "false",
+    // R-08 passkey and anti-phishing enforcement. Off until the owner confirms every
+    // Workspace user has an EmDash passkey; see docs/workspace/security.md.
+    "WORKSPACE_PASSKEY_REQUIRED": "false"
   },
   "routes": [
     {
@@ -72,7 +75,8 @@
       "vars": {
         "FINANCE_LIVE_ENABLED": "false",
         "HRM_LIVE_ENABLED": "false",
-        "WORKSPACE_RESTORE_MODE": "false"
+        "WORKSPACE_RESTORE_MODE": "false",
+        "WORKSPACE_PASSKEY_REQUIRED": "false"
       },
       "triggers": {
         "crons": []
