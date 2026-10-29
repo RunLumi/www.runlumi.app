@@ -49,17 +49,15 @@
 
 ## Gates
 
-The head is `claude/rd1-shell` after merging `origin/claude/loving-pasteur-z7ly65` at `18bec37` (the HRM P4 test fix). Every gate ran locally in the cloud container.
+The final run is on `ce929b9`: `claude/rd1-shell` after merging `origin/claude/loving-pasteur-z7ly65` at `ff9ecbe`, which already includes workstreams 2 and 3 and the integrator's HRM P4 fix. Every gate ran locally in the cloud container.
 
 | Gate | Result |
 |---|---|
-| `npm run lint` | pass (518 source files) |
-| `npm test` | 410 pass, 0 fail |
-| `npm run db:migrate:local` | pass (up to 0050) |
+| `npm run lint` | pass (542 source files) |
+| `npm test` | 419 pass, 0 fail |
+| `npm run db:migrate:local` | pass (up to 0055) |
 | `npm run build` (astro check + build) | 0 errors; build complete |
-| Integration, workspace scope | 12/12 pass, including the 2 new tests ("admin screens…", "my account…") |
-| Integration regressions, one scope at a time | crm 14/14, directory 7/7, api 7/7, dashboard 5/5, files 6/6, sales-process 12/12, business-model 5/5, finance 9/9 |
-| Integration, HRM | P1, P3 and P4 pass. P4 needed the integrator's fix `18bec37`; before it, P4 also failed on the base branch. P5 passes on its own (one earlier run hit a local workerd "internal error" in `wrangler d1 execute`). |
+| Integration, run one scope at a time | workspace 12/12 (includes the 2 new tests), crm 18/18, directory 7/7, api 7/7, dashboard 5/5, files 6/6, sales-process 12/12, business-model 5/5, finance 9/9, HRM P1, P3, P4 and P5 each pass |
 | Integration, HRM journey | **Fails intermittently on the base branch too.** `fetch failed` / `UND_ERR_SOCKET other side closed` inside `tests/integration/hrm-recovery-drill.mjs`, which uses bare `fetch` to a second, restored dev Worker. The failing point moves (lines 279 and 373, and a closeout file API). The base branch at `18bec37` passed once and failed once at line 373 with the same error. Not caused by this workstream; reported to the integrator. |
 
 - **Full `npm run test:integration` in one run.** On this container the HRM suite alone takes more than the runner's 30-minute cap (P1 430 s, P3 345 s, P4 237 s), so the full run was split by scope as shown above.
@@ -77,17 +75,9 @@ The head is `claude/rd1-shell` after merging `origin/claude/loving-pasteur-z7ly6
 - **Step-up (rd4).** Step-up is pending. Role changes on the member screen and the grant screen should require step-up once rd4 lands. Mark them "step-up pending (rd4)" until then; nothing is faked.
 - **Security and notification pages (rd4).** *Tài khoản của tôi* shows no anti-phishing code or step-up state yet. rd4 adds its pages as `accountModule.links` in `nav.ts`.
 - **EmDash passkey link.** The account page links to `/_emdash/admin/settings/security`. It has not been checked that EmDash users below role 50 can open that page (MEMORY.md, open question 4).
-- **Wording in modules owned by rd2 and rd3.** Nav labels for HRM and CRM pages were not changed, to keep them identical to page titles that rd2 and rd3 own. Suggested replacements (R-02):
-  - "Payroll và phiếu lương" → "Bảng lương và phiếu lương"
-  - "Kế hoạch onboarding" → "Kế hoạch hội nhập"
-  - "Offboarding" → "Nghỉ việc"
-  - "Lưu trữ và legal hold" → "Lưu trữ và tạm giữ hồ sơ"
-  - "Chính sách và hold báo cáo" → "Chính sách và tạm giữ báo cáo"
-  - "Khai báo COI của tôi" → "Khai báo xung đột lợi ích"
-  - "Yêu cầu HR của tôi" → "Yêu cầu nhân sự của tôi"
-  - "Yêu cầu dịch vụ HR" → "Xử lý yêu cầu nhân sự"
-  - "Phân công và cohort" → "Phân công và đợt thử nghiệm"
-  - Change each label in `nav.ts` together with the page title, in one small commit.
+- **Wording in modules owned by rd2 and rd3.**
+  - Workstream 2 applied the HRM nav replacements this workstream suggested ("Bảng lương", "Kế hoạch hội nhập", "Nghỉ việc", "tạm giữ", "xung đột lợi ích").
+  - Still English in nav: "Yêu cầu HR của tôi", "Yêu cầu dịch vụ HR" and "Phân công và cohort". Each needs the page title changed in the same commit.
 - **Not built.**
   - Workspace-wide search and a header notification bell. The boards show them, but no back end exists, and they would be new features (MEMORY.md, open questions 1–2).
   - A measured contrast audit, and a review with JavaScript off. Both are recorded as Open in `NFR.md`.
