@@ -45,7 +45,7 @@
 .cl-tbl .cl-cell input:hover { border-color: #c8d0de; }
 .cl-tbl .cl-cell input:focus { border-color: var(--crm-blue); background: #fff; }
 .cl-tbl .cl-cell input[aria-invalid="true"] { border-color: var(--crm-red); background: var(--crm-red-soft); }
-.cl-tbl .cl-cell button { height: 28px; padding: 0 8px; border: 1px solid #c8d0de; border-radius: 4px; background: #fff; color: var(--crm-blue); font: 500 12px/1 inherit; cursor: pointer; }
+.cl-tbl .cl-cell button { height: 28px; padding: 0 8px; border: 1px solid #c8d0de; border-radius: 4px; background: #fff; color: var(--crm-blue); font-family: inherit; font-weight: 500; font-size: 12px; line-height: 1; cursor: pointer; }
 .cl-tbl .cl-cell .crm-error { font-size: 12px; }
 .cl-hint { display: flex; justify-content: space-between; gap: 12px; padding: 6px 16px; border-top: 1px solid #e7eaf0; background: #f7f8fa; color: var(--crm-slate); font-size: 12px; border-radius: 0 0 8px 8px; }
 .cl-pager { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 16px; border-top: 1px solid #e7eaf0; font-size: 13px; color: var(--crm-slate); }
@@ -89,7 +89,7 @@
 .cl-kc-menu summary::-webkit-details-marker { display: none; }
 .cl-kc-menu summary::after { content: "▾"; font-size: 11px; }
 .cl-kc-menu form { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 6px; }
-.cl-kc-menu select { height: 32px; max-width: 100%; padding: 0 6px; border: 1px solid #c8d0de; border-radius: 6px; background: #fff; color: var(--crm-ink); font: 400 14px/1 inherit; }
+.cl-kc-menu select { height: 32px; max-width: 100%; padding: 0 6px; border: 1px solid #c8d0de; border-radius: 6px; background: #fff; color: var(--crm-ink); font-family: inherit; font-weight: 400; font-size: 14px; line-height: 1; }
 .cl-kc-menu button, .cl-kc-menu a { display: inline-flex; align-items: center; height: 30px; padding: 0 10px; border: 1px solid #c8d0de; border-radius: 6px; background: #fff; color: var(--crm-blue); font-size: 13px; font-weight: 500; text-decoration: none; cursor: pointer; }
 .cl-lane .cl-none { margin: 0; padding: 12px 4px; color: var(--crm-slate); font-size: 13px; text-align: center; }
 /* Drag status (KanbanDrag "Đang kéo") and the won/lost drop bar. */
@@ -256,7 +256,7 @@ a.title:hover { text-decoration: underline; }
 .cl-meta p { margin: 0; color: var(--crm-slate); font-size: 13px; }
 .cl-lv.bare .cl-meta { padding-bottom: 14px; }
 .cl-tools { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-.cl-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 36px; padding: 0 14px; border: 1px solid #c8d0de; border-radius: 6px; background: #fff; color: var(--crm-blue); font: 500 14px/1 inherit; text-decoration: none; white-space: nowrap; cursor: pointer; list-style: none; }
+.cl-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 36px; padding: 0 14px; border: 1px solid #c8d0de; border-radius: 6px; background: #fff; color: var(--crm-blue); font-family: inherit; font-weight: 500; font-size: 14px; line-height: 1; text-decoration: none; white-space: nowrap; cursor: pointer; list-style: none; }
 .cl-btn::-webkit-details-marker { display: none; }
 .cl-btn:hover { background: #f7f8fa; text-decoration: none; }
 .cl-btn.primary { background: #006093; border-color: #006093; color: #fff; }
@@ -274,7 +274,7 @@ a.title:hover { text-decoration: underline; }
 .cl-dot-n { position: absolute; top: -6px; right: -6px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: #006093; color: #fff; font-size: 10px; font-weight: 600; line-height: 16px; }
 .cl-search { display: flex; align-items: center; gap: 8px; width: 240px; height: 36px; padding: 0 10px; border: 1px solid #c8d0de; border-radius: 6px; background: #fff; color: var(--crm-slate); }
 .cl-search:focus-within { border-color: var(--crm-blue); }
-.cl-search input { width: 100%; min-width: 0; border: 0; outline: none; background: transparent; color: var(--crm-ink); font: 400 14px inherit; }
+.cl-search input { width: 100%; min-width: 0; border: 0; outline: none; background: transparent; color: var(--crm-ink); font-family: inherit; font-weight: 400; font-size: 14px; }
 .crm .cl-search input:focus-visible { outline: none; }
 .cl-pop { position: relative; }
 .cl-pop > summary { list-style: none; }

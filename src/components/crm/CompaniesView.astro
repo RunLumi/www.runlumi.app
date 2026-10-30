@@ -1,6 +1,11 @@
 ---
+// Companies list view (board Accounts). Story: docs/governance/USER-STORIES.md
+// § CRM list screens (Accounts, Contacts). "Thêm công ty" opens a sheet.
 import CrmShell from "../../layouts/CrmShell.astro";
-import DirectoryTools from "./DirectoryTools.astro";
+import ListHead from "./list/ListHead.astro";
+import Sheet from "./list/Sheet.astro";
+import Filters from "./list/Filters.astro";
+import Icon from "./list/Icon.astro";
 import Field from "./Field.astro";
 import FormNotices from "./FormNotices.astro";
 import Hidden from "./Hidden.astro";
@@ -8,6 +13,7 @@ import { options } from "../../lib/crm/i18n";
 import { errorFor, valueFor } from "../../lib/crm/page";
 import type { CompaniesProps } from "../../lib/crm/routes/directory";
 import "../../styles/crm-sales.css";
+import "../../styles/crm-lists.css";
 
 type Props = CompaniesProps;
 const { ctx, state, filters, rows, total, page, pages, owners, names } = Astro.props;
@@ -18,50 +24,66 @@ const manager = (id: string | null) => id ? (names[id]?.name ?? (id === actor.id
 const fieldLabels: Record<string, string> = vi
   ? { name: "Tên công ty", owner_id: "Người quản lý", contact_name: "Người liên hệ", contact_phone: "Điện thoại", contact_email: "Email", contact_consent_evidence: "Bằng chứng đồng ý" }
   : { name: "Company name", owner_id: "Managed by", contact_name: "Contact", contact_phone: "Phone", contact_email: "Email", contact_consent_evidence: "Consent evidence" };
+const query = (changes: Record<string, string>) => {
+  const params = new URLSearchParams(Object.entries({ ...filters, ...changes }).filter(([, value]) => value));
+  return params.toString() ? `${base}/accounts?${params}` : `${base}/accounts`;
+};
+const lists = actor.manager ? [
+  { label: vi ? "Tất cả công ty" : "All companies", href: query({ owner: "", page: "" }), current: !filters.owner },
+  { label: vi ? "Công ty tôi quản lý" : "Companies I manage", href: query({ owner: actor.id, page: "" }), current: filters.owner === actor.id },
+  { label: vi ? "Chưa có người quản lý" : "Nobody managing yet", href: query({ owner: "unassigned", page: "" }), current: filters.owner === "unassigned" },
+] : [];
+const title = lists.find((item) => item.current)?.label ?? (actor.manager ? (vi ? `Công ty của ${owners.find((owner) => owner.id === filters.owner)?.label ?? "người khác"}` : `Companies of ${owners.find((owner) => owner.id === filters.owner)?.label ?? "another person"}`) : (vi ? "Công ty của tôi" : "My companies"));
+const meta = [vi ? `${total} mục` : `${total} ${total === 1 ? "item" : "items"}`, vi ? "Sắp xếp theo tên công ty" : "Sorted by company name", actor.manager ? "" : (vi ? "Công ty bạn quản lý hoặc đang có cơ hội" : "Companies you manage or have opportunities with"), filters.q ? (vi ? `Tìm “${filters.q}”` : `Search “${filters.q}”`) : ""].filter(Boolean).join(" · ");
+const sheetOpen = Astro.url.searchParams.get("new") === "1" || (state.intent === "account_create" && (Object.keys(state.errors).length > 0 || state.serverError || state.conflict));
+const closeHref = query({ new: "" });
 ---
 <CrmShell title={vi ? "Công ty" : "Companies"} lang={lang} actor={actor} current="companies">
-  <div class="crm-head"><div>
-    <p class="crm-eyebrow">{vi ? "Công ty" : "Companies"}</p>
-    <h1 class="crm-h1">{vi ? "Công ty và người phụ trách." : "Companies and who manages them."}</h1>
-    <p class="crm-lede">{actor.manager
-      ? (vi ? `${total} công ty. Bạn thấy toàn bộ công ty của đội.` : `${total} companies. You see every company on the team.`)
-      : (vi ? `${total} công ty bạn quản lý hoặc đang có cơ hội.` : `${total} companies you manage or have opportunities with.`)}</p>
-  </div><a class="crm-button secondary" href={`${base}/contacts`}>{vi ? "Người liên hệ" : "Contacts"}</a></div>
-  <FormNotices state={state} lang={lang} fieldLabels={fieldLabels} />
-  <div class="crm-grid two">
-    <div>
-      <DirectoryTools vi={vi} manager={actor.manager} filters={filters} owners={owners} page={page} pages={pages} position="top" searchLabel={vi ? "Tìm theo tên, ngành, khu vực" : "Search name, industry, area"} />
-      <section class="crm-sheet" aria-label={vi ? "Danh sách công ty" : "Company list"} style="margin-top:18px">
-        {rows.length ? <div class="crm-grid-table-wrap" tabindex="0" role="region" aria-label={vi ? "Bảng công ty, cuộn ngang được" : "Company table, scrolls sideways"}><table class="crm-grid-table">
-          <thead><tr><th class="frozen frozen-1" scope="col">#</th><th class="frozen frozen-2" scope="col">{vi ? "Công ty" : "Company"}</th><th scope="col">{vi ? "Ngành" : "Industry"}</th><th scope="col">{vi ? "Khu vực" : "Area"}</th><th scope="col" class="num">{vi ? "Liên hệ" : "Contacts"}</th><th scope="col" class="num">{vi ? "Cơ hội mở" : "Open"}</th><th scope="col">{vi ? "Quản lý" : "Managed by"}</th><th scope="col">{vi ? "Hành động" : "Actions"}</th></tr></thead>
-          <tbody>{rows.map((row, index) => <tr>
-            <td class="frozen frozen-1 rowno">{(page - 1) * 50 + index + 1}</td>
-            <td class="frozen frozen-2"><a href={`${base}/accounts/${row.id}`}>{row.name}</a>{row.do_not_contact ? <> <span class="crm-badge red">{vi ? "Không liên hệ" : "Do not contact"}</span></> : null}</td>
-            <td>{row.industry || "—"}</td><td>{row.region || "—"}</td><td class="num">{row.contacts}</td><td class="num">{row.open_opportunities}</td><td>{manager(row.owner_id)}</td>
-            <td>{!row.do_not_contact && row.contacts > 0 ? <a class="crm-link" href={`${base}/new?company=${row.id}`}>{vi ? "Tạo cơ hội" : "New opportunity"}</a> : "—"}</td>
-          </tr>)}</tbody>
-        </table></div> : <p class="crm-empty">{filters.q || filters.owner ? (vi ? "Không có công ty khớp bộ lọc." : "No companies match these filters.") : (vi ? "Chưa có công ty nào. Tạo công ty đầu tiên ở bên cạnh." : "No companies yet. Add the first one alongside.")}</p>}
-        <DirectoryTools vi={vi} manager={actor.manager} filters={filters} owners={owners} page={page} pages={pages} position="bottom" searchLabel="" />
-      </section>
-    </div>
-    <aside class="crm-sheet" id="new-company" aria-labelledby="new-company-h">
-      <h2 class="crm-h2" id="new-company-h">{vi ? "Thêm công ty" : "Add a company"}</h2>
-      <p class="crm-help">{vi ? "Tạo công ty và người liên hệ trước; mở cơ hội và giao cho người bán sau, trên trang công ty." : "Add the company and its contacts first; open an opportunity and assign it later, on the company page."}</p>
-      <form class="crm-form" method="post" action="#new-company">
-        <Hidden intent="account_create" state={state} />
-        <Field name="name" label={fieldLabels.name} lang={lang} value={v("name")} error={e("name")} required maxlength={160} autocomplete="organization" />
+  <div class="cl-stack">
+    <ListHead vi={vi} icon="company" tone="#5B4FC4" eyebrow={vi ? "Công ty" : "Companies"} title={title} meta={meta} lists={lists} search={{ value: filters.q, hidden: { owner: filters.owner } }}>
+      <Fragment slot="actions"><a class="cl-btn" href={`${query({ new: "1" })}#new-company`}>{vi ? "Tạo" : "New"}</a></Fragment>
+      <Fragment slot="tools">
+        <a class="cl-btn icon" href={query({})} aria-label={vi ? "Làm mới" : "Refresh"}><Icon name="refresh" /></a>
+        {actor.manager && <Filters vi={vi} active={filters.owner ? 1 : 0} clearHref={query({ owner: "", page: "" })}>
+          {filters.q && <input type="hidden" name="q" value={filters.q} />}
+          <div class="crm-field"><label for="owner">{vi ? "Người quản lý" : "Managed by"}</label><select class="crm-select" id="owner" name="owner"><option value="">{vi ? "Tất cả" : "Anyone"}</option><option value="unassigned" selected={filters.owner === "unassigned"}>{vi ? "Chưa có người quản lý" : "Nobody yet"}</option>{owners.map((owner) => <option value={owner.id} selected={filters.owner === owner.id}>{owner.label}</option>)}</select></div>
+        </Filters>}
+      </Fragment>
+      {rows.length ? <div class="cl-tbl-wrap" tabindex="0" role="region" aria-label={vi ? "Bảng công ty, cuộn ngang được" : "Company table, scrolls sideways"}><table class="cl-tbl">
+        <thead><tr><th class="fz fzr" scope="col"><span class="crm-sr">#</span></th><th class="fz fzn" scope="col">{vi ? "Tên công ty" : "Company name"}</th><th scope="col">{vi ? "Ngành" : "Industry"}</th><th scope="col">{vi ? "Khu vực" : "Area"}</th><th scope="col">{vi ? "Địa chỉ" : "Address"}</th><th scope="col" class="r">{vi ? "Liên hệ" : "Contacts"}</th><th scope="col" class="r">{vi ? "Cơ hội đang mở" : "Open opportunities"}</th><th scope="col">{vi ? "Người quản lý" : "Managed by"}</th><th scope="col">{vi ? "Hành động" : "Actions"}</th></tr></thead>
+        <tbody>{rows.map((row, index) => <tr>
+          <td class="fz fzr">{(page - 1) * 50 + index + 1}</td>
+          <td class="fz fzn"><a href={`${base}/accounts/${row.id}`}>{row.name}</a>{row.do_not_contact ? <> <span class="cl-badge danger">{vi ? "Không liên hệ" : "Do not contact"}</span></> : null}</td>
+          <td>{row.industry || "—"}</td><td>{row.region || "—"}</td><td>{row.address || "—"}</td><td class="r">{row.contacts}</td><td class="r">{row.open_opportunities}</td><td>{manager(row.owner_id)}</td>
+          <td>{!row.do_not_contact && row.contacts > 0 ? <a href={`${base}/new?company=${row.id}`}>{vi ? "Tạo cơ hội" : "New opportunity"}</a> : "—"}</td>
+        </tr>)}</tbody>
+      </table></div> : <p class="cl-empty">{filters.q || filters.owner ? (vi ? "Không có công ty khớp bộ lọc. Xóa lọc hoặc đổi từ khóa." : "No companies match. Clear the filters or change the search.") : (vi ? "Chưa có công ty. Chọn Tạo để thêm công ty đầu tiên, hoặc chuyển đổi một Lead." : "No companies yet. Choose New to add the first one, or convert a lead.")}</p>}
+      {rows.length > 0 && <p class="cl-hint"><span>{vi ? "Cột số dòng và Tên công ty cố định khi cuộn ngang." : "The row number and Company name stay in place when scrolling sideways."}</span><span>{vi ? "Bấm tên để mở trang chi tiết" : "Select a name to open the record"}</span></p>}
+      {pages > 1 && <nav class="cl-pager" aria-label={vi ? "Phân trang" : "Pagination"}><span>{vi ? `Trang ${page} / ${pages}` : `Page ${page} of ${pages}`}</span><span>{page > 1 && <a class="cl-btn sm" href={query({ page: String(page - 1) })}>{vi ? "Trước" : "Previous"}</a>}{page < pages && <a class="cl-btn sm" href={query({ page: String(page + 1) })}>{vi ? "Tiếp" : "Next"}</a>}</span></nav>}
+    </ListHead>
+  </div>
+
+  <Sheet id="new-company" title={vi ? "Thêm công ty" : "Add a company"} vi={vi} open={sheetOpen} closeHref={closeHref}>
+    <FormNotices state={state} lang={lang} fieldLabels={fieldLabels} />
+    <p class="cl-sheet-tip">{vi ? "Tạo công ty và người liên hệ trước; mở cơ hội và giao cho người bán sau, trên trang công ty." : "Add the company and its contacts first; open an opportunity and assign it later, on the company page."}</p>
+    <form class="crm-form" method="post" action={`${query({ new: "1" })}#new-company`}>
+      <Hidden intent="account_create" state={state} />
+      <p class="cl-sheet-sec">{vi ? "Thông tin công ty" : "Company details"}</p>
+      <div class="crm-form-grid">
+        <Field name="name" wide label={fieldLabels.name} lang={lang} value={v("name")} error={e("name")} required maxlength={160} autocomplete="organization" />
         <Field name="industry" label={vi ? "Ngành" : "Industry"} lang={lang} value={v("industry")} maxlength={120} />
         <Field name="region" label={vi ? "Khu vực" : "Area"} lang={lang} value={v("region")} maxlength={120} />
-        <Field name="address" label={vi ? "Địa chỉ" : "Address"} lang={lang} value={v("address")} maxlength={300} />
+        <Field name="address" wide label={vi ? "Địa chỉ" : "Address"} lang={lang} value={v("address")} maxlength={300} />
         {actor.manager && <Field name="owner_id" type="select" label={fieldLabels.owner_id} lang={lang} value={v("owner_id", actor.id)} error={e("owner_id")} options={owners.map((owner) => ({ value: owner.id, label: owner.label }))} />}
-        <fieldset class="crm-fieldset"><legend>{vi ? "Người liên hệ đầu tiên (không bắt buộc)" : "First contact (optional)"}</legend>
-          <Field name="contact_name" label={fieldLabels.contact_name} lang={lang} value={v("contact_name")} error={e("contact_name")} maxlength={160} autocomplete="off" />
-          <Field name="contact_role" type="select" label={vi ? "Vai trò" : "Role"} lang={lang} value={v("contact_role", "owner")} error={e("contact_role")} options={options(lang, "role")} />
-          <Field name="contact_phone" type="tel" label={fieldLabels.contact_phone} lang={lang} value={v("contact_phone")} error={e("contact_phone")} maxlength={40} inputmode="tel" autocomplete="off" />
-          <Field name="contact_email" type="email" label="Email" lang={lang} value={v("contact_email")} error={e("contact_email")} maxlength={254} autocomplete="off" />
-        </fieldset>
-        <div class="crm-actions"><button class="crm-button" type="submit">{vi ? "Tạo công ty" : "Create company"}</button></div>
-      </form>
-    </aside>
-  </div>
+      </div>
+      <p class="cl-sheet-sec" style="margin-top:18px">{vi ? "Người liên hệ đầu tiên (không bắt buộc)" : "First contact (optional)"}</p>
+      <div class="crm-form-grid">
+        <Field name="contact_name" label={fieldLabels.contact_name} lang={lang} value={v("contact_name")} error={e("contact_name")} maxlength={160} autocomplete="off" />
+        <Field name="contact_role" type="select" label={vi ? "Vai trò" : "Role"} lang={lang} value={v("contact_role", "owner")} error={e("contact_role")} options={options(lang, "role")} />
+        <Field name="contact_phone" type="tel" label={fieldLabels.contact_phone} lang={lang} value={v("contact_phone")} error={e("contact_phone")} maxlength={40} inputmode="tel" autocomplete="off" />
+        <Field name="contact_email" type="email" label="Email" lang={lang} value={v("contact_email")} error={e("contact_email")} maxlength={254} autocomplete="off" />
+      </div>
+      <div class="cl-sheet-f"><a class="cl-btn" href={closeHref}>{vi ? "Hủy" : "Cancel"}</a><button class="cl-btn primary" type="submit">{vi ? "Lưu" : "Save"}</button></div>
+    </form>
+  </Sheet>
 </CrmShell>
