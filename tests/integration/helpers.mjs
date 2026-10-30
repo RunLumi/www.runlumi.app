@@ -120,17 +120,27 @@ export class Session {
 export const key = () => randomUUID().replaceAll("-", "");
 
 export function sql(database, command) {
-  try {
-    const out = execFileSync("./node_modules/.bin/wrangler", ["d1", "execute", database, "--local", "--persist-to", PERSIST, "--json", "--command", command], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
-    return JSON.parse(out)[0].results;
-  } catch (error) {
-    const raw = `${String(error?.stderr ?? "")}\n${String(error?.stdout ?? "")}`;
-    const detail = raw.replace(/[^\s@]+@[^\s@]+\.[A-Z]{2,}/gi, "[redacted-email]")
-      .replace(/([?&]token=)[A-Z0-9_-]+/gi, "$1[redacted-token]")
-      .replace(/\b\d{9,15}\b/g, "[redacted-number]")
-      .trim().slice(-800);
-    throw new Error(`Local D1 command failed for ${database} (exit ${error?.status ?? "unknown"}).${detail ? ` ${detail}` : ""}`);
+  // The local Worker shares this SQLite file, so a fixture write can meet its
+  // lock (SQLITE_BUSY). The lock is taken before anything is written, so the
+  // same command is retried a few times after a short wait.
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      const out = execFileSync("./node_modules/.bin/wrangler", ["d1", "execute", database, "--local", "--persist-to", PERSIST, "--json", "--command", command], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+      return JSON.parse(out)[0].results;
+    } catch (error) {
+      const busy = /SQLITE_BUSY|database is locked/.test(`${String(error?.stderr ?? "")}\n${String(error?.stdout ?? "")}`);
+      if (!busy || attempt >= 5) return sqlFailed(database, error);
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 250 * attempt);
+    }
   }
+}
+function sqlFailed(database, error) {
+  const raw = `${String(error?.stderr ?? "")}\n${String(error?.stdout ?? "")}`;
+  const detail = raw.replace(/[^\s@]+@[^\s@]+\.[A-Z]{2,}/gi, "[redacted-email]")
+    .replace(/([?&]token=)[A-Z0-9_-]+/gi, "$1[redacted-token]")
+    .replace(/\b\d{9,15}\b/g, "[redacted-number]")
+    .trim().slice(-800);
+  throw new Error(`Local D1 command failed for ${database} (exit ${error?.status ?? "unknown"}).${detail ? ` ${detail}` : ""}`);
 }
 export const jobs = (command) => sql("lumi-jobs", command);
 export const content = (command) => sql("lumi-content", command);

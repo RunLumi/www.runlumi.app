@@ -1,4 +1,4 @@
-// Sales dashboard on /crm: expected value and win probability per deal;
+// Sales dashboard on /crm/reports (moved from Today): expected value and win probability per deal;
 // sellers see only their own figures, managers the company or one seller or
 // product. Real Worker + D1 + EmDash sessions; synthetic TEST data only.
 import { test } from "node:test";
@@ -43,7 +43,7 @@ test("the opportunity page records the expected value and probability", async ()
 });
 
 test("sellers see only their own dashboard, whatever the URL says", async () => {
-  const own = await S.one.get(`/crm?owner=${S.two.id}`);
+  const own = await S.one.get(`/crm/reports?owner=${S.two.id}`);
   assert.equal(own.status, 200);
   assert.match(own.html, /Yours \(TEST Dash One/);
   assert.equal(kpi(own.html, "Open deals"), "2");
@@ -52,24 +52,24 @@ test("sellers see only their own dashboard, whatever the URL says", async () => 
   assert.match(own.html, /with value and probability: 1 of 2 deals/, "coverage is stated, not hidden");
   assert.doesNotMatch(own.html, /By seller/, "no team table for sellers");
   assert.doesNotMatch(own.html, /name="owner"/, "no seller filter for sellers");
-  const vi = await S.two.get("/vi/crm");
+  const vi = await S.two.get("/vi/crm/reports");
   assert.match(vi.html, /Tổng quan bán hàng/);
   assert.equal(kpi(vi.html, "Cơ hội đang mở"), "1");
 });
 
 test("managers see the whole company, one seller, or one product", async () => {
-  const company = await S.manager.get("/crm");
+  const company = await S.manager.get("/crm/reports");
   assert.match(company.html, /Whole company/);
   assert.ok(Number(kpi(company.html, "Open deals")) >= 3);
   assert.match(company.html, /By seller/);
   assert.ok(company.html.includes(`TEST Dash One ${run}`) && company.html.includes(`TEST Dash Two ${run}`));
-  const one = await S.manager.get(`/crm?owner=${S.one.id}`);
+  const one = await S.manager.get(`/crm/reports?owner=${S.one.id}`);
   assert.match(one.html, /TEST Dash One \S+(?:'|&#39;)s/);
   assert.equal(kpi(one.html, "Open deals"), "2");
   assert.equal(kpi(one.html, "Probability-weighted forecast"), "5 m");
-  const product = await S.manager.get(`/crm?owner=${S.one.id}&product=lumi-solution`);
+  const product = await S.manager.get(`/crm/reports?owner=${S.one.id}&product=lumi-solution`);
   assert.equal(kpi(product.html, "Open deals"), "0", "product filter narrows to that playbook");
-  const stages = await S.manager.get(`/crm?owner=${S.two.id}&product=local-preview`);
+  const stages = await S.manager.get(`/crm/reports?owner=${S.two.id}&product=local-preview`);
   assert.match(stages.html, /Open value by stage/);
   assert.equal(kpi(stages.html, "Probability-weighted forecast"), "10 m");
 });
@@ -77,7 +77,7 @@ test("managers see the whole company, one seller, or one product", async () => {
 test("won deals feed the win rate and the monthly chart", async () => {
   const version = Number(/name="version" value="(\d+)"/.exec((await S.two.get(`/crm/${S.other}`)).html)[1]);
   assert.equal((await S.two.post(`/crm/${S.other}`, { intent: "stage", version, to_stage: "not_fit", reason: "TEST not a fit" })).status, 303);
-  const page = await S.two.get("/crm");
+  const page = await S.two.get("/crm/reports");
   assert.equal(kpi(page.html, "Win rate, 90 days"), "0%");
   assert.match(page.html, /0 won · 1 lost/);
   assert.equal(kpi(page.html, "Open deals"), "0");

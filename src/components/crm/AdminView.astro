@@ -1,5 +1,6 @@
 ---
 import CrmShell from "../../layouts/CrmShell.astro";
+import CrmSetupLayout from "./CrmSetupLayout.astro";
 import SetupFrame from "../workspace/ui/SetupFrame.astro";
 import "../../styles/record.css";
 import "../../styles/crm-sales.css";
@@ -21,6 +22,7 @@ const e = (intent: string, name: string) => errorFor(state, intent, name);
 const payload = (raw: string) => { try { return JSON.parse(raw) as IntakePayload; } catch { return null; } };
 ---
 <CrmShell title={vi ? "Vận hành CRM" : "CRM operations"} lang={lang} actor={ctx.actor} current="admin">
+  <CrmSetupLayout vi={vi} current="operations">
   <SetupFrame vi={vi} icon="assignment" eyebrow={vi ? "Vận hành" : "Operations"} title={vi ? "Phân công và cohort" : "Assignment and cohorts"} info={vi ? "Người dùng và vai trò được quản lý tập trung ở Workspace. Quyền CRM không cấp quyền tuyển dụng." : "Users and roles are managed centrally in the Workspace. CRM access grants nothing in hiring."}>
     <Fragment slot="actions">{ctx.actor.configure && <><a class="ws-btn" href={`${base}/admin/playbooks`}>{vi ? "Playbook" : "Playbooks"}</a><a class="ws-btn" href={`${base}/admin/offers`}>{vi ? "Gói và giá" : "Offers and prices"}</a><a class="ws-btn" href={vi ? "/vi/workspace/users" : "/workspace/users"}>{vi ? "Người dùng và vai trò" : "Users and roles"}</a></>}</Fragment>
   <FormNotices state={state} lang={lang} saved={Astro.url.searchParams.get("saved")} />
@@ -115,4 +117,5 @@ const payload = (raw: string) => { try { return JSON.parse(raw) as IntakePayload
     </details>}
   </section>
   </SetupFrame>
+  </CrmSetupLayout>
 </CrmShell>

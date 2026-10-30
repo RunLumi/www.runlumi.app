@@ -18,11 +18,6 @@ const facts = [
 ];
 ---
 <HrmPage data={d} current="job-descriptions">
-  <nav class="jd-back" aria-label={d.vi ? "Điều hướng mô tả công việc" : "Job description navigation"}>
-    <a href={d.vi ? "/vi/hrm/job-descriptions" : "/hrm/job-descriptions"}>
-      {d.vi ? "Về danh mục mô tả công việc" : "Back to job descriptions"}
-    </a>
-  </nav>
   <header class="crm-sheet jd-role-summary">
     <div class="jd-meta-line">
       <span class="crm-badge amber">{d.vi ? "Bản nháp nội bộ" : "Internal draft"}</span>

@@ -17,20 +17,18 @@ const query = (changes: Record<string, string>) => {
 ---
 <WorkspaceShell title={vi ? "Ứng viên" : "Candidates"} lang={lang} user={user} module="hiring" current="applications">
   <div class="md-scope rec-module">
-  <ListHeader icon="candidates" tone="hiring" object={vi ? "Tuyển dụng" : "Hiring"} vi={vi} title={vi ? "Ứng viên" : "Candidates"} meta={vi ? "Hồ sơ của mọi vị trí. Lọc theo vị trí và giai đoạn, rồi mở hồ sơ để đọc bài làm và ghi đánh giá." : "Applications for every role. Filter by role and stage, then open an application to read the work and record your review."}>
+  <ListHeader icon="candidates" tone="hiring" object={vi ? "Tuyển dụng" : "Hiring"} vi={vi} title={vi ? "Ứng viên" : "Candidates"} meta={vi ? `${applications.length} hồ sơ · tối đa 500 hồ sơ gần nhất` : `${applications.length} applications · up to the latest 500`}>
     {user.can("hiring.export") && <a slot="actions" class="ws-btn" href={`/api/admin/applications/export.csv?job=${encodeURIComponent(jobId)}&status=${encodeURIComponent(status)}`}>{vi ? "Xuất CSV" : "Export CSV"}</a>}
-  </ListHeader>
-
+    <form slot="tools" class="rec-lfilter" method="get" aria-label={vi ? "Bộ lọc" : "Filters"}>
+    <div class="crm-field"><label for="job">{vi ? "Vị trí" : "Role"}</label><select class="crm-select" id="job" name="job"><option value="">{vi ? "Mọi vị trí" : "All roles"}</option>{jobs.map((job) => <option value={job.id} selected={jobId === job.id}>{job.title}</option>)}</select></div>
+    <div class="crm-field"><label for="status">{vi ? "Giai đoạn" : "Stage"}</label><select class="crm-select" id="status" name="status"><option value="">{vi ? "Mọi giai đoạn" : "All stages"}</option>{applicationStatuses.map((value) => <option value={value} selected={status === value}>{statusName(value, lang)}</option>)}</select></div>
+    <div class="crm-actions"><button class="ws-btn sm" type="submit">{vi ? "Lọc" : "Apply"}</button><a class="crm-link" href={deskPath(lang, "/admin/jobs/applications")}>{vi ? "Xóa lọc" : "Clear"}</a></div>
+  </form>
+    <div class="rec-stages">
   <ol class="crm-stages" aria-label={vi ? "Hồ sơ theo giai đoạn" : "Applications by stage"}>
     {applicationStatuses.map((stage) => <li><a href={query({ status: status === stage ? "" : stage })} aria-current={status === stage ? "true" : undefined} class:list={{ terminal: ["hired", "rejected", "withdrawn"].includes(stage) }}><span>{statusName(stage, lang)}</span><strong>{stageCounts[stage] ?? 0}</strong></a></li>)}
   </ol>
-  <form class="crm-sheet crm-filter" method="get" aria-label={vi ? "Bộ lọc" : "Filters"}>
-    <div class="crm-field"><label for="job">{vi ? "Vị trí" : "Role"}</label><select class="crm-select" id="job" name="job"><option value="">{vi ? "Mọi vị trí" : "All roles"}</option>{jobs.map((job) => <option value={job.id} selected={jobId === job.id}>{job.title}</option>)}</select></div>
-    <div class="crm-field"><label for="status">{vi ? "Giai đoạn" : "Stage"}</label><select class="crm-select" id="status" name="status"><option value="">{vi ? "Mọi giai đoạn" : "All stages"}</option>{applicationStatuses.map((value) => <option value={value} selected={status === value}>{statusName(value, lang)}</option>)}</select></div>
-    <div class="crm-actions"><button class="crm-button secondary" type="submit">{vi ? "Lọc" : "Apply"}</button><a class="crm-link" href={deskPath(lang, "/admin/jobs/applications")}>{vi ? "Xóa lọc" : "Clear"}</a></div>
-  </form>
-  <section class="md-section" aria-labelledby="list-h">
-    <div class="md-section-head"><h2 class="crm-h2" id="list-h">{vi ? "Danh sách hồ sơ" : "Applications"}<span class="crm-count">{applications.length}</span></h2><p class="crm-meta" style="margin:0">{vi ? "Hiển thị tối đa 500 hồ sơ gần nhất." : "Shows the latest 500 at most."}</p></div>
+    </div>
     {applications.length ? <DataTable vi={vi} label={vi ? "Danh sách hồ sơ" : "Applications"} frozen={1} frozenNames={vi ? "Ứng viên" : "Candidate"} minWidth="52rem">
       <thead><tr>
         <th scope="col">{vi ? "Ứng viên" : "Candidate"}</th>
@@ -49,7 +47,7 @@ const query = (changes: Record<string, string>) => {
         <td class="nowrap crm-num">{app.public_id}</td>
       </tr>)}</tbody>
     </DataTable> : <p class="crm-empty">{vi ? "Không có hồ sơ khớp bộ lọc." : "No applications match this view."}</p>}
-  </section>
+  </ListHeader>
   {user.can("hiring.applications.delete") && <section class="crm-sheet md-section" id="retention" aria-labelledby="ret-h">
     <h2 class="crm-h2" id="ret-h">{vi ? "Lưu giữ dữ liệu ứng viên" : "Candidate data retention"}</h2>
     <p class="crm-help">{vi ? "Chính sách: hồ sơ không tiếp tục hoặc ứng viên rút được lưu 60 ngày kể từ lần cập nhật cuối, sau đó xóa vĩnh viễn cùng CV, tệp, ghi chú, lịch phỏng vấn và phiếu đánh giá. HR chạy việc xóa (không tự động); mỗi lần đều được ghi nhật ký và không thể xóa hồ sơ còn trong thời hạn 60 ngày." : "Policy: applications not moving forward or withdrawn are kept for 60 days after their last update, then deleted permanently with CVs, files, notes, interviews and scorecards. HR runs the deletion (nothing is automatic); every run is logged, and nothing still inside the 60 days can be deleted."}</p>

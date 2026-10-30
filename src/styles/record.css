@@ -103,16 +103,119 @@
 .ws-setup form.ws-oh-actions, .ws-oh-actions form { display: flex; gap: 8px; align-items: center; margin: 0; }
 .rec-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 12px; align-items: stretch; }
 
-/* Modules without boards (Tuyển dụng, HRM, Tài chính) */
-.rec-module { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
-.rec-module :is(section.crm-sheet, .md-section, > .crm-sheet) { background: #fff; border: 1px solid #D9DEE8; border-radius: 8px; box-shadow: 0 1px 2px rgba(16, 42, 67, .06); padding: 16px 20px; }
-.rec-module .crm-sheet + .crm-sheet { margin-top: 12px; }
-.rec-module .crm-h2 { font-size: 16px; font-weight: 600; line-height: 1.3; color: #102A43; }
-.rec-module :is(.crm-help, .crm-empty, .crm-row-meta, .crm-list) { font-size: 13px; }
-.rec-module :is(.crm-input, .crm-select) { min-height: 40px; font-size: 15px; }
+/* Modules without boards (Tuyển dụng, HRM, Tài chính): one layer that puts
+   the existing bodies on the kit's scale (workspace.css): white 8px panels,
+   16px panel headings, 14px body, 36px buttons, 40px inputs, kit tables and
+   rows, and no free text below the header. */
+.rec-module { display: flex; flex-direction: column; gap: 12px; min-width: 0; color: #172033; font-size: 14px; line-height: 1.5; }
+.rec-module :is(.crm-sheet, .md-section) { background: #fff; border: 1px solid #D9DEE8; border-radius: 8px; box-shadow: 0 1px 2px rgba(16, 42, 67, .06); padding: 16px 20px; margin: 0; min-width: 0; }
+.rec-module .crm-sheet + .crm-sheet { margin-top: 0; }
+.rec-module .crm-sheet .crm-sheet { box-shadow: none; padding: 12px 14px; }
+.rec-module .crm-grid { gap: 12px; }
+.rec-module :is(.crm-h2, .crm-sheet > h2, .md-section h2) { margin: 0 0 10px; font-size: 16px; font-weight: 600; line-height: 1.3; letter-spacing: 0; color: #102A43; }
+.rec-module :is(.crm-h3, .crm-sheet h3) { margin: 14px 0 6px; font-size: 15px; font-weight: 600; line-height: 1.3; color: #102A43; }
+.rec-module .crm-eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: #5E6677; }
+.rec-module :is(.crm-sheet p, .crm-sheet li, .crm-lede) { font-size: 14px; line-height: 1.5; }
+.rec-module :is(.crm-meta, .crm-help, .crm-empty, .crm-row-meta) { font-size: 13px; color: #5E6677; }
+.rec-module .crm-count { font-size: 12px; }
+/* Buttons at the kit's size: outline by default, filled for the main action. */
+.rec-module .crm-button { height: 36px; min-height: 36px; padding: 0 14px; border-radius: 6px; font-size: 14px; font-weight: 500; line-height: 1; box-shadow: none; }
+.rec-module .crm-button.secondary { background: #fff; border: 1px solid #C8D0DE; color: #006093; }
+.rec-module .crm-button.secondary:hover { background: #F7F8FA; }
+.rec-module .crm-button.small { height: 30px; min-height: 30px; padding: 0 10px; font-size: 13px; }
+.rec-module .crm-button.danger { background: #fff; border: 1px solid #EBA98C; color: #B42318; }
+.rec-module .crm-actions { gap: 8px; }
+/* Fields as in the kit's form grid. */
+.rec-module :is(.crm-field > label, .crm-label, .crm-fieldset > legend) { font-size: 13px; font-weight: 500; line-height: 1.2; color: #344054; }
+.rec-module :is(.crm-input, .crm-select) { height: 40px; min-height: 40px; padding: 0 10px; border: 1px solid #C8D0DE; border-radius: 6px; font-size: 15px; }
+.rec-module .crm-textarea { min-height: 72px; padding: 8px 10px; border: 1px solid #C8D0DE; border-radius: 6px; font-size: 15px; }
+.rec-module .crm-form-grid { gap: 14px 20px; }
+.rec-module .crm-check { font-size: 14px; }
+/* Notices: compact alert bars. */
+.rec-module .crm-notice { margin: 0; padding: 10px 14px; border-radius: 8px; font-size: 14px; line-height: 1.5; }
+.rec-module .crm-notice strong { font-size: 14px; }
+/* Lists as kit rows; tables as kit tables. */
+.rec-module .crm-list { gap: 0; }
+.rec-module .crm-row { padding: 10px 0; border-bottom: 1px solid #E7EAF0; font-size: 14px; }
+.rec-module .crm-row:last-child { border-bottom: 0; }
+.rec-module .crm-row strong, .rec-module .crm-row-title { font-size: 14px; font-weight: 600; color: #102A43; }
+.rec-module :is(.crm-table, .crm-grid-table) { font-size: 14px; }
+.rec-module :is(.crm-table, .crm-grid-table) th { background: #F7F8FA; color: #344054; font-size: 12px; font-weight: 600; line-height: 1.2; text-transform: uppercase; letter-spacing: .04em; padding: 10px; }
+.rec-module :is(.crm-table, .crm-grid-table) td { padding: 10px; }
+.rec-module .crm-facts dt { font-size: 12px; color: #5E6677; text-transform: none; letter-spacing: 0; }
+.rec-module .crm-facts dd { font-size: 15px; font-weight: 600; color: #102A43; }
+.rec-module .crm-disclosure > summary { font-size: 14px; font-weight: 500; }
+.rec-module .crm-badge { font-size: 12px; padding: 3px 8px; border-radius: 10px; }
+/* Record tabs inside HRM (person profile) drawn like the kit's tabs. */
+.rec-module .crm-tabs { display: flex; flex-wrap: wrap; gap: 20px; margin: 0; padding: 0 20px; background: #fff; border: 1px solid #D9DEE8; border-radius: 8px; }
+.rec-module .crm-tabs a { padding: 13px 2px 11px; border-bottom: 3px solid transparent; color: #5E6677; font-size: 14px; font-weight: 500; text-decoration: none; }
+.rec-module .crm-tabs a[aria-current] { border-bottom-color: #006093; color: #102A43; font-weight: 600; }
+/* Nothing floats below the header: a stray intro line becomes the blue info
+   note and a stray action row becomes a toolbar panel. */
+.rec-module > :is(p.crm-meta, p.crm-help, p.crm-lede) { margin: 0; padding: 12px 14px; border-radius: 8px; background: #E4F3FC; color: #004F80; font-size: 14px; line-height: 1.5; }
+.rec-module > :is(div.crm-actions, form.crm-actions) { margin: 0; padding: 12px 20px; background: #fff; border: 1px solid #D9DEE8; border-radius: 8px; box-shadow: 0 1px 2px rgba(16, 42, 67, .06); }
 .rec-module .ws-rec .crm-lede { font-size: 13px; color: #5E6677; margin: 4px 0 0; }
+
+/* Tài chính: its own fn-* blocks on the same scale. */
+.finance.rec-module { gap: 12px; }
+.finance.rec-module .fn-sheet { padding: 16px 20px; border: 1px solid #D9DEE8; border-radius: 8px; box-shadow: 0 1px 2px rgba(16, 42, 67, .06); margin: 0; }
+.finance.rec-module :is(.fn-sheet h2, .fn-sheet-head h2) { font-size: 16px; font-weight: 600; line-height: 1.3; letter-spacing: 0; }
+.finance.rec-module .fn-sheet h3 { font-size: 15px; font-weight: 600; margin: 0 0 8px; }
+.finance.rec-module :is(.fn-sheet-head p, .fn-sheet > p) { font-size: 13px; line-height: 1.5; }
+.finance.rec-module .fn-sheet-head { margin-bottom: 12px; }
+.finance.rec-module :is(.fn-stack, .fn-layout) { gap: 12px; }
+.finance.rec-module .fn-layout + .fn-layout, .finance.rec-module .fn-stack > * + * { margin-top: 0; }
+.finance.rec-module .fn-kpis { gap: 12px; align-items: stretch; }
+.finance.rec-module .fn-kpi { padding: 14px 16px; border: 1px solid #D9DEE8; border-radius: 8px; background: #fff; box-shadow: 0 1px 2px rgba(16, 42, 67, .06); display: flex; flex-direction: column; }
+.finance.rec-module .fn-kpi-label { margin: 0 0 8px; font-size: 12px; }
+.finance.rec-module .fn-kpi-value { font-size: 22px; letter-spacing: -.01em; }
+.finance.rec-module .fn-kpi-meta { margin-top: auto; padding-top: 10px; }
+.finance.rec-module .fn-button { min-height: 36px; padding: 0 14px; border-radius: 6px; font-size: 14px; font-weight: 500; }
+.finance.rec-module .fn-button.small { min-height: 30px; padding: 0 10px; font-size: 13px; }
+.finance.rec-module :is(.fn-input, .fn-select) { min-height: 40px; padding: 0 10px; border-radius: 6px; font-size: 15px; }
+.finance.rec-module .fn-textarea { border-radius: 6px; font-size: 15px; }
+.finance.rec-module .fn-field > :is(label, .fn-label) { font-size: 13px; font-weight: 500; color: #344054; }
+.finance.rec-module .fn-notice { margin: 0; padding: 10px 14px; border-radius: 8px; font-size: 14px; }
+.finance.rec-module .fn-form-section > legend { font-size: 15px; font-weight: 600; padding-bottom: 10px; }
+.finance.rec-module .fn-disclosure > summary { padding: 12px 14px; font-size: 14px; }
+.finance.rec-module .fn-empty { padding: 24px 20px; border: 1px solid #D9DEE8; border-radius: 8px; background: #fff; }
+.finance.rec-module .fn-empty h2 { font-size: 18px; letter-spacing: 0; }
+.finance.rec-module .fn-empty p { font-size: 14px; }
+.finance.rec-module .fn-footnote { margin: 0; padding: 12px 14px; border-radius: 8px; background: #E4F3FC; color: #004F80; font-size: 13px; }
+/* The scope line and the report selection sit inside the header panel as
+   its meta line and list toolbar. */
+.ws-rec .fn-scope { margin: 0; padding: 0 20px 10px; border: 0; font-size: 13px; color: #5E6677; }
+.ws-rec .fn-toolbar { margin: 0; padding: 12px 20px; border: 0; border-top: 1px solid #E7EAF0; border-radius: 0 0 8px 8px; background: #F7F8FA; box-shadow: none; display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: flex-end; }
+.ws-rec .fn-toolbar .fn-field > label { font-size: 12px; font-weight: 500; color: #5E6677; }
+.ws-rec .fn-toolbar :is(.fn-input, .fn-select) { min-height: 36px; height: 36px; padding: 0 10px; font-size: 14px; border-radius: 6px; }
+.ws-rec .fn-toolbar .fn-button { min-height: 36px; }
 
 @media (max-width: 900px) {
   .rec-fields, .rec-cv-cols { grid-template-columns: minmax(0, 1fr); }
   .rec-body { padding-left: 14px; padding-right: 14px; }
 }
+/* Finance: the period heading above the KPI tiles and the month strip on
+   Actuals are panels too. */
+.finance.rec-module > :is(.fn-sheet-head, .fn-periods) { margin: 0; padding: 14px 20px; background: #fff; border: 1px solid #D9DEE8; border-radius: 8px; box-shadow: 0 1px 2px rgba(16, 42, 67, .06); }
+.finance.rec-module > .fn-sheet-head h2 { font-size: 16px; font-weight: 600; letter-spacing: 0; }
+/* Hiring candidates: filters in the list toolbar, stage counts as a chip row. */
+.rec-lfilter { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px 10px; }
+.rec-lfilter .crm-field { display: flex; flex-direction: column; gap: 4px; }
+.rec-lfilter .crm-field > label { font-size: 12px; color: #5E6677; font-weight: 500; }
+.rec-lfilter :is(.crm-select, .crm-input) { height: 32px; min-height: 32px; padding: 0 8px; font-size: 14px; border: 1px solid #C8D0DE; border-radius: 6px; width: auto; }
+.rec-lfilter .crm-actions { display: flex; gap: 8px; align-items: center; margin: 0; }
+.rec-stages { padding: 0 20px 12px; }
+.rec-stages .crm-stages { margin: 0; }
+.finance.rec-module .fn-kpis { margin: 0; }
+.ws-lv > .crm-empty, .ws-rec > .crm-empty { margin: 0; padding: 12px 20px; }
+
+/* CRM setup area (Settings board): left setup navigation, page on the right. */
+.rec-setup-area { display: grid; grid-template-columns: minmax(220px, 270px) minmax(0, 1fr); gap: 12px; align-items: start; }
+.rec-setup-nav { position: sticky; top: 12px; min-width: 0; }
+.rec-setup-main { min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+@media (max-width: 900px) { .rec-setup-area { grid-template-columns: minmax(0, 1fr); } .rec-setup-nav { position: static; } }
+/* Compact stage table: one row per stage, requirements as inline chips. */
+.rec-chips { white-space: normal !important; }
+.rec-chips .ws-badge { margin: 2px 4px 2px 0; }
+.ws-setup .ws-tbl :is(th, td) { height: 40px; padding-top: 6px; padding-bottom: 6px; }
+.ws-rl-row > .ws-btn { justify-self: start; }

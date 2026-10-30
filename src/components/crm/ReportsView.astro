@@ -1,6 +1,7 @@
 ---
 import CrmShell from "../../layouts/CrmShell.astro";
 import SetupFrame from "../workspace/ui/SetupFrame.astro";
+import SalesDashboard from "./SalesDashboard.astro";
 import "../../styles/record.css";
 import "../../styles/crm-sales.css";
 import { formatDate, label, options } from "../../lib/crm/i18n";
@@ -8,7 +9,7 @@ import { formatVnd } from "../../lib/crm/money";
 import type { ReportsProps } from "../../lib/crm/routes/reports";
 
 type Props = ReportsProps;
-const { ctx, filters, summaries, offers, cohorts, cohort, pending } = Astro.props;
+const { ctx, filters, summaries, offers, cohorts, cohort, pending, dashboard, dashboardPlaybooks, owners, names } = Astro.props;
 const { lang, vi, base } = ctx;
 const r = cohort?.report;
 const pct = (value: number | null) => value === null ? (vi ? "Chưa đủ dữ liệu" : "Not enough data") : `${value.toFixed(1)}`;
@@ -24,6 +25,8 @@ const gateLabels: Record<string, [string, string]> = {
 <CrmShell title={vi ? "Báo cáo" : "Reports"} lang={lang} actor={ctx.actor} current="reports">
   <SetupFrame vi={vi} icon="reports" eyebrow={vi ? "Kết quả" : "Results"} title={vi ? "Báo cáo" : "Reports"} info={vi ? "Mỗi quy trình bán được báo cáo riêng. Tỷ lệ luôn kèm mẫu số; thiếu dữ liệu hiển thị là chưa đủ dữ liệu, không phải 0." : "Each playbook is reported on its own. Rates show their denominator; missing data shows as not enough data, never zero."}>
     
+
+  <SalesDashboard lang={lang} vi={vi} manager={ctx.actor.manager} dashboard={dashboard} owners={owners} playbooks={dashboardPlaybooks} names={names} selfName={ctx.actor.name} />
 
   <form class="crm-sheet crm-filter" method="get" aria-label={vi ? "Bộ lọc báo cáo" : "Report filters"}>
     <div class="crm-field"><label for="r-channel">{vi ? "Kênh" : "Channel"}</label><select class="crm-select" id="r-channel" name="channel"><option value="">{vi ? "Tất cả" : "Any"}</option>{options(lang, "channel").map((item) => <option value={item.value} selected={filters.channel === item.value}>{item.label}</option>)}</select></div>
