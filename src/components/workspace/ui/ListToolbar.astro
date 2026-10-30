@@ -1,14 +1,19 @@
 ---
-// The list toolbar under a list-view header (board: Leads): search in this
-// list (a GET form that keeps the other filters), view switch, then icon
-// buttons in the slot. Works without script; Enter submits the search.
+// The list toolbar under a list-view header (boards: Leads, DealsTable,
+// Accounts): search in this list (a GET form that keeps the other filters),
+// the view switch, the filter pop-over, then icon buttons in the slot.
+// Filters: pass `filterClear` and put the filter fields in slot="filters";
+// they sit in a <details> pop-over holding one GET form (Apply submits, Clear
+// is a link) that also keeps the search text. Works without script.
 import NavIcon from "../NavIcon.astro";
 import type { IconName } from "../../../lib/workspace/nav";
 
 export interface ViewOption { key: string; label: string; href: string; icon: IconName; current?: boolean }
-interface Props { vi: boolean; q?: string; action?: string; keep?: Record<string, string>; placeholder?: string; views?: ViewOption[]; search?: boolean }
-const { vi, q = "", action, keep = {}, placeholder, views = [], search = true } = Astro.props;
+interface Props { vi: boolean; q?: string; action?: string; keep?: Record<string, string>; placeholder?: string; views?: ViewOption[]; search?: boolean; filterClear?: string; filterActive?: number; filterKeep?: Record<string, string> }
+const { vi, q = "", action, keep = {}, placeholder, views = [], search = true, filterClear, filterActive = 0, filterKeep } = Astro.props;
 const searchLabel = vi ? "Tìm trong danh sách" : "Search this list";
+const filterName = vi ? `Bộ lọc${filterActive ? ` (${filterActive} đang dùng)` : ""}` : `Filters${filterActive ? ` (${filterActive} in use)` : ""}`;
+const filterHidden = filterKeep ?? (q ? { q } : {});
 ---
 <div class="ws-ltools">
   {search && <form class="ws-lsearch" role="search" method="get" action={action}>
@@ -19,5 +24,14 @@ const searchLabel = vi ? "Tìm trong danh sách" : "Search this list";
   {views.length > 1 && <div class="ws-bg" role="group" aria-label={vi ? "Kiểu xem" : "View"}>
     {views.map((view) => <a class:list={["ws-btn", "icon", view.current && "on"]} href={view.href} aria-label={view.label} title={view.label} aria-current={view.current ? "page" : undefined}><NavIcon name={view.icon} size={16} /></a>)}
   </div>}
+  {filterClear !== undefined && Astro.slots.has("filters") && <details class="ws-drop ws-filters">
+    <summary class:list={["ws-btn", "icon", filterActive > 0 && "on"]} aria-label={filterName} title={filterName}><NavIcon name="filter" size={16} />{filterActive > 0 && <span class="ws-filter-n" aria-hidden="true">{filterActive}</span>}</summary>
+    <form class="ws-pop ws-menu-pop ws-filter-form" method="get" action={action} aria-label={vi ? "Bộ lọc" : "Filters"}>
+      <p class="ws-mi-head">{vi ? "Lọc danh sách" : "Filter this list"}</p>
+      {Object.entries(filterHidden).filter(([, value]) => value !== "").map(([name, value]) => <input type="hidden" name={name} value={value} />)}
+      <slot name="filters" />
+      <div class="ws-filter-actions"><a class="ws-btn sm" href={filterClear}>{vi ? "Xóa lọc" : "Clear"}</a><button class="ws-btn sm primary" type="submit">{vi ? "Áp dụng" : "Apply"}</button></div>
+    </form>
+  </details>}
   <slot />
 </div>
