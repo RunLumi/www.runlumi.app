@@ -1,11 +1,12 @@
 ---
-// Admin › Webhooks: the built-in Lark bot and the Slack, Discord and
-// Microsoft Teams channels admins add. URLs are credentials: shown masked.
+// Admin › Webhooks (board Webhooks): the built-in Lark bot and the Slack,
+// Discord and Microsoft Teams channels admins add. Quick filters by status
+// and platform, a failure banner, the table with the name frozen; "Create
+// Webhook" opens a sheet. URLs are credentials: shown masked.
 import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
-import DataTable from "./ui/DataTable.astro";
-import PageHeader from "./ui/PageHeader.astro";
-import Panel from "./ui/Panel.astro";
-import PanelRow from "./ui/PanelRow.astro";
+import "../../styles/workspace-security.css";
+import Chips from "./security/Chips.astro";
+import Head from "./security/Head.astro";
 import { localized } from "../../lib/workspace/nav";
 import type { WebhooksData } from "../../lib/workspace/admin-security-pages";
 import { PAUSE_AFTER_FAILURES, platformLabels, platforms } from "../../lib/workspace/notify/destinations";
@@ -15,43 +16,59 @@ type Props = WebhooksData;
 const { lang, vi, user, destinations, names, keyReady, larkReady, sent7d, error, saved } = Astro.props;
 const t = (en: string, viText: string) => (vi ? viText : en);
 const base = localized("/workspace/webhooks", vi);
-const status: Record<string, [string, string, string]> = { active: ["Active", "Hoạt động", "green"], paused: ["Paused", "Tạm dừng", "amber"] };
+const filter = Astro.url.searchParams.get("filter") ?? "";
+const q = (Astro.url.searchParams.get("q") ?? "").trim().slice(0, 80).toLocaleLowerCase("vi");
+const status: Record<string, [string, string, string]> = { active: ["Active", "Hoạt động", "good"], paused: ["Paused", "Tạm dừng", "warn"] };
 const errors: Record<string, [string, string]> = {
   "url:invalid": ["That is not an incoming-webhook URL for the chosen platform.", "Đây không phải địa chỉ Webhook nhận tin của nền tảng đã chọn."],
-  "name:required": ["Give the webhook a name.", "Hãy đặt tên Webhook."], "key:missing": ["The WORKSPACE_WEBHOOK_KEY secret is not set, so webhook addresses cannot be stored safely.", "Chưa đặt secret WORKSPACE_WEBHOOK_KEY nên chưa lưu an toàn được địa chỉ Webhook."],
+  "name:required": ["Give the webhook a name.", "Hãy đặt tên Webhook."], "platform:invalid": ["Choose a platform.", "Hãy chọn nền tảng."],
+  "key:missing": ["The WORKSPACE_WEBHOOK_KEY secret is not set, so webhook addresses cannot be stored safely.", "Chưa đặt secret WORKSPACE_WEBHOOK_KEY nên chưa lưu an toàn được địa chỉ Webhook."],
 };
+const failing = (row: typeof destinations[number]) => row.consecutive_failures > 0;
+const shown = destinations.filter((row) => (filter === "errors" ? failing(row) : filter === "paused" ? row.status === "paused" : (platforms as readonly string[]).includes(filter) ? row.platform === filter : true) && (!q || row.name.toLocaleLowerCase("vi").includes(q)));
+const chip = (key: string, label: string, count?: number) => ({ label: count === undefined ? label : `${label} (${count})`, href: `${base}${key ? `?filter=${key}` : ""}`, on: filter === key });
+const sheet = Astro.url.searchParams.get("sheet") === "new" || (!!error && error !== "key:missing");
 ---
 <WorkspaceShell title="Webhook" lang={lang} user={user} module="admin" current="webhooks">
-  <PageHeader vi={vi} eyebrow={t("Admin", "Quản trị")} title="Webhook" lede={t(`Send CRM events to Slack, Discord or Microsoft Teams channels next to the Lark team group. Addresses are stored encrypted and shown only in part. After ${PAUSE_AFTER_FAILURES} failures in a row, a webhook pauses itself.`, `Gửi sự kiện CRM tới kênh Slack, Discord hoặc Microsoft Teams, bên cạnh nhóm Lark. Địa chỉ được mã hóa khi lưu và chỉ hiện một phần. Sau ${PAUSE_AFTER_FAILURES} lần lỗi liên tiếp, Webhook tự tạm dừng.`)}>
-    <Fragment slot="actions"><a class="crm-button secondary" href={localized("/workspace/notifications", vi)}>{t("Notification rules", "Quy tắc thông báo")}</a></Fragment>
-  </PageHeader>
-  {saved && <div class="crm-notice good" role="status">{saved === "removed" ? t("Webhook removed.", "Đã gỡ Webhook.") : t("Saved.", "Đã lưu.")}</div>}
-  {error && <div class="crm-notice bad" role="alert">{errors[error]?.[vi ? 1 : 0] ?? error}</div>}
-  <PanelRow>
-    <Panel title={t("Lark team group (built in)", "Nhóm Lark (có sẵn)")} note={t("Receives all CRM activity under the owner's Lark rules; configured as Worker secrets, not here.", "Nhận mọi hoạt động CRM theo quy tắc Lark của chủ sở hữu; cấu hình bằng secret của Worker, không ở đây.")}>
-      <p><span class:list={["crm-badge", larkReady ? "green" : "amber"]}>{larkReady ? t("Connected", "Đã kết nối") : t("Not configured", "Chưa cấu hình")}</span></p>
-    </Panel>
-    <Panel title={t("Add a webhook", "Thêm Webhook")} note={t("Needs your passkey. The address is never shown again in full.", "Cần passkey của bạn. Địa chỉ đầy đủ không hiện lại.")}>
-      {keyReady
-        ? <form class="crm-form" method="post"><input type="hidden" name="intent" value="create" />
-            <div class="crm-field"><label for="w-platform">{t("Platform", "Nền tảng")}</label><select class="crm-input" id="w-platform" name="platform">{platforms.map((platform) => <option value={platform}>{platformLabels[platform]}</option>)}</select></div>
-            <div class="crm-field"><label for="w-name">{t("Name", "Tên")}</label><input class="crm-input" id="w-name" name="name" required maxlength="80" placeholder={t("e.g. Sales HCMC channel", "Ví dụ: Kênh kinh doanh HCM")} /></div>
-            <div class="crm-field"><label for="w-url">{t("Incoming-webhook address", "Địa chỉ Webhook nhận tin")}</label><input class="crm-input" id="w-url" name="url" type="url" required autocomplete="off" spellcheck="false" /></div>
-            <p class="crm-help">{t("Only internal channels. The message shows what the Lark card shows: no contact phone numbers or emails.", "Chỉ dùng kênh nội bộ. Nội dung giống thẻ Lark: không có số điện thoại hay email liên hệ.")}</p>
-            <button class="crm-button" type="submit">{t("Add webhook", "Thêm Webhook")}</button></form>
-        : <p class="crm-notice bad">{errors["key:missing"][vi ? 1 : 0]}</p>}
-    </Panel>
-  </PanelRow>
-  <Panel title={t("Webhooks", "Danh sách Webhook")} flush>
-    {destinations.length
-      ? <DataTable vi={vi} label="Webhook" frozen={1} widths={["15rem"]} frozenNames={t("Name", "Tên")} minWidth="980px" meta={t(`${destinations.length} webhooks`, `${destinations.length} Webhook`)}>
-          <thead><tr><th scope="col">{t("Name", "Tên")}</th><th scope="col">{t("Platform", "Nền tảng")}</th><th scope="col">{t("Address", "Địa chỉ đích")}</th><th scope="col">{t("Status", "Trạng thái")}</th><th scope="col">{t("Last send", "Gửi gần nhất")}</th><th scope="col" class="num">{t("Sent, 7 days", "Đã gửi 7 ngày")}</th><th scope="col" class="num">{t("Failures in a row", "Lỗi liên tiếp")}</th><th scope="col">{t("Added by", "Tạo bởi")}</th></tr></thead>
-          <tbody>{destinations.map((row) => { const [en, viText, tone] = status[row.status] ?? [row.status, row.status, ""]; return <tr>
-            <th scope="row"><a class="ws-row-link" href={`${base}/${row.id}`}>{row.name}</a></th><td>{platformLabels[row.platform]}</td><td><code>{row.url_hint}</code></td>
-            <td><span class:list={["crm-badge", tone]}>{vi ? viText : en}</span></td><td>{row.last_sent_at ? `${dateTime(row.last_sent_at, vi)} · ${row.last_result}` : "—"}</td>
-            <td class="num">{sent7d[row.id]?.sent ?? 0}</td><td class="num">{row.consecutive_failures}</td><td>{names[row.created_by] ?? row.created_by}</td>
-          </tr>; })}</tbody>
-        </DataTable>
-      : <p class="crm-empty">{t("No webhooks yet.", "Chưa có Webhook nào.")}</p>}
-  </Panel>
+  <div class="s4 s4-stack">
+    <Head vi={vi} crumbs={[{ label: t("Admin", "Quản trị"), href: localized("/workspace/users", vi) }]} title="Webhook"
+      desc={t(`Send CRM events to Slack, Discord or Microsoft Teams channels next to the Lark team group. Addresses are stored encrypted and shown only in part. After ${PAUSE_AFTER_FAILURES} failures in a row, a webhook pauses itself.`, `Gửi sự kiện CRM tới kênh Slack, Discord hoặc Microsoft Teams, bên cạnh nhóm Lark. Địa chỉ đích được mã hóa và chỉ hiện một phần. Sau ${PAUSE_AFTER_FAILURES} lần lỗi liên tiếp, Webhook tự tạm dừng.`)}>
+      <Fragment slot="actions"><div class="s4-group"><a class="s4-btn" href={localized("/workspace/notifications", vi)}>{t("Notification rules", "Quy tắc thông báo")}</a><a class="s4-btn primary" href={`${base}?sheet=new`}>{t("Create Webhook", "Tạo Webhook")}</a></div></Fragment>
+      <div class="s4-pb"><Chips vi={vi} items={[chip("", t("All", "Tất cả"), destinations.length), chip("errors", t("Failing", "Đang lỗi"), destinations.filter(failing).length), chip("paused", t("Paused", "Tạm dừng"), destinations.filter((row) => row.status === "paused").length), ...platforms.map((platform) => chip(platform, platformLabels[platform]))]} /></div>
+    </Head>
+    {saved && <p class="crm-notice good" role="status">{saved === "removed" ? t("Webhook removed.", "Đã gỡ Webhook.") : t("Saved.", "Đã lưu.")}</p>}
+    {error && !sheet && <p class="crm-notice bad" role="alert">{errors[error]?.[vi ? 1 : 0] ?? error}</p>}
+    {destinations.some(failing) && <section class="s4-panel s4-banner"><div class="s4-pb" style="padding-top:14px">{destinations.filter(failing).map((row) => <p><span class="s4-badge bad dot">{row.status === "paused" ? t("Paused", "Tạm dừng") : t("Failing", "Đang lỗi")}</span> {platformLabels[row.platform]} · <a class="s4-btn link" href={`${base}/${row.id}`}>{row.name}</a>: {t(`${row.consecutive_failures} failures in a row, last ${row.last_result}.`, `${row.consecutive_failures} lần lỗi liên tiếp, gần nhất ${row.last_result}.`)}{row.status === "active" && t(` ${PAUSE_AFTER_FAILURES - row.consecutive_failures} more and it pauses.`, ` Còn ${PAUSE_AFTER_FAILURES - row.consecutive_failures} lần lỗi nữa sẽ tự tạm dừng.`)}</p>)}</div></section>}
+    <section class="s4-panel" aria-label={t("Webhooks", "Danh sách Webhook")}>
+      <div class="s4-lvbar"><p>{t(`${shown.length + 1} webhooks · select a row for detail and the delivery log`, `${shown.length + 1} Webhook · bấm một dòng để xem chi tiết và nhật ký gửi`)}</p>
+        <form class="s4-search" method="get" role="search">{filter && <input type="hidden" name="filter" value={filter} />}<label class="crm-sr" for="w-q">{t("Search webhooks", "Tìm Webhook")}</label><input class="s4-in" id="w-q" name="q" type="search" maxlength="80" value={Astro.url.searchParams.get("q") ?? ""} placeholder={t("Search webhooks", "Tìm Webhook")} /><button class="s4-btn" type="submit">{t("Search", "Tìm")}</button></form></div>
+      <div class="s4-tw"><table class="s4-tbl wide">
+        <thead><tr><th scope="col" class="fz last">{t("Name", "Tên")}</th><th scope="col">{t("Platform", "Nền tảng")}</th><th scope="col">{t("Address", "Địa chỉ đích")}</th><th scope="col">{t("Events", "Sự kiện")}</th><th scope="col">{t("Status", "Trạng thái")}</th><th scope="col">{t("Last send", "Gửi gần nhất")}</th><th scope="col" class="r">{t("Sent, 7 days", "Đã gửi 7 ngày")}</th><th scope="col">{t("Added by", "Tạo bởi")}</th></tr></thead>
+        <tbody>
+          {(!filter || filter === "lark") && <tr><td class="fz last"><strong>{t("Lark team group (built in)", "Nhóm Lark (có sẵn)")}</strong></td><td>Lark</td><td>{t("Worker secret", "Secret của Worker")}</td><td>{t("All CRM activity", "Mọi hoạt động CRM")}</td>
+            <td><span class:list={["s4-badge dot", larkReady ? "good" : "warn"]}>{larkReady ? t("Connected", "Đã kết nối") : t("Not configured", "Chưa cấu hình")}</span></td><td>—</td><td class="r">—</td><td>—</td></tr>}
+          {shown.map((row) => { const [en, viText, tone] = status[row.status] ?? [row.status, row.status, ""]; return <tr>
+            <td class="fz last"><a href={`${base}/${row.id}`}>{row.name}</a></td><td>{platformLabels[row.platform]}</td><td><code class="s4-code">{row.url_hint}</code></td><td>{t("By notification rule", "Theo quy tắc thông báo")}</td>
+            <td><span class:list={["s4-badge dot", failing(row) ? "bad" : tone]}>{failing(row) && row.status === "active" ? t("Failing", "Đang lỗi") : vi ? viText : en}</span></td><td>{row.last_sent_at ? `${dateTime(row.last_sent_at, vi)} · ${row.last_result}` : "—"}</td>
+            <td class="r">{sent7d[row.id]?.sent ?? 0}</td><td>{names[row.created_by] ?? row.created_by}</td>
+          </tr>; })}
+        </tbody>
+      </table></div>
+      {destinations.length === 0 && <p class="s4-empty">{t("No Slack, Discord or Teams webhook yet. Create one to send rule notifications to an internal channel.", "Chưa có Webhook Slack, Discord hay Teams. Tạo Webhook để gửi thông báo theo quy tắc tới kênh nội bộ.")}</p>}
+      <p class="s4-note"><span>{t("The name stays in place when you scroll sideways. The Lark group is configured by Worker secrets and follows the owner's Lark rules.", "Cột Tên cố định khi cuộn ngang. Nhóm Lark cấu hình bằng secret của Worker và theo quy tắc Lark của chủ sở hữu.")}</span></p>
+    </section>
+  </div>
+  {sheet && <div class="s4-sheet-wrap s4"><section class="s4-sheet" role="dialog" aria-modal="true" aria-labelledby="wh-new">
+    <header><h2 id="wh-new">{t("Create Webhook", "Tạo Webhook")}</h2><a class="s4-btn sm" href={base}>{t("Close", "Đóng")}</a></header>
+    {keyReady
+      ? <form class="body" method="post" action={base}><input type="hidden" name="intent" value="create" />
+          {error && <p class="s4-error" role="alert">{errors[error]?.[vi ? 1 : 0] ?? error}</p>}
+          <div class="s4-field"><label for="w-platform">{t("Platform", "Nền tảng")}</label><select class="s4-in" id="w-platform" name="platform">{platforms.map((platform) => <option value={platform}>{platformLabels[platform]}</option>)}</select></div>
+          <div class="s4-field"><label for="w-name">{t("Name", "Tên")}</label><input class="s4-in" id="w-name" name="name" required maxlength="80" placeholder={t("e.g. Sales channel", "Ví dụ: Kênh kinh doanh")} /></div>
+          <div class="s4-field"><label for="w-url">{t("Incoming-webhook address", "Địa chỉ Webhook nhận tin")}</label><input class="s4-in" id="w-url" name="url" type="url" required autocomplete="off" spellcheck="false" /></div>
+          <p class="s4-hint">{t("Internal channels only. The message shows what the Lark card shows: no contact phone numbers or emails. Saving needs your passkey; the address is never shown in full again.", "Chỉ dùng kênh nội bộ. Nội dung giống thẻ Lark: không có số điện thoại hay email liên hệ. Lưu cần passkey của bạn; địa chỉ đầy đủ không hiện lại.")}</p>
+          <div class="s4-actions" style="justify-content:flex-end"><a class="s4-btn" href={base}>{t("Cancel", "Hủy")}</a><button class="s4-btn primary" type="submit">{t("Create Webhook", "Tạo Webhook")}</button></div>
+        </form>
+      : <div class="body"><p class="crm-notice bad">{errors["key:missing"][vi ? 1 : 0]}</p></div>}
+  </section></div>}
 </WorkspaceShell>

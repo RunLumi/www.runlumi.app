@@ -1,16 +1,18 @@
 ---
-// Admin › Notification rules › one rule (child screen). Event, safe
-// conditions, channels and internal recipients. Saving needs step-up; a
-// stale version is refused so two admins never overwrite each other.
+// Admin › Notification rules › one rule (board NotificationRuleEdit). Header
+// with status and the button group (turn on/off, save), numbered sections
+// (event, conditions, channels, recipients) and a preview column. Saving
+// needs step-up; a stale version is refused so two admins never overwrite
+// each other. Reminders before a date and "send test" are not built.
 import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
-import PageHeader from "./ui/PageHeader.astro";
-import Panel from "./ui/Panel.astro";
-import PanelRow from "./ui/PanelRow.astro";
+import "../../styles/workspace-security.css";
+import Head from "./security/Head.astro";
 import { localized } from "../../lib/workspace/nav";
 import type { RuleData } from "../../lib/workspace/admin-security-pages";
 import { platformLabels } from "../../lib/workspace/notify/destinations";
 import { eventLabel } from "../../lib/workspace/notify/labels";
 import { RULE_EVENTS } from "../../lib/workspace/notify/rules";
+import { dateTime } from "../../lib/workspace/format";
 import { roleLabel, roles } from "../../lib/workspace/roles";
 
 type Props = RuleData;
@@ -25,6 +27,7 @@ const stored: Record<string, string[]> = rule ? {
 const values = (name: string) => typed ? typed.getAll(name).map(String) : stored[name] ?? [];
 const has = (name: string, value: string) => values(name).includes(value);
 const one = (name: string) => values(name)[0] ?? "";
+const enabled = rule ? rule.enabled : true;
 const errors: Record<string, [string, string]> = {
   "name:required": ["Give the rule a name.", "Hãy đặt tên quy tắc."], "events:required": ["Choose at least one event.", "Chọn ít nhất một sự kiện."],
   "recipients:required": ["Email needs at least one recipient.", "Email cần ít nhất một người nhận."], "channels:required": ["Choose email or at least one webhook.", "Chọn email hoặc ít nhất một Webhook."],
@@ -32,53 +35,87 @@ const errors: Record<string, [string, string]> = {
   "destinations:invalid": ["A chosen webhook no longer exists.", "Một Webhook đã chọn không còn."],
 };
 const title = rule ? rule.name : t("New rule", "Quy tắc mới");
+const editor = rule ? people.find((person) => person.id === rule.updated_by)?.name ?? rule.updated_by : null;
+const chosenEvents = values("events");
+const recipientCount = (has("record_owner", "1") ? 1 : 0) + (has("recipient_admins", "1") ? 1 : 0) + values("recipient_roles").length + values("recipient_users").length;
 ---
 <WorkspaceShell title={title} lang={lang} user={user} module="admin" current="notifications">
-  <PageHeader vi={vi} title={title} crumbs={[{ label: t("Admin", "Quản trị"), href: localized("/workspace/users", vi) }, { label: t("Notification rules", "Quy tắc thông báo"), href: base }, { label: title }]} lede={rule ? t(`Version ${rule.version}. Changes are recorded in the audit log.`, `Phiên bản ${rule.version}. Mọi thay đổi được ghi vào nhật ký kiểm toán.`) : undefined} />
-  {saved && <div class="crm-notice good" role="status">{t("Rule saved.", "Đã lưu quy tắc.")}</div>}
-  {error && <div class="crm-notice bad" role="alert">{errors[error]?.[vi ? 1 : 0] ?? error}</div>}
-  <form class="crm-form" method="post">
-    {rule && <input type="hidden" name="version" value={rule.version} />}
-    <PanelRow min="340px">
-      <Panel title={t("1. When", "1. Khi nào")}>
-        <div class="crm-field"><label for="r-name">{t("Rule name", "Tên quy tắc")} *</label><input class="crm-input" id="r-name" name="name" required maxlength="120" value={one("name")} /></div>
-        <fieldset class="crm-fieldset"><legend>{t("CRM events", "Sự kiện CRM")} *</legend>
-          <div class="crm-actions">{RULE_EVENTS.map((event) => <label class="crm-check"><input type="checkbox" name="events" value={event} checked={has("events", event)} /><span>{eventLabel(event, vi)}</span></label>)}</div>
-        </fieldset>
-      </Panel>
-      <Panel title={t("2. Conditions", "2. Điều kiện")} note={t("All conditions must hold. A value condition never matches an unknown value.", "Thỏa mọi điều kiện. Điều kiện giá trị không khớp giá trị chưa biết.")}>
-        <fieldset class="crm-fieldset"><legend>{t("Playbook (product)", "Playbook (sản phẩm)")}</legend>
-          <div class="crm-actions">{playbooks.map((playbook) => <label class="crm-check"><input type="checkbox" name="playbooks" value={playbook.id} checked={has("playbooks", playbook.id)} /><span>{playbook.name}</span></label>)}</div>
-          <p class="crm-help">{t("None chosen = every playbook.", "Không chọn = mọi playbook.")}</p>
-        </fieldset>
-        <div class="crm-field"><label for="r-value">{t("Expected value at least (₫)", "Giá trị mong đợi từ (₫)")}</label><input class="crm-input" id="r-value" name="min_value_vnd" inputmode="numeric" maxlength="20" value={one("min_value_vnd")} /></div>
-        <div class="crm-field"><label for="r-outcome">{t("Outcome", "Kết quả")}</label><select class="crm-input" id="r-outcome" name="outcome">
-          {[["", t("Any", "Bất kỳ")], ["open", t("Open", "Đang mở")], ["won", t("Won", "Thắng")], ["lost", t("Lost", "Mất")]].map(([value, text]) => <option value={value} selected={one("outcome") === value}>{text}</option>)}
-        </select></div>
-      </Panel>
-    </PanelRow>
-    <PanelRow min="340px">
-      <Panel title={t("3. Channels", "3. Kênh")}>
-        <label class="crm-check"><input type="checkbox" name="email" value="1" checked={has("email", "1")} /><span>{t("Email to each recipient, starting with their own anti-phishing code", "Email tới từng người nhận, bắt đầu bằng mã chống lừa đảo riêng của họ")}</span></label>
-        <fieldset class="crm-fieldset"><legend>Webhook</legend>
-          {destinations.length
-            ? <div class="crm-actions">{destinations.map((destination) => <label class="crm-check"><input type="checkbox" name="destinations" value={destination.id} checked={has("destinations", destination.id)} /><span>{platformLabels[destination.platform]} · {destination.name}{destination.status !== "active" && ` (${t("paused", "tạm dừng")})`}</span></label>)}</div>
-            : <p class="crm-help">{t("No webhooks yet.", "Chưa có Webhook.")} <a class="crm-link" href={localized("/workspace/webhooks", vi)}>{t("Add one", "Thêm Webhook")}</a></p>}
-          <p class="crm-help">{t("A webhook posts one message to a shared channel, without anti-phishing codes. It shows what the Lark card shows: no contact phone numbers or emails.", "Webhook gửi một tin vào kênh chung, không kèm mã chống lừa đảo. Nội dung giống thẻ Lark: không có số điện thoại hay email liên hệ.")}</p>
-        </fieldset>
-      </Panel>
-      <Panel title={t("4. Email recipients", "4. Người nhận email")} note={t("Internal Workspace members only. Each person receives only records their own CRM access lets them see.", "Chỉ thành viên Workspace nội bộ. Mỗi người chỉ nhận bản ghi mà quyền CRM của họ cho phép xem.")}>
-        <label class="crm-check"><input type="checkbox" name="record_owner" value="1" checked={has("record_owner", "1")} /><span>{t("The record's owner", "Người phụ trách bản ghi")}</span></label>
-        <label class="crm-check"><input type="checkbox" name="recipient_admins" value="1" checked={has("recipient_admins", "1")} /><span>{roleLabel("admin", vi)}</span></label>
-        <fieldset class="crm-fieldset"><legend>{t("Roles", "Vai trò")}</legend><div class="crm-actions">{roles.map((role) => <label class="crm-check"><input type="checkbox" name="recipient_roles" value={role} checked={has("recipient_roles", role)} /><span>{roleLabel(role, vi)}</span></label>)}</div></fieldset>
-        <div class="crm-field"><label for="r-users">{t("People", "Người dùng")}</label><select class="crm-input" id="r-users" name="recipient_users" multiple size="6">{people.map((person) => <option value={person.id} selected={has("recipient_users", person.id)}>{person.name}</option>)}</select></div>
-      </Panel>
-    </PanelRow>
-    <div class="crm-actions">
-      <label class="crm-check"><input type="radio" name="enabled" value="1" checked={one("enabled") !== "0"} /><span>{t("On", "Bật")}</span></label>
-      <label class="crm-check"><input type="radio" name="enabled" value="0" checked={one("enabled") === "0"} /><span>{t("Off", "Tắt")}</span></label>
-      <button class="crm-button" type="submit">{t("Save rule", "Lưu quy tắc")}</button><a class="crm-link" href={base}>{t("Back to rules", "Về danh sách")}</a>
+  <div class="s4 s4-stack">
+    <Head vi={vi} crumbs={[{ label: t("Admin", "Quản trị"), href: localized("/workspace/users", vi) }, { label: t("Notification rules", "Quy tắc thông báo"), href: base }]} title={title}>
+      <p slot="meta" class="s4-meta">CRM · <span class:list={["s4-badge dot", enabled ? "good" : ""]}>{enabled ? t("On", "Đang bật") : t("Off", "Đang tắt")}</span>{rule && <> · {t(`version ${rule.version}, last edited ${dateTime(rule.updated_at, vi)} by ${editor}`, `phiên bản ${rule.version}, sửa lần cuối ${dateTime(rule.updated_at, vi)} bởi ${editor}`)}</>}</p>
+      <Fragment slot="actions"><div class="s4-group">
+        {rule && <button class="s4-btn" type="submit" form="rule-form" name="enabled" value={enabled ? "0" : "1"}>{enabled ? t("Turn rule off", "Tắt quy tắc") : t("Turn rule on", "Bật quy tắc")}</button>}
+        <button class="s4-btn primary" type="submit" form="rule-form" name="enabled" value={enabled ? "1" : "0"}>{t("Save rule", "Lưu quy tắc")}</button>
+      </div></Fragment>
+    </Head>
+    {saved && <p class="crm-notice good" role="status">{t("Rule saved.", "Đã lưu quy tắc.")}</p>}
+    {error && <p class="crm-notice bad" role="alert">{errors[error]?.[vi ? 1 : 0] ?? error}</p>}
+    <div class="s4-split side">
+      <form id="rule-form" class="s4-stack" method="post">
+        {rule && <input type="hidden" name="version" value={rule.version} />}
+        <section class="s4-panel" aria-labelledby="r1">
+          <div class="s4-ph"><h2 id="r1">{t("1. Trigger event", "1. Sự kiện kích hoạt")}</h2></div>
+          <div class="s4-pb">
+            <div class="s4-grid2">
+              <div class="s4-field"><label for="r-name">{t("Rule name", "Tên quy tắc")} *</label><input class="s4-in" id="r-name" name="name" required maxlength="120" value={one("name")} /></div>
+              <div class="s4-field"><span class="s4-label">Module</span><p class="s4-in" style="display:flex;align-items:center;margin:0;background:var(--s4-head)">CRM</p></div>
+            </div>
+            <fieldset class="s4-field" style="border:0;padding:0;margin:0"><legend class="s4-label">{t("Events", "Sự kiện")} *</legend>
+              <div class="s4-chips">{RULE_EVENTS.map((event) => <label class="s4-chip"><input type="checkbox" name="events" value={event} checked={has("events", event)} /><span>{eventLabel(event, vi)}</span></label>)}</div></fieldset>
+          </div>
+        </section>
+        <section class="s4-panel" aria-labelledby="r2">
+          <div class="s4-ph"><h2 id="r2">{t("2. Conditions", "2. Điều kiện")}</h2><span class="s4-badge info">{t("Match all conditions", "Thỏa mọi điều kiện")}</span></div>
+          <div class="s4-pb">
+            <fieldset class="s4-field" style="border:0;padding:0;margin:0"><legend class="s4-label">{t("Playbook (product)", "Playbook (sản phẩm)")}</legend>
+              {playbooks.length ? <div class="s4-chips">{playbooks.map((playbook) => <label class="s4-chip"><input type="checkbox" name="playbooks" value={playbook.id} checked={has("playbooks", playbook.id)} /><span>{playbook.name}</span></label>)}</div> : <p class="s4-hint">{t("No playbooks yet.", "Chưa có playbook.")}</p>}
+              <p class="s4-hint">{t("None chosen = every playbook.", "Không chọn = mọi playbook.")}</p></fieldset>
+            <div class="s4-grid2">
+              <div class="s4-field"><label for="r-value">{t("Expected value at least (₫)", "Giá trị mong đợi từ (₫)")}</label><input class="s4-in" id="r-value" name="min_value_vnd" inputmode="numeric" maxlength="20" value={one("min_value_vnd")} /><p class="s4-hint">{t("Never matches an unknown value.", "Không khớp giá trị chưa biết.")}</p></div>
+              <div class="s4-field"><label for="r-outcome">{t("Outcome", "Kết quả")}</label><select class="s4-in" id="r-outcome" name="outcome">
+                {[["", t("Any", "Bất kỳ")], ["open", t("Open", "Đang mở")], ["won", t("Won", "Thắng")], ["lost", t("Lost", "Mất")]].map(([value, text]) => <option value={value} selected={one("outcome") === value}>{text}</option>)}
+              </select></div>
+            </div>
+          </div>
+        </section>
+        <section class="s4-panel" aria-labelledby="r3">
+          <div class="s4-ph"><h2 id="r3">{t("3. Channels", "3. Kênh")}</h2></div>
+          <ul class="s4-rows">
+            <li><div><strong>Email</strong><p>{t("To each recipient, starting with their own anti-phishing code.", "Gửi tới từng người nhận, kèm mã chống lừa đảo riêng của họ.")}</p></div><label class="s4-check"><input type="checkbox" name="email" value="1" checked={has("email", "1")} /><span>{t("Send email", "Gửi email")}</span></label></li>
+            <li><div><strong>Webhook</strong><p>{t("One message to a shared channel, without anti-phishing codes; the same content as the Lark card (no contact phone numbers or emails).", "Một tin vào kênh chung, không kèm mã chống lừa đảo; nội dung như thẻ Lark (không có số điện thoại hay email liên hệ).")}</p></div>
+              <div class="val">{destinations.length
+                ? destinations.map((destination) => <label class="s4-check"><input type="checkbox" name="destinations" value={destination.id} checked={has("destinations", destination.id)} /><span>{platformLabels[destination.platform]} · {destination.name}{destination.status !== "active" && ` (${t("paused", "tạm dừng")})`}</span></label>)
+                : <a class="s4-btn sm" href={`${localized("/workspace/webhooks", vi)}?sheet=new`}>{t("Create Webhook", "Tạo Webhook")}</a>}</div></li>
+          </ul>
+        </section>
+        <section class="s4-panel" aria-labelledby="r4">
+          <div class="s4-ph"><h2 id="r4">{t("4. Email recipients", "4. Người nhận qua Email")}</h2><span class="s4-aside">{t(`Now: ${recipientCount} chosen`, `Hiện tại: ${recipientCount} lựa chọn`)}</span></div>
+          <div class="s4-pb">
+            <p class="s4-hint">{t("Internal Workspace members only. Each person receives only records their own CRM access lets them see.", "Chỉ thành viên Workspace nội bộ. Mỗi người chỉ nhận bản ghi mà quyền CRM của họ cho phép xem.")}</p>
+            <div class="s4-chips"><label class="s4-chip"><input type="checkbox" name="record_owner" value="1" checked={has("record_owner", "1")} /><span>{t("The record's owner", "Người phụ trách bản ghi")}</span></label><label class="s4-chip"><input type="checkbox" name="recipient_admins" value="1" checked={has("recipient_admins", "1")} /><span>{roleLabel("admin", vi)}</span></label></div>
+            <fieldset class="s4-field" style="border:0;padding:0;margin:0"><legend class="s4-label">{t("Roles", "Vai trò")}</legend><div class="s4-chips">{roles.map((role) => <label class="s4-chip"><input type="checkbox" name="recipient_roles" value={role} checked={has("recipient_roles", role)} /><span>{roleLabel(role, vi)}</span></label>)}</div></fieldset>
+            <div class="s4-field"><label for="r-users">{t("People", "Người dùng")}</label><select class="s4-in" id="r-users" name="recipient_users" multiple size="6">{people.map((person) => <option value={person.id} selected={has("recipient_users", person.id)}>{person.name}</option>)}</select></div>
+          </div>
+        </section>
+        <p class="s4-hint">{t("Saving asks for your passkey if you have not verified in the last 5 minutes.", "Lưu sẽ hỏi passkey nếu bạn chưa xác thực trong 5 phút gần nhất.")}</p>
+      </form>
+      <aside class="s4-stack" aria-label={t("Preview", "Xem trước")}>
+        <section class="s4-panel" aria-labelledby="pv-h">
+          <div class="s4-ph"><h2 id="pv-h">{t("Preview: email", "Xem trước: Email")}</h2></div>
+          <div class="s4-pb"><div class="s4-mail">
+            <dl><dt>{t("From", "Từ")}</dt><dd>Lumi Workspace &lt;no-reply@runlumi.app&gt;</dd><dt>{t("To", "Tới")}</dt><dd>{t("each recipient", "từng người nhận")}</dd><dt>{t("Subject", "Tiêu đề")}</dt><dd><strong>{chosenEvents.length ? eventLabel(chosenEvents[0] as typeof RULE_EVENTS[number], vi) : t("The event", "Sự kiện")}: {t("the record's name", "tên bản ghi")}</strong></dd></dl>
+            <div class="body">
+              <p class="s4-codeband"><span>{t("Your anti-phishing code", "Mã chống lừa đảo của bạn")}</span><strong>{t("their own code", "mã riêng của họ")}</strong></p>
+              <p>{t("Then the event, the record and a link to open it in the Workspace. Plain text; links stay on runlumi.app.", "Sau đó là sự kiện, bản ghi và link mở trong Workspace. Văn bản thuần; link chỉ dẫn về runlumi.app.")}</p>
+            </div>
+          </div></div>
+          <p class="s4-note"><span>{t("No email provider is connected yet: email deliveries are recorded as not sent.", "Chưa kết nối nhà cung cấp email: lượt gửi email được ghi là chưa gửi.")}</span></p>
+        </section>
+        <section class="s4-panel" aria-labelledby="pw-h">
+          <div class="s4-ph"><h2 id="pw-h">{t("Webhook message", "Tin Webhook sẽ gửi")}</h2></div>
+          <div class="s4-pb"><p class="s4-p" style="font-size:14px">{t("The same card the Lark team group receives: the event, the opportunity, its stage and owner. Webhook messages carry no anti-phishing code because they go to a shared channel.", "Cùng nội dung thẻ nhóm Lark nhận: sự kiện, cơ hội, giai đoạn và người phụ trách. Tin Webhook không chứa mã chống lừa đảo vì gửi vào kênh chung.")}</p></div>
+        </section>
+      </aside>
     </div>
-    <p class="crm-help">{t("Saving asks for your passkey if you have not verified in the last 5 minutes.", "Lưu sẽ hỏi passkey nếu bạn chưa xác thực trong 5 phút gần nhất.")}</p>
-  </form>
+  </div>
 </WorkspaceShell>

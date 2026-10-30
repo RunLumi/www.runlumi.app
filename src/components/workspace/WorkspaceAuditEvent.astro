@@ -1,11 +1,9 @@
 ---
-// Admin › Audit log › one event (child screen, R-03). Read-only.
+// Admin › Audit log › one event (board AuditEvent, R-03). Read-only: who,
+// how, what changed, the same person's events around it, and the event ID.
 import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
-import DataTable from "./ui/DataTable.astro";
-import FactRow from "./ui/FactRow.astro";
-import PageHeader from "./ui/PageHeader.astro";
-import Panel from "./ui/Panel.astro";
-import PanelRow from "./ui/PanelRow.astro";
+import "../../styles/workspace-security.css";
+import Head from "./security/Head.astro";
 import { localized } from "../../lib/workspace/nav";
 import { actionLabel, moduleLabels } from "../../lib/workspace/audit-log";
 import type { AuditEventData } from "../../lib/workspace/audit-pages";
@@ -15,38 +13,51 @@ type Props = AuditEventData;
 const { lang, vi, user, entry, nearby, names } = Astro.props;
 const t = (en: string, viText: string) => (vi ? viText : en);
 const base = localized("/workspace/audit", vi);
-const value = (item: unknown): string => item === null || item === undefined ? "—" : typeof item === "object" ? JSON.stringify(item) : String(item);
-const outcome: Record<string, [string, string]> = { success: ["Success", "Thành công"], denied: ["Denied", "Bị từ chối"], failed: ["Failed", "Lỗi"] };
-const via: Record<string, [string, string]> = { web: ["Web", "Web"], api: ["API", "API"], mcp: ["AI agent (MCP)", "AI agent (MCP)"], system: ["System", "Hệ thống"] };
+const value = (item: unknown): string => item === null || item === undefined || item === "" ? "—" : typeof item === "object" ? JSON.stringify(item) : String(item);
+const outcome: Record<string, [string, string, string]> = { success: ["Success", "Thành công", "good"], denied: ["Denied", "Bị từ chối", "bad"], failed: ["Failed", "Lỗi", "warn"] };
+const via: Record<string, [string, string]> = { web: ["on the web", "trên web"], api: ["through the API", "qua API"], mcp: ["through an AI agent (MCP)", "qua AI agent (MCP)"], system: ["by the system", "bởi hệ thống"] };
 const title = actionLabel(entry.action, vi);
+const who = names[entry.actor_id] ?? entry.actor_name;
+const [oEn, oVi, tone] = outcome[entry.outcome] ?? [entry.outcome, entry.outcome, ""];
+// Before/after pairs (e.g. roles_before / roles_after) read as a change; the rest are recorded facts.
+const detail = entry.detail as Record<string, unknown>;
+const changed = Object.keys(detail).filter((key) => key.endsWith("_after")).map((key) => key.slice(0, -6)).filter((field) => `${field}_before` in detail);
+const facts = Object.entries(detail).filter(([key]) => !changed.some((field) => key === `${field}_before` || key === `${field}_after`));
 ---
 <WorkspaceShell title={title} lang={lang} user={user} module="admin" current="audit">
-  <PageHeader vi={vi} title={title} crumbs={[{ label: t("Admin", "Quản trị"), href: localized("/workspace/users", vi) }, { label: t("Audit log", "Nhật ký kiểm toán"), href: base }, { label: entry.id }]}>
-    <Fragment slot="actions"><a class="crm-button secondary" href={`${base}?actor=${encodeURIComponent(entry.actor_id)}`}>{t("Events by this person", "Sự kiện của người này")}</a></Fragment>
-  </PageHeader>
-  <FactRow facts={[
-    { label: t("Time", "Thời gian"), value: dateTime(entry.created_at, vi) },
-    { label: t("Who", "Người thực hiện"), value: names[entry.actor_id] ?? entry.actor_name },
-    { label: t("Via", "Qua"), value: via[entry.via]?.[vi ? 1 : 0] ?? entry.via },
-    { label: "Module", value: moduleLabels[entry.module]?.[vi ? 1 : 0] ?? entry.module },
-    { label: t("Outcome", "Kết quả"), value: outcome[entry.outcome]?.[vi ? 1 : 0] ?? entry.outcome },
-  ]} />
-  <PanelRow>
-    <Panel title={t("What was recorded", "Nội dung được ghi")} note={t("Stored as written; this event cannot be changed or deleted.", "Lưu đúng như khi ghi; sự kiện này không sửa hay xóa được.")}>
-      <dl class="crm-facts">
-        <div><dt>{t("Action code", "Mã hành động")}</dt><dd><code>{entry.action}</code></dd></div>
-        <div><dt>{t("Target", "Đối tượng")}</dt><dd>{names[entry.target] ?? entry.target}</dd></div>
-        <div><dt>{t("Source", "Nguồn")}</dt><dd>{entry.source === "finance" ? t("Finance history", "Lịch sử Tài chính") : "workspace_audit"}</dd></div>
-        {Object.entries(entry.detail).map(([key, item]) => <div><dt><code>{key}</code></dt><dd style="overflow-wrap:anywhere">{value(item)}</dd></div>)}
-      </dl>
-    </Panel>
-    <Panel title={t("Same person, within an hour", "Cùng người, trong vòng một giờ")} flush>
+  <div class="s4 s4-stack">
+    <Head vi={vi} crumbs={[{ label: t("Admin", "Quản trị"), href: localized("/workspace/users", vi) }, { label: t("Audit log", "Nhật ký kiểm toán"), href: base }]} title={title}>
+      <p slot="meta" class="s4-meta">{dateTime(entry.created_at, vi)} · {who} · {moduleLabels[entry.module]?.[vi ? 1 : 0] ?? entry.module} · <span class:list={["s4-badge dot", tone]}>{vi ? oVi : oEn}</span></p>
+      <Fragment slot="actions"><a class="s4-btn" href={`${base}?actor=${encodeURIComponent(entry.actor_id)}`}>{t("Events by this person", "Xem các sự kiện của người này")}</a></Fragment>
+    </Head>
+    <div class="s4-split">
+      <section class="s4-panel" aria-labelledby="who-h">
+        <div class="s4-ph"><h2 id="who-h">{t("Who did it", "Ai thực hiện")}</h2></div>
+        <div class="s4-pb"><dl class="s4-facts">
+          <div><dt>{t("Person", "Người dùng")}</dt><dd>{who}</dd></div>
+          <div><dt>{t("Via", "Qua")}</dt><dd>{via[entry.via]?.[vi ? 1 : 0] ?? entry.via}{entry.via === "mcp" || entry.via === "api" ? ` · ${t("token", "token")} ${value(detail.token)}` : ""}</dd></div>
+          <div><dt>{t("Target", "Đối tượng")}</dt><dd>{names[entry.target] ?? value(entry.target)}</dd></div>
+          <div><dt>{t("Source", "Nguồn")}</dt><dd>{entry.source === "finance" ? t("Finance history", "Lịch sử Tài chính") : "workspace_audit"}</dd></div>
+        </dl></div>
+      </section>
+      <section class="s4-panel" aria-labelledby="chg-h">
+        <div class="s4-ph"><h2 id="chg-h">{changed.length ? t(`Changes (${changed.length} field${changed.length > 1 ? "s" : ""})`, `Thay đổi (${changed.length} trường)`) : t("What was recorded", "Nội dung được ghi")}</h2></div>
+        {changed.length > 0 && <div class="s4-tw"><table class="s4-tbl">
+          <thead><tr><th scope="col">{t("Field", "Trường")}</th><th scope="col">{t("Before", "Trước")}</th><th scope="col">{t("After", "Sau")}</th></tr></thead>
+          <tbody>{changed.map((field) => <tr><td><code class="s4-code">{field}</code></td><td><span class="s4-diff-before">{value(detail[`${field}_before`])}</span></td><td><span class="s4-diff-after">{value(detail[`${field}_after`])}</span></td></tr>)}</tbody>
+        </table></div>}
+        <div class="s4-pb">{facts.length
+          ? <dl class="s4-facts"><div><dt>{t("Action code", "Mã hành động")}</dt><dd><code class="s4-code">{entry.action}</code></dd></div>{facts.map(([key, item]) => <div><dt><code>{key}</code></dt><dd>{value(item)}</dd></div>)}</dl>
+          : <p>{t("No further detail.", "Không có chi tiết khác.")} <code class="s4-code">{entry.action}</code></p>}</div>
+      </section>
+    </div>
+    <section class="s4-panel" aria-labelledby="near-h">
+      <div class="s4-ph"><h2 id="near-h">{t("Same person, within an hour", "Cùng người, trong vòng một giờ")}</h2></div>
       {nearby.length
-        ? <DataTable vi={vi} label={t("Nearby events", "Sự kiện lân cận")} frozen={1} widths={["11rem"]} minWidth="520px">
-            <thead><tr><th scope="col">{t("Time", "Thời gian")}</th><th scope="col">{t("Action", "Hành động")}</th><th scope="col">{t("Outcome", "Kết quả")}</th></tr></thead>
-            <tbody>{nearby.map((row) => <tr><th scope="row"><a class="ws-row-link" href={`${base}/${encodeURIComponent(row.id)}`}>{dateTime(row.created_at, vi)}</a></th><td>{actionLabel(row.action, vi)}</td><td>{outcome[row.outcome]?.[vi ? 1 : 0] ?? row.outcome}</td></tr>)}</tbody>
-          </DataTable>
-        : <p class="crm-empty">{t("No other events.", "Không có sự kiện khác.")}</p>}
-    </Panel>
-  </PanelRow>
+        ? <ol class="s4-timeline">{[...nearby, entry].sort((a, b) => a.created_at.localeCompare(b.created_at)).map((row) => <li><time datetime={row.created_at}>{dateTime(row.created_at, vi)}</time>
+            <span>{row.id === entry.id ? <strong>{actionLabel(row.action, vi)} ({t("this event", "sự kiện này")})</strong> : <a class="s4-btn link" href={`${base}/${encodeURIComponent(row.id)}`}>{actionLabel(row.action, vi)}</a>} · {outcome[row.outcome]?.[vi ? 1 : 0] ?? row.outcome}</span></li>)}</ol>
+        : <p class="s4-empty">{t("No other events.", "Không có sự kiện khác.")}</p>}
+    </section>
+    <section class="s4-panel"><p class="s4-note" style="border:0;border-radius:8px"><span>{t("Event ID", "Mã sự kiện")} <code class="s4-code">{entry.id}</code> · {t("this event cannot be changed or deleted.", "sự kiện này không sửa hay xóa được.")}</span></p></section>
+  </div>
 </WorkspaceShell>

@@ -1,0 +1,9 @@
+---
+import WorkspaceAgentConnect from "../../../../../components/workspace/WorkspaceAgentConnect.astro";
+import { agentConnectPage } from "../../../../../lib/workspace/agent-connect";
+
+export const prerender = false;
+const data = await agentConnectPage(Astro, "vi");
+if (data instanceof Response) return data;
+---
+<WorkspaceAgentConnect {...data} />

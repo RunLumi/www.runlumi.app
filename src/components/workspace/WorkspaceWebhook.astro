@@ -1,46 +1,71 @@
 ---
-// Admin › Webhooks › one webhook (child screen): configuration, the rules
-// that use it, the delivery log, and pause/resume/remove behind step-up.
+// Admin › Webhooks › one webhook (board WebhookDetail): status, pause/resume
+// and remove behind step-up, a failure banner, configuration, the rules that
+// send to it, and the delivery log. Slack, Discord and Teams incoming
+// webhooks carry no signing key, so the board's key panel does not apply.
 import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
-import DataTable from "./ui/DataTable.astro";
-import FactRow from "./ui/FactRow.astro";
-import PageHeader from "./ui/PageHeader.astro";
-import Panel from "./ui/Panel.astro";
+import "../../styles/workspace-security.css";
+import Head from "./security/Head.astro";
 import { localized } from "../../lib/workspace/nav";
 import type { WebhookData } from "../../lib/workspace/admin-security-pages";
-import { platformLabels } from "../../lib/workspace/notify/destinations";
+import { PAUSE_AFTER_FAILURES, platformLabels } from "../../lib/workspace/notify/destinations";
+import { eventLabel } from "../../lib/workspace/notify/labels";
 import { dateTime } from "../../lib/workspace/format";
 
 type Props = WebhookData;
 const { lang, vi, user, destination, deliveries, rules, names, saved } = Astro.props;
 const t = (en: string, viText: string) => (vi ? viText : en);
 const base = localized("/workspace/webhooks", vi);
-const statuses: Record<string, [string, string]> = { sent: ["Sent", "Đã gửi"], failed: ["Failed", "Lỗi"], skipped: ["Not sent", "Không gửi"], sending: ["Sending", "Đang gửi"], active: ["Active", "Hoạt động"], paused: ["Paused", "Tạm dừng"] };
+const statuses: Record<string, [string, string, string]> = { sent: ["Sent", "Đã gửi", "good"], failed: ["Failed", "Lỗi", "bad"], skipped: ["Not sent", "Không gửi", ""], sending: ["Sending", "Đang gửi", "info"] };
 const ruleName = (id: string) => rules.find((rule) => rule.id === id)?.name ?? id;
+const view = Astro.url.searchParams.get("log") === "failed" ? "failed" : "all";
+const log = view === "failed" ? deliveries.filter((row) => row.status === "failed") : deliveries;
+const failing = destination.consecutive_failures > 0;
+const state = destination.status === "paused" ? [t("Paused", "Tạm dừng"), "warn"] : failing ? [t("Failing", "Đang lỗi"), "bad"] : [t("Active", "Hoạt động"), "good"];
+const events = [...new Set(rules.flatMap((rule) => rule.events))];
 ---
 <WorkspaceShell title={destination.name} lang={lang} user={user} module="admin" current="webhooks">
-  <PageHeader vi={vi} title={destination.name} crumbs={[{ label: t("Admin", "Quản trị"), href: localized("/workspace/users", vi) }, { label: "Webhook", href: base }, { label: destination.name }]}>
-    <Fragment slot="actions">
-      <form method="post"><input type="hidden" name="intent" value={destination.status === "active" ? "pause" : "resume"} /><button class="crm-button secondary" type="submit">{destination.status === "active" ? t("Pause", "Tạm dừng") : t("Resume", "Tiếp tục")}</button></form>
-      <form method="post"><input type="hidden" name="intent" value="remove" /><button class="crm-button danger" type="submit">{t("Remove webhook", "Gỡ Webhook")}</button></form>
-    </Fragment>
-  </PageHeader>
-  {saved && <div class="crm-notice good" role="status">{t("Saved.", "Đã lưu.")}</div>}
-  {destination.status === "paused" && destination.consecutive_failures > 0 && <div class="crm-notice bad" role="status">{t(`Paused after ${destination.consecutive_failures} failures in a row (last: ${destination.last_result}). Check the address in ${platformLabels[destination.platform]}; to change it, remove this webhook and add it again.`, `Đã tạm dừng sau ${destination.consecutive_failures} lần lỗi liên tiếp (gần nhất: ${destination.last_result}). Kiểm tra địa chỉ trên ${platformLabels[destination.platform]}; muốn đổi, hãy gỡ Webhook này rồi thêm lại.`)}</div>}
-  <FactRow facts={[
-    { label: t("Platform", "Nền tảng"), value: platformLabels[destination.platform] }, { label: t("Address", "Địa chỉ đích"), value: destination.url_hint },
-    { label: t("Status", "Trạng thái"), value: statuses[destination.status]?.[vi ? 1 : 0] ?? destination.status },
-    { label: t("Added", "Tạo lúc"), value: `${dateTime(destination.created_at, vi)} · ${names[destination.created_by] ?? destination.created_by}` },
-  ]} />
-  <Panel title={t("Rules using it", "Quy tắc dùng Webhook này")}>
-    {rules.length ? <ul class="crm-list">{rules.map((rule) => <li class="crm-row"><a class="crm-link" href={`${localized("/workspace/notifications", vi)}/${rule.id}`}>{rule.name}</a></li>)}</ul> : <p class="crm-empty">{t("No rule sends here yet.", "Chưa có quy tắc nào gửi tới đây.")}</p>}
-  </Panel>
-  <Panel title={t("Delivery log", "Nhật ký gửi")} note={t("Last 100 deliveries. Content is not stored; only the outcome.", "100 lượt gửi gần nhất. Không lưu nội dung, chỉ lưu kết quả.")} flush>
-    {deliveries.length
-      ? <DataTable vi={vi} label={t("Deliveries", "Lượt gửi")} frozen={1} widths={["11rem"]} minWidth="820px">
-          <thead><tr><th scope="col">{t("Time", "Thời gian")}</th><th scope="col">{t("Rule", "Quy tắc")}</th><th scope="col">{t("Result", "Kết quả")}</th><th scope="col">{t("Reason", "Lý do")}</th><th scope="col" class="num">{t("Attempts", "Lần thử")}</th><th scope="col">{t("Delivery ID", "Mã gửi")}</th></tr></thead>
-          <tbody>{deliveries.map((row) => <tr><th scope="row">{dateTime(row.updated_at, vi)}</th><td>{ruleName(row.rule_id)}</td><td><span class:list={["crm-badge", row.status === "sent" ? "green" : row.status === "failed" ? "red" : ""]}>{statuses[row.status]?.[vi ? 1 : 0] ?? row.status}</span></td><td>{row.last_error || "—"}</td><td class="num">{row.attempts}</td><td><code>{row.id}</code></td></tr>)}</tbody>
-        </DataTable>
-      : <p class="crm-empty">{t("Nothing sent yet.", "Chưa gửi lần nào.")}</p>}
-  </Panel>
+  <div class="s4 s4-stack">
+    <Head vi={vi} crumbs={[{ label: t("Admin", "Quản trị"), href: localized("/workspace/users", vi) }, { label: "Webhook", href: base }]} title={`${platformLabels[destination.platform]} · ${destination.name}`}>
+      <p slot="meta" class="s4-meta"><span class={`s4-badge dot ${state[1]}`}>{state[0]}</span> · {t("added", "tạo")} {dateTime(destination.created_at, vi)} {t("by", "bởi")} {names[destination.created_by] ?? destination.created_by}</p>
+      <Fragment slot="actions"><div class="s4-group">
+        <form method="post"><input type="hidden" name="intent" value={destination.status === "active" ? "pause" : "resume"} /><button class="s4-btn" type="submit">{destination.status === "active" ? t("Pause webhook", "Tạm dừng Webhook") : t("Resume webhook", "Tiếp tục Webhook")}</button></form>
+        <form method="post"><input type="hidden" name="intent" value="remove" /><button class="s4-btn danger" type="submit">{t("Remove webhook", "Xóa Webhook")}</button></form>
+      </div></Fragment>
+    </Head>
+    {saved && <p class="crm-notice good" role="status">{t("Saved.", "Đã lưu.")}</p>}
+    {failing && <section class="s4-panel s4-banner"><div class="s4-ph"><p><strong>{t(`${destination.consecutive_failures} failures in a row.`, `${destination.consecutive_failures} lần lỗi liên tiếp.`)}</strong> {t(`Last result: ${destination.last_result}.`, `Kết quả gần nhất: ${destination.last_result}.`)} {destination.status === "paused"
+      ? t(`Paused. Check the address in ${platformLabels[destination.platform]}; to change it, remove this webhook and add it again, then resume.`, `Đã tạm dừng. Kiểm tra địa chỉ trên ${platformLabels[destination.platform]}; muốn đổi, hãy xóa Webhook này rồi thêm lại.`)
+      : t(`${PAUSE_AFTER_FAILURES - destination.consecutive_failures} more and it pauses itself.`, `Còn ${PAUSE_AFTER_FAILURES - destination.consecutive_failures} lần lỗi nữa sẽ tự tạm dừng.`)}</p></div></section>}
+    <div class="s4-split">
+      <section class="s4-panel" aria-labelledby="cfg-h">
+        <div class="s4-ph"><h2 id="cfg-h">{t("Configuration", "Cấu hình")}</h2></div>
+        <div class="s4-pb"><dl class="s4-facts">
+          <div><dt>{t("Platform", "Nền tảng")}</dt><dd>{platformLabels[destination.platform]} · {t("incoming webhook", "Webhook nhận tin")}</dd></div>
+          <div><dt>{t("Address", "Địa chỉ đích")}</dt><dd><code class="s4-code">{destination.url_hint}</code></dd></div>
+          <div><dt>{t("Delivery", "Cách gửi")}</dt><dd>{t("Every 10 minutes, each event once", "Mỗi 10 phút, mỗi sự kiện một lần")}</dd></div>
+          <div><dt>{t("Pauses after", "Tự tạm dừng sau")}</dt><dd>{t(`${PAUSE_AFTER_FAILURES} failures in a row`, `${PAUSE_AFTER_FAILURES} lần lỗi liên tiếp`)}</dd></div>
+        </dl></div>
+        <p class="s4-note"><span>{t("The full address is stored encrypted and never shown. To change it, remove this webhook and add it again.", "Địa chỉ đầy đủ được mã hóa và không hiện lại. Muốn đổi, hãy xóa Webhook này rồi thêm lại.")}</span></p>
+      </section>
+      <section class="s4-panel" aria-labelledby="rl-h">
+        <div class="s4-ph"><h2 id="rl-h">{t(`Rules that send here (${rules.length})`, `Quy tắc gửi tới đây (${rules.length})`)}</h2><a class="s4-btn sm" href={localized("/workspace/notifications", vi)}>{t("Notification rules", "Quy tắc thông báo")}</a></div>
+        <div class="s4-pb">{rules.length
+          ? <><ul class="s4-chips">{rules.map((rule) => <li><a class="s4-chip" href={`${localized("/workspace/notifications", vi)}/${rule.id}`}>{rule.name}</a></li>)}</ul>
+              <p class="s4-hint">{t("Events", "Sự kiện")}: {events.map((event) => eventLabel(event, vi)).join(", ")}</p></>
+          : <p>{t("No rule sends here yet. Choose this webhook in a notification rule.", "Chưa có quy tắc nào gửi tới đây. Chọn Webhook này trong một quy tắc thông báo.")}</p>}</div>
+      </section>
+    </div>
+    <section class="s4-panel" aria-labelledby="log-h">
+      <div class="s4-ph"><h2 id="log-h">{t("Delivery log", "Nhật ký gửi")}</h2>
+        <ul class="s4-chips"><li><a class="s4-chip" href="?" aria-current={view === "all" ? "true" : undefined}>{t("All", "Tất cả")}</a></li><li><a class="s4-chip" href="?log=failed" aria-current={view === "failed" ? "true" : undefined}>{t(`Failed (${deliveries.filter((row) => row.status === "failed").length})`, `Lỗi (${deliveries.filter((row) => row.status === "failed").length})`)}</a></li></ul></div>
+      {log.length
+        ? <div class="s4-tw"><table class="s4-tbl wide">
+            <thead><tr><th scope="col" class="fz last">{t("Time", "Thời gian")}</th><th scope="col">{t("Rule", "Quy tắc")}</th><th scope="col">{t("Event", "Sự kiện")}</th><th scope="col">{t("Result", "Kết quả")}</th><th scope="col">{t("Response", "Phản hồi")}</th><th scope="col" class="r">{t("Attempts", "Lần thử")}</th><th scope="col">{t("Delivery ID", "Mã gửi")}</th></tr></thead>
+            <tbody>{log.map((row) => { const [en, viText, tone] = statuses[row.status] ?? [row.status, row.status, ""]; return <tr><td class="fz last">{dateTime(row.updated_at, vi)}</td><td>{ruleName(row.rule_id)}</td><td><code class="s4-code">{row.event_id}</code></td><td><span class:list={["s4-badge", tone]}>{vi ? viText : en}</span></td><td>{row.last_error || "—"}</td><td class="r">{row.attempts}</td><td><code class="s4-code">{row.id}</code></td></tr>; })}</tbody>
+          </table></div>
+        : <p class="s4-empty">{t("Nothing sent yet.", "Chưa gửi lần nào.")}</p>}
+      <p class="s4-note"><span>{t("Last 100 deliveries. Message content is not stored, only the outcome.", "100 lượt gửi gần nhất. Không lưu nội dung, chỉ lưu kết quả.")}</span></p>
+    </section>
+  </div>
 </WorkspaceShell>

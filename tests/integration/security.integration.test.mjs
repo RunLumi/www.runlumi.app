@@ -395,3 +395,42 @@ test("recovery: someone who lost every passkey gets back in only after an admin 
   assert.equal(await enrolThroughEmDash(again, syntheticPasskey(`test_cred_ui4_hr_third_${run}`)), 403, "the window is used once");
   assert.equal(jobs(`SELECT COUNT(*) AS n FROM workspace_audit WHERE target_user_id = ${q(hr.id)} AND action = 'passkey_added' AND detail LIKE '%recovery_window%'`)[0].n, 1);
 });
+
+test("connect an AI agent: a CRM member creates a personal token behind step-up; others are refused", async () => {
+  const exec = S.firstVisit.sales_executive;
+  for (const path of ["/workspace/account/agents/connect", "/vi/workspace/account/agents/connect"]) {
+    const page = await exec.get(path);
+    assert.equal(page.status, 200, path);
+    assert.match(page.html, /api\/crm\/mcp/);
+  }
+  assert.equal((await S.firstVisit.hr.get("/workspace/account/agents/connect")).status, 403, "no CRM access, no agent");
+  const fresh = await userSession(S.admin, { email: exec.email, name: `TEST First sales_executive ${run}`, role: 30 });
+  fresh.passkey = exec.passkey;
+  const body = new URLSearchParams({ name: `TEST agent ${run}`, scope: "read", days: "30", request_key: `agent_${run}_abcdefgh` });
+  assert.equal(await fresh.verifyPasskey("session"), 200);
+  // A session check older than 5 minutes cannot be simulated here, so step-up is shown on a session that never verified.
+  const unverified = await userSession(S.admin, { email: exec.email, name: `TEST First sales_executive ${run}`, role: 30 });
+  assert.equal((await unverified.rawPost("/workspace/account/agents/connect", body)).status, 303, "an unverified session is sent to the passkey check");
+  const created = await fresh.rawPost("/workspace/account/agents/connect", body);
+  assert.equal(created.status, 200);
+  assert.match(created.html, /data-token>lumi_crm_[A-Za-z0-9_-]{43}</);
+  assert.equal(jobs(`SELECT COUNT(*) AS n FROM crm_api_tokens WHERE user_id = ${q(exec.id)} AND name = ${q(`TEST agent ${run}`)}`)[0].n, 1);
+  const security = await fresh.get("/workspace/account/security");
+  assert.match(security.html, new RegExp(`TEST agent ${run}`), "the agent is listed on My account › Security");
+});
+
+test("admin board screens: member record shows security facts without secrets; filters and sheets open; non-admins refused", async () => {
+  const hr = S.firstVisit.hr;
+  const member = await S.admin.get(`/workspace/users/${hr.id}`);
+  assert.equal(member.status, 200);
+  assert.match(member.html, /Passkey \(\d\)/);
+  assert.doesNotMatch(member.html, new RegExp(hr.passkey.id), "no credential IDs on the admin view");
+  assert.doesNotMatch(member.html, /Sông Hồng/, "never the anti-phishing code");
+  for (const path of ["/workspace/users?filter=backup", "/workspace/users?filter=agents", "/workspace/webhooks?sheet=new", "/vi/workspace/webhooks?filter=slack", "/workspace/notifications?filter=on", `/workspace/security?recover=${hr.id}`, "/workspace/audit?kind=denied", "/vi/workspace/roles"]) {
+    const page = await S.admin.get(path);
+    assert.equal(page.status, 200, path);
+  }
+  assert.match((await S.admin.get(`/workspace/security?recover=${hr.id}`)).html, /name="confirmed"/, "the recovery dialog asks the admin to confirm identity");
+  assert.match((await S.admin.get("/vi/workspace/roles")).html, /Của mình/, "the matrix marks own-records permissions");
+  for (const path of ["/workspace/users?filter=backup", `/workspace/security?recover=${hr.id}`, "/workspace/webhooks?sheet=new"]) assert.equal((await S.firstVisit.sales_manager.get(path)).status, 403, path);
+});
