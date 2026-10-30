@@ -46,7 +46,7 @@ const sheet = Astro.url.searchParams.get("sheet") === "new" || (!!error && error
     <section class="s4-panel" aria-label={t("Webhooks", "Danh sách Webhook")}>
       <div class="s4-lvbar"><p>{t(`${shown.length + 1} webhooks · select a row for detail and the delivery log`, `${shown.length + 1} Webhook · bấm một dòng để xem chi tiết và nhật ký gửi`)}</p>
         <ListToolbar vi={vi} q={Astro.url.searchParams.get("q") ?? ""} keep={{ filter }} placeholder={t("Search webhooks", "Tìm Webhook")} /></div>
-      <DataTable vi={vi} label={"Webhook"} frozen={1} minWidth="1100px">
+      <DataTable vi={vi} label={"Webhook"} frozen={1} frozenNames={t("Name", "Tên")} minWidth="1100px">
         <thead><tr><th scope="col">{t("Name", "Tên")}</th><th scope="col">{t("Platform", "Nền tảng")}</th><th scope="col">{t("Address", "Địa chỉ đích")}</th><th scope="col">{t("Events", "Sự kiện")}</th><th scope="col">{t("Status", "Trạng thái")}</th><th scope="col">{t("Last send", "Gửi gần nhất")}</th><th scope="col" class="r">{t("Sent, 7 days", "Đã gửi 7 ngày")}</th><th scope="col">{t("Added by", "Tạo bởi")}</th></tr></thead>
         <tbody>
           {(!filter || filter === "lark") && <tr><td><strong>{t("Lark team group (built in)", "Nhóm Lark (có sẵn)")}</strong></td><td>Lark</td><td>{t("Worker secret", "Secret của Worker")}</td><td>{t("All CRM activity", "Mọi hoạt động CRM")}</td>
@@ -59,7 +59,7 @@ const sheet = Astro.url.searchParams.get("sheet") === "new" || (!!error && error
         </tbody>
       </DataTable>
       {destinations.length === 0 && <p class="s4-empty">{t("No Slack, Discord or Teams webhook yet. Create one to send rule notifications to an internal channel.", "Chưa có Webhook Slack, Discord hay Teams. Tạo Webhook để gửi thông báo theo quy tắc tới kênh nội bộ.")}</p>}
-      <p class="s4-note"><span>{t("The name stays in place when you scroll sideways. The Lark group is configured by Worker secrets and follows the owner's Lark rules.", "Cột Tên cố định khi cuộn ngang. Nhóm Lark cấu hình bằng secret của Worker và theo quy tắc Lark của chủ sở hữu.")}</span></p>
+      <p class="s4-note"><span>{t("The Lark group is configured by Worker secrets and follows the owner's Lark rules.", "Nhóm Lark cấu hình bằng secret của Worker và theo quy tắc Lark của chủ sở hữu.")}</span></p>
     </section>
   </div>
   <Sheet id="new-webhook" vi={vi} title={t("Create Webhook", "Tạo Webhook")} open={sheet} closeHref={base} action={keyReady ? base : undefined}>

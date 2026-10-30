@@ -61,7 +61,7 @@ const filtered = !!(filters.actor || filters.module || filters.outcome || filter
     <section class="s4-panel" aria-label={t("Events", "Sự kiện")}>
       <div class="s4-lvbar"><p>{t(`${rows.length}${next ? "+" : ""} events · newest first · select a time to open the event`, `${rows.length}${next ? "+" : ""} sự kiện · mới nhất trước · bấm thời gian để xem chi tiết`)}</p></div>
       {rows.length
-        ? <DataTable vi={vi} label={t("Audit events", "Sự kiện kiểm toán")} frozen={2} minWidth="1100px">
+        ? <DataTable vi={vi} label={t("Audit events", "Sự kiện kiểm toán")} frozen={2} frozenNames={t("Time and Who", "Thời gian và Người thực hiện")} minWidth="1100px">
             <thead><tr><th scope="col">{t("Time", "Thời gian")}</th><th scope="col">{t("Who", "Người thực hiện")}</th><th scope="col">{t("Via", "Qua")}</th><th scope="col">Module</th><th scope="col">{t("Kind", "Loại sự kiện")}</th><th scope="col">{t("Action", "Hành động")}</th><th scope="col">{t("Detail", "Chi tiết")}</th><th scope="col">{t("Outcome", "Kết quả")}</th></tr></thead>
             <tbody>{rows.map((row) => { const [en, viText, tone] = outcome[row.outcome] ?? [row.outcome, row.outcome, ""]; return <tr>
               <td><a href={`${base}/${encodeURIComponent(row.id)}`}>{dateTime(row.created_at, vi)}</a></td>
@@ -72,7 +72,7 @@ const filtered = !!(filters.actor || filters.module || filters.outcome || filter
             </tr>; })}</tbody>
           </DataTable>
         : <p class="s4-empty">{t("No events match these filters.", "Không có sự kiện khớp bộ lọc.")}</p>}
-      <p class="s4-note"><span>{t("Time and Who stay in place when you scroll sideways.", "Cột Thời gian và Người thực hiện cố định khi cuộn ngang.")}{!finance && ` ${t("Finance history appears once Finance is set up and on.", "Lịch sử Tài chính hiện khi Tài chính đã thiết lập và bật.")}`}</span>
+      <p class="s4-note"><span>{!finance && t("Finance history appears once Finance is set up and on.", "Lịch sử Tài chính hiện khi Tài chính đã thiết lập và bật.")}</span>
         <span class="s4-actions">{filters.cursor && <a class="ws-btn sm" href={`${base}${filterQuery(filters, { cursor: "" })}`}>{t("Newest", "Mới nhất")}</a>}{next && <a class="ws-btn sm" href={`${base}${filterQuery(filters, { cursor: next })}`}>{t("Older events", "Sự kiện cũ hơn")}</a>}</span></p>
     </section>
   </div>

@@ -69,7 +69,7 @@ const denied7d = Object.values(calls7d).reduce((sum, row) => sum + (row.denied ?
       <div class="s4-ph"><h2>{t(`Connected agents (${live.length})`, `Agent đã kết nối (${live.length})`)}</h2>
         <ListToolbar vi={vi} q={Astro.url.searchParams.get("q") ?? ""} keep={{}} placeholder={t("Search agents or members", "Tìm agent hoặc thành viên")} /></div>
       {shown.length
-        ? <DataTable vi={vi} label={t(`Connected agents (${live.length})`, `Agent đã kết nối (${live.length})`)} frozen={2} minWidth="1100px">
+        ? <DataTable vi={vi} label={t(`Connected agents (${live.length})`, `Agent đã kết nối (${live.length})`)} frozen={2} frozenNames={t("Member and Agent", "Thành viên và Agent")} minWidth="1100px">
             <thead><tr><th scope="col">{t("Member", "Thành viên")}</th><th scope="col">Agent</th><th scope="col">{t("Access", "Quyền")}</th><th scope="col">{t("Connected", "Kết nối lúc")}</th><th scope="col">{t("Last call", "Gọi gần nhất")}</th><th scope="col" class="r">{t("Calls, 7 days", "Lần gọi 7 ngày")}</th><th scope="col" class="r">{t("Refused, 7 days", "Bị từ chối 7 ngày")}</th><th scope="col">{t("Status", "Trạng thái")}</th><th scope="col" class="act"><span class="crm-sr">{t("Actions", "Thao tác")}</span></th></tr></thead>
             <tbody>{shown.map((token) => { const [label, tone] = state(token); return <tr>
               <td><a href={localized(`/workspace/users/${encodeURIComponent(token.user_id)}`, vi)}>{names[token.user_id] ?? token.user_id}</a></td><td><strong>{token.name}</strong></td>
@@ -79,7 +79,7 @@ const denied7d = Object.values(calls7d).reduce((sum, row) => sum + (row.denied ?
             </tr>; })}</tbody>
           </DataTable>
         : <p class="s4-empty">{tokens.length ? t("No agent matches.", "Không có agent khớp.") : t("No agent connected yet. Members connect one from My account › Security.", "Chưa có agent nào. Thành viên kết nối ở Tài khoản của tôi › Bảo mật.")}</p>}
-      <p class="s4-note"><span>{t("Member and Agent stay in place when you scroll sideways. Revoking needs your passkey.", "Cột Thành viên và Agent cố định khi cuộn ngang. Thu hồi phải xác thực lại bằng passkey.")}</span></p>
+      <p class="s4-note"><span>{t("Revoking needs your passkey.", "Thu hồi phải xác thực lại bằng passkey.")}</span></p>
     </section>
   </div>
 </WorkspaceShell>
