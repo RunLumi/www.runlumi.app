@@ -48,7 +48,8 @@ Run on `claude/ui2-crm-lists` with ui1's kit merged (@cd0d414). Synthetic data, 
 | `npm run build` | ok (`astro check` 0 errors, build complete) |
 | `RUNLUMI_INTEGRATION_SCOPE=crm npm run test:integration` | 19 pass, 0 fail on head `57cd035` (adds test 18, Tasks); also 19/19 before the kit merge |
 | `RUNLUMI_INTEGRATION_SCOPE=workspace npm run test:integration` | 15 pass, 0 fail on head `57cd035`. On ui1 @a54e7ce alone it failed 3 of 15 (search, bell, my notifications), reproduced on a clean worktree; ui1's @cd0d414 fixed them. |
-| Other scopes (hrm*, finance, security, directory, api, dashboard, files, sales-process, business-model) | **Not run** on this branch: no file they cover changed except the shell's nav entry. Open. |
+| After the founder-review fixes (Home rebuild, dashboard to Reports, Kanban ⌄ menu, Leads reassign), merged with the integration branch @cf61511 | lint ok; `npm test` 461/0 (adds `tests/crm-home.test.ts`); build ok; integration crm 19/19, workspace 15/15, dashboard 5/5 (suite now reads `/crm/reports`) |
+| Other scopes (hrm*, finance, security, directory, api, files, sales-process, business-model) | **Not run** on this branch: no file they cover changed except the shell's nav entry. Open. |
 | Phone and overflow | The parity run measured no page-level horizontal overflow at 390 and 1440 px on every screen. 320 px not measured. |
 
 ### Open items
