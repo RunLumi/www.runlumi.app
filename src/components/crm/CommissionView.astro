@@ -1,5 +1,6 @@
 ---
 import CrmShell from "../../layouts/CrmShell.astro";
+import CrmSetupLayout from "./CrmSetupLayout.astro";
 import SetupFrame from "../workspace/ui/SetupFrame.astro";
 import "../../styles/record.css";
 import "../../styles/crm-sales.css";
@@ -43,6 +44,7 @@ const v = (intent: string, field: string, fallback: string | number = "") => val
 const e = (intent: string, field: string) => errorFor(state, intent, field);
 ---
 <CrmShell title={vi ? "Hoa hồng" : "Commission"} lang={lang} actor={ctx.actor} current="commission">
+  <CrmSetupLayout vi={vi} current="commission">
   <SetupFrame vi={vi} icon="commission" eyebrow={vi ? "Kết quả" : "Results"} title={vi ? "Hoa hồng" : "Commission"} info={vi ? "CRM tính dự kiến từ sổ thương mại và trạng thái bàn giao. CRM không chi tiền; tài chính ghi nhận khoản đã chi theo bảng kê." : "The CRM estimates from the ledger and delivery state. It pays nothing; finance records payouts made against a statement."}>
     
   <FormNotices state={state} lang={lang} saved={Astro.url.searchParams.get("saved")} />
@@ -170,4 +172,5 @@ const e = (intent: string, field: string) => errorFor(state, intent, field);
     </form>
   </section>}
   </SetupFrame>
+  </CrmSetupLayout>
 </CrmShell>

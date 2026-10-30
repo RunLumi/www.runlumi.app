@@ -208,3 +208,14 @@
 .rec-stages .crm-stages { margin: 0; }
 .finance.rec-module .fn-kpis { margin: 0; }
 .ws-lv > .crm-empty, .ws-rec > .crm-empty { margin: 0; padding: 12px 20px; }
+
+/* CRM setup area (Settings board): left setup navigation, page on the right. */
+.rec-setup-area { display: grid; grid-template-columns: minmax(220px, 270px) minmax(0, 1fr); gap: 12px; align-items: start; }
+.rec-setup-nav { position: sticky; top: 12px; min-width: 0; }
+.rec-setup-main { min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+@media (max-width: 900px) { .rec-setup-area { grid-template-columns: minmax(0, 1fr); } .rec-setup-nav { position: static; } }
+/* Compact stage table: one row per stage, requirements as inline chips. */
+.rec-chips { white-space: normal !important; }
+.rec-chips .ws-badge { margin: 2px 4px 2px 0; }
+.ws-setup .ws-tbl :is(th, td) { height: 40px; padding-top: 6px; padding-bottom: 6px; }
+.ws-rl-row > .ws-btn { justify-self: start; }

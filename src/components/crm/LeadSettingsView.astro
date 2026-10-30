@@ -1,5 +1,6 @@
 ---
 import CrmShell from "../../layouts/CrmShell.astro";
+import CrmSetupLayout from "./CrmSetupLayout.astro";
 import SetupFrame from "../workspace/ui/SetupFrame.astro";
 import Sheet from "../workspace/ui/Sheet.astro";
 import DataTable from "../workspace/ui/DataTable.astro";
@@ -26,6 +27,7 @@ const rows = (prefix: "status" | "reason", items: { id: string; en: string; vi: 
 };
 ---
 <CrmShell title={vi ? "Trạng thái Lead" : "Lead statuses"} lang={lang} actor={ctx.actor} current="lead-settings">
+  <CrmSetupLayout vi={vi} current="lead-settings">
   <SetupFrame vi={vi} icon="lead_settings" eyebrow={vi ? "Cấu hình CRM" : "CRM setup"} title={vi ? "Trạng thái Lead và lý do không tiếp tục" : "Lead statuses and disqualification reasons"}
     info={vi ? "Tên trạng thái và lý do là dữ liệu của tổ chức. Mỗi lần lưu tạo phiên bản mới; Lead đã có giữ phiên bản lúc tạo. Trạng thái đầu tiên là nơi Lead mới bắt đầu." : "Status and reason names are your organisation's data. Each save creates a new version; existing leads keep the version they were created with. New leads start at the first status."}>
     <Fragment slot="badges">{current && <span class="ws-badge">v{current.version}</span>}</Fragment>
@@ -72,4 +74,5 @@ const rows = (prefix: "status" | "reason", items: { id: string; en: string; vi: 
     </section>)}
     <Fragment slot="foot"><a class="ws-btn" href={Astro.url.pathname}>{vi ? "Hủy" : "Cancel"}</a><button class="ws-btn primary" type="submit">{vi ? "Lưu phiên bản mới" : "Save a new version"}</button></Fragment>
   </Sheet>
+  </CrmSetupLayout>
 </CrmShell>

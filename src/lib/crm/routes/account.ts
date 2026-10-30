@@ -15,6 +15,20 @@ export interface AccountProps {
   ctx: Ctx; state: FormState; account: Account; contacts: Contact[]; editable: Set<string>; opportunities: Opportunity[]; canEdit: boolean;
   duplicates: Pick<Account, "id" | "name" | "region">[]; playbookNames: Record<string, string>; playbooks: Playbook[];
   owners: OwnerOption[]; names: Record<string, { name: string; active: boolean }>; stageNames: Record<string, string>;
+  events: AccountEvent[];
+}
+export interface AccountEvent { id: string; opportunity_id: string; actor_name: string; kind: string; body: string; created_at: string }
+
+/** Activity of this company's opportunities that the person works on (owner, or the team): the same events the opportunity page shows them. */
+async function accountEvents(db: D1Database, actor: Ctx["actor"], opportunities: Opportunity[]): Promise<AccountEvent[]> {
+  const ids = opportunities.filter((opp) => actor.manager || opp.owner_id === actor.id).map((opp) => opp.id);
+  const rows: AccountEvent[] = [];
+  for (let index = 0; index < ids.length; index += 90) {
+    const chunk = ids.slice(index, index + 90);
+    const result = await db.prepare(`SELECT id, opportunity_id, actor_name, kind, body, created_at FROM crm_events WHERE opportunity_id IN (${chunk.map(() => "?").join(", ")}) ORDER BY created_at DESC LIMIT 60`).bind(...chunk).all<AccountEvent>();
+    rows.push(...result.results);
+  }
+  return rows.sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 60);
 }
 
 export async function accountRoute(astro: AstroGlobal, lang: Lang): Promise<AccountProps | Response> {
@@ -51,6 +65,7 @@ export async function accountRoute(astro: AstroGlobal, lang: Lang): Promise<Acco
   for (const playbook of versions) for (const stage of playbook.def.stages) stageNames[`${playbook.id}:${stage.id}`] = lang === "vi" ? stage.vi : stage.en;
   return {
     ctx, state: posted ?? emptyState, account, contacts, editable, opportunities, canEdit, stageNames,
+    events: await accountEvents(ctx.db, ctx.actor, opportunities),
     duplicates: ctx.actor.manager ? await possibleDuplicates(ctx.db, account) : [],
     playbookNames: Object.fromEntries(versions.map((item) => [item.id, lang === "vi" ? item.name_vi : item.name_en])),
     playbooks: canEdit ? await latestPlaybooks(ctx.db, { activeOnly: true }) : [],
