@@ -4,6 +4,7 @@
 // § CRM list screens (Main, KanbanDrag, DealsTable, MobileKanban).
 import CrmShell from "../../layouts/CrmShell.astro";
 import { formatDate, formatVnd } from "../../lib/crm/view";
+import { compactVnd } from "../../lib/crm/dashboard";
 import { label, options } from "../../lib/crm/i18n";
 import type { PipelineProps } from "../../lib/crm/routes/pipeline";
 import Hidden from "./Hidden.astro";
@@ -152,12 +153,12 @@ const zoneLabel = (outcome: "won" | "lost") => {
     {view === "board" && playbook && <section class="crm-board-wrap cl-stack" data-board-wrap aria-label={vi ? "Kanban cơ hội theo giai đoạn" : "Opportunities by stage"}
         data-drag-hint={vi ? "{name} · Thả vào một cột để đổi giai đoạn, hoặc vào vùng chốt ở cuối màn hình. Esc để hủy." : "{name} · Drop on a column to change stage, or on a closing zone at the bottom. Esc cancels."}
         data-moving-hint={vi ? "Đang chuyển {name}…" : "Moving {name}…"} data-cancel-hint={vi ? "Đã hủy kéo." : "Drag cancelled."}>
-      <p class="cl-drag-status" role="status" aria-live="polite"><span class="cl-badge info"><span class="dot" />{vi ? "Đang kéo" : "Dragging"}</span><span data-drag-status>{vi ? "Mỗi thẻ có mục “Chuyển sang” để đổi giai đoạn bằng bàn phím. Kéo thẻ vào vùng Thắng / Thua để đóng cơ hội." : "Every card has a “Move to” control for keyboard use. Drag a card to Won / Lost to close it."}</span></p>
+      <p class="cl-drag-status" role="status" aria-live="polite"><span class="cl-badge info"><span class="dot" />{vi ? "Đang kéo" : "Dragging"}</span><span data-drag-status>{vi ? "Nút ⌄ trên mỗi thẻ có ô Chuyển sang để đổi giai đoạn bằng bàn phím. Kéo thẻ vào vùng Thắng / Thua để đóng cơ hội." : "Each card’s ⌄ button holds a Move to control for keyboard use. Drag a card to Won / Lost to close it."}</span></p>
       <nav class="cl-strip" aria-label={vi ? "Giai đoạn" : "Stages"}>{openStages.map((stage) => <a href={`#col-${stage.id}`}>{vi ? stage.vi : stage.en} · {board.filter((row) => row.stage_id === stage.id).length}</a>)}</nav>
       <div class="cl-kb-scroll"><div class="cl-kb">
         {openStages.map((stage) => { const cards = board.filter((row) => row.stage_id === stage.id); const totals = sum(cards); return <section class="cl-col" id={`col-${stage.id}`} data-column={stage.id} aria-labelledby={`bc-${stage.id}`}>
-          <h2 class="cl-chev" id={`bc-${stage.id}`}><span>{vi ? stage.vi : stage.en}</span><span class="n">({cards.length})</span></h2>
-          <div class="cl-sum"><b>{totals.known ? formatVnd(totals.total, vi) : (vi ? "Chưa biết giá trị" : "No known value")}</b><span>{totals.known && totals.known < cards.length ? (vi ? `${cards.length - totals.known} chưa biết giá trị` : `${cards.length - totals.known} unknown`) : totals.weighted !== null ? (vi ? `Theo xác suất ${formatVnd(totals.weighted, vi)}` : `Weighted ${formatVnd(totals.weighted, vi)}`) : ""}</span></div>
+          <h2 class="cl-chev" id={`bc-${stage.id}`}><span>{vi ? stage.vi : stage.en} ({cards.length})</span></h2>
+          <div class="cl-sum"><b>{totals.known ? formatVnd(totals.total, vi) : (vi ? "Chưa biết giá trị" : "No known value")}</b><span title={totals.known < cards.length ? (vi ? `${cards.length - totals.known} cơ hội chưa có giá trị` : `${cards.length - totals.known} without a value`) : undefined}>{totals.weighted !== null ? (vi ? `Xác suất ${compactVnd(totals.weighted, vi)}` : `Weighted ${compactVnd(totals.weighted, vi)}`) : totals.known < cards.length ? (vi ? `${cards.length - totals.known} chưa có giá trị` : `${cards.length - totals.known} no value`) : ""}</span></div>
           <div class="cl-lane">
             {cards.map((row) => { const editable = canEdit(row); const inStage = days(row.stage_since); const alert = row.overdue_tasks > 0 ? (vi ? `${row.overdue_tasks} công việc quá hạn` : `${row.overdue_tasks} overdue task(s)`) : row.open_tasks === 0 && !row.next_action_due ? (vi ? "Không có hoạt động sắp tới" : "No upcoming activity") : ""; const danger = row.overdue_tasks > 0; return <article class:list={["cl-kc", { warn: alert && !danger, danger }]} data-card={editable ? row.id : undefined} data-name={`${row.title}`} data-current={row.stage_id}
                 data-zone-won={editable ? `${base}/${row.id}?close=won#close` : undefined} data-zone-lost={editable ? `${base}/${row.id}?close=lost#close` : undefined}>
@@ -165,6 +166,19 @@ const zoneLabel = (outcome: "won" | "lost") => {
                 {editable ? <span class="cl-grip"><NavIcon name="grip" size={16} /></span> : <span class="cl-grip" />}
                 <a class="cl-kc-title" href={`${base}/${row.id}`}>{row.title}</a>
                 {alert && <span class:list={["cl-kc-alert", { danger }]} title={alert}><NavIcon name="warn" size={16} /><span class="crm-sr">{alert}</span></span>}
+                {editable && <details class="ws-drop cl-kc-more">
+                  <summary class="cl-menu-btn" aria-label={vi ? `Hành động cho ${row.title}` : `Actions for ${row.title}`}><NavIcon name="chevron" size={14} /></summary>
+                  <div class="ws-pop ws-menu-pop cl-kc-pop">
+                    <p class="ws-mi-head">{vi ? "Chuyển sang" : "Move to"}</p>
+                    <form method="post" data-move>
+                      <Hidden intent="stage" state={state} version={row.version} /><input type="hidden" name="opportunity_id" value={row.id} />
+                      <label class="crm-sr" for={`mv-${row.id}`}>{vi ? `Chuyển ${row.title} sang giai đoạn` : `Move ${row.title} to stage`}</label>
+                      <select id={`mv-${row.id}`} name="to_stage" data-move-to>{openStages.map((item) => <option value={item.id} selected={item.id === row.stage_id}>{vi ? item.vi : item.en}</option>)}</select>
+                      <button class="ws-btn sm" type="submit">{vi ? "Chuyển" : "Move"}</button>
+                    </form>
+                    <ul><li><a href={`${base}/${row.id}?close=won#close`}>{vi ? "Đóng cơ hội…" : "Close…"}</a></li><li><a href={`${base}/calendar?new=1#new-event`}>{vi ? "Tạo lịch hẹn" : "New event"}</a></li><li><a href={`${base}/${row.id}`}>{vi ? "Mở cơ hội" : "Open"}</a></li></ul>
+                  </div>
+                </details>}
               </div>
               <dl>
                 <dt>{vi ? "Công ty" : "Company"}</dt><dd>{row.account_name}</dd>
@@ -176,16 +190,6 @@ const zoneLabel = (outcome: "won" | "lost") => {
                 {inStage !== null && <span>{vi ? `${inStage} ngày ở giai đoạn này` : `${inStage} days in this stage`}</span>}
                 {alert ? <span class:list={["cl-badge", danger ? "danger" : "warn"]}><span class="dot" />{alert}</span> : <span class="cl-badge">{vi ? "Xác suất" : "Probability"}: {row.win_probability === null ? (vi ? "chưa biết" : "unknown") : `${row.win_probability}%`}</span>}
               </div>
-              {editable && <details class="cl-kc-menu">
-                <summary>{vi ? "Chuyển sang" : "Move to"}<span class="crm-sr">: {row.title}</span></summary>
-                <form method="post" data-move>
-                  <Hidden intent="stage" state={state} version={row.version} /><input type="hidden" name="opportunity_id" value={row.id} />
-                  <label class="crm-sr" for={`mv-${row.id}`}>{vi ? `Chuyển ${row.title} sang giai đoạn` : `Move ${row.title} to stage`}</label>
-                  <select id={`mv-${row.id}`} name="to_stage" data-move-to>{openStages.map((item) => <option value={item.id} selected={item.id === row.stage_id}>{vi ? item.vi : item.en}</option>)}</select>
-                  <button type="submit">{vi ? "Chuyển" : "Move"}</button>
-                  <a href={`${base}/${row.id}?close=won#close`}>{vi ? "Đóng cơ hội" : "Close"}</a>
-                </form>
-              </details>}
             </article>; })}
             {!cards.length && <p class="cl-none">{vi ? "Không có cơ hội." : "No opportunities."}</p>}
           </div>
