@@ -34,7 +34,7 @@
 .rec-head h2 { margin: 0; font-size: 15px; font-weight: 600; line-height: 1.2; color: #102A43; }
 
 /* Related lists: grid, full-width cards, row fields and embedded sections */
-.rec-rl-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 12px; align-items: stretch; }
+.rec-rl-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 12px; align-items: stretch; }
 .rec-rl-grid > .ws-rl { display: flex; flex-direction: column; }
 .rec-wide { grid-column: 1 / -1; min-width: 0; }
 .ws-rl-row > a { color: #006093; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
