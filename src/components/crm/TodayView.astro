@@ -9,7 +9,7 @@ import CrmShell from "../../layouts/CrmShell.astro";
 import NavIcon from "../workspace/NavIcon.astro";
 import { formatDate, label } from "../../lib/crm/i18n";
 import { formatVnd } from "../../lib/crm/view";
-import { compactVnd } from "../../lib/crm/dashboard";
+import { compactVnd, vndTicks } from "../../lib/crm/dashboard";
 import type { TodayProps } from "../../lib/crm/routes/today";
 import type { TodayTask, TodayOpp } from "../../lib/crm/today";
 import "../../styles/crm-sales.css";
@@ -42,15 +42,17 @@ const warnings: Warning[] = [
 ];
 
 // Quarter chart: cumulative won (solid) up to today, then won + strong open (dashed) to the quarter's end.
-const W = { left: 56, right: 860, top: 20, bottom: 196 };
+// The plot stretches to the panel at a fixed CSS height (strokes do not scale);
+// axis and "Today" labels are HTML at the page's type size, placed in percent.
+const W = { left: 0, right: 1000, top: 12, bottom: 200 };
 const dayMs = 86_400_000;
 const dayIndex = (date: string) => Math.round((Date.parse(`${date}T00:00:00Z`) - Date.parse(`${quarter.from}T00:00:00Z`)) / dayMs);
 const span = Math.max(1, dayIndex(quarter.to));
 const x = (date: string) => Math.round(W.left + (Math.min(span, Math.max(0, dayIndex(date))) / span) * (W.right - W.left));
-const peak = Math.max(1, quarter.won + quarter.strongOpen);
-const magnitude = 10 ** Math.floor(Math.log10(peak));
-const niceMax = ([1, 2, 3, 5, 10].map((step) => step * magnitude).find((value) => value >= peak) ?? 10 * magnitude);
+const { max: niceMax, ticks } = vndTicks(quarter.won + quarter.strongOpen);
 const y = (value: number) => Math.round(W.bottom - (value / niceMax) * (W.bottom - W.top));
+const pctX = (value: number) => `${(value / W.right) * 100}%`;
+const pctY = (value: number) => `${(value / W.bottom) * 100}%`;
 const wonPoints = [`${W.left},${W.bottom}`];
 let last = 0;
 for (const point of quarter.wonByDay) { wonPoints.push(`${x(point.date)},${y(last)}`, `${x(point.date)},${y(point.total)}`); last = point.total; }
@@ -75,14 +77,19 @@ const recentHref = (item: { kind: string; id: string }) => item.kind === "opport
           <div><p class="cl-kpi-l">{vi ? "Chỉ tiêu" : "Target"}</p><p class="cl-kpi-v unset">{vi ? "[chưa đặt]" : "[not set]"}</p></div>
         </div>
         <div class="cl-chart">
-          <svg viewBox="0 0 880 226" role="img" aria-label={chartLabel} preserveAspectRatio="none">
-            <g stroke="#E7EAF0" stroke-width="1">{[1, 2 / 3, 1 / 3].map((share) => <line x1={W.left} y1={y(niceMax * share)} x2={W.right} y2={y(niceMax * share)} />)}<line x1={W.left} y1={W.bottom} x2={W.right} y2={W.bottom} stroke="#C8D0DE" /></g>
-            <g font-size="12" fill="#5E6677">{[1, 2 / 3, 1 / 3].map((share) => <text x="48" y={y(niceMax * share) + 4} text-anchor="end">{compactVnd(niceMax * share, vi)}</text>)}<text x="48" y={W.bottom + 4} text-anchor="end">0</text>{months.map((month) => <text x={month.x} y="214" text-anchor="middle">{month.label}</text>)}</g>
-            <polyline fill="none" stroke="#1F7A4D" stroke-width="3" stroke-linejoin="round" points={wonPoints.join(" ")} />
-            {quarter.strongOpen > 0 && <polyline fill="none" stroke="#006093" stroke-width="3" stroke-dasharray="7 5" points={projection} />}
-            <line x1={x(quarter.today)} y1={W.top} x2={x(quarter.today)} y2={W.bottom} stroke="#C2410C" stroke-width="2" />
-            <text x={x(quarter.today) + 6} y="34" font-size="12" fill="#C2410C">{vi ? "Hôm nay" : "Today"}</text>
-          </svg>
+          <div class="cl-plot">
+            <div class="cl-plot-y" aria-hidden="true">{ticks.map((tick) => <span style={`top:${pctY(y(tick))}`}>{compactVnd(tick, vi)}</span>)}<span style={`top:${pctY(W.bottom)}`}>0</span></div>
+            <div class="cl-plot-area">
+              <svg viewBox={`0 0 ${W.right} ${W.bottom}`} role="img" aria-label={chartLabel} preserveAspectRatio="none">
+                <g stroke="#E7EAF0" stroke-width="1" vector-effect="non-scaling-stroke">{ticks.map((tick) => <line x1={W.left} y1={y(tick)} x2={W.right} y2={y(tick)} vector-effect="non-scaling-stroke" />)}<line x1={W.left} y1={W.bottom - 0.5} x2={W.right} y2={W.bottom - 0.5} stroke="#C8D0DE" vector-effect="non-scaling-stroke" /></g>
+                <polyline fill="none" stroke="#1F7A4D" stroke-width="3" stroke-linejoin="round" vector-effect="non-scaling-stroke" points={wonPoints.join(" ")} />
+                {quarter.strongOpen > 0 && <polyline fill="none" stroke="#006093" stroke-width="3" stroke-dasharray="7 5" vector-effect="non-scaling-stroke" points={projection} />}
+                <line x1={x(quarter.today)} y1={W.top} x2={x(quarter.today)} y2={W.bottom} stroke="#C2410C" stroke-width="2" vector-effect="non-scaling-stroke" />
+              </svg>
+              <span class:list={["cl-plot-today", x(quarter.today) > 850 && "end"]} aria-hidden="true" style={`left:${pctX(x(quarter.today))}`}>{vi ? "Hôm nay" : "Today"}</span>
+            </div>
+            <div class="cl-plot-x" aria-hidden="true">{months.map((month) => <span style={`left:${pctX(month.x)}`}>{month.label}</span>)}</div>
+          </div>
           <p class="cl-legend-row"><span><span class="cl-sw" style="background:#1F7A4D" />{vi ? "Thắng" : "Won"}</span><span><span class="cl-sw" style="background:#006093" />{vi ? "Thắng + Đang mở có xác suất ≥ 70%" : "Won + open at ≥ 70%"}</span></p>
         </div>
       </section>

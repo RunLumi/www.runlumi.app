@@ -317,7 +317,16 @@ a.title:hover { text-decoration: underline; }
 .cl-kpi-v.unset { color: #5e6677; }
 .cl-kpi-s { margin-top: 4px !important; color: var(--crm-slate); font-size: 12px; }
 .cl-chart { padding: 0 16px 14px; }
-.cl-chart svg { display: block; width: 100%; height: auto; font-family: inherit; }
+.cl-chart svg { display: block; width: 100%; height: 100%; overflow: visible; }
+/* Quarter chart: a fixed-height plot that stretches sideways; labels stay at the page's type size at every width. */
+.cl-plot { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: 220px auto; column-gap: 8px; margin-top: 8px; color: #5e6677; font-size: 12px; line-height: 1; font-variant-numeric: tabular-nums; }
+.cl-plot-y { position: relative; min-width: 52px; }
+.cl-plot-y > span { position: absolute; right: 0; transform: translateY(-50%); white-space: nowrap; }
+.cl-plot-area { position: relative; min-width: 0; }
+.cl-plot-today { position: absolute; top: 6px; margin-left: 6px; color: #c2410c; white-space: nowrap; }
+.cl-plot-today.end { margin-left: -6px; transform: translateX(-100%); }
+.cl-plot-x { position: relative; grid-column: 2; height: 22px; }
+.cl-plot-x > span { position: absolute; top: 8px; transform: translateX(-50%); white-space: nowrap; }
 .cl-legend-row { display: flex; flex-wrap: wrap; gap: 18px; margin: 6px 0 0; font-size: 13px; }
 .cl-legend-row > span { display: inline-flex; align-items: center; gap: 6px; }
 .cl-tl { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 12px 16px; list-style: none; }
