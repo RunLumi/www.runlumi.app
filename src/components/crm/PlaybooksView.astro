@@ -1,5 +1,6 @@
 ---
 import CrmShell from "../../layouts/CrmShell.astro";
+import CrmSetupLayout from "./CrmSetupLayout.astro";
 import SetupFrame from "../workspace/ui/SetupFrame.astro";
 import Sheet from "../workspace/ui/Sheet.astro";
 import DataTable from "../workspace/ui/DataTable.astro";
@@ -29,6 +30,7 @@ const shown = latest.find((item) => item.playbook_key === picked) ?? latest.find
 const outcomeName: Record<string, [string, string]> = { open: ["Open", "Đang mở"], won: ["Won", "Thắng"], lost: ["Lost", "Thua"], paused: ["On hold", "Tạm hoãn"] };
 ---
 <CrmShell title={vi ? "Playbook" : "Playbooks"} lang={lang} actor={ctx.actor} current="playbooks">
+  <CrmSetupLayout vi={vi} current="playbooks">
   <SetupFrame vi={vi} icon="playbooks" eyebrow={vi ? "Cấu hình CRM" : "CRM setup"} title={vi ? "Giai đoạn và playbook" : "Stages and playbooks"}
     info={vi ? "Tên giai đoạn là dữ liệu của tổ chức. Lưu luôn tạo phiên bản mới: cơ hội cũ giữ phiên bản đang dùng, cơ hội mới dùng phiên bản mới nhất. Chỉ dùng kiểu trường an toàn — không SQL, không mã, không biểu thức." : "Stage names are your organisation's data. Saving always creates a new version: existing opportunities keep theirs, new ones use the latest. Only safe field types — no SQL, code or expressions."}>
     <Fragment slot="actions">
@@ -50,8 +52,8 @@ const outcomeName: Record<string, [string, string]> = { open: ["Open", "Đang m�
         <td><code>{stage.id}</code></td>
         <td><span class:list={["ws-badge", stage.outcome === "won" ? "ok" : stage.outcome === "lost" ? "bad" : stage.outcome === "paused" ? "warn" : "info"]}>{outcomeName[stage.outcome]?.[vi ? 1 : 0] ?? stage.outcome}</span></td>
         <td>{stage.milestone ?? "—"}</td>
-        <td>{stage.requires?.length ? stage.requires.map((key) => requirementLabel(shown.def, key, vi)).join(" · ") : "—"}</td>
-        <td>{stage.skippable ? (vi ? "Có, cần lý do" : "Yes, with a reason") : "—"}</td>
+        <td class="rec-chips">{stage.requires?.length ? stage.requires.map((key) => <span class="ws-badge">{requirementLabel(shown.def, key, vi)}</span>) : "—"}</td>
+        <td>{stage.skippable ? <span class="ws-badge warn">{vi ? "Bỏ qua được, cần lý do" : "Skippable, reason needed"}</span> : "—"}</td>
       </tr>)}</tbody>
     </DataTable>
     <p class="crm-help">{vi ? "Kanban: mỗi giai đoạn đang mở là một cột; giai đoạn Thắng và Thua là vùng thả khi kéo thẻ. Giai đoạn đóng cần đủ điều kiện như khi chuyển trên trang cơ hội." : "Board: each open stage is a column; Won and Lost stages are drop zones while dragging. Closing stages need the same requirements as on the opportunity page."}</p>
@@ -60,10 +62,10 @@ const outcomeName: Record<string, [string, string]> = { open: ["Open", "Đang m�
   {shown && <div class="rec-row">
     <section class="crm-sheet" aria-labelledby="fields-h">
       <h2 class="crm-h2" id="fields-h">{vi ? "Trường thông tin" : "Fields"} <span class="ws-badge">{shown.def.fields.length}</span></h2>
-      {shown.def.fields.length ? <DataTable label={vi ? "Trường thông tin" : "Fields"} vi={vi} minWidth="420px">
+      {shown.def.fields.length ? <details class="crm-disclosure"><summary>{vi ? `Xem ${shown.def.fields.length} trường theo giai đoạn` : `Show ${shown.def.fields.length} fields by stage`}</summary><DataTable label={vi ? "Trường thông tin" : "Fields"} vi={vi} minWidth="420px">
         <thead><tr><th scope="col">{vi ? "Tên hiển thị" : "Label"}</th><th scope="col">{vi ? "Kiểu" : "Type"}</th><th scope="col">{vi ? "Hiện từ" : "From stage"}</th></tr></thead>
-        <tbody>{shown.def.fields.map((field) => <tr><td>{vi ? field.vi : field.en} <code>{field.key}</code></td><td>{field.type}</td><td>{stageLabel(shown.def, field.stage, vi)}</td></tr>)}</tbody>
-      </DataTable> : <p class="crm-empty">{vi ? "Chưa có trường." : "No fields."}</p>}
+        <tbody>{shown.def.fields.map((field) => <tr><td>{vi ? field.vi : field.en} <code>{field.key}</code></td><td><span class="ws-badge">{field.type}</span></td><td>{stageLabel(shown.def, field.stage, vi)}</td></tr>)}</tbody>
+      </DataTable></details> : <p class="crm-empty">{vi ? "Chưa có trường." : "No fields."}</p>}
     </section>
     <section class="crm-sheet" aria-labelledby="checks-h">
       <h2 class="crm-h2" id="checks-h">{vi ? "Checklist và gói được phép" : "Checklist and allowed offers"}</h2>
@@ -148,4 +150,5 @@ const outcomeName: Record<string, [string, string]> = { open: ["Open", "Đang m�
     </fieldset>
     <Fragment slot="foot"><a class="ws-btn" href={`${base}/admin/playbooks`}>{vi ? "Hủy" : "Cancel"}</a><button class="ws-btn primary" type="submit">{isNew ? (vi ? "Tạo playbook" : "Create playbook") : (vi ? "Lưu thành phiên bản mới" : "Save as new version")}</button></Fragment>
   </Sheet>}
+  </CrmSetupLayout>
 </CrmShell>

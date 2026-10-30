@@ -11,6 +11,8 @@ import ButtonGroup from "../workspace/ui/ButtonGroup.astro";
 import RecordTabs from "../workspace/ui/RecordTabs.astro";
 import RelatedList from "../workspace/ui/RelatedList.astro";
 import Sheet from "../workspace/ui/Sheet.astro";
+import { activityKind, activityName, activitySummary } from "../../lib/crm/activity";
+import { monthGroups } from "../../lib/crm/feed";
 import Feed from "../workspace/ui/Feed.astro";
 import DataTable from "../workspace/ui/DataTable.astro";
 import { formatDate, formatDateTime, label, options } from "../../lib/crm/i18n";
@@ -21,7 +23,7 @@ import "../../styles/crm-sales.css";
 import "../../styles/record.css";
 
 type Props = AccountProps;
-const { ctx, state, account, contacts, editable, opportunities, canEdit, duplicates, playbookNames, playbooks, owners, names, stageNames } = Astro.props;
+const { ctx, state, account, contacts, editable, opportunities, canEdit, duplicates, playbookNames, playbooks, owners, names, stageNames, events } = Astro.props;
 const { lang, vi, base } = ctx;
 const here = `${base}/accounts/${account.id}`;
 const tab = Astro.url.searchParams.get("tab") === "details" ? "details" : "related";
@@ -40,6 +42,11 @@ const unknownCount = openOpps.filter((opp) => opp.estimated_value_vnd === null).
 const openValue = openOpps.length === 0 ? "—" : unknownCount === openOpps.length ? (vi ? "Chưa biết" : "Unknown") : `${formatVnd(knownValue, vi)}${unknownCount ? (vi ? ` + ${unknownCount} chưa biết` : ` + ${unknownCount} unknown`) : ""}`;
 const upcoming = openOpps.filter((opp) => opp.next_action).sort((a, b) => (a.next_action_due ?? "9999").localeCompare(b.next_action_due ?? "9999")).slice(0, 8)
   .map((opp) => ({ title: opp.next_action, meta: `${vi ? "Cơ hội" : "Opportunity"}: ${opp.title}`, when: opp.next_action_due ? formatDate(opp.next_action_due, lang) : (vi ? "Chưa có hạn" : "No due date"), kind: "task" as const }));
+const oppTitle = Object.fromEntries(opportunities.map((opp) => [opp.id, opp.title]));
+const historyGroups = monthGroups(events, vi).map((group) => ({ label: group.label, items: group.items.map((event) => {
+  const text = activitySummary(event.kind, event.body, vi, playbookNames);
+  return { title: event.kind === "note" && text ? text : activityName(event.kind, vi), meta: [`${vi ? "Cơ hội" : "Opportunity"}: ${oppTitle[event.opportunity_id] ?? "—"}`, event.kind === "note" ? "" : text, event.actor_name].filter(Boolean).join(" · "), when: formatDateTime(event.created_at, lang), kind: activityKind(event.kind) };
+}) }));
 const fieldLabels: Record<string, string> = vi
   ? { contact_id: "Người liên hệ", playbook_key: "Quy trình bán", source_channel: "Kênh", owner_id: "Người phụ trách", name: "Tên", phone: "Điện thoại", email: "Email", consent_evidence: "Bằng chứng đồng ý", dnc_reason: "Lý do" }
   : { contact_id: "Contact", playbook_key: "Sales playbook", source_channel: "Channel", owner_id: "Owner", name: "Name", phone: "Phone", email: "Email", consent_evidence: "Consent evidence", dnc_reason: "Reason" };
@@ -131,9 +138,10 @@ const fieldLabels: Record<string, string> = vi
         <section class="ws-sheet-panel" aria-labelledby="act-h">
           <div class="rec-head"><h2 id="act-h">{vi ? "Hoạt động" : "Activity"}</h2></div>
           <div class="rec-body">
-            {canEdit && <div class="rec-compose"><a class="ws-btn sm" href="#sheet-opportunity">{vi ? "Tạo cơ hội" : "New opportunity"}</a><a class="ws-btn sm" href="#sheet-contact-new">{vi ? "Tạo liên hệ" : "New contact"}</a></div>}
+            {canEdit && <div class="ws-bg" role="group" aria-label={vi ? "Thao tác" : "Actions"}><a class="ws-btn sm" href="#sheet-opportunity">{vi ? "Tạo cơ hội" : "New opportunity"}</a><a class="ws-btn sm" href="#sheet-contact-new">{vi ? "Tạo liên hệ" : "New contact"}</a><a class="ws-btn sm" href="#sheet-account">{vi ? "Sửa ghi chú" : "Edit notes"}</a></div>}
             <p class="rec-feed-h"><span>{vi ? "Sắp tới & quá hạn" : "Upcoming and overdue"}</span></p>
             <Feed items={upcoming} empty={vi ? "Không có bước tiếp theo trên các cơ hội đang mở." : "No next steps on open opportunities."} />
+            {historyGroups.map((group) => <><p class="rec-feed-h"><span>{group.label}</span><span>{group.items.length}</span></p><Feed items={group.items} empty="" /></>)}
             {ctx.actor.manager && duplicates.length > 0 && <div class="rec-alert"><span class="ws-feed-ic warn" aria-hidden="true">!</span><div>
               <strong>{vi ? `Có thể trùng: ${duplicates.length}` : `Possible duplicates: ${duplicates.length}`}</strong>
               <ul class="rec-cv-dups">{duplicates.map((item) => <li><a href={`${base}/accounts/${item.id}`}>{item.name}</a><span>{item.region}</span></li>)}</ul>

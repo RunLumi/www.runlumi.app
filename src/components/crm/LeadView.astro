@@ -12,6 +12,7 @@ import RelatedList from "../workspace/ui/RelatedList.astro";
 import RecordPath from "../workspace/ui/PathPanel.astro";
 import RecordTabs from "../workspace/ui/RecordTabs.astro";
 import Sheet from "../workspace/ui/Sheet.astro";
+import { monthGroups } from "../../lib/crm/feed";
 import Feed from "../workspace/ui/Feed.astro";
 import { formatDate, formatDateTime, label, options } from "../../lib/crm/i18n";
 import { leadAgeHours, overTarget, reasonLabel, statusLabel } from "../../lib/crm/leads";
@@ -54,7 +55,7 @@ const eventText = (kind: string, raw: string): string => {
     default: return kind;
   }
 };
-const feed = events.map((event) => ({ title: eventText(event.kind, event.body), meta: event.actor_name, when: formatDateTime(event.created_at, lang), kind: (event.kind === "lead_note" ? "note" : event.kind === "lead_disqualified" ? "warn" : "event") as "note" | "warn" | "event" }));
+const feedGroups = monthGroups(events, vi).map((group) => ({ label: group.label, items: group.items.map((event) => ({ title: eventText(event.kind, event.body), meta: event.actor_name, when: formatDateTime(event.created_at, lang), kind: (event.kind === "lead_note" ? "note" : event.kind === "lead_disqualified" ? "warn" : "event") as "note" | "warn" | "event" })) }));
 const convertErrors = state.intent === "lead_convert" ? state.errors : {};
 const accountMode = v("lead_convert", "account_mode", convertAccount ? "existing" : (matches.accounts.length ? "existing" : "new"));
 const contactMode = v("lead_convert", "contact_mode", matches.contacts.some((item) => item.account_id === convertAccount) ? "existing" : "new");
@@ -129,11 +130,11 @@ const dupCount = matches.accounts.length + matches.contacts.length;
         <section class="ws-sheet-panel" id="activity" aria-label={vi ? "Hoạt động và chi tiết" : "Activity and details"}>
           <RecordTabs label={vi ? "Phần của Lead" : "Lead sections"} current={tab} tabs={[{ key: "activity", label: vi ? "Hoạt động" : "Activity", href: `${here}#activity` }, { key: "details", label: vi ? "Chi tiết" : "Details", href: `${here}?tab=details#activity` }]} />
           {tab === "activity" ? <div class="rec-body">
-            {canEdit && <div class="rec-compose"><a class="ws-btn sm" href="#sheet-note">{vi ? "Ghi chú" : "Add note"}</a>{lead.state === "open" && <a class="ws-btn sm" href="#sheet-edit">{vi ? "Đặt bước tiếp theo" : "Set next step"}</a>}</div>}
+            {canEdit && <div class="ws-bg" role="group" aria-label={vi ? "Ghi hoạt động" : "Log activity"}><a class="ws-btn sm" href="#sheet-call">{vi ? "Ghi cuộc gọi" : "Log a call"}</a><a class="ws-btn sm" href="#sheet-message">{vi ? "Ghi tin nhắn" : "Log a message"}</a><a class="ws-btn sm" href="#sheet-meeting">{vi ? "Ghi buổi gặp" : "Log a meeting"}</a><a class="ws-btn sm" href="#sheet-note">{vi ? "Ghi chú" : "Note"}</a>{lead.state === "open" && <a class="ws-btn sm" href="#sheet-edit">{vi ? "Đặt bước tiếp theo" : "Set next step"}</a>}</div>}
             <p class="rec-feed-h"><span>{vi ? "Sắp tới & quá hạn" : "Upcoming and overdue"}</span></p>
             {lead.state === "open" && lead.next_action ? <Feed empty="" items={[{ title: lead.next_action, meta: vi ? "Bước tiếp theo" : "Next step", when: lead.next_action_due ? formatDate(lead.next_action_due, lang) : (vi ? "Chưa có hạn" : "No due date"), kind: "task" }]} /> : <p class="rec-path-note">{vi ? "Chưa có bước tiếp theo." : "No next step set."}</p>}
-            <p class="rec-feed-h"><span>{vi ? "Lịch sử" : "History"}</span><span>{events.length}</span></p>
-            <Feed items={feed} empty={vi ? "Chưa có hoạt động." : "No activity yet."} />
+
+            {feedGroups.length ? feedGroups.map((group) => <><p class="rec-feed-h"><span>{group.label}</span><span>{group.items.length}</span></p><Feed items={group.items} empty="" /></>) : <p class="rec-path-note">{vi ? "Chưa có hoạt động." : "No activity yet."}</p>}
           </div> : <div class="rec-body">
             <h3 class="rec-sec">{vi ? "Thông tin Lead" : "Lead information"}</h3>
             <dl class="rec-fields">
@@ -211,6 +212,27 @@ const dupCount = matches.accounts.length + matches.contacts.length;
     
         <Hidden intent="lead_note" state={state} />
         <Field name="note" id="ln-note" type="textarea" label={vi ? "Ghi chú (cuộc gọi, tin nhắn, gặp mặt)" : "Note (call, message, meeting)"} lang={lang} value={v("lead_note", "note")} error={e("lead_note", "note")} maxlength={3000} />
+      <Fragment slot="foot"><a class="ws-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class="ws-btn primary" type="submit">{vi ? "Lưu ghi chú" : "Save note"}</button></Fragment>
+  </Sheet>}
+
+  {canEdit && <Sheet id="sheet-call" vi={vi} title={vi ? "Ghi cuộc gọi" : "Log a call"}  closeHref={here} action={`${here}#activity`}>
+    
+        <Hidden intent="lead_note" state={state} />
+        <Field name="note" id="ln-call" type="textarea" label={vi ? "Ghi chú (cuộc gọi, tin nhắn, gặp mặt)" : "Note (call, message, meeting)"} lang={lang} value={vi ? "Cuộc gọi: " : "Call: "}  maxlength={3000} />
+      <Fragment slot="foot"><a class="ws-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class="ws-btn primary" type="submit">{vi ? "Lưu ghi chú" : "Save note"}</button></Fragment>
+  </Sheet>}
+
+  {canEdit && <Sheet id="sheet-message" vi={vi} title={vi ? "Ghi tin nhắn" : "Log a message"}  closeHref={here} action={`${here}#activity`}>
+    
+        <Hidden intent="lead_note" state={state} />
+        <Field name="note" id="ln-message" type="textarea" label={vi ? "Ghi chú (cuộc gọi, tin nhắn, gặp mặt)" : "Note (call, message, meeting)"} lang={lang} value={vi ? "Tin nhắn: " : "Message: "}  maxlength={3000} />
+      <Fragment slot="foot"><a class="ws-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class="ws-btn primary" type="submit">{vi ? "Lưu ghi chú" : "Save note"}</button></Fragment>
+  </Sheet>}
+
+  {canEdit && <Sheet id="sheet-meeting" vi={vi} title={vi ? "Ghi buổi gặp" : "Log a meeting"}  closeHref={here} action={`${here}#activity`}>
+    
+        <Hidden intent="lead_note" state={state} />
+        <Field name="note" id="ln-meeting" type="textarea" label={vi ? "Ghi chú (cuộc gọi, tin nhắn, gặp mặt)" : "Note (call, message, meeting)"} lang={lang} value={vi ? "Buổi gặp: " : "Meeting: "}  maxlength={3000} />
       <Fragment slot="foot"><a class="ws-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class="ws-btn primary" type="submit">{vi ? "Lưu ghi chú" : "Save note"}</button></Fragment>
   </Sheet>}
 

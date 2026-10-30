@@ -1,0 +1,34 @@
+---
+// CRM setup area (Settings board): a left setup navigation in the board's
+// labelled groups, then the page in the content column. Lists only the setup
+// pages that exist and that this person may open (nav.ts permissions).
+import GroupedMenu, { type MenuGroup } from "../workspace/ui/GroupedMenu.astro";
+import { localized, moduleByKey, visibleLinks } from "../../lib/workspace/nav";
+
+interface Props { vi: boolean; current: string }
+const { vi, current } = Astro.props;
+const user = Astro.locals.workspace!;
+const open = new Set(visibleLinks(user, moduleByKey("crm")).map((link) => link.key));
+const groups: { key: string; label: [string, string]; items: { key: string; label: [string, string]; path: string; icon: "playbooks" | "offers" | "lead_settings" | "assignment" | "commission" | "fulfillment" }[] }[] = [
+  { key: "opps", label: ["Opportunities", "Cơ hội"], items: [
+    { key: "playbooks", label: ["Stages and playbooks", "Giai đoạn & Pipeline"], path: "/crm/admin/playbooks", icon: "playbooks" },
+    { key: "offers", label: ["Offers and prices", "Gói và giá"], path: "/crm/admin/offers", icon: "offers" },
+  ] },
+  { key: "leads", label: ["Leads", "Leads"], items: [
+    { key: "lead-settings", label: ["Lead statuses", "Trạng thái Lead"], path: "/crm/admin/leads", icon: "lead_settings" },
+    { key: "operations", label: ["Lead assignment and cohorts", "Phân công Lead và cohort"], path: "/crm/admin", icon: "assignment" },
+  ] },
+  { key: "ops", label: ["Money and delivery", "Tiền và bàn giao"], items: [
+    { key: "commission", label: ["Commission", "Hoa hồng"], path: "/crm/commission", icon: "commission" },
+    { key: "fulfillment", label: ["Fulfillment", "Bàn giao"], path: "/crm/fulfillment", icon: "fulfillment" },
+  ] },
+];
+const menu: MenuGroup[] = groups.map((group) => ({
+  key: group.key, label: group.label[vi ? 1 : 0],
+  items: group.items.filter((item) => open.has(item.key)).map((item) => ({ key: item.key, label: item.label[vi ? 1 : 0], href: localized(item.path, vi), icon: item.icon, current: item.key === current })),
+})).filter((group) => group.items.length > 0);
+---
+<div class="rec-setup-area">
+  {menu.length > 1 || menu[0]?.items.length > 1 ? <aside class="rec-setup-nav"><GroupedMenu groups={menu} label={vi ? "Thiết lập CRM" : "CRM setup"} idPrefix="setup" variant="side" title={vi ? "Thiết lập CRM" : "CRM setup"} icon="playbooks" /></aside> : null}
+  <div class="rec-setup-main"><slot /></div>
+</div>
