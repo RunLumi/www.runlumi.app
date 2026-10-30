@@ -352,3 +352,7 @@ body:has(.cl-sheet-wrap.open), body:has(.cl-sheet-wrap:target) { overflow: hidde
 .cl-list .cl-oh { padding-bottom: 12px; }
 .cl-eyebrow .cl-badge { text-transform: none; letter-spacing: 0; }
 .cl-detail .crm-field > label { color: #344054; font-size: 13px; font-weight: 500; }
+.cl-dash > * { margin: 0; }
+.cl-tbl td a { color: var(--crm-blue); text-decoration: none; }
+.cl-tbl td a:hover { text-decoration: underline; }
+.cl-item .cl-badge { flex: none; margin-top: 2px; }
