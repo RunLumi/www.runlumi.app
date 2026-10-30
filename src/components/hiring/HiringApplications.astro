@@ -1,6 +1,7 @@
 ---
 import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
-import PageHeader from "../workspace/ui/PageHeader.astro";
+import PageHeader from "../workspace/record/ObjectHeader.astro";
+import "../../styles/record.css";
 import DataTable from "../workspace/ui/DataTable.astro";
 import "../../styles/modules.css";
 import { applicationStatuses } from "../../lib/ats";
@@ -15,8 +16,8 @@ const query = (changes: Record<string, string>) => {
 };
 ---
 <WorkspaceShell title={vi ? "Ứng viên" : "Candidates"} lang={lang} user={user} module="hiring" current="applications">
-  <div class="md-scope">
-  <PageHeader vi={vi} title={vi ? "Ứng viên" : "Candidates"} crumbs={[{ label: vi ? "Tuyển dụng" : "Hiring", href: deskPath(lang, "/admin/jobs") }, { label: vi ? "Ứng viên" : "Candidates" }]} lede={vi ? "Hồ sơ của mọi vị trí trong một danh sách. Lọc theo vị trí và giai đoạn, rồi mở hồ sơ để đọc bài làm và ghi đánh giá." : "Applications for every role in one list. Filter by role and stage, then open an application to read the work and record your review."}>
+  <div class="md-scope rec-module">
+  <PageHeader icon="candidates" tone="hiring" eyebrow={vi ? "Tuyển dụng" : "Hiring"} vi={vi} title={vi ? "Ứng viên" : "Candidates"} crumbs={[{ label: vi ? "Tuyển dụng" : "Hiring", href: deskPath(lang, "/admin/jobs") }, { label: vi ? "Ứng viên" : "Candidates" }]} lede={vi ? "Hồ sơ của mọi vị trí trong một danh sách. Lọc theo vị trí và giai đoạn, rồi mở hồ sơ để đọc bài làm và ghi đánh giá." : "Applications for every role in one list. Filter by role and stage, then open an application to read the work and record your review."}>
     {user.can("hiring.export") && <a slot="actions" class="crm-button secondary" href={`/api/admin/applications/export.csv?job=${encodeURIComponent(jobId)}&status=${encodeURIComponent(status)}`}>{vi ? "Xuất CSV" : "Export CSV"}</a>}
   </PageHeader>
 

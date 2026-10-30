@@ -1,6 +1,7 @@
 ---
 import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
-import PageHeader from "../workspace/ui/PageHeader.astro";
+import PageHeader from "../workspace/record/ObjectHeader.astro";
+import "../../styles/record.css";
 import "../../styles/modules.css";
 import HiringInterviews from "./HiringInterviews.astro";
 import { applicationStatuses } from "../../lib/ats";
@@ -12,8 +13,8 @@ const { lang, vi, user, application, answers, files, notes, events, interviews, 
 const saved = flash.saved === "1" || (!!flash.saved && !["interview", "scorecard"].includes(flash.saved));
 ---
 <WorkspaceShell title={application.full_name} lang={lang} user={user} module="hiring" current="applications">
-  <div class="md-scope">
-  <PageHeader vi={vi} title={application.full_name} crumbs={[{ label: vi ? "Tuyển dụng" : "Hiring", href: deskPath(lang, "/admin/jobs") }, { label: vi ? "Ứng viên" : "Candidates", href: deskPath(lang, "/admin/jobs/applications") }, { label: application.full_name }]}>
+  <div class="md-scope rec-module">
+  <PageHeader icon="candidates" tone="hiring" eyebrow={vi ? "Ứng viên" : "Candidate"} vi={vi} title={application.full_name} crumbs={[{ label: vi ? "Tuyển dụng" : "Hiring", href: deskPath(lang, "/admin/jobs") }, { label: vi ? "Ứng viên" : "Candidates", href: deskPath(lang, "/admin/jobs/applications") }, { label: application.full_name }]}>
     <p class="crm-lede" slot="lede"><span class:list={["crm-badge", statusTone(application.status)]}>{statusName(application.status, lang)}</span> · {application.job_title} · {vi ? "Nộp" : "Applied"} {deskDate(application.created_at, lang)} · <span class="crm-num">{application.public_id}</span></p>
     <div slot="actions" class="crm-actions">
       {user.can("hiring.applications.manage") && <form class="crm-actions" method="post" action={`/api/admin/applications/${application.id}/status`}>

@@ -253,3 +253,16 @@
 .rec-setup .crm-grid { gap: 12px; }
 .rec-setup .crm-filter { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
 .rec .ws-tbl code, .rec-setup .ws-tbl code { white-space: nowrap; font-size: 13px; color: #5E6677; }
+
+/* Modules without boards (Tuyển dụng, HRM, Tài chính) on the record frame. */
+.rec-module { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.rec-module > .crm-sheet, .rec-module .crm-grid > .crm-sheet, .rec-module .crm-grid > div > .crm-sheet, .rec-module section.crm-sheet, .rec-module .md-section { background: #fff; border: 1px solid #D9DEE8; border-radius: 8px; box-shadow: 0 1px 2px rgba(16, 42, 67, .06); padding: 16px 20px; }
+.rec-module .crm-sheet + .crm-sheet { margin-top: 12px; }
+.rec-module .crm-h2 { font: 600 16px/1.3 var(--font-sans, Geist, system-ui, sans-serif); color: #102A43; }
+.rec-module .crm-help, .rec-module .crm-empty, .rec-module .crm-row-meta, .rec-module .crm-list { font-size: 13px; }
+.rec-module .crm-field > label, .rec-module .crm-label { font: 500 13px/1.2 var(--font-sans, Geist, system-ui, sans-serif); color: #344054; }
+.rec-module .crm-input, .rec-module .crm-select { min-height: 40px; font-size: 15px; }
+.rec-objhead .rec-oh { padding-bottom: 14px; }
+.rec-objhead .crm-facts { margin: 0; }
+.rec-objhead .crm-lede { font-size: 13px; color: #5E6677; margin: 4px 0 0; }
+.rec-objhead .crm-actions { margin: 0; }
