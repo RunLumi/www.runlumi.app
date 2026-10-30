@@ -1,5 +1,7 @@
 ---
 import CrmShell from "../../layouts/CrmShell.astro";
+import SetupFrame from "../workspace/ui/SetupFrame.astro";
+import "../../styles/record.css";
 import Field from "./Field.astro";
 import FormNotices from "./FormNotices.astro";
 import Hidden from "./Hidden.astro";
@@ -21,11 +23,8 @@ const fieldLabels: Record<string, string> = vi
   : { business: "Business", contact_name: "Contact", phone: "Phone / Zalo", email: "Email", need: "Need", playbook_key: "Kind of need", consent: "Contact consent" };
 ---
 <CrmShell title={vi ? "Giới thiệu khách" : "Referrals"} lang={lang} actor={ctx.actor} current="referrals">
-  <div class="crm-head"><div>
-    <p class="crm-eyebrow">{vi ? "Giới thiệu khách" : "Referrals"}</p>
-    <h1 class="crm-h1">{vi ? "Giới thiệu một doanh nghiệp cho đội Lumi." : "Introduce a business to the Lumi team."}</h1>
-    <p class="crm-lede">{vi ? "Quản lý bán hàng sẽ giao cho người phụ trách. Bạn được ghi công là người giới thiệu và theo dõi trạng thái tại đây; hoa hồng giới thiệu tính theo chính sách đã duyệt." : "A Sales Manager assigns it to an owner. You are credited as the referrer and can follow its status here; referral commission follows the approved policy."}</p>
-  </div><a class="crm-button secondary" href={`${base}/commission`}>{vi ? "Hoa hồng của tôi" : "My commission"}</a></div>
+  <SetupFrame vi={vi} icon="referrals" eyebrow={vi ? "Bán hàng" : "Selling"} title={vi ? "Giới thiệu khách" : "Referrals"} info={vi ? "Quản lý bán hàng sẽ giao cho người phụ trách. Bạn được ghi công là người giới thiệu và theo dõi trạng thái tại đây; hoa hồng giới thiệu tính theo chính sách đã duyệt." : "A Sales Manager assigns it to an owner. You are credited as the referrer and can follow its status here; referral commission follows the approved policy."}>
+    <a slot="actions" class="ws-btn" href={`${base}/commission`}>{vi ? "Hoa hồng của tôi" : "My commission"}</a>
   <FormNotices state={state} lang={lang} saved={Astro.url.searchParams.get("saved")} fieldLabels={fieldLabels} />
   <div class="crm-grid two">
     <section class="crm-sheet" id="mine" aria-labelledby="mine-h">
@@ -56,4 +55,5 @@ const fieldLabels: Record<string, string> = vi
       </form>
     </aside>
   </div>
+  </SetupFrame>
 </CrmShell>

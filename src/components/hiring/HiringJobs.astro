@@ -1,6 +1,9 @@
 ---
 import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
-import PageHeader from "../workspace/ui/PageHeader.astro";
+import ListHeader from "../workspace/ui/ListHeader.astro";
+import ButtonGroup from "../workspace/ui/ButtonGroup.astro";
+import "../../styles/record.css";
+import Sheet from "../workspace/ui/Sheet.astro";
 import DataTable from "../workspace/ui/DataTable.astro";
 import "../../styles/modules.css";
 import { deskPath, statusName, statusTone } from "../../lib/hiring/desk";
@@ -12,17 +15,14 @@ const open = jobs.filter((job) => job.status === "published").length;
 const toReview = jobs.reduce((sum, job) => sum + (job.unread_count ?? 0), 0);
 ---
 <WorkspaceShell title={vi ? "Vị trí tuyển dụng" : "Roles"} lang={lang} user={user} module="hiring" current="jobs">
-  <div class="md-scope">
-    <PageHeader vi={vi} title={vi ? "Vị trí tuyển dụng" : "Roles"} crumbs={[{ label: vi ? "Tuyển dụng" : "Hiring", href: deskPath(lang, "/admin/jobs") }, { label: vi ? "Vị trí" : "Roles" }]} lede={vi ? "Tạo vị trí ở dạng nháp, đăng khi sẵn sàng tuyển và đóng khi đủ người. Ứng viên chỉ thấy vị trí đã đăng." : "Create a role as a draft, publish it when you are ready to hire and close it when it is filled. Candidates see published roles only."}>
-      <dl class="crm-facts" slot="actions" style="min-width:min(100%,320px)">
-        <div><dt>{vi ? "Đang tuyển" : "Open roles"}</dt><dd class="crm-figure">{open}</dd></div>
-        <div><dt>{vi ? "Hồ sơ cần xem" : "To review"}</dt><dd class="crm-figure"><a class="crm-link" href={deskPath(lang, "/admin/jobs/applications?status=new")}>{toReview}</a></dd></div>
-      </dl>
-    </PageHeader>
+  <div class="md-scope rec-module">
     {error === "slug" && <div class="crm-notice bad" role="alert">{vi ? "Đường dẫn (slug) đã được dùng. Hãy chọn đường dẫn khác." : "That slug is already in use. Choose another."}</div>}
 
-    <section aria-labelledby="jobs-h">
-      <div class="md-section-head"><h2 class="crm-h2" id="jobs-h">{vi ? "Các vị trí" : "Roles"}<span class="crm-count">{jobs.length}</span></h2><a class="crm-link" href="#new-h">{vi ? "Tạo vị trí mới" : "New role"}</a></div>
+    <ListHeader vi={vi} icon="roles" tone="hiring" object={vi ? "Tuyển dụng" : "Hiring"} title={vi ? "Vị trí tuyển dụng" : "Roles"} meta={vi ? `${jobs.length} vị trí · ${open} đang tuyển · ${toReview} hồ sơ cần xem` : `${jobs.length} roles · ${open} open · ${toReview} applications to review`}>
+      <ButtonGroup slot="actions" label={vi ? "Thao tác" : "Actions"}>
+        <a class="ws-btn" href="#new-h">{vi ? "Tạo vị trí mới" : "New role"}</a>
+        <a class="ws-btn" href={deskPath(lang, "/admin/jobs/applications?status=new")}>{vi ? "Hồ sơ cần xem" : "To review"}</a>
+      </ButtonGroup>
       {jobs.length ? <DataTable vi={vi} label={vi ? "Các vị trí" : "Roles"} frozen={1} frozenNames={vi ? "Vị trí" : "Role"} minWidth="56rem">
         <thead><tr>
           <th scope="col">{vi ? "Vị trí" : "Role"}</th>
@@ -42,12 +42,12 @@ const toReview = jobs.reduce((sum, job) => sum + (job.unread_count ?? 0), 0);
           <td>{job.location || "—"}</td>
           <td class="nowrap crm-meta">/jobs/{job.slug}</td>
         </tr>)}</tbody>
-      </DataTable> : <p class="crm-empty">{vi ? "Chưa có vị trí. Tạo nháp ở bên dưới; vị trí chỉ công khai khi bạn đăng." : "No roles yet. Create a draft below; it stays private until you publish it."}</p>}
-    </section>
+      </DataTable> : <p class="crm-empty">{vi ? "Chưa có vị trí. Bấm “Tạo vị trí mới” để tạo nháp; vị trí chỉ công khai khi bạn đăng." : "No roles yet. Select “New role” to create a draft; it stays private until you publish it."}</p>}
+    </ListHeader>
 
-    <section class="crm-sheet md-section" aria-labelledby="new-h">
-      <h2 class="crm-h2" id="new-h">{vi ? "Vị trí mới" : "New role"}</h2>
-      <form class="crm-form" method="post" action="/api/admin/jobs/create">
+  </div>
+  <Sheet id="new-h" vi={vi} title={vi ? "Vị trí mới" : "New role"} closeHref={deskPath(lang, "/admin/jobs")} action="/api/admin/jobs/create">
+      
         <input type="hidden" name="lang" value={lang} />
         <div class="crm-form-grid">
           <div class="crm-field"><label for="title">{vi ? "Tên vị trí" : "Title"} *</label><input class="crm-input" id="title" name="title" required maxlength="160" /></div>
@@ -56,8 +56,6 @@ const toReview = jobs.reduce((sum, job) => sum + (job.unread_count ?? 0), 0);
           <div class="crm-field"><label for="location">{vi ? "Địa điểm" : "Location"}</label><input class="crm-input" id="location" name="location" placeholder="TP.HCM / Remote" maxlength="160" /></div>
         </div>
         <div class="crm-field"><label for="summary">{vi ? "Tóm tắt một dòng" : "One-line summary"} *</label><textarea class="crm-textarea" id="summary" name="summary" required maxlength="500"></textarea></div>
-        <div class="crm-actions"><button class="crm-button" type="submit">{vi ? "Tạo nháp" : "Create draft"}</button></div>
-      </form>
-    </section>
-  </div>
+        <Fragment slot="foot"><a class="ws-btn" href={deskPath(lang, "/admin/jobs")}>{vi ? "Hủy" : "Cancel"}</a><button class="ws-btn primary" type="submit">{vi ? "Tạo nháp" : "Create draft"}</button></Fragment>
+  </Sheet>
 </WorkspaceShell>
