@@ -191,7 +191,8 @@ body.crm.ws { background: var(--crm-paper); font-size: 15px; line-height: 1.5; }
 .ws-ltile strong { color: var(--crm-navy); font-size: 15px; }
 .ws-ltile span span { color: var(--crm-slate); font-size: 13px; line-height: 1.4; }
 .ws-oi { display: inline-grid; place-items: center; inline-size: 40px; block-size: 40px; flex: none; border-radius: 8px; background: var(--ws-tone, var(--crm-blue)); color: white; }
-.ws .ws-oi .ws-icon { color: white; }
+.ws .ws-oi .ws-icon, .ws .ws-ltile .ws-oi .ws-icon { color: white; }
+.ws .ws-ltile, .ws .ws-ltile[aria-current="page"] { font-weight: 400; }
 .ws-oi.sm { inline-size: 24px; block-size: 24px; border-radius: 5px; }
 
 /* Page area: 16px rhythm, panels 12px apart (board .page). */

@@ -146,6 +146,8 @@ async function seedData(helpers, admin, session) {
   const userId = await owner.userId();
   const now = new Date().toISOString();
   const { jobs, q } = helpers;
+  const roles = asRoles ? asRoles.split(",").map((role) => role.trim()) : [];
+  jobs(`INSERT OR IGNORE INTO workspace_notification_rules (id, name, events, recipients, email, created_by, created_at, updated_by, updated_at) VALUES ('rule_parity_stage', 'TEST Đổi giai đoạn cơ hội', '["stage","quote_accepted"]', ${q(JSON.stringify({ roles: roles.length ? roles.filter((role) => role.startsWith("sales")) : [], admins: !roles.length, users: [], record_owner: true }))}, 1, 'test', ${q(now)}, 'test', ${q(now)})`);
   try {
     jobs(`UPDATE hrm_settings SET enabled = 1, legal_entity = 'TEST Lumi', purpose = 'TEST parity', retention_policy = 'TEST', policy_reference = 'TEST', reviewed_by = ${q(userId)} WHERE id = 1`);
     if (asRoles && !asRoles.split(",").includes("employee")) await admin.post("/workspace/users", { intent: "grant", email: session.email, roles: [...asRoles.split(","), "employee"] });
