@@ -1,6 +1,8 @@
 ---
 import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
-import PageHeader from "../workspace/ui/PageHeader.astro";
+import RecordHeader from "../workspace/ui/RecordHeader.astro";
+import "../../styles/record.css";
+import Sheet from "../workspace/ui/Sheet.astro";
 import "../../styles/modules.css";
 import { deskDate, deskPath, statusName, statusTone } from "../../lib/hiring/desk";
 import type { jobPage } from "../../lib/hiring/pages";
@@ -13,35 +15,30 @@ const workplace: Record<string, [string, string]> = { Remote: ["Remote", "Từ x
 const transitions = job.status === "published" ? [["closed", vi ? "Đóng vị trí" : "Close role", "secondary"]] : job.status === "closed" ? [["draft", vi ? "Về nháp" : "Return to draft", "secondary"], ["published", vi ? "Mở lại" : "Reopen", ""]] : [["published", vi ? "Đăng tuyển" : "Publish", ""]];
 ---
 <WorkspaceShell title={job.title} lang={lang} user={user} module="hiring" current="jobs">
-  <div class="md-scope">
-  <PageHeader vi={vi} title={job.title} crumbs={[{ label: vi ? "Tuyển dụng" : "Hiring", href: deskPath(lang, "/admin/jobs") }, { label: vi ? "Vị trí" : "Roles", href: deskPath(lang, "/admin/jobs") }, { label: job.title }]}>
-    <p class="crm-lede" slot="lede"><span class:list={["crm-badge", statusTone(job.status)]}>{statusName(job.status, lang)}</span> · {vi ? "Cập nhật" : "Updated"} {deskDate(job.updated_at, lang)} · <a class="crm-link" href={`/jobs/${job.slug}`}>{vi ? "Trang công khai" : "Public page"}</a> · <a class="crm-link" href={deskPath(lang, `/admin/jobs/applications?job=${job.id}`)}>{total} {vi ? "hồ sơ" : "applications"}{open ? ` (${open} ${vi ? "cần xem" : "to review"})` : ""}</a></p>
+  <div class="md-scope rec-module">
+  <RecordHeader icon="roles" tone="hiring" object={vi ? "Vị trí" : "Role"} vi={vi} title={job.title} crumbs={[{ label: vi ? "Tuyển dụng" : "Hiring", href: deskPath(lang, "/admin/jobs") }, { label: vi ? "Vị trí" : "Roles", href: deskPath(lang, "/admin/jobs") }, { label: job.title }]}>
+    <p class="crm-lede" slot="sub"><span class:list={["crm-badge", statusTone(job.status)]}>{statusName(job.status, lang)}</span> · {vi ? "Cập nhật" : "Updated"} {deskDate(job.updated_at, lang)} · <a class="crm-link" href={`/jobs/${job.slug}`}>{vi ? "Trang công khai" : "Public page"}</a> · <a class="crm-link" href={deskPath(lang, `/admin/jobs/applications?job=${job.id}`)}>{total} {vi ? "hồ sơ" : "applications"}{open ? ` (${open} ${vi ? "cần xem" : "to review"})` : ""}</a></p>
     <div slot="actions" class="crm-actions">{transitions.map(([status, label, tone]) => <form method="post" action={`/api/admin/jobs/${job.id}/state`}><input type="hidden" name="lang" value={lang} /><input type="hidden" name="status" value={status} /><button class:list={["crm-button", tone]} type="submit">{label}</button></form>)}</div>
-  </PageHeader>
+  </RecordHeader>
   {errors.slug && <div class="crm-notice bad" role="alert">{vi ? "Đường dẫn (slug) đã được dùng. Hãy chọn đường dẫn khác." : "That slug is already in use. Choose another."}</div>}
   <div class="crm-grid two">
     <section class="crm-sheet" aria-labelledby="role-h">
-      <h2 class="crm-h2" id="role-h">{vi ? "Nội dung vị trí" : "Role"}</h2>
-      <form class="crm-form" method="post" action={`/api/admin/jobs/${job.id}/update`}>
-        <input type="hidden" name="lang" value={lang} />
-        <div class="crm-form-grid">
-          <div class="crm-field"><label for="title">{vi ? "Tên vị trí" : "Title"} *</label><input class="crm-input" id="title" name="title" value={job.title} required maxlength="160" /></div>
-          <div class="crm-field"><label for="slug">{vi ? "Đường dẫn (slug)" : "Slug"} *</label><input class="crm-input" id="slug" name="slug" value={job.slug} required maxlength="80" /></div>
-          <div class="crm-field"><label for="team">{vi ? "Nhóm" : "Team"}</label><input class="crm-input" id="team" name="team" value={job.team} maxlength="120" /></div>
-          <div class="crm-field"><label for="location">{vi ? "Địa điểm" : "Location"}</label><input class="crm-input" id="location" name="location" value={job.location} maxlength="160" /></div>
-          <div class="crm-field"><label for="employment_type">{vi ? "Hình thức" : "Employment"}</label><select class="crm-select" id="employment_type" name="employment_type">{Object.entries(employment).map(([value, names]) => <option value={value} selected={job.employment_type === value}>{names[vi ? 1 : 0]}</option>)}</select></div>
-          <div class="crm-field"><label for="workplace_type">{vi ? "Nơi làm việc" : "Workplace"}</label><select class="crm-select" id="workplace_type" name="workplace_type">{Object.entries(workplace).map(([value, names]) => <option value={value} selected={job.workplace_type === value}>{names[vi ? 1 : 0]}</option>)}</select></div>
-          <div class="crm-field wide"><label for="summary">{vi ? "Tóm tắt" : "Summary"} *</label><textarea class="crm-textarea" id="summary" name="summary" required maxlength="500">{job.summary}</textarea></div>
-          <div class="crm-field wide"><label for="description">{vi ? "Công việc" : "The work"}</label><textarea class="crm-textarea" id="description" name="description" maxlength="12000">{job.description}</textarea></div>
-          <div class="crm-field wide"><label for="responsibilities">{vi ? "Sẽ phụ trách (mỗi dòng một ý)" : "What they will own (one per line)"}</label><textarea class="crm-textarea" id="responsibilities" name="responsibilities" maxlength="12000">{job.responsibilities}</textarea></div>
-          <div class="crm-field wide"><label for="requirements">{vi ? "Điều quan trọng (mỗi dòng một ý)" : "What matters here (one per line)"}</label><textarea class="crm-textarea" id="requirements" name="requirements" maxlength="12000">{job.requirements}</textarea></div>
-          <div class="crm-field wide"><label for="application_note">{vi ? "Trước khi ứng tuyển" : "Before you apply"}</label><textarea class="crm-textarea" id="application_note" name="application_note" maxlength="6000">{job.application_note}</textarea></div>
-          <div class="crm-field"><label for="closes_at">{vi ? "Hạn nhận hồ sơ" : "Close applications at"}</label><input class="crm-input" id="closes_at" name="closes_at" type="datetime-local" value={job.closes_at ? job.closes_at.slice(0, 16) : ""} /></div>
-          <div class="crm-field"><label for="sort_order">{vi ? "Thứ tự hiển thị" : "Sort order"}</label><input class="crm-input" id="sort_order" name="sort_order" type="number" value={job.sort_order} /></div>
-        </div>
-        <p class="crm-help">{vi ? "Nội dung trang công khai hiện viết bằng một ngôn ngữ; hãy viết theo ngôn ngữ ứng viên mục tiêu." : "The public page is written in one language; write for the candidates you want to reach."}</p>
-        <div class="crm-actions"><button class="crm-button" type="submit">{vi ? "Lưu vị trí" : "Save role"}</button></div>
-      </form>
+      <div class="md-section-head"><h2 class="crm-h2" id="role-h">{vi ? "Nội dung vị trí" : "Role"}</h2><a class="ws-btn sm" href="#edit-role">{vi ? "Sửa" : "Edit"}</a></div>
+      <dl class="rec-fields">
+        <div><dt>{vi ? "Nhóm" : "Team"}</dt><dd>{job.team || "—"}</dd></div>
+        <div><dt>{vi ? "Địa điểm" : "Location"}</dt><dd>{job.location || "—"}</dd></div>
+        <div><dt>{vi ? "Hình thức" : "Employment"}</dt><dd>{employment[job.employment_type]?.[vi ? 1 : 0] ?? job.employment_type}</dd></div>
+        <div><dt>{vi ? "Nơi làm việc" : "Workplace"}</dt><dd>{workplace[job.workplace_type]?.[vi ? 1 : 0] ?? job.workplace_type}</dd></div>
+        <div><dt>{vi ? "Đường dẫn" : "Slug"}</dt><dd>/jobs/{job.slug}</dd></div>
+        <div><dt>{vi ? "Hạn nhận hồ sơ" : "Applications close"}</dt><dd>{job.closes_at ? deskDate(job.closes_at, lang) : "—"}</dd></div>
+      </dl>
+      <dl class="rec-fields one">
+        <div><dt>{vi ? "Tóm tắt" : "Summary"}</dt><dd>{job.summary}</dd></div>
+        <div><dt>{vi ? "Công việc" : "The work"}</dt><dd>{job.description || "—"}</dd></div>
+        <div><dt>{vi ? "Sẽ phụ trách" : "What they will own"}</dt><dd>{job.responsibilities || "—"}</dd></div>
+        <div><dt>{vi ? "Điều quan trọng" : "What matters here"}</dt><dd>{job.requirements || "—"}</dd></div>
+        <div><dt>{vi ? "Trước khi ứng tuyển" : "Before you apply"}</dt><dd>{job.application_note || "—"}</dd></div>
+      </dl>
     </section>
     <aside class="crm-grid">
       <section class="crm-sheet" aria-labelledby="test-h">
@@ -52,7 +49,7 @@ const transitions = job.status === "published" ? [["closed", vi ? "Đóng vị t
           <form method="post" action={`/api/admin/questions/${question.id}/delete`}><input type="hidden" name="lang" value={lang} /><input type="hidden" name="job_id" value={job.id} /><button class="crm-button small danger" type="submit">{vi ? "Xóa" : "Remove"}</button></form>
           <span class="crm-row-meta"><span>{kinds[question.kind]?.[vi ? 1 : 0] ?? question.kind}</span><span>{question.required ? (vi ? "bắt buộc" : "required") : (vi ? "không bắt buộc" : "optional")}</span></span>
         </li>)}</ul> : <p class="crm-empty">{vi ? "Chưa có câu hỏi." : "No questions yet."}</p>}
-        <details class="crm-disclosure" open={questions.length === 0}><summary>{vi ? "Thêm câu hỏi" : "Add a question"}</summary>
+        <details class="crm-disclosure"><summary>{vi ? "Thêm câu hỏi" : "Add a question"}</summary>
           <form class="crm-form" method="post" action={`/api/admin/jobs/${job.id}/questions`}>
             <input type="hidden" name="lang" value={lang} />
             <div class="crm-field"><label for="kind">{vi ? "Loại" : "Type"}</label><select class="crm-select" id="kind" name="kind">{Object.entries(kinds).map(([value, names]) => <option value={value}>{names[vi ? 1 : 0]}</option>)}</select></div>
@@ -77,4 +74,25 @@ const transitions = job.status === "published" ? [["closed", vi ? "Đóng vị t
     </aside>
   </div>
   </div>
+  <Sheet id="edit-role" vi={vi} title={vi ? "Sửa vị trí" : "Edit role"} open={!!errors.slug} closeHref={deskPath(lang, `/admin/jobs/${job.id}`)} action={`/api/admin/jobs/${job.id}/update`}>
+      
+        <input type="hidden" name="lang" value={lang} />
+        <div class="crm-form-grid">
+          <div class="crm-field"><label for="title">{vi ? "Tên vị trí" : "Title"} *</label><input class="crm-input" id="title" name="title" value={job.title} required maxlength="160" /></div>
+          <div class="crm-field"><label for="slug">{vi ? "Đường dẫn (slug)" : "Slug"} *</label><input class="crm-input" id="slug" name="slug" value={job.slug} required maxlength="80" /></div>
+          <div class="crm-field"><label for="team">{vi ? "Nhóm" : "Team"}</label><input class="crm-input" id="team" name="team" value={job.team} maxlength="120" /></div>
+          <div class="crm-field"><label for="location">{vi ? "Địa điểm" : "Location"}</label><input class="crm-input" id="location" name="location" value={job.location} maxlength="160" /></div>
+          <div class="crm-field"><label for="employment_type">{vi ? "Hình thức" : "Employment"}</label><select class="crm-select" id="employment_type" name="employment_type">{Object.entries(employment).map(([value, names]) => <option value={value} selected={job.employment_type === value}>{names[vi ? 1 : 0]}</option>)}</select></div>
+          <div class="crm-field"><label for="workplace_type">{vi ? "Nơi làm việc" : "Workplace"}</label><select class="crm-select" id="workplace_type" name="workplace_type">{Object.entries(workplace).map(([value, names]) => <option value={value} selected={job.workplace_type === value}>{names[vi ? 1 : 0]}</option>)}</select></div>
+          <div class="crm-field wide"><label for="summary">{vi ? "Tóm tắt" : "Summary"} *</label><textarea class="crm-textarea" id="summary" name="summary" required maxlength="500">{job.summary}</textarea></div>
+          <div class="crm-field wide"><label for="description">{vi ? "Công việc" : "The work"}</label><textarea class="crm-textarea" id="description" name="description" maxlength="12000">{job.description}</textarea></div>
+          <div class="crm-field wide"><label for="responsibilities">{vi ? "Sẽ phụ trách (mỗi dòng một ý)" : "What they will own (one per line)"}</label><textarea class="crm-textarea" id="responsibilities" name="responsibilities" maxlength="12000">{job.responsibilities}</textarea></div>
+          <div class="crm-field wide"><label for="requirements">{vi ? "Điều quan trọng (mỗi dòng một ý)" : "What matters here (one per line)"}</label><textarea class="crm-textarea" id="requirements" name="requirements" maxlength="12000">{job.requirements}</textarea></div>
+          <div class="crm-field wide"><label for="application_note">{vi ? "Trước khi ứng tuyển" : "Before you apply"}</label><textarea class="crm-textarea" id="application_note" name="application_note" maxlength="6000">{job.application_note}</textarea></div>
+          <div class="crm-field"><label for="closes_at">{vi ? "Hạn nhận hồ sơ" : "Close applications at"}</label><input class="crm-input" id="closes_at" name="closes_at" type="datetime-local" value={job.closes_at ? job.closes_at.slice(0, 16) : ""} /></div>
+          <div class="crm-field"><label for="sort_order">{vi ? "Thứ tự hiển thị" : "Sort order"}</label><input class="crm-input" id="sort_order" name="sort_order" type="number" value={job.sort_order} /></div>
+        </div>
+        <p class="crm-help">{vi ? "Nội dung trang công khai hiện viết bằng một ngôn ngữ; hãy viết theo ngôn ngữ ứng viên mục tiêu." : "The public page is written in one language; write for the candidates you want to reach."}</p>
+        <Fragment slot="foot"><a class="ws-btn" href={deskPath(lang, `/admin/jobs/${job.id}`)}>{vi ? "Hủy" : "Cancel"}</a><button class="ws-btn primary" type="submit">{vi ? "Lưu vị trí" : "Save role"}</button></Fragment>
+  </Sheet>
 </WorkspaceShell>

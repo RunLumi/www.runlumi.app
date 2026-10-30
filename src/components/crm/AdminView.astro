@@ -1,6 +1,7 @@
 ---
 import CrmShell from "../../layouts/CrmShell.astro";
-import Crumbs from "./Crumbs.astro";
+import SetupFrame from "../workspace/ui/SetupFrame.astro";
+import "../../styles/record.css";
 import "../../styles/crm-sales.css";
 import Field from "./Field.astro";
 import FormNotices from "./FormNotices.astro";
@@ -20,12 +21,8 @@ const e = (intent: string, name: string) => errorFor(state, intent, name);
 const payload = (raw: string) => { try { return JSON.parse(raw) as IntakePayload; } catch { return null; } };
 ---
 <CrmShell title={vi ? "Vận hành CRM" : "CRM operations"} lang={lang} actor={ctx.actor} current="admin">
-  <Crumbs vi={vi} items={[{ label: "CRM", href: base }, { label: vi ? "Phân công và cohort" : "Assignment and cohorts" }]} />
-  <div class="crm-head"><div>
-    <p class="crm-eyebrow">{vi ? "Vận hành CRM" : "CRM operations"}</p>
-    <h1 class="crm-h1">{vi ? "Phân công khách mới và theo dõi cohort." : "Assign new enquiries and run cohorts."}</h1>
-    <p class="crm-lede">{vi ? "Người dùng và vai trò được quản lý tập trung ở Workspace. Quyền CRM không cấp quyền tuyển dụng." : "Users and roles are managed centrally in the Workspace. CRM access grants nothing in hiring."}</p>
-  </div><div class="crm-actions">{ctx.actor.configure && <><a class="crm-button secondary" href={`${base}/admin/playbooks`}>{vi ? "Playbook" : "Playbooks"}</a><a class="crm-button secondary" href={`${base}/admin/offers`}>{vi ? "Gói và giá" : "Offers and prices"}</a><a class="crm-button secondary" href={vi ? "/vi/workspace/users" : "/workspace/users"}>{vi ? "Người dùng và vai trò" : "Users and roles"}</a></>}</div></div>
+  <SetupFrame vi={vi} icon="assignment" eyebrow={vi ? "Vận hành" : "Operations"} title={vi ? "Phân công và cohort" : "Assignment and cohorts"} info={vi ? "Người dùng và vai trò được quản lý tập trung ở Workspace. Quyền CRM không cấp quyền tuyển dụng." : "Users and roles are managed centrally in the Workspace. CRM access grants nothing in hiring."}>
+    <Fragment slot="actions">{ctx.actor.configure && <><a class="ws-btn" href={`${base}/admin/playbooks`}>{vi ? "Playbook" : "Playbooks"}</a><a class="ws-btn" href={`${base}/admin/offers`}>{vi ? "Gói và giá" : "Offers and prices"}</a><a class="ws-btn" href={vi ? "/vi/workspace/users" : "/workspace/users"}>{vi ? "Người dùng và vai trò" : "Users and roles"}</a></>}</Fragment>
   <FormNotices state={state} lang={lang} saved={Astro.url.searchParams.get("saved")} />
 
   <section class="crm-sheet" id="leads" aria-labelledby="leads-h">
@@ -117,4 +114,5 @@ const payload = (raw: string) => { try { return JSON.parse(raw) as IntakePayload
       </form>
     </details>}
   </section>
+  </SetupFrame>
 </CrmShell>
