@@ -57,6 +57,20 @@ export function compactVnd(amount: number, vi: boolean): string {
   return format(amount, "₫");
 }
 
+/**
+ * Y-axis ticks for a VND chart: whole 1, 2 or 5 × 10ⁿ đồng steps (never below
+ * 1 000 ₫), at most four above 0. With no value there are no ticks, only the
+ * 0 baseline, and `max` is 1 so the lines sit on it.
+ */
+export function vndTicks(peak: number): { max: number; ticks: number[] } {
+  if (!(peak > 0)) return { max: 1, ticks: [] };
+  const raw = peak / 4;
+  const magnitude = 10 ** Math.floor(Math.log10(Math.max(raw, 1000)));
+  const step = [1, 2, 5, 10].map((multiple) => multiple * magnitude).find((value) => value >= raw) ?? 10 * magnitude;
+  const ticks = Array.from({ length: Math.ceil(peak / step) }, (_, index) => (index + 1) * step);
+  return { max: ticks[ticks.length - 1], ticks };
+}
+
 const TOTALS = `COUNT(*) AS deals, COUNT(o.estimated_value_vnd) AS valued, COALESCE(SUM(o.estimated_value_vnd), 0) AS value,
   SUM(CASE WHEN o.estimated_value_vnd IS NOT NULL AND o.win_probability IS NOT NULL THEN 1 ELSE 0 END) AS forecastable,
   COALESCE(SUM(CASE WHEN o.estimated_value_vnd IS NOT NULL AND o.win_probability IS NOT NULL THEN o.estimated_value_vnd * o.win_probability / 100.0 END), 0) AS forecast`;

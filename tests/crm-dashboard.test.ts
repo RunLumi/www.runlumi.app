@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { compactVnd, fillMonths, monthKeys, readDashboardFilters, winRate } from "../src/lib/crm/dashboard.ts";
+import { compactVnd, fillMonths, vndTicks, monthKeys, readDashboardFilters, winRate } from "../src/lib/crm/dashboard.ts";
 
 test("win rate counts only closed deals and is unknown when none closed", () => {
   assert.equal(winRate(0, 0), null);
@@ -31,4 +31,18 @@ test("only team-wide roles can look at another seller's dashboard", () => {
   const base = { id: "me", name: "Me", email: "me@example.test", configure: false, finance: false, fulfillment: false, refer: true, reportPayments: true };
   assert.deepEqual(readDashboardFilters(url, { ...base, manager: false }), { owner: "", playbook: "local-preview" });
   assert.deepEqual(readDashboardFilters(url, { ...base, manager: true }), { owner: "someone", playbook: "local-preview" });
+});
+
+test("chart ticks are whole VND steps, and none without a value", () => {
+  assert.deepEqual(vndTicks(0), { max: 1, ticks: [] }, "no value: only the 0 baseline");
+  assert.deepEqual(vndTicks(-5), { max: 1, ticks: [] });
+  assert.deepEqual(vndTicks(1), { max: 1000, ticks: [1000] }, "never fractions of a đồng");
+  assert.deepEqual(vndTicks(7_000_000), { max: 8_000_000, ticks: [2_000_000, 4_000_000, 6_000_000, 8_000_000] });
+  assert.deepEqual(vndTicks(45_000_000), { max: 60_000_000, ticks: [20_000_000, 40_000_000, 60_000_000] });
+  for (const peak of [1, 999, 12_345, 3_000_000, 45_000_000, 999_000_000, 2_500_000_000]) {
+    const { max, ticks } = vndTicks(peak);
+    assert.ok(ticks.length >= 1 && ticks.length <= 4 && max >= peak, `${peak}: 1–4 ticks covering the peak`);
+    assert.match(String(ticks[0]), /^[125]0{3,}$/, `${peak}: the step is 1, 2 or 5 × 10ⁿ đồng`);
+    assert.ok(ticks.every((tick, index) => tick === (index + 1) * ticks[0]));
+  }
 });

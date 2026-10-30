@@ -5,6 +5,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { makeUser, roles } from "../src/lib/workspace/roles.ts";
 import { accountModule, appBar, helpLinks, moduleByKey, modules, visibleCreateActions, visibleLinks, visibleModules } from "../src/lib/workspace/nav.ts";
 import { hasNoticeSource } from "../src/lib/workspace/inbox.ts";
+import { launcherBlurbs, launcherPages } from "../src/lib/workspace/summaries.ts";
 import { rulesReaching, searchableKinds } from "../src/lib/workspace/shell-pages.ts";
 import type { Rule } from "../src/lib/workspace/notify/rules.ts";
 
@@ -78,4 +79,21 @@ test("kit and shell carry no board placeholders or board CSS (UI1-S7)", () => {
     assert.doesNotMatch(text, /\{\{[^}]*\}\}/, `${file}: no {{…}} placeholders`);
     assert.doesNotMatch(text, /Dữ liệu minh họa|Mộc Gia|lumi\.css|redesign\/boards/, `${file}: no board sample data or board CSS`);
   }
+});
+
+test("launcher tiles and page results follow permissions (UI5-S2)", () => {
+  for (const key of modules.map((module) => module.key)) {
+    for (const blurb of launcherBlurbs[key]) assert.ok(blurb.length > 0 && blurb.length <= 36 && !blurb.includes("\n"), `${key}: one short line, got "${blurb}"`);
+  }
+  for (const person of [...roles.map((role) => user([role])), user([], true)]) {
+    const open = new Set(visibleModules(person).map((module) => module.key));
+    const pages = launcherPages(person);
+    for (const { module, link } of pages) {
+      assert.ok(open.has(module.key), `a page result sits in a module the person opens (${module.key})`);
+      assert.ok(visibleLinks(person, module).some((visible) => visible.key === link.key), `${module.key}/${link.key} is a page the person may open`);
+    }
+    assert.equal(pages.length, visibleModules(person).reduce((sum, module) => sum + visibleLinks(person, module).length, 0), "every page the person may open is findable");
+  }
+  assert.ok(!launcherPages(user(["hr"])).some(({ module }) => module.key === "crm"), "HR finds no CRM page");
+  assert.ok(!launcherPages(user(["sales_executive"])).some(({ module }) => module.key === "hiring" || module.key === "admin"), "a seller finds no hiring or admin page");
 });

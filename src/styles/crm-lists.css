@@ -152,7 +152,8 @@
 .cl-mg { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-left: 1px solid #e7eaf0; }
 .cl-mg-h { padding: 10px 8px; border-right: 1px solid #e7eaf0; border-bottom: 1px solid #d9dee8; background: #f7f8fa; color: var(--crm-slate); font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
 .cl-mg-h:first-child { border-radius: 8px 0 0 0; }
-.cl-mc { position: relative; display: flex; flex-direction: column; gap: 3px; min-width: 0; min-height: 132px; padding: 6px; border-right: 1px solid #e7eaf0; border-bottom: 1px solid #e7eaf0; }
+/* Month cells grow with tall screens so five weeks fill the view (UI5-S1). */
+.cl-mc { position: relative; display: flex; flex-direction: column; gap: 3px; min-width: 0; min-height: clamp(132px, calc((100vh / var(--ws-z, 1) - 360px) / 5), 220px); padding: 6px; border-right: 1px solid #e7eaf0; border-bottom: 1px solid #e7eaf0; }
 .cl-mc.out { background: #fafaf8; }
 .cl-mc.wknd { background: #fbfbfc; }
 .cl-mc-d { align-self: flex-start; width: 24px; height: 24px; border-radius: 12px; color: #344054; font-size: 13px; font-weight: 500; line-height: 24px; text-align: center; text-decoration: none; }
@@ -316,7 +317,16 @@ a.title:hover { text-decoration: underline; }
 .cl-kpi-v.unset { color: #5e6677; }
 .cl-kpi-s { margin-top: 4px !important; color: var(--crm-slate); font-size: 12px; }
 .cl-chart { padding: 0 16px 14px; }
-.cl-chart svg { display: block; width: 100%; height: auto; font-family: inherit; }
+.cl-chart svg { display: block; width: 100%; height: 100%; overflow: visible; }
+/* Quarter chart: a fixed-height plot that stretches sideways; labels stay at the page's type size at every width. */
+.cl-plot { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: 220px auto; column-gap: 8px; margin-top: 8px; color: #5e6677; font-size: 12px; line-height: 1; font-variant-numeric: tabular-nums; }
+.cl-plot-y { position: relative; min-width: 52px; }
+.cl-plot-y > span { position: absolute; right: 0; transform: translateY(-50%); white-space: nowrap; }
+.cl-plot-area { position: relative; min-width: 0; }
+.cl-plot-today { position: absolute; top: 6px; margin-left: 6px; color: #c2410c; white-space: nowrap; }
+.cl-plot-today.end { margin-left: -6px; transform: translateX(-100%); }
+.cl-plot-x { position: relative; grid-column: 2; height: 22px; }
+.cl-plot-x > span { position: absolute; top: 8px; transform: translateX(-50%); white-space: nowrap; }
 .cl-legend-row { display: flex; flex-wrap: wrap; gap: 18px; margin: 6px 0 0; font-size: 13px; }
 .cl-legend-row > span { display: inline-flex; align-items: center; gap: 6px; }
 .cl-tl { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 12px 16px; list-style: none; }

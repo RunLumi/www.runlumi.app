@@ -34,7 +34,7 @@ import "../../styles/record.css";
 
 type Props = OppProps;
 const p = Astro.props;
-const { ctx, state, access, playbook, payment, fulfillment, transitions, contacts, related, costs, names, owners, cohorts, linkPlaybooks, allVersions, playbookNames, events, tasks } = p;
+const { ctx, state, access, playbook, payment, fulfillment, transitions, contacts, related, costs, names, owners, cohorts, linkPlaybooks, allVersions, playbookNames, stageNames, events, tasks } = p;
 const { lang, vi, base } = ctx;
 const actor = ctx.actor;
 const opp = access.opportunity;
@@ -96,7 +96,7 @@ const upcoming: FeedItem[] = [
 ];
 const historyGroups = monthGroups(events, vi).map((group) => ({ label: group.label, items: group.items.map((event): FeedItem => {
   const name = activityName(event.kind, vi);
-  const text = activitySummary(event.kind, event.body, vi, playbookNames);
+  const text = activitySummary(event.kind, event.body, vi, playbookNames, stageNames, opp.playbook_id);
   return { title: event.kind === "note" && text ? text : name, meta: [event.kind === "note" ? "" : text, event.actor_name].filter(Boolean).join(" · "), when: formatDateTime(event.created_at, lang), kind: activityKind(event.kind) };
 }) }));
 const saved = Astro.url.searchParams.get("saved");
@@ -255,7 +255,7 @@ const moreActions = access.canEdit ? [
           <div class="rec-head"><h2 id="act-h">{vi ? "Hoạt động" : "Activity"}</h2></div>
           <div class="rec-body">
             {access.canEdit ? <>
-              <div class="ws-bg" role="group" aria-label={vi ? "Ghi hoạt động" : "Log activity"}><a class="ws-btn sm" href="#sheet-call">{vi ? "Ghi cuộc gọi" : "Log a call"}</a><a class="ws-btn sm" href="#sheet-task">{vi ? "Tạo công việc" : "New task"}</a><a class="ws-btn sm" href="#sheet-note">{vi ? "Ghi chú" : "Note"}</a><a class="ws-btn sm" href="#sheet-cost">{vi ? "Ghi thời gian" : "Log time"}</a></div>
+              <ButtonGroup label={vi ? "Ghi hoạt động" : "Log activity"} sm collapse={[{ label: vi ? "Ghi chú" : "Note", href: "#sheet-note" }, { label: vi ? "Ghi thời gian" : "Log time", href: "#sheet-cost" }]}><a class="ws-btn sm" href="#sheet-call">{vi ? "Ghi cuộc gọi" : "Log a call"}</a><a class="ws-btn sm" href="#sheet-task">{vi ? "Tạo công việc" : "New task"}</a></ButtonGroup>
               <p class="rec-feed-h"><span>{vi ? "Sắp tới & quá hạn" : "Upcoming and overdue"}</span></p>
               <Feed items={upcoming} empty={vi ? "Chưa có việc hay bước tiếp theo." : "No tasks or next step."} />
               {historyGroups.length ? historyGroups.map((group) => <><p class="rec-feed-h"><span>{group.label}</span><span>{group.items.length}</span></p><Feed items={group.items} empty="" /></>) : <p class="rec-path-note">{vi ? "Chưa có hoạt động." : "No activity yet."}</p>}

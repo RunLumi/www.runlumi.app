@@ -239,3 +239,27 @@ Brief: [UI-PARITY.md](../redesign/UI-PARITY.md). Boards: `docs/redesign/boards/<
   - **Forbidden.** Another seller's leads, tasks, won value or records on my Today. *Test:* integration "17" (another seller's lead absent from Today); unit `tests/crm-home.test.ts` (quarter and recent records stay in scope); integration dashboard suite on `/crm/reports` ("sellers see only their own dashboard, whatever the URL says").
 - **Story (MobileKanban, MobileCalendar).** On a phone (390 px), the Kanban shows one stage at a time with a horizontally scrolling chevron strip and the stage total, and the calendar shows an agenda by day; no horizontal page scroll.
   - **Forbidden.** Page-level horizontal overflow at 320–430 px. *Test:* the parity run measures `scrollWidth − clientWidth` (handoff).
+
+## Round 3 wide screens and shell fixes (ui5)
+
+Brief: the integrator's round-3 request (2026-10-30) and the founder's production screenshots. Behaviour, permissions, ownership scopes and form field names stay as they are; these stories change layout and words only. Widths are CSS pixels.
+
+- **UI5-S1 · Wide screens (32" / 4K).** As a member on a large monitor, the Workspace uses the screen instead of a narrow 1440 px column, and text stays readable.
+  - **Accept.**
+    - The header rows, page container, side-nav frame and footer grow with the window up to 2560 px (gutters 24 px, up to 48 px on wide screens), centred beyond that.
+    - Panel rows and related-list grids add columns as the width grows (auto-fill/minmax); tables fill the width; Kanban columns widen to fill the board; calendar month cells grow; sheets and dialogs keep their readable width (560 or 720 px).
+    - Above 2400 px the type and spacing scale up modestly (about 12.5 %, 25 % from 3200 px) so text is not tiny; 390, 1280 and 1440 px look as before.
+    - Checked at 390, 1280, 1440, 1920, 2560 and 3840 px on Overview, CRM Today, Leads, the opportunity Kanban, the calendar, an opportunity record, the Admin audit log, HRM people and Finance overview; screenshots for 1920/2560/3840 in `docs/redesign/parity/wide/`.
+  - **Forbidden.** Horizontal page scroll at any of those widths; a 1280/1440 px layout that changes. *Test:* `node scripts/parity-shots.mjs … --widths … --check` fails when `scrollWidth > clientWidth` on the page (handoff records the run).
+- **UI5-S2 · App launcher tiles (board AppLauncher).** As a member, the 9-dot launcher shows each app I may open as an equal tile: icon, app name and one short description line, not the list of its pages.
+  - **Accept.** Tiles have equal height in a three-column grid (one column at 390 px). Typing in the filter narrows the tiles and shows a separate "Pages" results list of the matching pages I may open (module › page, linking to the page); with an empty filter the results list is hidden. Without script the tiles work and the filter stays hidden.
+  - **Forbidden.** A tile or a page result for a module or page I may not open. *Test:* unit "launcher tiles and page results follow permissions (UI5-S2)" (`tests/workspace-shell.test.ts`) and the existing integration "navigation shows only modules and pages each role may open".
+- **UI5-S3 · Button groups fit (boards DealRecord, Leads).** As a seller, the joined action buttons (for example Ghi cuộc gọi · Tạo công việc · Ghi chú · Ghi thời gian in the opportunity Activity rail) never run past their panel's right edge at any width.
+  - **Accept.** `ButtonGroup` takes the width of its container: buttons that do not fit wrap onto a new line, or, where the group has a ⌄ menu, the extra actions sit in that menu. The opportunity Activity rail uses `ButtonGroup`. The same links open the same sheets.
+  - **Forbidden.** A group wider than its container. *Test:* `--check` in the parity script asserts every `.ws-bg` fits inside its parent at each width.
+- **UI5-S4 · Activity feed reads well (boards DealRecord, AccountRecord).** As a seller, feed titles use the rail's width and stage changes read in my language.
+  - **Accept.** The time sits on the meta line ("… · 14:05 30/10") instead of a wide column next to the title. A stage change reads "Đổi giai đoạn · Mới → Đủ điều kiện" in Vietnamese and "New → Qualified" in English, using the labels of the opportunity's playbook version (skipped stages and playbook changes too); an unknown stage key is shown as the key.
+  - **Forbidden.** Raw stage keys where the playbook has a label; another opportunity's events in the feed (unchanged). *Test:* unit "stage changes read as playbook labels (UI5-S4)" (`tests/crm-activity.test.ts`); integration crm scope (unchanged scoping).
+- **UI5-S5 · Side navigation without a scrollbar (board SetupNav).** As an admin, HRM or Finance user, the side navigation (for example Quản trị › Nhật ký kiểm toán) has no horizontal scrollbar.
+  - **Accept.** No element in the 260 px side column is wider than the column, in Admin, CRM setup, HRM and Finance; the fix removes the cause instead of hiding overflow.
+  - **Forbidden.** `.ws-side` with `scrollWidth > clientWidth`. *Test:* `--check` in the parity script asserts it on every page it shoots that has a side navigation.

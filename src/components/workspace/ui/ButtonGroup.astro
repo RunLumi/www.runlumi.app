@@ -2,17 +2,31 @@
 // Joined action buttons (boards: Leads, LeadRecord). Put links or buttons
 // with class "ws-btn" in the slot. `more` adds the trailing ▾ menu for the
 // remaining actions; each is a link to a real screen or sheet.
+// The group never runs past its container (story UI5-S3): buttons wrap, and
+// `collapse` actions show as buttons only while the container is at least
+// 400 px wide (a container query), otherwise they move into the ▾ menu. Use
+// `collapse` where the group sits in a block with its own width (a panel or
+// rail); `sm` sizes those buttons and the ▾ like small slot buttons.
 import NavIcon from "../NavIcon.astro";
 
 export interface MoreAction { label: string; href: string; danger?: boolean }
-interface Props { label: string; more?: MoreAction[]; moreLabel?: string }
-const { label, more = [], moreLabel } = Astro.props;
-const moreName = moreLabel ?? `${label}: ${more.map((action) => action.label).join(", ")}`;
+interface Props { label: string; more?: MoreAction[]; moreLabel?: string; collapse?: MoreAction[]; sm?: boolean }
+const { label, more = [], moreLabel, collapse = [], sm = false } = Astro.props;
+const menu = [...collapse, ...more];
+const moreName = moreLabel ?? `${label}: ${menu.map((action) => action.label).join(", ")}`;
+const fit = collapse.length > 0;
+const Wrap = fit ? "div" : Fragment;
 ---
-<div class="ws-bg" role="group" aria-label={label}>
-  <slot />
-  {more.length > 0 && <details class="ws-drop ws-bg-more">
-    <summary class="ws-btn icon" aria-label={moreName}><NavIcon name="chevron" size={16} /></summary>
-    <div class="ws-pop ws-menu-pop right"><ul>{more.map((action) => <li><a class:list={[action.danger && "danger"]} href={action.href}>{action.label}</a></li>)}</ul></div>
-  </details>}
-</div>
+<Wrap {...(fit ? { class: "ws-bg-fit" } : {})}>
+  <div class="ws-bg" role="group" aria-label={label}>
+    <slot />
+    {collapse.map((action) => <a class:list={["ws-btn", sm && "sm", "ws-bg-wide", action.danger && "danger"]} href={action.href}>{action.label}</a>)}
+    {menu.length > 0 && <details class:list={["ws-drop", "ws-bg-more", more.length === 0 && "ws-bg-narrow"]}>
+      <summary class:list={["ws-btn", "icon", sm && "sm"]} aria-label={moreName}><NavIcon name="chevron" size={16} /></summary>
+      <div class="ws-pop ws-menu-pop right"><ul>
+        {collapse.map((action) => <li class="ws-bg-narrow"><a class:list={[action.danger && "danger"]} href={action.href}>{action.label}</a></li>)}
+        {more.map((action) => <li><a class:list={[action.danger && "danger"]} href={action.href}>{action.label}</a></li>)}
+      </ul></div>
+    </details>}
+  </div>
+</Wrap>

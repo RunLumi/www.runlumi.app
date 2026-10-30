@@ -1,6 +1,7 @@
 // One line per module saying what it holds, for the module launcher and the
 // Overview. Plain statements of what the module does (R-07).
-import type { ModuleKey } from "./nav";
+import { type ModuleKey, type NavLink, type NavModule, visibleLinks, visibleModules } from "./nav";
+import type { WorkspaceUser } from "./roles";
 
 export const moduleSummaries: Record<ModuleKey, [string, string]> = {
   home: ["What needs you today, across your modules.", "Việc cần bạn hôm nay, trong các phân hệ của bạn."],
@@ -11,6 +12,22 @@ export const moduleSummaries: Record<ModuleKey, [string, string]> = {
   admin: ["Who can sign in, and with which roles.", "Ai được đăng nhập và với vai trò nào."],
   account: ["Your identity, roles and personal settings.", "Danh tính, vai trò và thiết lập cá nhân của bạn."],
 };
+
+/** The launcher tile's one short line per app (board AppLauncher, story UI5-S2). */
+export const launcherBlurbs: Record<ModuleKey, [string, string]> = {
+  home: ["Your day across modules", "Việc của bạn hôm nay"],
+  hiring: ["Roles, tests and candidates", "Vị trí, bài test và ứng viên"],
+  crm: ["Leads, opportunities and customers", "Lead, cơ hội và khách hàng"],
+  hrm: ["Employee records and requests", "Hồ sơ nhân sự và yêu cầu"],
+  finance: ["Plans, actuals and statements", "Kế hoạch, số thực tế, báo cáo"],
+  admin: ["Members, roles and security", "Thành viên, vai trò, bảo mật"],
+  account: ["Profile, security and notices", "Hồ sơ, bảo mật, thông báo"],
+};
+
+/** Pages the launcher filter can find: each page the person may open, in each module they may open (UI5-S2). */
+export function launcherPages(user: WorkspaceUser): { module: NavModule; link: NavLink }[] {
+  return visibleModules(user).flatMap((module) => visibleLinks(user, module).map((link) => ({ module, link })));
+}
 
 /** Tile colour per module (launcher and object icons), from the boards' object palette. */
 export const moduleTone: Record<ModuleKey, string> = {

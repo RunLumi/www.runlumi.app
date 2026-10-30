@@ -43,8 +43,9 @@ const openValue = openOpps.length === 0 ? "—" : unknownCount === openOpps.leng
 const upcoming = openOpps.filter((opp) => opp.next_action).sort((a, b) => (a.next_action_due ?? "9999").localeCompare(b.next_action_due ?? "9999")).slice(0, 8)
   .map((opp) => ({ title: opp.next_action, meta: `${vi ? "Cơ hội" : "Opportunity"}: ${opp.title}`, when: opp.next_action_due ? formatDate(opp.next_action_due, lang) : (vi ? "Chưa có hạn" : "No due date"), kind: "task" as const }));
 const oppTitle = Object.fromEntries(opportunities.map((opp) => [opp.id, opp.title]));
+const oppPlaybook = Object.fromEntries(opportunities.map((opp) => [opp.id, opp.playbook_id]));
 const historyGroups = monthGroups(events, vi).map((group) => ({ label: group.label, items: group.items.map((event) => {
-  const text = activitySummary(event.kind, event.body, vi, playbookNames);
+  const text = activitySummary(event.kind, event.body, vi, playbookNames, stageNames, oppPlaybook[event.opportunity_id]);
   return { title: event.kind === "note" && text ? text : activityName(event.kind, vi), meta: [`${vi ? "Cơ hội" : "Opportunity"}: ${oppTitle[event.opportunity_id] ?? "—"}`, event.kind === "note" ? "" : text, event.actor_name].filter(Boolean).join(" · "), when: formatDateTime(event.created_at, lang), kind: activityKind(event.kind) };
 }) }));
 const fieldLabels: Record<string, string> = vi

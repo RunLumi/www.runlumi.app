@@ -142,3 +142,15 @@ Board parity per [UI-PARITY.md](../redesign/UI-PARITY.md). Stories: [USER-STORIE
 | Contact record on the same record frame (no board; follows AccountRecord) | AccountRecord (pattern) | *In redesign* (ui3) | IT 17 |
 | CRM setup: grouped setup menu and one page frame for playbooks, lead statuses, offers, commission, fulfillment, assignment, referrals, reports | Settings | *In redesign* (ui3) | IT 11b, 13, 14; `docs/redesign/parity/Settings/` |
 | Tuyển dụng, HRM, Tài chính on the round-2 shell and kit (list-view header, record frame, sheets); no boards | — | *In redesign* (ui3) | `workspace`, `hrm-p1/p3/p4/p5`, `finance` integration scopes; `docs/redesign/parity/{Hiring,HRM,Finance}/` |
+
+## Round 3, workstream 5 (`claude/ui5-wide`): wide screens and founder-reported shell bugs
+
+Stories: [USER-STORIES.md § Round 3 wide screens and shell fixes](USER-STORIES.md#round-3-wide-screens-and-shell-fixes-ui5). Evidence: `docs/redesign/parity/wide/`, `node scripts/parity-shots.mjs … --check` and the ui5 handoff. Behaviour, permissions and form field names do not change.
+
+| Feature | Board | Status | Story |
+|---|---|---|---|
+| Wide screens up to 32" / 4K: fluid shell and page container (up to 2560 px), grids that add columns, tables and Kanban that fill the width, calendar cells that grow, sheets and dialogs at a readable width, modest type and spacing scale above 2400 px | TopNav, Main, Calendar, DealRecord (patterns) | *In redesign* (ui5) | UI5-S1 |
+| App launcher: one equal tile per app (icon, name, one short description); the filter shows matching pages as a separate results list | AppLauncher | *In redesign* (ui5) | UI5-S2 |
+| Button groups never overflow their container (wrap, extra actions in the ⌄ menu) | DealRecord, Leads | *In redesign* (ui5) | UI5-S3 |
+| Activity feed: time on the meta line so titles use the width; stage changes in playbook stage labels of the current locale | DealRecord, AccountRecord | *In redesign* (ui5) | UI5-S4 |
+| Side navigation without a horizontal scrollbar, with an automated overflow check | SetupNav | *In redesign* (ui5) | UI5-S5 |
