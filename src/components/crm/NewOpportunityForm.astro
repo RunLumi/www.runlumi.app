@@ -1,16 +1,17 @@
 ---
-// Create opportunity (sheet on Pipeline, page at /crm/new). Pick an existing
-// contact, or a new company and contact. Same "create" intent as before.
+// Create opportunity fields (sheet on Pipeline, page at /crm/new); the caller
+// supplies the POST form and its buttons. Pick an existing contact, or a new
+// company and contact. Same "create" intent as before.
 import Field from "./Field.astro";
 import FormNotices from "./FormNotices.astro";
-import { errorText, label, options, t } from "../../lib/crm/i18n";
+import { errorText, label, options } from "../../lib/crm/i18n";
 import { errorFor, requestKey, valueFor, type Ctx, type FormState } from "../../lib/crm/page";
 import type { OwnerOption } from "../../lib/crm/access";
 import type { PickableContact } from "../../lib/crm/directory";
 import type { Playbook } from "../../lib/crm/playbook";
 
-interface Props { ctx: Ctx; state: FormState; playbooks: Playbook[]; owners: OwnerOption[]; customers: PickableContact[]; action: string; cancelHref: string }
-const { ctx, state, playbooks, owners, customers, action, cancelHref } = Astro.props;
+interface Props { ctx: Ctx; state: FormState; playbooks: Playbook[]; owners: OwnerOption[]; customers: PickableContact[] }
+const { ctx, state, playbooks, owners, customers } = Astro.props;
 const { lang, vi } = ctx;
 const v = (name: string, fallback = "") => valueFor(state, "create", name, fallback);
 const e = (name: string) => errorFor(state, "create", name);
@@ -27,7 +28,6 @@ const fieldLabels: Record<string, string> = vi
   : { contact_id: "Existing customer", account_name: "Business", contact_name: "Contact", phone: "Phone / Zalo", email: "Email", playbook_key: "Sales playbook", source_channel: "Channel", next_action_due: "Next step date", owner_id: "Owner" };
 ---
   <FormNotices state={state} lang={lang} fieldLabels={fieldLabels} />
-  <form class="crm-form" method="post" action={action} novalidate>
     <input type="hidden" name="intent" value="create" />
     <input type="hidden" name="request_key" value={requestKey(state, "create")} />
     <fieldset class="crm-fieldset"><legend>{vi ? "Quy trình bán" : "Sales playbook"} *</legend>
@@ -78,5 +78,3 @@ const fieldLabels: Record<string, string> = vi
       </div>
     </fieldset>
     <p class="crm-help">{vi ? "Không nhập mật khẩu, quyền truy cập Google hay dữ liệu khách hàng cuối vào đây." : "Never enter passwords, Google access or end-customer data here."}</p>
-    <div class="cl-sheet-f"><a class="cl-btn" href={cancelHref}>{t(lang, "cancel")}</a><button class="cl-btn primary" type="submit">{vi ? "Lưu" : "Save"}</button></div>
-  </form>

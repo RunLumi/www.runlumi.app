@@ -1,0 +1,17 @@
+---
+// CRM glyphs the shared NavIcon does not have yet (toolbar refresh and
+// filter, period arrows, card alert and drag handle). Decorative: the
+// control's text or aria-label names it. Move to NavIcon when the kit has them.
+export type GlyphName = "refresh" | "filter" | "left" | "right" | "warn" | "grip";
+interface Props { name: GlyphName; size?: number }
+const { name, size = 16 } = Astro.props;
+const paths: Record<GlyphName, string> = {
+  refresh: '<path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/>',
+  filter: '<path d="M3 4h18l-7 8v6l-4 2v-8z"/>',
+  left: '<path d="m15 18-6-6 6-6"/>',
+  right: '<path d="m9 18 6-6-6-6"/>',
+  warn: '<path d="M12 3 2 21h20L12 3Z" fill="currentColor" stroke="none"/><path d="M12 10v5M12 18h.01" stroke="#fff"/>',
+  grip: '<path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01"/>',
+};
+---
+<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" set:html={paths[name]} />

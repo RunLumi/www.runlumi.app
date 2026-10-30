@@ -9,11 +9,12 @@ import type { PipelineProps } from "../../lib/crm/routes/pipeline";
 import Hidden from "./Hidden.astro";
 import FormNotices from "./FormNotices.astro";
 import NewOpportunityForm from "./NewOpportunityForm.astro";
-import ListHead from "./list/ListHead.astro";
-import Sheet from "./list/Sheet.astro";
-import Filters from "./list/Filters.astro";
-import Views from "./list/Views.astro";
-import Icon from "./list/Icon.astro";
+import ListHeader from "../workspace/ui/ListHeader.astro";
+import ButtonGroup from "../workspace/ui/ButtonGroup.astro";
+import ListToolbar from "../workspace/ui/ListToolbar.astro";
+import Sheet from "../workspace/ui/Sheet.astro";
+import ListFilters from "./ListFilters.astro";
+import Glyph from "./Glyph.astro";
 import { errorText } from "../../lib/crm/i18n";
 import { requirementLabel } from "../../lib/crm/playbook";
 import { initials } from "../../lib/workspace/summaries";
@@ -84,16 +85,14 @@ const closeHref = path({ new: "" });
       {failedRow && <a href={`${base}/${failedRow.id}#stage`}>{vi ? "Mở cơ hội để bổ sung" : "Open the opportunity to complete it"}</a>}
     </div>}
 
-    <ListHead vi={vi} icon="opportunity" tone="#006093" eyebrow={vi ? "Cơ hội" : "Opportunities"} title={title} meta={meta} lists={lists} bare={view === "board"}
-      search={{ value: filters.q, hidden: { playbook: filters.playbook, view: view === "list" ? "" : view, stage: filters.stage, outcome: filters.outcome, channel: filters.channel, offer: filters.offer, cohort: filters.cohort, industry: filters.industry, region: filters.region, owner: filters.owner } }}>
-      <Fragment slot="actions"><a class="cl-btn" href={`${path({ new: "1" })}#new-opp`}>{vi ? "Tạo" : "New"}</a></Fragment>
-      <Fragment slot="tools">
-        <Views vi={vi} views={[
-          { key: "table", label: vi ? "Bảng" : "Table", href: path({ view: "table", page: "" }), icon: "table", current: view !== "board" },
-          ...(filters.playbook !== "all" ? [{ key: "board", label: "Kanban", href: path({ view: "board", page: "", stage: "" }), icon: "kanban" as const, current: view === "board" }] : []),
-        ]} />
-        <a class="cl-btn icon" href={path({})} aria-label={vi ? "Làm mới" : "Refresh"}><Icon name="refresh" /></a>
-        <Filters vi={vi} active={filterCount} clearHref={path({ stage: "", outcome: "", channel: "", offer: "", cohort: "", industry: "", region: "", owner: "", q: "", page: "" })}>
+    <ListHeader vi={vi} icon="pipeline" tone="opportunity" object={vi ? "Cơ hội" : "Opportunities"} title={title} meta={meta} lists={lists}>
+      <ButtonGroup slot="actions" label={vi ? "Hành động" : "Actions"}><a class="ws-btn" href={`${path({ new: "1" })}#new-opp`}>{vi ? "Tạo" : "New"}</a></ButtonGroup>
+      <ListToolbar slot="tools" vi={vi} q={filters.q} keep={{ playbook: filters.playbook, view: view === "list" ? "" : view, stage: filters.stage, outcome: filters.outcome, channel: filters.channel, offer: filters.offer, cohort: filters.cohort, industry: filters.industry, region: filters.region, owner: filters.owner }} views={[
+          { key: "table", label: vi ? "Bảng" : "Table", href: path({ view: "table", page: "" }), icon: "model", current: view !== "board" },
+          ...(filters.playbook !== "all" ? [{ key: "board", label: "Kanban", href: path({ view: "board", page: "", stage: "" }), icon: "pipeline" as const, current: view === "board" }] : []),
+        ]}>
+        <a class="ws-btn icon" href={path({})} aria-label={vi ? "Làm mới" : "Refresh"}><Glyph name="refresh" /></a>
+        <ListFilters vi={vi} active={filterCount} clearHref={path({ stage: "", outcome: "", channel: "", offer: "", cohort: "", industry: "", region: "", owner: "", q: "", page: "" })}>
           <input type="hidden" name="playbook" value={filters.playbook} />
           {view !== "list" && <input type="hidden" name="view" value={view} />}
           {filters.q && <input type="hidden" name="q" value={filters.q} />}
@@ -105,8 +104,8 @@ const closeHref = path({ new: "" });
           <div class="crm-field"><label for="industry">{vi ? "Ngành" : "Industry"}</label><input class="crm-input" id="industry" name="industry" value={filters.industry} maxlength="120" /></div>
           <div class="crm-field"><label for="region">{vi ? "Khu vực" : "Region"}</label><input class="crm-input" id="region" name="region" value={filters.region} maxlength="120" /></div>
           {ctx.actor.manager && <div class="crm-field"><label for="owner">{vi ? "Người phụ trách" : "Owner"}</label><select class="crm-select" id="owner" name="owner"><option value="">{vi ? "Tất cả" : "Anyone"}</option><option value="unassigned" selected={filters.owner === "unassigned"}>{vi ? "Chưa phân công" : "Unassigned"}</option><option value="inactive" selected={filters.owner === "inactive"}>{vi ? "Người phụ trách không hoạt động" : "Inactive owner"}</option>{owners.map((owner) => <option value={owner.id} selected={filters.owner === owner.id}>{owner.label}</option>)}</select></div>}
-        </Filters>
-      </Fragment>
+        </ListFilters>
+      </ListToolbar>
 
       {view !== "board" && <>
         {rows.length ? <div class="cl-tbl-wrap" tabindex="0" role="region" aria-label={vi ? "Bảng cơ hội, cuộn ngang được" : "Opportunity table, scrolls sideways"}>
@@ -140,10 +139,10 @@ const closeHref = path({ new: "" });
         {rows.length > 0 && <p class="cl-hint"><span>{vi ? "Cột số dòng và Tên cơ hội cố định khi cuộn ngang. Mỗi ô lưu riêng và không ghi đè thay đổi mới hơn." : "The row number and Opportunity stay in place when scrolling sideways. Each cell saves on its own and never overwrites a newer change."}</span><span>{vi ? "Bấm tên để mở trang chi tiết" : "Select a name to open the record"}</span></p>}
         {pages > 1 && <nav class="cl-pager" aria-label={vi ? "Phân trang" : "Pagination"}>
           <span>{vi ? `Trang ${page} / ${pages}` : `Page ${page} of ${pages}`}</span>
-          <span>{page > 1 && <a class="cl-btn sm" href={query({ page: String(page - 1) })}>{vi ? "Trước" : "Previous"}</a>}{page < pages && <a class="cl-btn sm" href={query({ page: String(page + 1) })}>{vi ? "Tiếp" : "Next"}</a>}</span>
+          <span>{page > 1 && <a class="ws-btn sm" href={query({ page: String(page - 1) })}>{vi ? "Trước" : "Previous"}</a>}{page < pages && <a class="ws-btn sm" href={query({ page: String(page + 1) })}>{vi ? "Tiếp" : "Next"}</a>}</span>
         </nav>}
       </>}
-    </ListHead>
+    </ListHeader>
 
     {view === "board" && playbook && <section class="crm-board-wrap cl-stack" data-board-wrap aria-label={vi ? "Kanban cơ hội theo giai đoạn" : "Opportunities by stage"}
         data-drag-hint={vi ? "{name} · Thả vào một cột để đổi giai đoạn, hoặc vào vùng chốt ở cuối màn hình. Esc để hủy." : "{name} · Drop on a column to change stage, or on a closing zone at the bottom. Esc cancels."}
@@ -158,9 +157,9 @@ const closeHref = path({ new: "" });
             {cards.map((row) => { const editable = canEdit(row); const inStage = days(row.stage_since); const alert = row.overdue_tasks > 0 ? (vi ? `${row.overdue_tasks} công việc quá hạn` : `${row.overdue_tasks} overdue task(s)`) : row.open_tasks === 0 && !row.next_action_due ? (vi ? "Không có hoạt động sắp tới" : "No upcoming activity") : ""; const danger = row.overdue_tasks > 0; return <article class:list={["cl-kc", { warn: alert && !danger, danger }]} data-card={editable ? row.id : undefined} data-name={`${row.title}`} data-current={row.stage_id}
                 data-zone-won={editable ? `${base}/${row.id}?close=won#close` : undefined} data-zone-lost={editable ? `${base}/${row.id}?close=lost#close` : undefined}>
               <div class="cl-kc-top">
-                {editable ? <span class="cl-grip"><Icon name="grip" /></span> : <span class="cl-grip" />}
+                {editable ? <span class="cl-grip"><Glyph name="grip" /></span> : <span class="cl-grip" />}
                 <a class="cl-kc-title" href={`${base}/${row.id}`}>{row.title}</a>
-                {alert && <span class:list={["cl-kc-alert", { danger }]} title={alert}><Icon name="warn" /><span class="crm-sr">{alert}</span></span>}
+                {alert && <span class:list={["cl-kc-alert", { danger }]} title={alert}><Glyph name="warn" /><span class="crm-sr">{alert}</span></span>}
               </div>
               <dl>
                 <dt>{vi ? "Công ty" : "Company"}</dt><dd>{row.account_name}</dd>
@@ -194,8 +193,9 @@ const closeHref = path({ new: "" });
     </section>}
   </div>
 
-  <Sheet id="new-opp" title={vi ? "Tạo cơ hội" : "New opportunity"} vi={vi} open={sheetOpen} closeHref={closeHref} wide>
-    {sheetOpen && <NewOpportunityForm ctx={ctx} state={state} playbooks={activePlaybooks} owners={owners} customers={customers} action={`${path({ new: "1" })}#new-opp`} cancelHref={closeHref} />}
+  <Sheet id="new-opp" title={vi ? "Tạo cơ hội" : "New opportunity"} vi={vi} open={sheetOpen} closeHref={closeHref} action={`${path({ new: "1" })}#new-opp`} width="760px">
+    {sheetOpen ? <NewOpportunityForm ctx={ctx} state={state} playbooks={activePlaybooks} owners={owners} customers={customers} /> : <p><a class="ws-btn primary" href={`${path({ new: "1" })}#new-opp`}>{vi ? "Mở biểu mẫu tạo cơ hội" : "Open the new opportunity form"}</a></p>}
+    {sheetOpen && <Fragment slot="foot"><a class="ws-btn" href={closeHref}>{vi ? "Hủy" : "Cancel"}</a><button class="ws-btn primary" type="submit">{vi ? "Lưu" : "Save"}</button></Fragment>}
   </Sheet>
 </CrmShell>
 <script>import "../../scripts/crm-board";</script>

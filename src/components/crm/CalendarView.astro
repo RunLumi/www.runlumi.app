@@ -7,8 +7,10 @@ import CrmShell from "../../layouts/CrmShell.astro";
 import Field from "./Field.astro";
 import FormNotices from "./FormNotices.astro";
 import Hidden from "./Hidden.astro";
-import Sheet from "./list/Sheet.astro";
-import Icon from "./list/Icon.astro";
+import ListHeader from "../workspace/ui/ListHeader.astro";
+import ButtonGroup from "../workspace/ui/ButtonGroup.astro";
+import Dialog from "../workspace/ui/Dialog.astro";
+import Glyph from "./Glyph.astro";
 import { label, options } from "../../lib/crm/i18n";
 import { errorFor, valueFor } from "../../lib/crm/page";
 import type { CalendarProps } from "../../lib/crm/routes/calendar";
@@ -74,32 +76,26 @@ const legend: { tone: string; label: string }[] = [
 <CrmShell title={vi ? "Lịch" : "Calendar"} lang={lang} actor={ctx.actor} current="calendar">
   <div class="cl-stack">
     <FormNotices state={state} lang={lang} saved={Astro.url.searchParams.get("saved")} intents={[]} />
-    <section class="cl-panel cl-lv bare" aria-labelledby="cl-title">
-      <div class="cl-oh cl-cal-head">
-        <div class="cl-oh-id">
-          <span class="cl-oi" style="background:#C2410C"><Icon name="calendar" size={22} /></span>
-          <div class="cl-oh-name"><p class="cl-eyebrow">{vi ? "Lịch" : "Calendar"}</p><h1 class="cl-h1" id="cl-title">{view === "week" ? weekTitle : monthTitle(range.anchor.slice(0, 7))}</h1></div>
-          <nav class="cl-cal-nav" aria-label={vi ? "Chuyển kỳ" : "Change period"}>
-            <span class="cl-bg"><a class="cl-btn icon" href={view === "week" ? weekHref(range.previous) : monthHref(range.previous)} aria-label={vi ? (view === "week" ? "Tuần trước" : "Tháng trước") : (view === "week" ? "Previous week" : "Previous month")}><Icon name="left" /></a><a class="cl-btn icon" href={view === "week" ? weekHref(range.next) : monthHref(range.next)} aria-label={vi ? (view === "week" ? "Tuần sau" : "Tháng sau") : (view === "week" ? "Next week" : "Next month")}><Icon name="right" /></a></span>
-            <a class="cl-btn" href={view === "week" ? weekHref(today) : monthHref(today.slice(0, 7))}>{vi ? "Hôm nay" : "Today"}</a>
-          </nav>
-        </div>
-        <div class="cl-tools">
-          <nav class="cl-bg" aria-label={vi ? "Cách xem" : "View"}>
-            <a class="cl-btn" href={weekHref(view === "week" ? range.anchor : (inMonth(today) ? today : range.anchor))} aria-current={view === "week" ? "page" : undefined}>{vi ? "Tuần" : "Week"}</a>
-            <a class="cl-btn" href={monthHref(view === "week" ? anchorMonth : range.anchor.slice(0, 7))} aria-current={view === "month" ? "page" : undefined}>{vi ? "Tháng" : "Month"}</a>
-          </nav>
-          <a class="cl-btn icon" href={link({})} aria-label={vi ? "Làm mới" : "Refresh"}><Icon name="refresh" /></a>
-          {opportunities.length > 0 && <a class="cl-btn primary" href={`${link({ new: "1" })}#new-event`}>{vi ? "Tạo lịch hẹn" : "New event"}</a>}
-        </div>
+    <ListHeader vi={vi} icon="calendar" tone="event" object={vi ? "Lịch" : "Calendar"} title={view === "week" ? weekTitle : monthTitle(range.anchor.slice(0, 7))} meta={vi ? `${shown.length} mục trong kỳ này · giờ Việt Nam` : `${shown.length} items in this period · Vietnam time`}>
+      <div slot="actions" class="cl-cal-actions">
+        <nav class="ws-bg" aria-label={vi ? "Chuyển kỳ" : "Change period"}>
+          <a class="ws-btn icon" href={view === "week" ? weekHref(range.previous) : monthHref(range.previous)} aria-label={vi ? (view === "week" ? "Tuần trước" : "Tháng trước") : (view === "week" ? "Previous week" : "Previous month")}><Glyph name="left" /></a>
+          <a class="ws-btn" href={view === "week" ? weekHref(today) : monthHref(today.slice(0, 7))}>{vi ? "Hôm nay" : "Today"}</a>
+          <a class="ws-btn icon" href={view === "week" ? weekHref(range.next) : monthHref(range.next)} aria-label={vi ? (view === "week" ? "Tuần sau" : "Tháng sau") : (view === "week" ? "Next week" : "Next month")}><Glyph name="right" /></a>
+        </nav>
+        <nav class="ws-bg" aria-label={vi ? "Cách xem" : "View"}>
+          <a class:list={["ws-btn", { on: view === "week" }]} href={weekHref(view === "week" ? range.anchor : (inMonth(today) ? today : range.anchor))} aria-current={view === "week" ? "page" : undefined}>{vi ? "Tuần" : "Week"}</a>
+          <a class:list={["ws-btn", { on: view === "month" }]} href={monthHref(view === "week" ? anchorMonth : range.anchor.slice(0, 7))} aria-current={view === "month" ? "page" : undefined}>{vi ? "Tháng" : "Month"}</a>
+        </nav>
+        <a class="ws-btn icon" href={link({})} aria-label={vi ? "Làm mới" : "Refresh"}><Glyph name="refresh" /></a>
+        {opportunities.length > 0 && <a class="ws-btn primary" href={`${link({ new: "1" })}#new-event`}>{vi ? "Tạo lịch hẹn" : "New event"}</a>}
       </div>
-      <div class="cl-meta"><p role="status">{vi ? `${shown.length} mục trong kỳ này · giờ Việt Nam` : `${shown.length} items in this period · Vietnam time`}</p></div>
-    </section>
+    </ListHeader>
 
     <div class="cl-cal">
       <aside class="cl-panel cl-cal-rail" aria-label={vi ? "Lịch nhỏ và chú thích" : "Mini calendar and legend"}>
         <div>
-          <div class="cl-mini-h"><strong>{monthTitle(anchorMonth)}</strong><nav aria-label={vi ? "Đổi tháng" : "Change month"}><a href={monthHref(mini.previous)} aria-label={vi ? "Tháng trước" : "Previous month"}><Icon name="left" /></a><a href={monthHref(mini.next)} aria-label={vi ? "Tháng sau" : "Next month"}><Icon name="right" /></a></nav></div>
+          <div class="cl-mini-h"><strong>{monthTitle(anchorMonth)}</strong><nav aria-label={vi ? "Đổi tháng" : "Change month"}><a href={monthHref(mini.previous)} aria-label={vi ? "Tháng trước" : "Previous month"}><Glyph name="left" /></a><a href={monthHref(mini.next)} aria-label={vi ? "Tháng sau" : "Next month"}><Glyph name="right" /></a></nav></div>
           <div class="cl-mini">
             {miniNames.map((name) => <b aria-hidden="true">{name}</b>)}
             {mini.days.map((day) => <a href={weekHref(day)} class:list={{ o: day.slice(0, 7) !== anchorMonth, t: day === today, wk: currentWeek.includes(day) && day !== today }} aria-label={fmt(day, { weekday: "long", day: "numeric", month: "long" })}>{Number(day.slice(8))}</a>)}
@@ -147,10 +143,10 @@ const legend: { tone: string; label: string }[] = [
     </div>
   </div>
 
-  <Sheet id="new-event" title={vi ? "Tạo lịch hẹn" : "New event"} vi={vi} open={sheetOpen} closeHref={closeHref}>
+  <Dialog id="new-event" title={vi ? "Tạo lịch hẹn" : "New event"} vi={vi} open={sheetOpen} closeHref={closeHref} action={opportunities.length ? `${link({ new: "1" })}#new-event` : undefined} width="640px">
     <FormNotices state={state} lang={lang} intents={["task_create"]} fieldLabels={fieldLabels} />
     <p class="cl-sheet-tip">{vi ? "Lịch hẹn là một công việc trên cơ hội của bạn, theo giờ Việt Nam, với cùng kiểm tra như trang cơ hội (kể cả yêu cầu không liên hệ). CRM không gửi lời mời cho khách." : "An event is a task on one of your opportunities, in Vietnam time, with the same checks as the record (do-not-contact included). The CRM sends no invitation to the customer."}</p>
-    {opportunities.length ? <form class="crm-form" method="post" action={`${link({ new: "1" })}#new-event`}>
+    {opportunities.length ? <>
       <Hidden intent="task_create" state={state} />
       <p class="cl-sheet-sec">{vi ? "Thông tin lịch hẹn" : "Event details"}</p>
       <div class="crm-form-grid">
@@ -162,7 +158,7 @@ const legend: { tone: string; label: string }[] = [
         <Field name="note" type="textarea" wide label={vi ? "Ghi chú nội bộ" : "Internal note"} lang={lang} value={v("note")} maxlength={1000} />
       </div>
       {e("contact_id") === "do_not_contact" && <p class="crm-error">{vi ? "Khách đã yêu cầu không liên hệ; không tạo được việc liên hệ." : "The customer asked not to be contacted; outreach cannot be scheduled."}</p>}
-      <div class="cl-sheet-f"><a class="cl-btn" href={closeHref}>{vi ? "Hủy" : "Cancel"}</a><button class="cl-btn primary" type="submit">{vi ? "Lưu" : "Save"}</button></div>
-    </form> : <p class="cl-empty">{vi ? "Bạn chưa có cơ hội đang mở để thêm lịch hẹn." : "You have no open opportunities to schedule against."}</p>}
-  </Sheet>
+    </> : <p class="cl-empty">{vi ? "Bạn chưa có cơ hội đang mở để thêm lịch hẹn." : "You have no open opportunities to schedule against."}</p>}
+    {opportunities.length > 0 && <Fragment slot="foot"><a class="ws-btn" href={closeHref}>{vi ? "Hủy" : "Cancel"}</a><button class="ws-btn primary" type="submit">{vi ? "Lưu" : "Save"}</button></Fragment>}
+  </Dialog>
 </CrmShell>

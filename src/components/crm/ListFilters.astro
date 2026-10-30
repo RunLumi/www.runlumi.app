@@ -1,0 +1,16 @@
+---
+// The list toolbar's filter button (boards Leads, DealsTable, Accounts): a
+// GET filter form in a pop-over. No script; Apply submits, Clear is a link.
+// Move to the shared ListToolbar when the kit has a filter pop-over.
+import Glyph from "./Glyph.astro";
+interface Props { vi: boolean; active?: number; clearHref: string }
+const { vi, active = 0, clearHref } = Astro.props;
+---
+<details class="ws-drop cl-filters">
+  <summary class:list={["ws-btn icon", { on: active > 0 }]} aria-label={vi ? `Bộ lọc${active ? ` (${active} đang dùng)` : ""}` : `Filters${active ? ` (${active} in use)` : ""}`}><Glyph name="filter" />{active > 0 && <span class="cl-dot-n">{active}</span>}</summary>
+  <form class="ws-pop ws-menu-pop cl-filter-form" method="get" aria-label={vi ? "Bộ lọc" : "Filters"}>
+    <p class="ws-mi-head">{vi ? "Lọc danh sách" : "Filter this list"}</p>
+    <slot />
+    <div class="cl-filter-actions"><a class="ws-btn sm" href={clearHref}>{vi ? "Xóa lọc" : "Clear"}</a><button class="ws-btn sm primary" type="submit">{vi ? "Áp dụng" : "Apply"}</button></div>
+  </form>
+</details>

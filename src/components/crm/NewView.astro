@@ -2,8 +2,9 @@
 // /crm/new: the create-opportunity form on its own page (the menu entry and
 // links from companies and contacts). On Pipeline the same form opens in a sheet.
 import CrmShell from "../../layouts/CrmShell.astro";
-import ListHead from "./list/ListHead.astro";
+import ListHeader from "../workspace/ui/ListHeader.astro";
 import NewOpportunityForm from "./NewOpportunityForm.astro";
+import { t } from "../../lib/crm/i18n";
 import type { NewProps } from "../../lib/crm/routes/pipeline";
 import "../../styles/crm-sales.css";
 import "../../styles/crm-lists.css";
@@ -14,10 +15,11 @@ const { lang, vi } = ctx;
 ---
 <CrmShell title={vi ? "Tạo cơ hội" : "New opportunity"} lang={lang} actor={ctx.actor} current="new">
   <div class="cl-stack">
-    <ListHead vi={vi} icon="opportunity" tone="#006093" eyebrow={vi ? "Cơ hội" : "Opportunity"} title={vi ? "Tạo cơ hội" : "New opportunity"} bare
+    <ListHeader vi={vi} icon="new" tone="opportunity" object={vi ? "Cơ hội" : "Opportunity"} title={vi ? "Tạo cơ hội" : "New opportunity"}
       meta={vi ? "Chọn khách có sẵn, hoặc nhập khách mới: CRM tạo công ty và người liên hệ." : "Pick an existing customer, or enter a new one: the CRM creates the company and contact."} />
-    <section class="cl-panel cl-form-panel" aria-label={vi ? "Thông tin cơ hội" : "Opportunity details"}>
-      <NewOpportunityForm ctx={ctx} state={state} playbooks={playbooks} owners={owners} customers={customers} action={Astro.url.pathname + Astro.url.search} cancelHref={`${ctx.base}/pipeline`} />
-    </section>
+    <form class="cl-panel cl-form-panel crm-form" method="post" novalidate aria-label={vi ? "Thông tin cơ hội" : "Opportunity details"}>
+      <NewOpportunityForm ctx={ctx} state={state} playbooks={playbooks} owners={owners} customers={customers} />
+      <div class="cl-form-f"><a class="ws-btn" href={`${ctx.base}/pipeline`}>{t(lang, "cancel")}</a><button class="ws-btn primary" type="submit">{vi ? "Tạo cơ hội" : "Create opportunity"}</button></div>
+    </form>
   </div>
 </CrmShell>

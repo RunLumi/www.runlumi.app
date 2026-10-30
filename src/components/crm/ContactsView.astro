@@ -2,10 +2,12 @@
 // Contacts list view (board Contacts). Story: docs/governance/USER-STORIES.md
 // § CRM list screens (Accounts, Contacts). "Thêm người liên hệ" opens a sheet.
 import CrmShell from "../../layouts/CrmShell.astro";
-import ListHead from "./list/ListHead.astro";
-import Sheet from "./list/Sheet.astro";
-import Filters from "./list/Filters.astro";
-import Icon from "./list/Icon.astro";
+import ListHeader from "../workspace/ui/ListHeader.astro";
+import ButtonGroup from "../workspace/ui/ButtonGroup.astro";
+import ListToolbar from "../workspace/ui/ListToolbar.astro";
+import Sheet from "../workspace/ui/Sheet.astro";
+import ListFilters from "./ListFilters.astro";
+import Glyph from "./Glyph.astro";
 import Field from "./Field.astro";
 import FormNotices from "./FormNotices.astro";
 import Hidden from "./Hidden.astro";
@@ -41,15 +43,15 @@ const closeHref = query({ new: "", account: "" });
 ---
 <CrmShell title={vi ? "Liên hệ" : "Contacts"} lang={lang} actor={actor} current="contacts">
   <div class="cl-stack">
-    <ListHead vi={vi} icon="contact" tone="#0F7B7B" eyebrow={vi ? "Liên hệ" : "Contacts"} title={title} meta={meta} lists={lists} search={{ value: filters.q, hidden: { owner: filters.owner } }}>
-      <Fragment slot="actions"><a class="cl-btn" href={`${query({ new: "1" })}#new-contact`}>{vi ? "Tạo" : "New"}</a></Fragment>
-      <Fragment slot="tools">
-        <a class="cl-btn icon" href={query({})} aria-label={vi ? "Làm mới" : "Refresh"}><Icon name="refresh" /></a>
-        {actor.manager && <Filters vi={vi} active={filters.owner ? 1 : 0} clearHref={query({ owner: "", page: "" })}>
+    <ListHeader vi={vi} icon="contacts" tone="contact" object={vi ? "Liên hệ" : "Contacts"} title={title} meta={meta} lists={lists}>
+      <ButtonGroup slot="actions" label={vi ? "Hành động" : "Actions"}><a class="ws-btn" href={`${query({ new: "1" })}#new-contact`}>{vi ? "Tạo" : "New"}</a></ButtonGroup>
+      <ListToolbar slot="tools" vi={vi} q={filters.q} keep={{ owner: filters.owner }}>
+        <a class="ws-btn icon" href={query({})} aria-label={vi ? "Làm mới" : "Refresh"}><Glyph name="refresh" /></a>
+        {actor.manager && <ListFilters vi={vi} active={filters.owner ? 1 : 0} clearHref={query({ owner: "", page: "" })}>
           {filters.q && <input type="hidden" name="q" value={filters.q} />}
           <div class="crm-field"><label for="owner">{vi ? "Người quản lý" : "Managed by"}</label><select class="crm-select" id="owner" name="owner"><option value="">{vi ? "Tất cả" : "Anyone"}</option><option value="unassigned" selected={filters.owner === "unassigned"}>{vi ? "Chưa có người quản lý" : "Nobody yet"}</option>{owners.map((owner) => <option value={owner.id} selected={filters.owner === owner.id}>{owner.label}</option>)}</select></div>
-        </Filters>}
-      </Fragment>
+        </ListFilters>}
+      </ListToolbar>
       {rows.length ? <div class="cl-tbl-wrap" tabindex="0" role="region" aria-label={vi ? "Bảng người liên hệ, cuộn ngang được" : "Contact table, scrolls sideways"}><table class="cl-tbl">
         <thead><tr><th class="fz fzr" scope="col"><span class="crm-sr">#</span></th><th class="fz fzn" scope="col">{vi ? "Tên" : "Name"}</th><th scope="col">{vi ? "Công ty" : "Company"}</th><th scope="col">{vi ? "Vai trò" : "Role"}</th><th scope="col">{vi ? "Điện thoại" : "Phone"}</th><th scope="col">Email</th><th scope="col">{vi ? "Đồng ý liên hệ" : "Consent"}</th><th scope="col">{vi ? "Người quản lý" : "Managed by"}</th></tr></thead>
         <tbody>{rows.map((row, index) => <tr>
@@ -62,13 +64,13 @@ const closeHref = query({ new: "", account: "" });
         </tr>)}</tbody>
       </table></div> : <p class="cl-empty">{filters.q || filters.owner ? (vi ? "Không có người liên hệ khớp bộ lọc. Xóa lọc hoặc đổi từ khóa." : "No contacts match. Clear the filters or change the search.") : (vi ? "Chưa có người liên hệ bạn được xem. Chọn Tạo để thêm người liên hệ ở một công ty." : "No contacts you can see yet. Choose New to add one at a company.")}</p>}
       {rows.length > 0 && <p class="cl-hint"><span>{vi ? "Cột số dòng và Tên cố định khi cuộn ngang." : "The row number and Name stay in place when scrolling sideways."}</span><span>{vi ? "Bấm tên để mở trang chi tiết" : "Select a name to open the record"}</span></p>}
-      {pages > 1 && <nav class="cl-pager" aria-label={vi ? "Phân trang" : "Pagination"}><span>{vi ? `Trang ${page} / ${pages}` : `Page ${page} of ${pages}`}</span><span>{page > 1 && <a class="cl-btn sm" href={query({ page: String(page - 1) })}>{vi ? "Trước" : "Previous"}</a>}{page < pages && <a class="cl-btn sm" href={query({ page: String(page + 1) })}>{vi ? "Tiếp" : "Next"}</a>}</span></nav>}
-    </ListHead>
+      {pages > 1 && <nav class="cl-pager" aria-label={vi ? "Phân trang" : "Pagination"}><span>{vi ? `Trang ${page} / ${pages}` : `Page ${page} of ${pages}`}</span><span>{page > 1 && <a class="ws-btn sm" href={query({ page: String(page - 1) })}>{vi ? "Trước" : "Previous"}</a>}{page < pages && <a class="ws-btn sm" href={query({ page: String(page + 1) })}>{vi ? "Tiếp" : "Next"}</a>}</span></nav>}
+    </ListHeader>
   </div>
 
-  <Sheet id="new-contact" title={vi ? "Thêm người liên hệ" : "Add a contact"} vi={vi} open={sheetOpen} closeHref={closeHref}>
+  <Sheet id="new-contact" title={vi ? "Thêm người liên hệ" : "Add a contact"} vi={vi} open={sheetOpen} closeHref={closeHref} action={`${query({ new: "1" })}#new-contact`} width="640px">
     <FormNotices state={state} lang={lang} fieldLabels={fieldLabels} />
-    {accounts.length ? <form class="crm-form" method="post" action={`${query({ new: "1" })}#new-contact`}>
+    {accounts.length ? <>
       <Hidden intent="contact_create" state={state} />
       <p class="cl-sheet-sec">{vi ? "Thông tin người liên hệ" : "Contact details"}</p>
       <div class="crm-form-grid">
@@ -83,7 +85,7 @@ const closeHref = query({ new: "", account: "" });
         <Field name="consent_evidence" label={fieldLabels.consent_evidence} lang={lang} value={v("consent_evidence")} error={e("consent_evidence")} maxlength={500} />
         {actor.manager && <Field name="owner_id" type="select" label={fieldLabels.owner_id} lang={lang} value={v("owner_id", "")} error={e("owner_id")} options={[{ value: "", label: vi ? "Như người quản lý công ty" : "Same as the company's manager" }, ...owners.map((owner) => ({ value: owner.id, label: owner.label }))]} />}
       </div>
-      <div class="cl-sheet-f"><a class="cl-btn" href={closeHref}>{vi ? "Hủy" : "Cancel"}</a><button class="cl-btn primary" type="submit">{vi ? "Lưu" : "Save"}</button></div>
-    </form> : <p class="cl-empty">{vi ? "Hãy tạo công ty trước, rồi thêm người liên hệ." : "Add a company first, then its contacts."} <a href={`${base}/accounts?new=1#new-company`}>{vi ? "Thêm công ty" : "Add a company"}</a></p>}
+    </> : <p class="cl-empty">{vi ? "Hãy tạo công ty trước, rồi thêm người liên hệ." : "Add a company first, then its contacts."} <a href={`${base}/accounts?new=1#new-company`}>{vi ? "Thêm công ty" : "Add a company"}</a></p>}
+    {accounts.length > 0 && <Fragment slot="foot"><a class="ws-btn" href={closeHref}>{vi ? "Hủy" : "Cancel"}</a><button class="ws-btn primary" type="submit">{vi ? "Lưu" : "Save"}</button></Fragment>}
   </Sheet>
 </CrmShell>

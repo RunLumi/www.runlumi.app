@@ -5,11 +5,12 @@ import CrmShell from "../../layouts/CrmShell.astro";
 import Field from "./Field.astro";
 import FormNotices from "./FormNotices.astro";
 import Hidden from "./Hidden.astro";
-import ListHead from "./list/ListHead.astro";
-import Sheet from "./list/Sheet.astro";
-import Filters from "./list/Filters.astro";
-import Views from "./list/Views.astro";
-import Icon from "./list/Icon.astro";
+import ListHeader from "../workspace/ui/ListHeader.astro";
+import ButtonGroup from "../workspace/ui/ButtonGroup.astro";
+import ListToolbar from "../workspace/ui/ListToolbar.astro";
+import Sheet from "../workspace/ui/Sheet.astro";
+import ListFilters from "./ListFilters.astro";
+import Glyph from "./Glyph.astro";
 import { formatDate, label, options } from "../../lib/crm/i18n";
 import { leadAgeHours, overTarget, statusLabel } from "../../lib/crm/leads";
 import { errorFor, valueFor } from "../../lib/crm/page";
@@ -62,24 +63,22 @@ const newHref = `${base}/leads${query({ new: "1" })}#new-lead`;
 <CrmShell title={vi ? "Lead" : "Leads"} lang={lang} actor={ctx.actor} current="leads">
   <div class="cl-stack">
     <FormNotices state={state} lang={lang} saved={Astro.url.searchParams.get("saved")} intents={["lead_status"]} />
-    <ListHead vi={vi} icon="lead" tone="#0F7B7B" eyebrow="Lead" title={title} meta={meta} lists={lists} bare={view === "board"}
-      search={{ value: filters.q, hidden: { view: view === "board" ? "board" : "", state: view === "list" && filters.state !== "open" ? filters.state : "", status: filters.status, source: filters.source, owner: filters.owner } }}>
-      <Fragment slot="actions"><a class="cl-btn" href={newHref}>{vi ? "Tạo" : "New"}</a></Fragment>
-      <Fragment slot="tools">
-        <Views vi={vi} views={[
-          { key: "list", label: vi ? "Bảng" : "Table", href: `${base}/leads${query({ view: "list", page: "" })}`.replace(/\?$/, ""), icon: "table", current: view === "list" },
-          { key: "board", label: "Kanban", href: `${base}/leads${query({ view: "board", state: "open", page: "" })}`, icon: "kanban", current: view === "board" },
-        ]} />
-        <a class="cl-btn icon" href={here} aria-label={vi ? "Làm mới" : "Refresh"}><Icon name="refresh" /></a>
-        <Filters vi={vi} active={filterCount} clearHref={view === "board" ? `${base}/leads?view=board` : `${base}/leads`}>
+    <ListHeader vi={vi} icon="leads" tone="lead" object="Lead" title={title} meta={meta} lists={lists}>
+      <ButtonGroup slot="actions" label={vi ? "Hành động" : "Actions"} more={ctx.actor.configure ? [{ label: vi ? "Trạng thái Lead" : "Lead statuses", href: `${base}/admin/leads` }] : []}><a class="ws-btn" href={newHref}>{vi ? "Tạo" : "New"}</a></ButtonGroup>
+      <ListToolbar slot="tools" vi={vi} q={filters.q} keep={{ view: view === "board" ? "board" : "", state: view === "list" && filters.state !== "open" ? filters.state : "", status: filters.status, source: filters.source, owner: filters.owner }} views={[
+          { key: "list", label: vi ? "Bảng" : "Table", href: `${base}/leads${query({ view: "list", page: "" })}`.replace(/\?$/, ""), icon: "model", current: view === "list" },
+          { key: "board", label: "Kanban", href: `${base}/leads${query({ view: "board", state: "open", page: "" })}`, icon: "pipeline", current: view === "board" },
+        ]}>
+        <a class="ws-btn icon" href={here} aria-label={vi ? "Làm mới" : "Refresh"}><Glyph name="refresh" /></a>
+        <ListFilters vi={vi} active={filterCount} clearHref={view === "board" ? `${base}/leads?view=board` : `${base}/leads`}>
           {view === "board" && <input type="hidden" name="view" value="board" />}
           {filters.q && <input type="hidden" name="q" value={filters.q} />}
           {view === "list" && <input type="hidden" name="state" value={filters.state} />}
           {view === "list" && <div class="crm-field"><label for="lstatus">{vi ? "Trạng thái Lead" : "Lead status"}</label><select class="crm-select" id="lstatus" name="status"><option value="">{vi ? "Tất cả" : "Any"}</option>{columns.map((item) => <option value={item.id} selected={filters.status === item.id}>{vi ? item.vi : item.en}</option>)}</select></div>}
           <div class="crm-field"><label for="lsource">{vi ? "Nguồn Lead" : "Lead source"}</label><select class="crm-select" id="lsource" name="source"><option value="">{vi ? "Tất cả" : "Any"}</option>{options(lang, "channel").map((item) => <option value={item.value} selected={filters.source === item.value}>{item.label}</option>)}</select></div>
           {ctx.actor.manager && <div class="crm-field"><label for="lowner">{vi ? "Người phụ trách" : "Owner"}</label><select class="crm-select" id="lowner" name="owner"><option value="">{vi ? "Tất cả" : "Anyone"}</option><option value="unassigned" selected={filters.owner === "unassigned"}>{vi ? "Chờ phân công" : "Waiting for assignment"}</option>{owners.map((owner) => <option value={owner.id} selected={filters.owner === owner.id}>{owner.label}</option>)}</select></div>}
-        </Filters>
-      </Fragment>
+        </ListFilters>
+      </ListToolbar>
 
       {view === "list" && <>
         {rows.length ? <div class="cl-tbl-wrap" tabindex="0" role="region" aria-label={vi ? "Bảng Lead, cuộn ngang được" : "Lead table, scrolls sideways"}>
@@ -104,10 +103,10 @@ const newHref = `${base}/leads${query({ new: "1" })}#new-lead`;
         {rows.length > 0 && <p class="cl-hint"><span>{vi ? "Cột số dòng và Tên cố định khi cuộn ngang." : "The row number and Name stay in place when scrolling sideways."}</span><span>{vi ? "Bấm tên để mở trang chi tiết" : "Select a name to open the record"}</span></p>}
         {pages > 1 && <nav class="cl-pager" aria-label={vi ? "Phân trang" : "Pagination"}>
           <span>{vi ? `Trang ${page} / ${pages}` : `Page ${page} of ${pages}`}</span>
-          <span>{page > 1 && <a class="cl-btn sm" href={query({ page: String(page - 1) })}>{vi ? "Trước" : "Previous"}</a>}{page < pages && <a class="cl-btn sm" href={query({ page: String(page + 1) })}>{vi ? "Tiếp" : "Next"}</a>}</span>
+          <span>{page > 1 && <a class="ws-btn sm" href={query({ page: String(page - 1) })}>{vi ? "Trước" : "Previous"}</a>}{page < pages && <a class="ws-btn sm" href={query({ page: String(page + 1) })}>{vi ? "Tiếp" : "Next"}</a>}</span>
         </nav>}
       </>}
-    </ListHead>
+    </ListHeader>
 
     {view === "board" && <section class="crm-board-wrap cl-stack" data-board-wrap aria-label={vi ? "Kanban theo trạng thái Lead" : "Kanban by lead status"}
         data-drag-hint={vi ? "{name} · Thả vào một cột để đổi trạng thái, hoặc vào vùng Chuyển đổi / Không tiếp tục ở cuối màn hình. Esc để hủy." : "{name} · Drop on a column to change status, or on Convert / Disqualify at the bottom. Esc cancels."}
@@ -123,9 +122,9 @@ const newHref = `${base}/leads${query({ new: "1" })}#new-lead`;
             {column.cards.map((row) => { const pr = processes.get(row.process_id); const late = overTarget(pr, row); const editable = ctx.actor.manager || row.owner_id === ctx.actor.id; const alert = late ? (vi ? "Quá thời gian mục tiêu" : "Past the target time") : !row.owner_id ? (vi ? "Chưa có người phụ trách" : "No owner yet") : ""; return <article class:list={["cl-kc", { warn: !!alert }]} data-card={editable ? row.id : undefined} data-name={`${row.name} · ${row.company}`} data-current={row.status_id}
                 data-zone-convert={editable ? `${base}/leads/${row.id}?convert=1#convert` : undefined} data-zone-disqualify={editable ? `${base}/leads/${row.id}#disqualify` : undefined}>
               <div class="cl-kc-top">
-                {editable ? <span class="cl-grip"><Icon name="grip" /></span> : <span class="cl-grip" />}
+                {editable ? <span class="cl-grip"><Glyph name="grip" /></span> : <span class="cl-grip" />}
                 <a class="cl-kc-title" href={`${base}/leads/${row.id}`}>{row.name}</a>
-                {alert && <span class="cl-kc-alert" title={alert}><Icon name="warn" /><span class="crm-sr">{alert}</span></span>}
+                {alert && <span class="cl-kc-alert" title={alert}><Glyph name="warn" /><span class="crm-sr">{alert}</span></span>}
               </div>
               <dl><dt>{vi ? "Công ty" : "Company"}</dt><dd>{row.company}</dd>{row.need && <><dt>{vi ? "Nhu cầu" : "Need"}</dt><dd>{row.need.slice(0, 80)}</dd></>}<dt>{vi ? "Nguồn Lead" : "Lead source"}</dt><dd>{label(lang, "channel", row.source_channel)}</dd></dl>
               <div class="cl-kc-foot"><span class="cl-av" title={ownerName(row.owner_id)} aria-hidden="true">{row.owner_id ? initials(ownerName(row.owner_id)) : "?"}</span><span class="crm-sr">{vi ? "Người phụ trách" : "Owner"}: {ownerName(row.owner_id)}.</span><span>{vi ? `${age(leadAgeHours(row))} từ khi tạo` : `${age(leadAgeHours(row))} old`}</span>{alert && <span class="cl-badge warn"><span class="dot" />{alert}</span>}</div>
@@ -152,10 +151,9 @@ const newHref = `${base}/leads${query({ new: "1" })}#new-lead`;
     </section>}
   </div>
 
-  <Sheet id="new-lead" title={vi ? "Tạo Lead" : "New lead"} vi={vi} open={sheetOpen} closeHref={`${base}/leads${query({})}`.replace(/\?$/, "")}>
+  <Sheet id="new-lead" title={vi ? "Tạo Lead" : "New lead"} vi={vi} open={sheetOpen} closeHref={`${base}/leads${query({})}`.replace(/\?$/, "")} action={`${base}/leads${query({ new: "1" })}#new-lead`} width="640px">
     <FormNotices state={state} lang={lang} intents={["lead_create"]} fieldLabels={fieldLabels} />
     <p class="cl-sheet-tip">{vi ? "Cho người bạn tự tìm được (ghé thăm, gọi, sự kiện). Yêu cầu từ website và khách được giới thiệu tự vào hàng chờ. Cần điện thoại hoặc email." : "For people you found yourself (visit, call, event). Website enquiries and referrals arrive in the queue on their own. A phone number or email is required."}</p>
-    <form class="crm-form" method="post" action={`${base}/leads${query({ new: "1" })}#new-lead`}>
       <Hidden intent="lead_create" state={state} />
       <p class="cl-sheet-sec">{vi ? "Thông tin Lead" : "Lead details"}</p>
       <div class="crm-form-grid">
@@ -174,8 +172,7 @@ const newHref = `${base}/leads${query({ new: "1" })}#new-lead`;
         <Field name="next_action_due" type="date" label={fieldLabels.next_action_due} lang={lang} value={v("next_action_due")} error={e("next_action_due")} />
         <Field name="need" type="textarea" wide label={vi ? "Nhu cầu, theo lời họ" : "Need, in their words"} lang={lang} value={v("need")} maxlength={1500} />
       </div>
-      <div class="cl-sheet-f"><a class="cl-btn" href={`${base}/leads${query({})}`.replace(/\?$/, "")}>{vi ? "Hủy" : "Cancel"}</a><button class="cl-btn primary" type="submit">{vi ? "Lưu" : "Save"}</button></div>
-    </form>
+      <Fragment slot="foot"><a class="ws-btn" href={`${base}/leads${query({})}`.replace(/\?$/, "")}>{vi ? "Hủy" : "Cancel"}</a><button class="ws-btn primary" type="submit">{vi ? "Lưu" : "Save"}</button></Fragment>
   </Sheet>
 </CrmShell>
 <script>import "../../scripts/crm-board";</script>
