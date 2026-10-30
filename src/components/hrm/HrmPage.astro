@@ -1,6 +1,6 @@
 ---
 import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
-import ObjectHeader from "../workspace/record/ObjectHeader.astro";
+import RecordHeader from "../workspace/ui/RecordHeader.astro";
 import "../../styles/record.css";
 import type { Crumb } from "../workspace/ui/Breadcrumbs.astro";
 import "../../styles/modules.css";
@@ -253,7 +253,7 @@ const eyebrow=group?`HRM · ${vi?group.vi:group.en}`:"HRM";
 ---
 <WorkspaceShell title={title} lang={data.lang} user={data.user} module={Astro.props.module??"hrm"} current={Astro.props.current}>
   <div class="md-scope rec-module">
-  <ObjectHeader vi={vi} title={title} crumbs={crumbs} eyebrow={eyebrow} icon={here?.icon??"hrm"} tone="hrm" />
+  <RecordHeader vi={vi} title={title} crumbs={crumbs} object={eyebrow} icon={here?.icon??"hrm"} tone="hrm" />
   {error && <div class="crm-notice bad" role="alert"><strong>{vi?"Chưa hoàn tất":"Could not complete"}</strong><p>{messages[error]?.[vi?1:0]??(vi?"Yêu cầu không hợp lệ hoặc hồ sơ không còn khả dụng.":"The request is invalid or the record is no longer available.")}</p></div>}
   {savedMessages[saved]&&<div class="crm-notice good" role="status">{savedMessages[saved][vi?1:0]}</div>}
   {import.meta.env.DEV&&error?.startsWith("internal_error:")&&<pre class="crm-meta">{error.slice(15)}</pre>}

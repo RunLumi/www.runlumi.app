@@ -1,20 +1,18 @@
 ---
-// New task or appointment on an opportunity (opens in a sheet).
+// Fields for a new task or appointment; the sheet in OpportunityView holds the form.
 import Hidden from "./Hidden.astro";
 import Field from "./Field.astro";
 import { options } from "../../lib/crm/i18n";
 import { errorFor, valueFor } from "../../lib/crm/page";
 import type { OppProps } from "../../lib/crm/routes/opportunity";
 
-type Props = OppProps & { cancelHref: string };
-const { ctx, state, contacts, cancelHref } = Astro.props;
+type Props = OppProps;
+const { ctx, state, contacts } = Astro.props;
 const { lang, vi } = ctx;
 const v = (name: string, fallback = "") => valueFor(state, "task_create", name, fallback);
 const e = (name: string) => errorFor(state, "task_create", name);
 const contactOptions = [{ value: "", label: vi ? "Không chọn" : "No specific contact" }, ...contacts.map((contact) => ({ value: contact.id, label: `${contact.name}${contact.do_not_contact ? (vi ? " — không liên hệ" : " — do not contact") : ""}` }))];
 ---
-<form class="rec-sheet-form" method="post" action="#tasks">
-  <div class="rec-sheet-b">
     <Hidden intent="task_create" state={state} />
     <div class="crm-form-grid">
       <Field name="kind" type="select" label={vi ? "Loại" : "Kind"} lang={lang} value={v("kind", "follow_up")} error={e("kind")} options={options(lang, "task")} required />
@@ -26,6 +24,3 @@ const contactOptions = [{ value: "", label: vi ? "Không chọn" : "No specific 
       <Field name="note" label={vi ? "Ghi chú" : "Note"} lang={lang} value={v("note")} maxlength={1000} wide />
     </div>
     <label class="crm-check"><input type="checkbox" name="meeting_confirmed" value="1" checked={v("meeting_confirmed") === "1"} /><span>{vi ? "Cuộc hẹn đã được cả hai bên xác nhận" : "Both sides have confirmed this meeting"}</span></label>
-  </div>
-  <div class="rec-sheet-f"><a class="rec-btn" href={cancelHref}>{vi ? "Hủy" : "Cancel"}</a><button class="rec-btn primary" type="submit">{vi ? "Thêm việc" : "Add task"}</button></div>
-</form>

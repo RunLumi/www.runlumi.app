@@ -6,11 +6,12 @@ import CrmShell from "../../layouts/CrmShell.astro";
 import Field from "./Field.astro";
 import FormNotices from "./FormNotices.astro";
 import Hidden from "./Hidden.astro";
-import RecordHeader from "../workspace/record/RecordHeader.astro";
-import RecordPath from "../workspace/record/RecordPath.astro";
-import RecordTabs from "../workspace/record/RecordTabs.astro";
-import RelatedList from "../workspace/record/RelatedList.astro";
-import Sheet from "../workspace/record/Sheet.astro";
+import RecordHeader from "../workspace/ui/RecordHeader.astro";
+import ButtonGroup from "../workspace/ui/ButtonGroup.astro";
+import RelatedList from "../workspace/ui/RelatedList.astro";
+import RecordPath from "../workspace/record/PathPanel.astro";
+import RecordTabs from "../workspace/ui/RecordTabs.astro";
+import Sheet from "../workspace/ui/Sheet.astro";
 import Feed from "../workspace/record/Feed.astro";
 import { formatDate, formatDateTime, label, options } from "../../lib/crm/i18n";
 import { leadAgeHours, overTarget, reasonLabel, statusLabel } from "../../lib/crm/leads";
@@ -64,31 +65,29 @@ const fieldLabels: Record<string, string> = vi
   ? { name: "Họ tên", company: "Công ty", phone: "Điện thoại", email: "Email", account_id: "Công ty có sẵn", account_name: "Tên công ty mới", contact_id: "Liên hệ có sẵn", contact_mode: "Liên hệ", playbook_key: "Playbook", title: "Tên cơ hội", owner_id: "Người phụ trách", reason_id: "Lý do", status_id: "Trạng thái", consent: "Đồng ý liên hệ", estimated_value_vnd: "Giá trị HĐ mong đợi", win_probability: "Tỉ lệ thành công", reopen_reason: "Lý do mở lại" }
   : { name: "Name", company: "Company", phone: "Phone", email: "Email", account_id: "Existing company", account_name: "New company name", contact_id: "Existing contact", contact_mode: "Contact", playbook_key: "Playbook", title: "Opportunity name", owner_id: "Owner", reason_id: "Reason", status_id: "Status", consent: "Contact consent", estimated_value_vnd: "Expected value", win_probability: "Win probability", reopen_reason: "Reason to reopen" };
 const open = (intent: string) => state.intent === intent && (Object.keys(state.errors).length > 0 || state.conflict || state.serverError);
+const moreActions = canEdit ? [{ label: vi ? "Ghi chú" : "Add note", href: "#sheet-note" }, ...(lead.state === "open" ? [{ label: vi ? "Chọn trạng thái" : "Choose status", href: "#sheet-status" }] : []), { label: vi ? "Không tiếp tục" : "Disqualify", href: "#sheet-disqualify", danger: true }] : [];
 const dupCount = matches.accounts.length + matches.contacts.length;
 ---
 <CrmShell title={`${lead.name} · ${lead.company}`} lang={lang} actor={ctx.actor} current="leads">
   <div class="rec">
-    <RecordHeader vi={vi} icon="leads" tone="lead" eyebrow="Lead" title={lead.name}
+    <RecordHeader vi={vi} icon="leads" tone="lead" object="Lead" title={lead.name}
       crumbs={[{ label: "CRM", href: base }, { label: "Lead", href: `${base}/leads` }, { label: lead.name }]}
       highlights={[
         { label: vi ? "Chức danh" : "Job title", value: lead.job_title || "—" },
         { label: vi ? "Công ty" : "Company", value: lead.company },
         { label: vi ? "Điện thoại" : "Phone", value: lead.phone || "—" },
         { label: vi ? "Nguồn Lead" : "Lead source", value: label(lang, "channel", lead.source_channel) },
-        { label: vi ? "Người phụ trách" : "Owner", value: person(lead.owner_id), unknown: !lead.owner_id },
+        { label: vi ? "Người phụ trách" : "Owner", value: person(lead.owner_id), tone: lead.owner_id ? undefined : "warn" },
       ]}>
-      <span slot="badges" class:list={["rec-badge", lead.state === "converted" ? "ok" : lead.state === "disqualified" ? "warn" : "info"]}>{stateName[lead.state][vi ? 1 : 0]}</span>
-      <Fragment slot="actions">
-        {canEdit && lead.state === "open" && <a class="rec-btn" href="?convert=1#convert">{vi ? "Chuyển đổi" : "Convert"}</a>}
-        {canEdit && <a class="rec-btn" href="#sheet-edit">{vi ? "Sửa" : "Edit"}</a>}
-        {canAssign && <a class="rec-btn" href="#sheet-assign">{vi ? "Đổi người phụ trách" : "Change owner"}</a>}
-        {lead.state === "converted" && lead.converted_opportunity_id && <a class="rec-btn" href={`${base}/${lead.converted_opportunity_id}`}>{vi ? "Mở cơ hội" : "Open opportunity"}</a>}
-        {lead.state === "converted" && <a class="rec-btn" href={`${here}/converted`}>{vi ? "Kết quả chuyển đổi" : "Conversion result"}</a>}
-        {canReopen && <a class="rec-btn" href="#sheet-reopen">{vi ? "Mở lại" : "Reopen"}</a>}
-        {canEdit && <details class="rec-more"><summary class="rec-btn" aria-label={vi ? "Thêm hành động" : "More actions"}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg></summary>
-          <div class="rec-more-pop"><a href="#sheet-note">{vi ? "Ghi chú" : "Add note"}</a><a href="#sheet-status">{vi ? "Chọn trạng thái" : "Choose status"}</a><a class="danger" href="#sheet-disqualify">{vi ? "Không tiếp tục" : "Disqualify"}</a></div>
-        </details>}
-      </Fragment>
+      <p slot="sub" class="rec-badges"><span class:list={["ws-badge", lead.state === "converted" ? "ok" : lead.state === "disqualified" ? "warn" : "info"]}>{stateName[lead.state][vi ? 1 : 0]}</span></p>
+      <ButtonGroup slot="actions" label={vi ? "Thao tác" : "Actions"} more={moreActions}>
+        {canEdit && lead.state === "open" && <a class="ws-btn" href="?convert=1#convert">{vi ? "Chuyển đổi" : "Convert"}</a>}
+        {canEdit && <a class="ws-btn" href="#sheet-edit">{vi ? "Sửa" : "Edit"}</a>}
+        {canAssign && <a class="ws-btn" href="#sheet-assign">{vi ? "Đổi người phụ trách" : "Change owner"}</a>}
+        {lead.state === "converted" && lead.converted_opportunity_id && <a class="ws-btn" href={`${base}/${lead.converted_opportunity_id}`}>{vi ? "Mở cơ hội" : "Open opportunity"}</a>}
+        {lead.state === "converted" && <a class="ws-btn" href={`${here}/converted`}>{vi ? "Kết quả chuyển đổi" : "Conversion result"}</a>}
+        {canReopen && <a class="ws-btn" href="#sheet-reopen">{vi ? "Mở lại" : "Reopen"}</a>}
+      </ButtonGroup>
     </RecordHeader>
 
     <FormNotices state={state} lang={lang} saved={Astro.url.searchParams.get("saved")} fieldLabels={fieldLabels} />
@@ -102,11 +101,11 @@ const dupCount = matches.accounts.length + matches.contacts.length;
       {canEdit && nextStatus && <form slot="action" method="post">
         <Hidden intent="lead_status" state={state} version={lead.version} />
         <input type="hidden" name="status_id" value={nextStatus.id} />
-        <button class="rec-btn primary" type="submit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="m5 12 5 5L20 7" /></svg>{vi ? `Hoàn tất, chuyển sang “${nextStatus.vi}”` : `Complete, move to “${nextStatus.en}”`}</button>
+        <button class="ws-btn primary" type="submit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="m5 12 5 5L20 7" /></svg>{vi ? `Hoàn tất, chuyển sang “${nextStatus.vi}”` : `Complete, move to “${nextStatus.en}”`}</button>
       </form>}
-      {canEdit && !nextStatus && <a slot="action" class="rec-btn primary" href="?convert=1#convert">{vi ? "Chuyển đổi" : "Convert"}</a>}
+      {canEdit && !nextStatus && <a slot="action" class="ws-btn primary" href="?convert=1#convert">{vi ? "Chuyển đổi" : "Convert"}</a>}
       <div>
-        <h2>{vi ? `Trường quan trọng · ${current ? current.vi : ""}` : `Key fields · ${current ? current.en : ""}`}{canEdit && <a class="rec-btn small" href="#sheet-edit">{vi ? "Sửa" : "Edit"}</a>}</h2>
+        <h2>{vi ? `Trường quan trọng · ${current ? current.vi : ""}` : `Key fields · ${current ? current.en : ""}`}{canEdit && <a class="ws-btn sm" href="#sheet-edit">{vi ? "Sửa" : "Edit"}</a>}</h2>
         <dl class="rec-fields">
           <div><dt>{vi ? "Nhu cầu" : "Need"}</dt><dd>{lead.need || <span class="rec-unknown">{unknown}</span>}</dd></div>
           <div><dt>Playbook</dt><dd>{lead.playbook_key ? playbookName(lead.playbook_key) || lead.playbook_key : <span class="rec-unknown">{vi ? "Chưa rõ" : "Not known yet"}</span>}</dd></div>
@@ -127,10 +126,10 @@ const dupCount = matches.accounts.length + matches.contacts.length;
 
     <div class="rec-split">
       <div class="rec-main">
-        <section class="rec-panel" id="activity" aria-label={vi ? "Hoạt động và chi tiết" : "Activity and details"}>
+        <section class="ws-sheet-panel" id="activity" aria-label={vi ? "Hoạt động và chi tiết" : "Activity and details"}>
           <RecordTabs label={vi ? "Phần của Lead" : "Lead sections"} current={tab} tabs={[{ key: "activity", label: vi ? "Hoạt động" : "Activity", href: `${here}#activity` }, { key: "details", label: vi ? "Chi tiết" : "Details", href: `${here}?tab=details#activity` }]} />
           {tab === "activity" ? <div class="rec-body">
-            {canEdit && <div class="rec-compose"><a class="rec-btn small" href="#sheet-note">{vi ? "Ghi chú" : "Add note"}</a>{lead.state === "open" && <a class="rec-btn small" href="#sheet-edit">{vi ? "Đặt bước tiếp theo" : "Set next step"}</a>}</div>}
+            {canEdit && <div class="rec-compose"><a class="ws-btn sm" href="#sheet-note">{vi ? "Ghi chú" : "Add note"}</a>{lead.state === "open" && <a class="ws-btn sm" href="#sheet-edit">{vi ? "Đặt bước tiếp theo" : "Set next step"}</a>}</div>}
             <p class="rec-feed-h"><span>{vi ? "Sắp tới & quá hạn" : "Upcoming and overdue"}</span></p>
             {lead.state === "open" && lead.next_action ? <Feed empty="" items={[{ title: lead.next_action, meta: vi ? "Bước tiếp theo" : "Next step", when: lead.next_action_due ? formatDate(lead.next_action_due, lang) : (vi ? "Chưa có hạn" : "No due date"), kind: "task" }]} /> : <p class="rec-path-note">{vi ? "Chưa có bước tiếp theo." : "No next step set."}</p>}
             <p class="rec-feed-h"><span>{vi ? "Lịch sử" : "History"}</span><span>{events.length}</span></p>
@@ -158,19 +157,19 @@ const dupCount = matches.accounts.length + matches.contacts.length;
         </section>
       </div>
       <aside class="rec-side" aria-label={vi ? "Liên quan" : "Related"}>
-        <section class="rec-panel" aria-labelledby="rel-h">
+        <section class="ws-sheet-panel" aria-labelledby="rel-h">
           <div class="rec-head"><h2 id="rel-h">{vi ? "Liên quan" : "Related"}</h2></div>
           <div class="rec-body">
             {dupCount > 0 && <div class="rec-alert"><span class="rec-feed-ic warn" aria-hidden="true">!</span><div>
               <strong>{vi ? `Phát hiện trùng: ${dupCount} bản ghi có thể trùng` : `Possible duplicates: ${dupCount}`}</strong>
               <ul class="rec-cv-dups">
-                {matches.accounts.map((item) => <li><span>{vi ? "Công ty" : "Company"} “{item.name}”</span><span class="rec-badge warn">{item.reason === "phone" ? (vi ? "Cùng số điện thoại" : "Same phone") : (vi ? "Cùng tên" : "Same name")}</span></li>)}
+                {matches.accounts.map((item) => <li><span>{vi ? "Công ty" : "Company"} “{item.name}”</span><span class="ws-badge warn">{item.reason === "phone" ? (vi ? "Cùng số điện thoại" : "Same phone") : (vi ? "Cùng tên" : "Same name")}</span></li>)}
                 {matches.contacts.map((item) => <li><span>{vi ? "Liên hệ" : "Contact"} “{item.name}” · {item.account_name}</span></li>)}
               </ul>
               <p>{vi ? "Kiểm tra trước khi chuyển đổi; trong hộp chuyển đổi có thể chọn bản ghi có sẵn." : "Check before converting; the conversion dialog lets you use the existing record."}</p>
             </div></div>}
-            <RelatedList title={vi ? "Nguồn và đồng ý" : "Source and consent"} letter="S" color="#0F7B7B">
-              <div class="rec-rl-row">
+            <RelatedList title={vi ? "Nguồn và đồng ý" : "Source and consent"} vi={vi} icon="referrals" tone="lead">
+              <div class="ws-rl-row">
                 <div class="rec-rl-f"><span>{vi ? "Nguồn Lead" : "Lead source"}</span><span>{label(lang, "channel", lead.source_channel)}</span></div>
                 {lead.source_detail && <div class="rec-rl-f"><span>{vi ? "Chi tiết nguồn" : "Source detail"}</span><span>{lead.source_detail}</span></div>}
                 {lead.referrer_id && <div class="rec-rl-f"><span>{vi ? "Người giới thiệu" : "Referrer"}</span><span>{person(lead.referrer_id)}</span></div>}
@@ -178,10 +177,10 @@ const dupCount = matches.accounts.length + matches.contacts.length;
                 {lead.consent_evidence && <div class="rec-rl-f"><span>{vi ? "Bằng chứng" : "Evidence"}</span><span>{lead.consent_evidence}</span></div>}
               </div>
             </RelatedList>
-            {lead.state === "converted" && <RelatedList title={vi ? "Đã chuyển thành" : "Converted to"} letter="O">
-              {lead.converted_opportunity_id && <div class="rec-rl-row"><a href={`${base}/${lead.converted_opportunity_id}`}>{vi ? "Cơ hội" : "Opportunity"}</a></div>}
-              {lead.converted_account_id && <div class="rec-rl-row"><a href={`${base}/accounts/${lead.converted_account_id}`}>{vi ? "Công ty" : "Company"}</a></div>}
-              {lead.converted_contact_id && <div class="rec-rl-row"><a href={`${base}/contacts/${lead.converted_contact_id}`}>{vi ? "Liên hệ" : "Contact"}</a></div>}
+            {lead.state === "converted" && <RelatedList title={vi ? "Đã chuyển thành" : "Converted to"} vi={vi} icon="pipeline" tone="opportunity">
+              {lead.converted_opportunity_id && <div class="ws-rl-row"><a href={`${base}/${lead.converted_opportunity_id}`}>{vi ? "Cơ hội" : "Opportunity"}</a></div>}
+              {lead.converted_account_id && <div class="ws-rl-row"><a href={`${base}/accounts/${lead.converted_account_id}`}>{vi ? "Công ty" : "Company"}</a></div>}
+              {lead.converted_contact_id && <div class="ws-rl-row"><a href={`${base}/contacts/${lead.converted_contact_id}`}>{vi ? "Liên hệ" : "Contact"}</a></div>}
             </RelatedList>}
           </div>
         </section>
@@ -189,9 +188,8 @@ const dupCount = matches.accounts.length + matches.contacts.length;
     </div>
   </div>
 
-  {canEdit && <Sheet id="sheet-edit" vi={vi} title={vi ? "Sửa Lead" : "Edit lead"} open={open("lead_save")} closeHref={here}>
-    <form class="rec-sheet-form" method="post" action={`${here}#sheet-edit`}>
-      <div class="rec-sheet-b">
+  {canEdit && <Sheet id="sheet-edit" vi={vi} title={vi ? "Sửa Lead" : "Edit lead"} open={open("lead_save")} closeHref={here} action={`${here}#sheet-edit`}>
+    
         <Hidden intent="lead_save" state={state} version={lead.version} />
         <div class="crm-form-grid">
           <Field name="name" id="ld-name" label={fieldLabels.name} lang={lang} value={v("lead_save", "name", lead.name)} error={e("lead_save", "name")} required maxlength={160} />
@@ -206,70 +204,52 @@ const dupCount = matches.accounts.length + matches.contacts.length;
           <Field name="next_action_due" id="ld-due" type="date" label={vi ? "Hạn bước tiếp theo" : "Next step due"} lang={lang} value={v("lead_save", "next_action_due", lead.next_action_due)} error={e("lead_save", "next_action_due")} />
         </div>
         <Field name="need" id="ld-need" type="textarea" label={vi ? "Nhu cầu, theo lời họ" : "Need, in their words"} lang={lang} value={v("lead_save", "need", lead.need)} maxlength={1500} />
-      </div>
-      <div class="rec-sheet-f"><a class="rec-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class="rec-btn primary" type="submit">{vi ? "Lưu" : "Save"}</button></div>
-    </form>
+      <Fragment slot="foot"><a class="ws-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class="ws-btn primary" type="submit">{vi ? "Lưu" : "Save"}</button></Fragment>
   </Sheet>}
 
-  {canEdit && <Sheet id="sheet-note" vi={vi} title={vi ? "Ghi chú" : "Add note"} open={open("lead_note")} closeHref={here}>
-    <form class="rec-sheet-form" method="post" action={`${here}#activity`}>
-      <div class="rec-sheet-b">
+  {canEdit && <Sheet id="sheet-note" vi={vi} title={vi ? "Ghi chú" : "Add note"} open={open("lead_note")} closeHref={here} action={`${here}#activity`}>
+    
         <Hidden intent="lead_note" state={state} />
         <Field name="note" id="ln-note" type="textarea" label={vi ? "Ghi chú (cuộc gọi, tin nhắn, gặp mặt)" : "Note (call, message, meeting)"} lang={lang} value={v("lead_note", "note")} error={e("lead_note", "note")} maxlength={3000} />
-      </div>
-      <div class="rec-sheet-f"><a class="rec-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class="rec-btn primary" type="submit">{vi ? "Lưu ghi chú" : "Save note"}</button></div>
-    </form>
+      <Fragment slot="foot"><a class="ws-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class="ws-btn primary" type="submit">{vi ? "Lưu ghi chú" : "Save note"}</button></Fragment>
   </Sheet>}
 
-  {canEdit && lead.state === "open" && <Sheet id="sheet-status" vi={vi} title={vi ? "Chọn trạng thái Lead" : "Choose lead status"} open={open("lead_status")} closeHref={here}>
-    <form class="rec-sheet-form" method="post" action={here}>
-      <div class="rec-sheet-b">
+  {canEdit && lead.state === "open" && <Sheet id="sheet-status" vi={vi} title={vi ? "Chọn trạng thái Lead" : "Choose lead status"} open={open("lead_status")} closeHref={here} action={here}>
+    
         <Hidden intent="lead_status" state={state} version={lead.version} />
         <Field name="status_id" type="select" label={vi ? "Trạng thái" : "Status"} lang={lang} value={lead.status_id} error={e("lead_status", "status_id")} options={statuses.map((item) => ({ value: item.id, label: vi ? item.vi : item.en }))} />
-      </div>
-      <div class="rec-sheet-f"><a class="rec-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class="rec-btn primary" type="submit">{vi ? "Lưu trạng thái" : "Save status"}</button></div>
-    </form>
+      <Fragment slot="foot"><a class="ws-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class="ws-btn primary" type="submit">{vi ? "Lưu trạng thái" : "Save status"}</button></Fragment>
   </Sheet>}
 
-  {canAssign && <Sheet id="sheet-assign" vi={vi} title={vi ? "Đổi người phụ trách" : "Change owner"} open={open("lead_assign")} closeHref={here}>
-    <form class="rec-sheet-form" method="post" action={here}>
-      <div class="rec-sheet-b">
+  {canAssign && <Sheet id="sheet-assign" vi={vi} title={vi ? "Đổi người phụ trách" : "Change owner"} open={open("lead_assign")} closeHref={here} action={here}>
+    
         <Hidden intent="lead_assign" state={state} version={lead.version} />
         <Field name="owner_id" id="la-owner" type="select" label={vi ? "Giao cho" : "Assign to"} lang={lang} value={lead.owner_id ?? ""} error={e("lead_assign", "owner_id")} options={[{ value: "", label: vi ? "Chọn người" : "Choose" }, ...owners.filter((owner) => owner.id !== ctx.actor.id || ctx.actor.configure).map((owner) => ({ value: owner.id, label: owner.label }))]} />
         <p class="crm-help">{vi ? "Người phụ trách cũng là người bán được ghi công khi chuyển đổi. Không tự giao Lead chưa có người giới thiệu cho chính mình." : "The owner is also credited as seller on conversion. You cannot assign an unattributed lead to yourself."}</p>
-      </div>
-      <div class="rec-sheet-f"><a class="rec-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class="rec-btn primary" type="submit">{vi ? "Giao" : "Assign"}</button></div>
-    </form>
+      <Fragment slot="foot"><a class="ws-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class="ws-btn primary" type="submit">{vi ? "Giao" : "Assign"}</button></Fragment>
   </Sheet>}
 
-  {canEdit && <Sheet id="sheet-disqualify" vi={vi} title={vi ? "Không tiếp tục" : "Disqualify"} open={open("lead_disqualify")} closeHref={here}>
-    <form class="rec-sheet-form" method="post" action={here}>
-      <div class="rec-sheet-b">
+  {canEdit && <Sheet id="sheet-disqualify" vi={vi} title={vi ? "Không tiếp tục" : "Disqualify"} open={open("lead_disqualify")} closeHref={here} action={here}>
+    
         <Hidden intent="lead_disqualify" state={state} version={lead.version} />
         <p class="crm-help">{vi ? "Lead được giữ lại kèm lý do. Danh sách lý do do admin đặt trong Trạng thái Lead." : "The lead is kept with the reason. Admins set the reasons in Lead statuses."}</p>
         <Field name="reason_id" type="select" label={fieldLabels.reason_id} lang={lang} value={v("lead_disqualify", "reason_id")} error={e("lead_disqualify", "reason_id")} required options={[{ value: "", label: vi ? "Chọn lý do" : "Choose a reason" }, ...process.def.disqualify_reasons.map((item) => ({ value: item.id, label: vi ? item.vi : item.en }))]} />
         <Field name="disqualify_note" type="textarea" label={vi ? "Ghi chú" : "Note"} lang={lang} value={v("lead_disqualify", "disqualify_note")} maxlength={1000} />
-      </div>
-      <div class="rec-sheet-f"><a class="rec-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class="rec-btn primary" type="submit">{vi ? "Không tiếp tục" : "Disqualify"}</button></div>
-    </form>
+      <Fragment slot="foot"><a class="ws-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class="ws-btn primary" type="submit">{vi ? "Không tiếp tục" : "Disqualify"}</button></Fragment>
   </Sheet>}
 
-  {canReopen && <Sheet id="sheet-reopen" vi={vi} title={vi ? "Mở lại Lead" : "Reopen lead"} open={open("lead_reopen")} closeHref={here}>
-    <form class="rec-sheet-form" method="post" action={here}>
-      <div class="rec-sheet-b">
+  {canReopen && <Sheet id="sheet-reopen" vi={vi} title={vi ? "Mở lại Lead" : "Reopen lead"} open={open("lead_reopen")} closeHref={here} action={here}>
+    
         <Hidden intent="lead_reopen" state={state} version={lead.version} />
         <Field name="reopen_reason" label={fieldLabels.reopen_reason} lang={lang} value={v("lead_reopen", "reopen_reason")} error={e("lead_reopen", "reopen_reason")} required maxlength={500} />
-      </div>
-      <div class="rec-sheet-f"><a class="rec-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class="rec-btn primary" type="submit">{vi ? "Mở lại" : "Reopen"}</button></div>
-    </form>
+      <Fragment slot="foot"><a class="ws-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class="ws-btn primary" type="submit">{vi ? "Mở lại" : "Reopen"}</button></Fragment>
   </Sheet>}
 
-  {canEdit && lead.state === "open" && <Sheet id="convert" vi={vi} dialog open={convert} closeHref={here} title={vi ? `Chuyển Lead thành cơ hội: ${lead.name} · ${lead.company}` : `Convert lead: ${lead.name} · ${lead.company}`}>
-    {!lead.owner_id ? <div class="rec-sheet-b"><p class="crm-empty">{vi ? "Cần phân công người phụ trách trước." : "Assign an owner first."}</p></div> : !convert ? <div class="rec-sheet-b"><p class="crm-help">{vi ? "Đang tải danh sách công ty…" : "Loading companies…"} <a href="?convert=1#convert">{vi ? "Mở hộp chuyển đổi" : "Open the conversion dialog"}</a></p></div> : <form class="rec-sheet-form" method="post" action="#convert">
-      <div class="rec-sheet-b">
+  {canEdit && lead.state === "open" && (lead.owner_id && convert
+    ? <Sheet id="convert" vi={vi} variant="dialog" width="1040px" open closeHref={here} title={vi ? `Chuyển Lead thành cơ hội: ${lead.name} · ${lead.company}` : `Convert lead: ${lead.name} · ${lead.company}`} action="#convert">
         <Hidden intent="lead_convert" state={state} version={lead.version} />
         <fieldset class="rec-cv">
-          <legend><span><span class="rec-rl-i" style="background:#5B4CC4" aria-hidden="true">A</span>{vi ? "Công ty" : "Company"}</span>{matches.accounts.length > 0 && <span class="rec-badge warn">{vi ? `${matches.accounts.length} công ty có thể trùng` : `${matches.accounts.length} possible duplicates`}</span>}</legend>
+          <legend><span><span class="rec-rl-i" style="background:#5B4CC4" aria-hidden="true">A</span>{vi ? "Công ty" : "Company"}</span>{matches.accounts.length > 0 && <span class="ws-badge warn">{vi ? `${matches.accounts.length} công ty có thể trùng` : `${matches.accounts.length} possible duplicates`}</span>}</legend>
           <div class="rec-cv-cols">
             <div class="rec-cv-opt">
               <label><input type="radio" name="account_mode" value="new" checked={accountMode === "new"} />{vi ? "Tạo mới" : "Create new"}</label>
@@ -278,13 +258,13 @@ const dupCount = matches.accounts.length + matches.contacts.length;
             <span class="rec-cv-or">{vi ? "HOẶC" : "OR"}</span>
             <div class="rec-cv-opt">
               <label><input type="radio" name="account_mode" value="existing" checked={accountMode === "existing"} />{vi ? "Chọn công ty có sẵn" : "Use an existing company"}</label>
-              {matches.accounts.length > 0 && <ul class="rec-cv-dups">{matches.accounts.map((item) => <li><span>{item.name}{item.region ? ` · ${item.region}` : ""}</span><span class="rec-badge warn">{item.reason === "phone" ? (vi ? "Cùng số điện thoại" : "Same phone") : (vi ? "Cùng tên" : "Same name")}</span></li>)}</ul>}
+              {matches.accounts.length > 0 && <ul class="rec-cv-dups">{matches.accounts.map((item) => <li><span>{item.name}{item.region ? ` · ${item.region}` : ""}</span><span class="ws-badge warn">{item.reason === "phone" ? (vi ? "Cùng số điện thoại" : "Same phone") : (vi ? "Cùng tên" : "Same name")}</span></li>)}</ul>}
               <Field name="account_id" type="select" label={fieldLabels.account_id} lang={lang} value={accountChoice} error={convertErrors.account_id} options={[{ value: "", label: vi ? "Chọn công ty" : "Choose a company" }, ...matches.accounts.map((item) => ({ value: item.id, label: `${item.name} · ${vi ? "có thể trùng" : "possible duplicate"}` })), ...companies.filter((item) => !matches.accounts.some((match) => match.id === item.id)).map((item) => ({ value: item.id, label: item.region ? `${item.name} · ${item.region}` : item.name }))]} help={vi ? "Chỉ hiện công ty bạn được làm việc." : "Only companies you may work on are listed."} />
             </div>
           </div>
         </fieldset>
         <fieldset class="rec-cv">
-          <legend><span><span class="rec-rl-i" style="background:#0F7B7B" aria-hidden="true">C</span>{vi ? "Liên hệ" : "Contact"}</span>{matches.contacts.length > 0 && <span class="rec-badge warn">{vi ? `${matches.contacts.length} liên hệ có thể trùng` : `${matches.contacts.length} possible duplicates`}</span>}</legend>
+          <legend><span><span class="rec-rl-i" style="background:#0F7B7B" aria-hidden="true">C</span>{vi ? "Liên hệ" : "Contact"}</span>{matches.contacts.length > 0 && <span class="ws-badge warn">{vi ? `${matches.contacts.length} liên hệ có thể trùng` : `${matches.contacts.length} possible duplicates`}</span>}</legend>
           <div class="rec-cv-cols">
             <div class="rec-cv-opt">
               <label><input type="radio" name="contact_mode" value="new" checked={contactMode === "new"} />{vi ? `Tạo mới: ${lead.name}` : `Create new: ${lead.name}`}</label>
@@ -296,7 +276,7 @@ const dupCount = matches.accounts.length + matches.contacts.length;
               {contactChoices.length ? <Field name="contact_id" type="select" label={fieldLabels.contact_id} lang={lang} value={v("lead_convert", "contact_id", contactChoices[0]?.value ?? "")} error={convertErrors.contact_id} options={contactChoices} />
                 : <p class="crm-help">{vi ? "Chưa có liên hệ phù hợp. Chọn công ty rồi bấm “Tải liên hệ của công ty”." : "No matching contacts. Choose a company, then select “Load the company's contacts”."}</p>}
               {convertErrors.contact_mode && <p class="crm-error">{vi ? "Liên hệ có sẵn cần đi cùng công ty có sẵn." : "An existing contact needs an existing company."}</p>}
-              <button class="rec-btn small" type="submit" formmethod="get" formaction="#convert" name="convert" value="1">{vi ? "Tải liên hệ của công ty" : "Load the company's contacts"}</button>
+              <button class="ws-btn sm" type="submit" formmethod="get" formaction="#convert" name="convert" value="1">{vi ? "Tải liên hệ của công ty" : "Load the company's contacts"}</button>
             </div>
           </div>
         </fieldset>
@@ -316,8 +296,9 @@ const dupCount = matches.accounts.length + matches.contacts.length;
           <div><dt>{vi ? "Nguồn giữ trên cơ hội" : "Source kept on the opportunity"}</dt><dd>{label(lang, "channel", lead.source_channel)}{lead.referrer_id ? ` · ${person(lead.referrer_id)}` : ""}</dd></div>
         </dl>
         <p class="crm-help">{vi ? "Người phụ trách Lead cũng là người bán được ghi công. Sau khi chuyển đổi, Lead chỉ còn để đọc." : "The lead's owner is also credited as seller. After conversion the lead is read-only."}</p>
-      </div>
-      <div class="rec-sheet-f"><a class="rec-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class="rec-btn primary" type="submit">{vi ? "Chuyển đổi" : "Convert"}</button></div>
-    </form>}
-  </Sheet>}
+      <Fragment slot="foot"><a class="ws-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class="ws-btn primary" type="submit">{vi ? "Chuyển đổi" : "Convert"}</button></Fragment>
+  </Sheet>
+    : <Sheet id="convert" vi={vi} variant="dialog" closeHref={here} title={vi ? `Chuyển Lead thành cơ hội: ${lead.name} · ${lead.company}` : `Convert lead: ${lead.name} · ${lead.company}`}>
+        {!lead.owner_id ? <p class="crm-empty">{vi ? "Cần phân công người phụ trách trước." : "Assign an owner first."}</p> : <p class="crm-help"><a href="?convert=1#convert">{vi ? "Mở hộp chuyển đổi" : "Open the conversion dialog"}</a></p>}
+      </Sheet>)}
 </CrmShell>

@@ -17,7 +17,7 @@ const how = (created: boolean) => created ? (vi ? "tạo mới" : "created") : (
 <CrmShell title={vi ? "Đã chuyển Lead thành cơ hội" : "Lead converted"} lang={lang} actor={ctx.actor} current="leads">
   <div class="rec">
     <Breadcrumbs vi={vi} items={[{ label: "CRM", href: base }, { label: "Lead", href: `${base}/leads` }, { label: lead.name, href: `${base}/leads/${lead.id}` }, { label: vi ? "Đã chuyển đổi" : "Converted" }]} />
-    <section class="rec-panel" style="max-width:900px;width:100%;margin:12px auto 0;overflow:hidden" aria-labelledby="done-h">
+    <section class="ws-sheet-panel" style="max-width:900px;width:100%;margin:12px auto 0;overflow:hidden" aria-labelledby="done-h">
       <div class="rec-done">
         <span class="rec-done-ic" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m5 12 5 5L20 7" /></svg></span>
         <h1 id="done-h">{vi ? "Đã chuyển Lead thành cơ hội" : "Lead converted to an opportunity"}</h1>
@@ -28,26 +28,26 @@ const how = (created: boolean) => created ? (vi ? "tạo mới" : "created") : (
           <h2 id="cv-a"><span class="rec-rl-i" style="background:#5B4CC4" aria-hidden="true">A</span>{vi ? "Công ty" : "Company"} · {account ? how(account.created) : "—"}</h2>
           {account ? <><a href={`${base}/accounts/${account.id}`}>{account.name}</a>
             <div class="rec-rl-f"><span>{vi ? "Khu vực" : "Area"}</span><span>{account.region || "—"}</span></div>
-            <div class="rec-rl-f"><span>{vi ? "Người phụ trách" : "Owner"}</span><span>{ownerName || "—"}</span></div></> : <p class="rec-rl-empty">—</p>}
+            <div class="rec-rl-f"><span>{vi ? "Người phụ trách" : "Owner"}</span><span>{ownerName || "—"}</span></div></> : <p class="ws-rl-empty">—</p>}
         </section>
         <section class:list={["rec-card", { new: contact?.created }]} aria-labelledby="cv-c">
           <h2 id="cv-c"><span class="rec-rl-i" style="background:#0F7B7B" aria-hidden="true">C</span>{vi ? "Liên hệ" : "Contact"} · {contact ? how(contact.created) : "—"}</h2>
           {contact ? <><a href={`${base}/contacts/${contact.id}`}>{contact.name}</a>
             <div class="rec-rl-f"><span>{vi ? "Vai trò" : "Role"}</span><span>{label(lang, "role", contact.role)}</span></div>
-            <div class="rec-rl-f"><span>{vi ? "Nguồn Lead" : "Lead source"}</span><span>{label(lang, "channel", lead.source_channel)}</span></div></> : <p class="rec-rl-empty">—</p>}
+            <div class="rec-rl-f"><span>{vi ? "Nguồn Lead" : "Lead source"}</span><span>{label(lang, "channel", lead.source_channel)}</span></div></> : <p class="ws-rl-empty">—</p>}
         </section>
         <section class="rec-card new" aria-labelledby="cv-o">
           <h2 id="cv-o"><span class="rec-rl-i" style="background:#006093" aria-hidden="true">O</span>{vi ? "Cơ hội · tạo mới" : "Opportunity · new"}</h2>
           {opportunity ? <><a href={`${base}/${opportunity.id}`}>{opportunity.title}</a>
             <div class="rec-rl-f"><span>{vi ? "Giai đoạn" : "Stage"}</span><span>{opportunity.stage}</span></div>
-            <div class="rec-rl-f"><span>{vi ? "Giá trị" : "Value"}</span><span>{opportunity.value === null ? (vi ? "Chưa biết" : "Unknown") : formatVnd(opportunity.value, vi)}</span></div></> : <p class="rec-rl-empty">—</p>}
+            <div class="rec-rl-f"><span>{vi ? "Giá trị" : "Value"}</span><span>{opportunity.value === null ? (vi ? "Chưa biết" : "Unknown") : formatVnd(opportunity.value, vi)}</span></div></> : <p class="ws-rl-empty">—</p>}
         </section>
       </div>
-      <div class="rec-sheet-f" style="justify-content:space-between">
-        <a class="rec-btn" href={`${base}/leads`}>{vi ? "Về Leads" : "Back to Leads"}</a>
+      <div class="rec-done-f">
+        <a class="ws-btn" href={`${base}/leads`}>{vi ? "Về Leads" : "Back to Leads"}</a>
         <span style="display:flex;gap:8px;flex-wrap:wrap">
-          <a class="rec-btn" href={`${base}/pipeline?view=board`}>{vi ? "Xem trên Kanban" : "View on the board"}</a>
-          {opportunity && <a class="rec-btn primary" href={`${base}/${opportunity.id}`}>{vi ? "Mở cơ hội" : "Open opportunity"}</a>}
+          <a class="ws-btn" href={`${base}/pipeline?view=board`}>{vi ? "Xem trên Kanban" : "View on the board"}</a>
+          {opportunity && <a class="ws-btn primary" href={`${base}/${opportunity.id}`}>{vi ? "Mở cơ hội" : "Open opportunity"}</a>}
         </span>
       </div>
     </section>

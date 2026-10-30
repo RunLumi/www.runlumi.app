@@ -1,28 +1,26 @@
 ---
-// Setup page frame (Settings board): an icon header with an eyebrow, a short
-// title and a button group, an optional info note, then the page's panels.
-// The setup menu itself is the shell's grouped sidebar.
-import NavIcon from "../NavIcon.astro";
-import Breadcrumbs, { type Crumb } from "../ui/Breadcrumbs.astro";
+// Setup page frame (Settings board): the kit's header panel (object square,
+// eyebrow, short title, actions) plus the board's blue info note, then the
+// page's panels in the default slot. Not in ui1's kit yet (told ui1).
+import ObjectIcon from "../ui/ObjectIcon.astro";
 import type { IconName } from "../../../lib/workspace/nav";
 
-interface Props { vi: boolean; icon: IconName; eyebrow: string; title: string; info?: string; crumbs?: Crumb[]; tone?: string }
-const { vi, icon, eyebrow, title, info, crumbs, tone = "setup" } = Astro.props;
+interface Props { vi: boolean; icon: IconName; eyebrow: string; title: string; info?: string; tone?: string }
+const { icon, eyebrow, title, info, tone = "setup" } = Astro.props;
 ---
 <div class="rec rec-setup">
-  <section class="rec-panel" aria-labelledby="setup-h">
-    <div class="rec-setup-head">
-      <div class="rec-id">
-        <span class="rec-icon" data-tone={tone} aria-hidden="true"><NavIcon name={icon} size={22} /></span>
+  <section class="ws-lv" aria-labelledby="setup-h">
+    <div class="ws-oh">
+      <div class="ws-oh-id">
+        <ObjectIcon icon={icon} tone={tone} />
         <div>
-          {crumbs?.length ? <Breadcrumbs items={crumbs} vi={vi} /> : null}
-          <p class="rec-eyebrow">{eyebrow}<slot name="badges" /></p>
-          <h1 class="rec-h1" id="setup-h">{title}</h1>
+          <p class="ws-eyebrow">{eyebrow}<slot name="badges" /></p>
+          <h1 class="ws-h1" id="setup-h">{title}</h1>
         </div>
       </div>
-      {Astro.slots.has("actions") && <div class="rec-setup-actions"><slot name="actions" /></div>}
+      {Astro.slots.has("actions") && <div class="ws-oh-actions"><slot name="actions" /></div>}
     </div>
-    {(info || Astro.slots.has("info")) && <div class="rec-setup-body"><p class="rec-info"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="vertical-align:-3px;margin-right:6px"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" /></svg>{info}<slot name="info" /></p></div>}
+    {info && <div class="rec-setup-body"><p class="rec-info">{info}</p></div>}
   </section>
   <slot />
 </div>

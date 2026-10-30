@@ -1,0 +1,14 @@
+---
+// Path panel (boards: LeadRecord, DealRecord): the kit's Path with its main
+// action, then key fields and guidance in two columns (default slot). The
+// chevrons come from ui/Path; this adds the panel and the columns under it.
+import Path from "../ui/Path.astro";
+
+export interface PathStep { label: string; state: "done" | "current" | "todo" | "selected" | "won" | "lost"; href?: string }
+interface Props { vi: boolean; label: string; steps: PathStep[] }
+const { vi, label, steps } = Astro.props;
+---
+<section class="ws-sheet-panel rec-pathbar" aria-label={label}>
+  <Path vi={vi} label={label} steps={steps}>{Astro.slots.has("action") && <Fragment slot="action"><slot name="action" /></Fragment>}</Path>
+  {Astro.slots.has("default") && <div class="rec-path-cols"><slot /></div>}
+</section>

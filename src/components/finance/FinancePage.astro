@@ -2,7 +2,7 @@
 import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
 import "../../styles/finance.css";
 import "../../styles/modules.css";
-import ObjectHeader from "../workspace/record/ObjectHeader.astro";
+import RecordHeader from "../workspace/ui/RecordHeader.astro";
 import "../../styles/record.css";
 import { modules } from "../../lib/workspace/nav";
 import type { FinancePageData } from "./types";
@@ -32,13 +32,14 @@ const scopeBook = (page === "plans" ? selected?.reportingSnapshot?.book : report
 ---
 <WorkspaceShell title={title} lang={lang} user={data.user} module="finance" current={page}>
   <div class="finance md-scope rec-module">
-    <ObjectHeader vi={vi} title={title} crumbs={crumbs} icon={navLink?.icon ?? "finance"} tone="finance" eyebrow={`${vi ? "Tài chính" : "Finance"}${navGroup && page !== "overview" ? ` · ${vi ? navGroup.vi : navGroup.en}` : ""} · ${vi ? "Chỉ System Super Admin" : "System Super Admin only"}`} lede={tr(vi, copy.description)}>
+    <RecordHeader vi={vi} title={title} crumbs={crumbs} icon={navLink?.icon ?? "finance"} tone="finance" object={`${vi ? "Tài chính" : "Finance"}${navGroup && page !== "overview" ? ` · ${vi ? navGroup.vi : navGroup.en}` : ""} · ${vi ? "Chỉ System Super Admin" : "System Super Admin only"}`}>
+      <div class="rec-setup-body"><p class="rec-info">{tr(vi, copy.description)}</p></div>
       <div slot="actions" class="fn-heading-actions">{reporting && state.book && <><a class="fn-button secondary" href={financeLink(data, "actuals")}>{vi ? "Nhập số thực tế" : "Enter actuals"}</a>
           <form method="post" action="/api/finance/exports">
             <CommandFields intent="report.export" fields={{ report: page, period: data.period, fiscal_year: data.fiscalYear, plan_id: data.selectedPlanId, actual_revision_id: data.selectedActualRevisionId, range: data.range ?? "month", segment_code: segmented ? data.segmentCode ?? "all" : "all", lang }} />
             <button class="fn-button secondary" type="submit">{vi ? "Xuất CSV" : "Export CSV"}</button>
           </form></>}</div>
-    </ObjectHeader>
+    </RecordHeader>
     {scopeBook && <div class="fn-scope"><span><strong>{scopeBook.entityName}</strong></span><span>{scopeBook.currency} · {vi ? "Số tiền chính xác" : "Exact amounts"}</span><span>{scopeBook.timezone}</span><span>{vi ? "Năm tài chính bắt đầu tháng" : "Fiscal year starts in month"} {scopeBook.fiscalStartMonth}</span></div>}
     {data.error && <div class="fn-notice bad" role="alert"><strong>{vi ? "Chưa lưu thay đổi" : "Changes were not saved"}</strong><p>{financeErrorText(data.error, vi)}</p><p>{vi ? "Nội dung vừa nhập được giữ lại bên dưới. Kiểm tra số liệu và phiên bản trước khi thử lại." : "Your submitted inputs are retained below. Review the figures and the version before trying again."}</p></div>}
     {data.saved && <div class="fn-notice good" role="status"><strong>{vi ? "Đã lưu thành công" : "Saved successfully"}</strong><p>{vi ? "Dữ liệu bên dưới đã được tải lại từ bản ghi đã lưu." : "The data below has been refreshed from the saved record."}</p>{data.receipt && <p class="fn-mono">{vi ? "Biên nhận" : "Receipt"}: {data.receipt.operationId}</p>}</div>}

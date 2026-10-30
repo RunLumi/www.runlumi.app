@@ -1,6 +1,6 @@
 ---
 import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
-import PageHeader from "../workspace/record/ObjectHeader.astro";
+import ListHeader from "../workspace/ui/ListHeader.astro";
 import "../../styles/record.css";
 import DataTable from "../workspace/ui/DataTable.astro";
 import "../../styles/modules.css";
@@ -17,9 +17,9 @@ const query = (changes: Record<string, string>) => {
 ---
 <WorkspaceShell title={vi ? "Ứng viên" : "Candidates"} lang={lang} user={user} module="hiring" current="applications">
   <div class="md-scope rec-module">
-  <PageHeader icon="candidates" tone="hiring" eyebrow={vi ? "Tuyển dụng" : "Hiring"} vi={vi} title={vi ? "Ứng viên" : "Candidates"} crumbs={[{ label: vi ? "Tuyển dụng" : "Hiring", href: deskPath(lang, "/admin/jobs") }, { label: vi ? "Ứng viên" : "Candidates" }]} lede={vi ? "Hồ sơ của mọi vị trí trong một danh sách. Lọc theo vị trí và giai đoạn, rồi mở hồ sơ để đọc bài làm và ghi đánh giá." : "Applications for every role in one list. Filter by role and stage, then open an application to read the work and record your review."}>
-    {user.can("hiring.export") && <a slot="actions" class="crm-button secondary" href={`/api/admin/applications/export.csv?job=${encodeURIComponent(jobId)}&status=${encodeURIComponent(status)}`}>{vi ? "Xuất CSV" : "Export CSV"}</a>}
-  </PageHeader>
+  <ListHeader icon="candidates" tone="hiring" object={vi ? "Tuyển dụng" : "Hiring"} vi={vi} title={vi ? "Ứng viên" : "Candidates"} meta={vi ? "Hồ sơ của mọi vị trí. Lọc theo vị trí và giai đoạn, rồi mở hồ sơ để đọc bài làm và ghi đánh giá." : "Applications for every role. Filter by role and stage, then open an application to read the work and record your review."}>
+    {user.can("hiring.export") && <a slot="actions" class="ws-btn" href={`/api/admin/applications/export.csv?job=${encodeURIComponent(jobId)}&status=${encodeURIComponent(status)}`}>{vi ? "Xuất CSV" : "Export CSV"}</a>}
+  </ListHeader>
 
   <ol class="crm-stages" aria-label={vi ? "Hồ sơ theo giai đoạn" : "Applications by stage"}>
     {applicationStatuses.map((stage) => <li><a href={query({ status: status === stage ? "" : stage })} aria-current={status === stage ? "true" : undefined} class:list={{ terminal: ["hired", "rejected", "withdrawn"].includes(stage) }}><span>{statusName(stage, lang)}</span><strong>{stageCounts[stage] ?? 0}</strong></a></li>)}

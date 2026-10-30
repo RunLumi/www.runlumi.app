@@ -12,11 +12,12 @@ import OppTasks from "./OppTasks.astro";
 import OppTaskForm from "./OppTaskForm.astro";
 import OppCommercial from "./OppCommercial.astro";
 import OppFulfillment from "./OppFulfillment.astro";
-import RecordHeader from "../workspace/record/RecordHeader.astro";
-import RecordPath, { type PathStep } from "../workspace/record/RecordPath.astro";
-import RecordTabs from "../workspace/record/RecordTabs.astro";
-import RelatedList from "../workspace/record/RelatedList.astro";
-import Sheet from "../workspace/record/Sheet.astro";
+import RecordHeader from "../workspace/ui/RecordHeader.astro";
+import ButtonGroup from "../workspace/ui/ButtonGroup.astro";
+import RecordPath, { type PathStep } from "../workspace/record/PathPanel.astro";
+import RecordTabs from "../workspace/ui/RecordTabs.astro";
+import RelatedList from "../workspace/ui/RelatedList.astro";
+import Sheet from "../workspace/ui/Sheet.astro";
 import Feed, { type FeedItem } from "../workspace/record/Feed.astro";
 import { errorText, formatDate, formatDateTime, label } from "../../lib/crm/i18n";
 import { formatVnd, vnDate } from "../../lib/crm/money";
@@ -24,6 +25,7 @@ import { errorFor, valueFor } from "../../lib/crm/page";
 import { requirementLabel, stageIndex, stageLabel, visibleFields, type FieldDef } from "../../lib/crm/playbook";
 import { oppFields } from "../../lib/crm/records";
 import { costCategories } from "../../lib/crm/tasks";
+import { kindFor } from "../../lib/crm/fulfillment";
 import type { OppProps } from "../../lib/crm/routes/opportunity";
 import "../../styles/crm-sales.css";
 import "../../styles/record.css";
@@ -52,7 +54,7 @@ const nextCheck = nextOpen ? transitions[nextOpen.id] : null;
 const steps: PathStep[] = def.stages.filter((stage) => stage.outcome === "open" || stage.id === opp.stage_id).map((stage) => {
   const index = def.stages.indexOf(stage);
   const state: PathStep["state"] = stage.id === opp.stage_id
-    ? (opp.outcome === "won" ? "won" : opp.outcome === "lost" ? "lost" : opp.outcome === "paused" ? "paused" : "current")
+    ? (opp.outcome === "won" ? "won" : opp.outcome === "lost" ? "lost" : opp.outcome === "paused" ? "selected" : "current")
     : index < current && stage.outcome === "open" ? "done" : "todo";
   return { label: `${vi ? stage.vi : stage.en}${stage.skippable ? " ★" : ""}`, state, title: stage.skippable ? (vi ? "Có thể bỏ qua, cần lý do" : "Skippable with a reason") : undefined };
 });
@@ -124,11 +126,18 @@ const history: FeedItem[] = events.map((event) => {
   return { title: event.kind === "note" && text ? text : name, meta: [event.kind === "note" ? "" : text, event.actor_name].filter(Boolean).join(" · "), when: formatDateTime(event.created_at, lang), kind: feedKind(event.kind) };
 });
 const saved = Astro.url.searchParams.get("saved");
+const moreActions = access.canEdit ? [
+  { label: vi ? "Ghi chú" : "Add note", href: "#sheet-note" },
+  { label: vi ? "Tạo công việc hoặc lịch hẹn" : "Add a task or appointment", href: "#sheet-task" },
+  { label: vi ? "Ghi thời gian / chi phí" : "Log time / cost", href: "#sheet-cost" },
+  { label: vi ? "Mở cơ hội tiếp nối" : "Open a follow-on opportunity", href: "#sheet-linked" },
+  ...(actor.configure ? [{ label: vi ? "Người giới thiệu" : "Referrer", href: "#sheet-referrer" }] : []),
+  ...(actor.manager ? [{ label: vi ? "Quản trị hồ sơ" : "Record administration", href: "#sheet-admin" }] : []),
+] : [];
 ---
 <CrmShell title={opp.title} lang={lang} actor={actor} current="pipeline">
-  {access.canEdit && <Sheet id="sheet-details" vi={vi} title={vi ? "Sửa cơ hội" : "Edit opportunity"} open={open("details")} closeHref={here}>
-    <form class="rec-sheet-form" method="post" action={`${here}#sheet-details`}>
-      <div class="rec-sheet-b">
+  {access.canEdit && <Sheet id="sheet-details" vi={vi} title={vi ? "Sửa cơ hội" : "Edit opportunity"} open={open("details")} closeHref={here} action={`${here}#sheet-details`}>
+    
         <Hidden intent="details" state={state} version={opp.version} />
         {state.intent === "details" && state.conflict && <p class="crm-help">{vi ? "Giá trị mới nhất" : "Latest values"}: {opp.title} · {opp.next_action || "—"} · {formatDate(opp.next_action_due, lang)} · {formatVnd(opp.estimated_value_vnd, vi)} · {opp.win_probability === null ? "—" : `${opp.win_probability}%`}</p>}
         <Field name="title" id="d-title" label={vi ? "Tên cơ hội" : "Opportunity name"} lang={lang} value={v("details", "title", opp.title)} error={e("details", "title")} required maxlength={160} />
@@ -145,43 +154,31 @@ const saved = Astro.url.searchParams.get("saved");
             <Field name="renewal_due_on" id="d-rd" type="date" label={vi ? "Ngày đến hạn gia hạn" : "Renewal due"} lang={lang} value={v("details", "renewal_due_on", opp.renewal_due_on)} error={e("details", "renewal_due_on")} /></>}
         </div>
         {!isRenewalish && <><input type="hidden" name="service_period_start" value={opp.service_period_start ?? ""} /><input type="hidden" name="service_period_end" value={opp.service_period_end ?? ""} /><input type="hidden" name="renewal_due_on" value={opp.renewal_due_on ?? ""} /></>}
-      </div>
-      <div class="rec-sheet-f"><a class="rec-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class="rec-btn primary" type="submit">{vi ? "Lưu" : "Save"}</button></div>
-    </form>
+      <Fragment slot="foot"><a class="ws-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class="ws-btn primary" type="submit">{vi ? "Lưu" : "Save"}</button></Fragment>
   </Sheet>}
 
   <div class="rec">
-    <RecordHeader vi={vi} icon="pipeline" tone="deal" eyebrow={vi ? "Cơ hội" : "Opportunity"} title={opp.title}
+    <RecordHeader vi={vi} icon="pipeline" tone="opportunity" object={vi ? "Cơ hội" : "Opportunity"} title={opp.title}
       crumbs={[{ label: "CRM", href: base }, { label: vi ? "Cơ hội" : "Pipeline", href: `${base}/pipeline?playbook=${playbook.playbook_key}` }, { label: opp.account_name, href: `${base}/accounts/${opp.account_id}` }, { label: opp.title }]}
       highlights={[
         { label: vi ? "Công ty" : "Company", value: opp.account_name, href: `${base}/accounts/${opp.account_id}` },
-        { label: vi ? "Bước tiếp theo · hạn" : "Next step · due", value: opp.next_action_due ? formatDate(opp.next_action_due, lang) : (vi ? "Chưa đặt" : "Not set"), unknown: !opp.next_action_due },
-        { label: vi ? "Giá trị" : "Value", value: opp.estimated_value_vnd === null ? unknown : formatVnd(opp.estimated_value_vnd, vi), unknown: opp.estimated_value_vnd === null },
-        { label: vi ? "Người phụ trách" : "Owner", value: opp.owner_id ? person(opp.owner_id) : (vi ? "Chưa phân công" : "Unassigned"), unknown: !opp.owner_id },
+        { label: vi ? "Bước tiếp theo · hạn" : "Next step · due", value: opp.next_action_due ? formatDate(opp.next_action_due, lang) : (vi ? "Chưa đặt" : "Not set"), tone: (!opp.next_action_due) ? "warn" : undefined },
+        { label: vi ? "Giá trị" : "Value", value: opp.estimated_value_vnd === null ? unknown : formatVnd(opp.estimated_value_vnd, vi), tone: (opp.estimated_value_vnd === null) ? "warn" : undefined },
+        { label: vi ? "Người phụ trách" : "Owner", value: opp.owner_id ? person(opp.owner_id) : (vi ? "Chưa phân công" : "Unassigned"), tone: (!opp.owner_id) ? "warn" : undefined },
         { label: "Playbook", value: `${vi ? playbook.name_vi : playbook.name_en} · v${playbook.version}`, href: `${base}/pipeline?playbook=${playbook.playbook_key}` },
       ]}>
-      <Fragment slot="badges">
-        <span class="rec-badge info">{stageLabel(def, opp.stage_id, vi)}</span>
-        <span class:list={["rec-badge", paymentTone[payment]]}>{label(lang, "payment", payment)}</span>
-        {fulfillment ? <span class:list={["rec-badge", fulfillment.blocked ? "danger" : ""]}>{fulfillment.blocked ? (vi ? "Bàn giao bị chặn" : "Delivery blocked") : label(lang, "fulfillment", fulfillment.status)}</span> : <span class="rec-badge">{vi ? "Chưa bàn giao" : "No handoff"}</span>}
-      </Fragment>
+      <p slot="sub" class="rec-badges">
+        <span class="ws-badge info">{stageLabel(def, opp.stage_id, vi)}</span>
+        <span class:list={["ws-badge", paymentTone[payment]]}>{label(lang, "payment", payment)}</span>
+        {fulfillment ? <span class:list={["ws-badge", fulfillment.blocked ? "bad" : ""]}>{fulfillment.blocked ? (vi ? "Bàn giao bị chặn" : "Delivery blocked") : label(lang, "fulfillment", fulfillment.status)}</span> : <span class="ws-badge">{vi ? "Chưa bàn giao" : "No handoff"}</span>}
+      </p>
       {p.fromLead && <p slot="sub" class="rec-sub"><a href={`${base}/leads/${p.fromLead.id}`}>{vi ? `Từ Lead: ${p.fromLead.name}` : `From lead: ${p.fromLead.name}`}</a></p>}
-      <Fragment slot="actions">
-        {access.canEdit && <a class="rec-btn" href="#sheet-details">{vi ? "Sửa" : "Edit"}</a>}
-        {access.canEdit && p.offers.length > 0 && <a class="rec-btn" href="#commercial">{vi ? "Tạo báo giá" : "Create quote"}</a>}
-        {actor.manager && <a class="rec-btn" href="#sheet-assign">{vi ? "Đổi người phụ trách" : "Change owner"}</a>}
-        {access.canEdit && opp.outcome === "open" && closing.length > 0 && <a class="rec-btn" href="?close=won#close">{vi ? "Đóng cơ hội" : "Close"}</a>}
-        {access.canEdit && <details class="rec-more"><summary class="rec-btn" aria-label={vi ? "Thêm hành động" : "More actions"}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg></summary>
-          <div class="rec-more-pop">
-            <a href="#sheet-note">{vi ? "Ghi chú" : "Add note"}</a>
-            <a href="#sheet-task">{vi ? "Tạo công việc hoặc lịch hẹn" : "Add a task or appointment"}</a>
-            <a href="#sheet-cost">{vi ? "Ghi thời gian / chi phí" : "Log time / cost"}</a>
-            <a href="#sheet-linked">{vi ? "Mở cơ hội tiếp nối" : "Open a follow-on opportunity"}</a>
-            {actor.configure && <a href="#sheet-referrer">{vi ? "Người giới thiệu" : "Referrer"}</a>}
-            {actor.manager && <a href="#sheet-admin">{vi ? "Quản trị hồ sơ" : "Record administration"}</a>}
-          </div>
-        </details>}
-      </Fragment>
+      <ButtonGroup slot="actions" label={vi ? "Thao tác" : "Actions"} more={moreActions}>
+        {access.canEdit && <a class="ws-btn" href="#sheet-details">{vi ? "Sửa" : "Edit"}</a>}
+        {access.canEdit && p.offers.length > 0 && <a class="ws-btn" href="#commercial">{vi ? "Tạo báo giá" : "Create quote"}</a>}
+        {actor.manager && <a class="ws-btn" href="#sheet-assign">{vi ? "Đổi người phụ trách" : "Change owner"}</a>}
+        {access.canEdit && opp.outcome === "open" && closing.length > 0 && <a class="ws-btn" href="?close=won#close">{vi ? "Đóng cơ hội" : "Close"}</a>}
+      </ButtonGroup>
     </RecordHeader>
 
     {opp.needs_review ? <div class="crm-notice warn" role="status"><strong>{vi ? "Hồ sơ cũ cần xem lại." : "Legacy record — needs review."}</strong>{vi ? "Giai đoạn và giá trị được chuyển nguyên trạng từ CRM đầu tiên; chúng không chứng minh đã thanh toán hay đã bàn giao. Admin có thể chuyển sang playbook phù hợp." : "Stage and value were copied as recorded in the first CRM; they prove nothing about payment or delivery. An admin can move it to a current playbook."}</div> : null}
@@ -194,10 +191,10 @@ const saved = Astro.url.searchParams.get("saved");
       {access.canEdit && opp.outcome === "open" && nextOpen && nextCheck?.ok && nextOpen.outcome === "open" ? <form slot="action" method="post" action="#stage">
         <Hidden intent="stage" state={state} version={opp.version} />
         <input type="hidden" name="to_stage" value={nextOpen.id} />
-        <button class="rec-btn primary" type="submit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="m5 12 5 5L20 7" /></svg>{vi ? `Chuyển sang “${nextOpen.vi}”` : `Move to “${nextOpen.en}”`}</button>
-      </form> : access.canEdit && <a slot="action" class="rec-btn primary" href="#sheet-stage">{vi ? "Chuyển giai đoạn" : "Move stage"}</a>}
+        <button class="ws-btn primary" type="submit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="m5 12 5 5L20 7" /></svg>{vi ? `Chuyển sang “${nextOpen.vi}”` : `Move to “${nextOpen.en}”`}</button>
+      </form> : access.canEdit && <a slot="action" class="ws-btn primary" href="#sheet-stage">{vi ? "Chuyển giai đoạn" : "Move stage"}</a>}
       <div>
-        <h2>{vi ? `Trường quan trọng · ${stageLabel(def, opp.stage_id, true)}` : `Key fields · ${stageLabel(def, opp.stage_id, false)}`}{access.canEdit && allFields.length > 0 && <a class="rec-btn small" href="#sheet-fields">{vi ? "Sửa" : "Edit"}</a>}</h2>
+        <h2>{vi ? `Trường quan trọng · ${stageLabel(def, opp.stage_id, true)}` : `Key fields · ${stageLabel(def, opp.stage_id, false)}`}{access.canEdit && allFields.length > 0 && <a class="ws-btn sm" href="#sheet-fields">{vi ? "Sửa" : "Edit"}</a>}</h2>
         {shownFields.length ? <dl class="rec-fields">{shownFields.map((field) => <div><dt>{vi ? field.vi : field.en}</dt><dd>{display(field, stored[field.key]) || <span class="rec-unknown">{vi ? "Chưa nhập" : "Not entered"}</span>}</dd></div>)}</dl>
           : <p class="rec-path-note">{vi ? "Giai đoạn này không có trường riêng." : "This stage has no fields of its own."}</p>}
       </div>
@@ -218,7 +215,7 @@ const saved = Astro.url.searchParams.get("saved");
 
     <div class="rec-split">
       <div class="rec-main">
-        <section class="rec-panel" id="related" aria-label={vi ? "Liên quan và chi tiết" : "Related and details"}>
+        <section class="ws-sheet-panel" id="related" aria-label={vi ? "Liên quan và chi tiết" : "Related and details"}>
           <RecordTabs label={vi ? "Phần của cơ hội" : "Opportunity sections"} current={tab} tabs={[{ key: "related", label: vi ? "Liên quan" : "Related", href: `${here}#related` }, { key: "details", label: vi ? "Chi tiết" : "Details", href: `${here}?tab=details#related` }]} />
           {tab === "details" ? <div class="rec-body">
             <h3 class="rec-sec">{vi ? "Thông tin cơ hội" : "Opportunity information"}</h3>
@@ -245,47 +242,44 @@ const saved = Astro.url.searchParams.get("saved");
             <p class="crm-help">{vi ? "Hoa hồng tính theo người bán được ghi công và người giới thiệu, theo chính sách tại trang Hoa hồng. CRM không chi tiền." : "Commission follows the attributed seller and referrer under the policy on the Commission page. The CRM pays nothing."}</p>
           </div> : <div class="rec-body">
             <div class="rec-rl-grid">
-              <RelatedList title={vi ? "Vai trò liên hệ" : "Contact roles"} letter="C" color="#0F7B7B" count={contacts.length} id="contacts" footHref={`${base}/accounts/${opp.account_id}#contacts`} footLabel={vi ? "Quản lý ở trang công ty" : "Manage on the company"}>
-                {access.canEdit && contacts.length > 0 && <a slot="actions" class="rec-btn small" href="#sheet-primary">{vi ? "Đổi liên hệ chính" : "Change main contact"}</a>}
-                {opp.account_dnc ? <p class="rec-rl-empty crm-error">{vi ? "Doanh nghiệp yêu cầu không liên hệ." : "This business asked not to be contacted."}</p> : null}
-                {contacts.length ? contacts.map((contact) => <div class="rec-rl-row">
+              <RelatedList title={vi ? "Vai trò liên hệ" : "Contact roles"} vi={vi} icon="contacts" tone="contact" count={contacts.length} id="contacts" href={access.canEdit && contacts.length > 0 ? "#sheet-primary" : undefined} hrefLabel={vi ? "Đổi liên hệ chính" : "Change main contact"}>
+                                {opp.account_dnc ? <p class="ws-rl-empty crm-error">{vi ? "Doanh nghiệp yêu cầu không liên hệ." : "This business asked not to be contacted."}</p> : null}
+                {contacts.length ? contacts.map((contact) => <div class="ws-rl-row">
                   <a href={`${base}/contacts/${contact.id}`}>{contact.name}</a>
                   <div class="rec-rl-f"><span>{vi ? "Vai trò" : "Role"}</span><span>{label(lang, "role", contact.role)}{contact.id === opp.primary_contact_id ? (vi ? " · Chính" : " · Main") : ""}</span></div>
-                  <div class="rec-rl-f"><span>{vi ? "Liên hệ" : "Reach"}</span><span>{contact.do_not_contact ? <span class="rec-badge danger">{vi ? "Không liên hệ" : "Do not contact"}</span> : [contact.phone, contact.zalo ? `Zalo ${contact.zalo}` : "", contact.email].filter(Boolean).join(" · ") || label(lang, "consent", contact.consent_status)}</span></div>
-                </div>) : <p class="rec-rl-empty">{vi ? "Chưa có người liên hệ." : "No contacts yet."}</p>}
+                  <div class="rec-rl-f"><span>{vi ? "Liên hệ" : "Reach"}</span><span>{contact.do_not_contact ? <span class="ws-badge bad">{vi ? "Không liên hệ" : "Do not contact"}</span> : [contact.phone, contact.zalo ? `Zalo ${contact.zalo}` : "", contact.email].filter(Boolean).join(" · ") || label(lang, "consent", contact.consent_status)}</span></div>
+                </div>) : <p class="ws-rl-empty">{vi ? "Chưa có người liên hệ." : "No contacts yet."}</p>}
               </RelatedList>
-              <RelatedList title={vi ? "Việc và lịch hẹn" : "Tasks and appointments"} letter="T" color="#7A4B12" count={openTasks.length}>
-                {access.canEdit && <a slot="actions" class="rec-btn small" href="#sheet-task">{vi ? "Thêm" : "Add"}</a>}
-                <OppTasks {...p} />
+              <RelatedList title={vi ? "Việc và lịch hẹn" : "Tasks and appointments"} vi={vi} icon="today" tone="task" count={openTasks.length} href={access.canEdit ? "#sheet-task" : undefined} hrefLabel={vi ? "Thêm" : "Add"}>
+                                <OppTasks {...p} />
               </RelatedList>
-              <RelatedList title={vi ? "Báo giá, phải thu và thanh toán" : "Quotes, amounts due and payments"} letter="Q" color="#5B4CC4" count={p.quotes.length} wide>
+              <div class="rec-wide"><RelatedList title={vi ? "Báo giá, phải thu và thanh toán" : "Quotes, amounts due and payments"} vi={vi} icon="offers" tone="#5B4FC4" count={p.quotes.length}>
                 <OppCommercial {...p} />
-              </RelatedList>
-              <RelatedList title={vi ? "Bàn giao và thực hiện" : "Handoff and delivery"} letter="Đ" color="#9A5B00" wide empty={vi ? "Bàn giao mở sau khi cơ hội thắng và có báo giá được chấp thuận." : "Handoff opens once the opportunity is won with an accepted quote."}>
+              </RelatedList></div>
+              <div class="rec-wide"><RelatedList title={vi ? "Bàn giao và thực hiện" : "Handoff and delivery"} vi={vi} icon="fulfillment" tone="#9A5B00">
+                {!kindFor(playbook) && <p class="ws-rl-empty">{vi ? "Playbook này không có bước bàn giao." : "This playbook has no delivery handoff."}</p>}
                 <OppFulfillment {...p} />
-              </RelatedList>
-              <RelatedList title={vi ? "Cơ hội liên quan" : "Related opportunities"} letter="O" color="#006093" count={related.length}>
-                {access.canEdit && <a slot="actions" class="rec-btn small" href="#sheet-linked">{vi ? "Mở tiếp nối" : "Follow-on"}</a>}
-                {related.length ? related.map((item) => <div class="rec-rl-row">
+              </RelatedList></div>
+              <RelatedList title={vi ? "Cơ hội liên quan" : "Related opportunities"} vi={vi} icon="pipeline" tone="opportunity" count={related.length} href={access.canEdit ? "#sheet-linked" : undefined} hrefLabel={vi ? "Mở tiếp nối" : "Follow-on"}>
+                                {related.length ? related.map((item) => <div class="ws-rl-row">
                   <a href={`${base}/${item.id}`}>{item.title}</a>
                   <div class="rec-rl-f"><span>{vi ? "Loại" : "Kind"}</span><span>{label(lang, "relation", item.relation)}{item.id === opp.parent_id ? (vi ? " · giao dịch gốc" : " · original deal") : ""}</span></div>
                   <div class="rec-rl-f"><span>{vi ? "Kết quả" : "Outcome"}</span><span>{label(lang, "outcome", item.outcome)} · {playbookNames[item.playbook_id]}</span></div>
-                </div>) : <p class="rec-rl-empty">{vi ? "Không có cơ hội liên quan bạn được xem." : "No related opportunities you can view."}</p>}
+                </div>) : <p class="ws-rl-empty">{vi ? "Không có cơ hội liên quan bạn được xem." : "No related opportunities you can view."}</p>}
               </RelatedList>
-              <RelatedList title={vi ? "Thời gian và chi phí" : "Time and costs"} letter="₫" color="#1F7A4D" count={costs.length} id="time">
-                {access.canEdit && <a slot="actions" class="rec-btn small" href="#sheet-cost">{vi ? "Ghi" : "Log"}</a>}
-                <p class="rec-rl-empty">{vi ? `${minutes} phút đã ghi. Nhân công chưa định giá hiển thị là chưa đủ dữ liệu.` : `${minutes} minutes logged. Labour without a cost shows as not enough data.`}</p>
-                {costs.slice(0, 8).map((cost) => <div class="rec-rl-row"><div class="rec-rl-f"><span>{label(lang, "cost", cost.category)}{cost.basis === "estimate" ? (vi ? " (dự toán)" : " (estimate)") : ""}</span><span>{cost.minutes !== null ? `${cost.minutes}′ ` : ""}{cost.amount_vnd !== null ? formatVnd(cost.amount_vnd, vi) : ""}</span></div></div>)}
+              <RelatedList title={vi ? "Thời gian và chi phí" : "Time and costs"} vi={vi} icon="commission" tone="#1F7A4D" count={costs.length} id="time" href={access.canEdit ? "#sheet-cost" : undefined} hrefLabel={vi ? "Ghi" : "Log"}>
+                                <p class="ws-rl-empty">{vi ? `${minutes} phút đã ghi. Nhân công chưa định giá hiển thị là chưa đủ dữ liệu.` : `${minutes} minutes logged. Labour without a cost shows as not enough data.`}</p>
+                {costs.slice(0, 8).map((cost) => <div class="ws-rl-row"><div class="rec-rl-f"><span>{label(lang, "cost", cost.category)}{cost.basis === "estimate" ? (vi ? " (dự toán)" : " (estimate)") : ""}</span><span>{cost.minutes !== null ? `${cost.minutes}′ ` : ""}{cost.amount_vnd !== null ? formatVnd(cost.amount_vnd, vi) : ""}</span></div></div>)}
               </RelatedList>
             </div>
           </div>}
         </section>
       </div>
       <aside class="rec-side" aria-label={vi ? "Hoạt động" : "Activity"}>
-        <section class="rec-panel" id="activity" aria-labelledby="act-h">
+        <section class="ws-sheet-panel" id="activity" aria-labelledby="act-h">
           <div class="rec-head"><h2 id="act-h">{vi ? "Hoạt động" : "Activity"}</h2></div>
           <div class="rec-body">
-            {access.canEdit && <div class="rec-compose"><a class="rec-btn small" href="#sheet-note">{vi ? "Ghi chú" : "Add note"}</a><a class="rec-btn small" href="#sheet-task">{vi ? "Tạo công việc" : "New task"}</a><a class="rec-btn small" href="#sheet-cost">{vi ? "Ghi thời gian" : "Log time"}</a></div>}
+            {access.canEdit && <div class="rec-compose"><a class="ws-btn sm" href="#sheet-note">{vi ? "Ghi chú" : "Add note"}</a><a class="ws-btn sm" href="#sheet-task">{vi ? "Tạo công việc" : "New task"}</a><a class="ws-btn sm" href="#sheet-cost">{vi ? "Ghi thời gian" : "Log time"}</a></div>}
             <p class="rec-feed-h"><span>{vi ? "Sắp tới & quá hạn" : "Upcoming and overdue"}</span></p>
             <Feed items={upcoming} empty={vi ? "Chưa có việc hay bước tiếp theo." : "No tasks or next step."} />
             <p class="rec-feed-h"><span>{vi ? "Lịch sử" : "History"}</span><span>{events.length}</span></p>
@@ -296,9 +290,8 @@ const saved = Astro.url.searchParams.get("saved");
     </div>
   </div>
 
-  {access.canEdit && opp.outcome === "open" && closing.length > 0 && <Sheet id="close" vi={vi} dialog narrow open={!!closeKind} closeHref={here} title={vi ? `Đóng cơ hội: ${opp.title}` : `Close opportunity: ${opp.title}`}>
-    <form class="rec-sheet-form" method="post" action="#close">
-      <div class="rec-sheet-b">
+  {access.canEdit && opp.outcome === "open" && closing.length > 0 && <Sheet id="close" vi={vi} variant="dialog" width="900px" open={!!closeKind} closeHref={here} title={vi ? `Đóng cơ hội: ${opp.title}` : `Close opportunity: ${opp.title}`} action="#close">
+    
         <Hidden intent="close" state={state} version={opp.version} />
         <fieldset class="crm-fieldset"><legend>{vi ? "Giai đoạn đóng" : "Closing stage"} *</legend>
           <div class="crm-choice">{closing.map((stage) => { const check = transitions[stage.id]; return <label><input type="radio" name="to_stage" value={stage.id} checked={stage.id === closeDefault} required />
@@ -307,14 +300,11 @@ const saved = Astro.url.searchParams.get("saved");
         {closeError && <p class="crm-error" id="close-error">{errorText(lang, closeError)}{closeMissing.length > 0 && ` ${closeMissing.map((key) => requirementLabel(def, key, vi)).join(" · ")}`}</p>}
         <Field name="reason" id="close-reason" type="textarea" label={vi ? "Lý do (bắt buộc khi thua)" : "Reason (required when lost)"} lang={lang} value={valueFor(state, "close", "reason", "")} error={errorFor(state, "close", "reason")} maxlength={1000} />
         <p class="crm-help">{vi ? "Điều kiện của từng giai đoạn lấy từ playbook. Thắng không có nghĩa đã thanh toán; thanh toán chỉ tính khi tài chính xác nhận." : "Each stage's requirements come from the playbook. Won does not mean paid; payments count only once finance confirms them."}</p>
-      </div>
-      <div class="rec-sheet-f"><a class="rec-btn" href={here}>{vi ? `Hủy, giữ “${stageLabel(def, opp.stage_id, true)}”` : `Cancel, keep “${stageLabel(def, opp.stage_id, false)}”`}</a><button class="rec-btn primary" type="submit">{vi ? "Lưu và đóng cơ hội" : "Save and close"}</button></div>
-    </form>
+      <Fragment slot="foot"><a class="ws-btn" href={here}>{vi ? `Hủy, giữ “${stageLabel(def, opp.stage_id, true)}”` : `Cancel, keep “${stageLabel(def, opp.stage_id, false)}”`}</a><button class="ws-btn primary" type="submit">{vi ? "Lưu và đóng cơ hội" : "Save and close"}</button></Fragment>
   </Sheet>}
 
-  {access.canEdit && <Sheet id="sheet-stage" vi={vi} title={vi ? "Chuyển giai đoạn" : "Move stage"} open={open("stage")} closeHref={here}>
-    <form class="rec-sheet-form" method="post" action="#stage">
-      <div class="rec-sheet-b">
+  {access.canEdit && <Sheet id="sheet-stage" vi={vi} title={vi ? "Chuyển giai đoạn" : "Move stage"} open={open("stage")} closeHref={here} action="#stage">
+    
         <Hidden intent="stage" state={state} version={opp.version} />
         <div class="crm-field" data-invalid={stageError ? "" : undefined}>
           <label for="to_stage">{vi ? "Chuyển sang giai đoạn" : "Move to stage"}</label>
@@ -328,75 +318,58 @@ const saved = Astro.url.searchParams.get("saved");
           {stageError && <span class="crm-error" id="to_stage-error">{errorText(lang, stageError)}{stageMissing.length > 0 && ` ${stageMissing.map((key) => requirementLabel(def, key, vi)).join(" · ")}`}</span>}
         </div>
         <Field name="reason" type="textarea" label={vi ? "Lý do (bắt buộc khi bỏ qua bước, thua hoặc tạm hoãn)" : "Reason (required when skipping, lost or on hold)"} lang={lang} value={valueFor(state, "stage", "reason", "")} error={errorFor(state, "stage", "reason")} maxlength={1000} />
-      </div>
-      <div class="rec-sheet-f"><a class="rec-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class="rec-btn primary" type="submit">{vi ? "Chuyển giai đoạn" : "Move stage"}</button></div>
-    </form>
+      <Fragment slot="foot"><a class="ws-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class="ws-btn primary" type="submit">{vi ? "Chuyển giai đoạn" : "Move stage"}</button></Fragment>
   </Sheet>}
 
   {access.canEdit && allFields.length > 0 && <Sheet id="sheet-fields" vi={vi} title={vi ? "Thông tin đã xác minh" : "Verified information"} open={open("fields")} closeHref={here}>
-    <div class="rec-sheet-b"><OppFields {...p} /></div>
+    <OppFields {...p} />
   </Sheet>}
 
-  {access.canEdit && <Sheet id="sheet-note" vi={vi} title={vi ? "Ghi lại cuộc trao đổi" : "Record a conversation"} open={open("note")} closeHref={here}>
-    <form class="rec-sheet-form" method="post" action="#activity">
-      <div class="rec-sheet-b">
+  {access.canEdit && <Sheet id="sheet-note" vi={vi} title={vi ? "Ghi lại cuộc trao đổi" : "Record a conversation"} open={open("note")} closeHref={here} action="#activity">
+    
         <Hidden intent="note" state={state} />
         <Field name="note" id="activity-note" type="textarea" label={vi ? "Ghi chú" : "Note"} lang={lang} value={valueFor(state, "note", "note", "")} error={errorFor(state, "note", "note")} required maxlength={3000} />
-      </div>
-      <div class="rec-sheet-f"><a class="rec-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class="rec-btn primary" type="submit">{vi ? "Thêm ghi chú" : "Add note"}</button></div>
-    </form>
+      <Fragment slot="foot"><a class="ws-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class="ws-btn primary" type="submit">{vi ? "Thêm ghi chú" : "Add note"}</button></Fragment>
   </Sheet>}
 
-  {actor.manager && <Sheet id="sheet-assign" vi={vi} title={vi ? "Đổi người phụ trách" : "Change owner"} open={open("assign")} closeHref={here}>
-    <form class="rec-sheet-form" method="post" action={here}>
-      <div class="rec-sheet-b">
+  {actor.manager && <Sheet id="sheet-assign" vi={vi} title={vi ? "Đổi người phụ trách" : "Change owner"} open={open("assign")} closeHref={here} action={here}>
+    
         <Hidden intent="assign" state={state} version={opp.version} />
         <Field name="owner_id" id="assign-owner" type="select" label={vi ? "Giao cho" : "Assign to"} lang={lang} value={opp.owner_id ?? ""} error={e("assign", "owner_id")} options={[...(opp.owner_id && !owners.some((owner) => owner.id === opp.owner_id) ? [{ value: opp.owner_id, label: person(opp.owner_id) }] : []), ...(opp.owner_id ? [] : [{ value: "", label: vi ? "Chọn người" : "Choose" }]), ...owners.map((owner) => ({ value: owner.id, label: owner.label }))]} />
         <p class="crm-help">{vi ? "Giao lại không đổi người bán được ghi công." : "Reassigning never changes seller attribution."}</p>
-      </div>
-      <div class="rec-sheet-f"><a class="rec-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class="rec-btn primary" type="submit">{vi ? "Giao" : "Assign"}</button></div>
-    </form>
+      <Fragment slot="foot"><a class="ws-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class="ws-btn primary" type="submit">{vi ? "Giao" : "Assign"}</button></Fragment>
   </Sheet>}
 
-  {actor.configure && <Sheet id="sheet-referrer" vi={vi} title={vi ? "Người giới thiệu" : "Referrer"} open={open("referrer")} closeHref={here}>
-    <form class="rec-sheet-form" method="post" action={here}>
-      <div class="rec-sheet-b">
+  {actor.configure && <Sheet id="sheet-referrer" vi={vi} title={vi ? "Người giới thiệu" : "Referrer"} open={open("referrer")} closeHref={here} action={here}>
+    
         <Hidden intent="referrer" state={state} version={opp.version} />
         <Field name="referrer_id" id="ref-user" type="select" label={vi ? "Người giới thiệu (hưởng hoa hồng giới thiệu)" : "Referrer (earns referral commission)"} lang={lang} value={opp.referrer_id ?? ""} error={e("referrer", "referrer_id")} options={[{ value: "", label: vi ? "Không có" : "None" }, ...owners.map((owner) => ({ value: owner.id, label: owner.label }))]} />
-      </div>
-      <div class="rec-sheet-f"><a class="rec-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class="rec-btn primary" type="submit">{vi ? "Lưu người giới thiệu" : "Save referrer"}</button></div>
-    </form>
+      <Fragment slot="foot"><a class="ws-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class="ws-btn primary" type="submit">{vi ? "Lưu người giới thiệu" : "Save referrer"}</button></Fragment>
   </Sheet>}
 
-  {access.canEdit && contacts.length > 0 && <Sheet id="sheet-primary" vi={vi} title={vi ? "Liên hệ chính" : "Main contact"} open={open("primary_contact")} closeHref={here}>
-    <form class="rec-sheet-form" method="post" action="#contacts">
-      <div class="rec-sheet-b">
+  {access.canEdit && contacts.length > 0 && <Sheet id="sheet-primary" vi={vi} title={vi ? "Liên hệ chính" : "Main contact"} open={open("primary_contact")} closeHref={here} action="#contacts">
+    
         <Hidden intent="primary_contact" state={state} version={opp.version} />
         <Field name="contact_id" id="primary-contact" type="select" label={vi ? "Liên hệ chính" : "Main contact"} lang={lang} value={opp.primary_contact_id ?? ""} error={e("primary_contact", "contact_id")} options={[...(opp.primary_contact_id ? [] : [{ value: "", label: vi ? "Chọn người liên hệ" : "Choose a contact" }]), ...contacts.map((contact) => ({ value: contact.id, label: `${contact.name}${contact.do_not_contact ? (vi ? " — không liên hệ" : " — do not contact") : ""}` }))]} />
-      </div>
-      <div class="rec-sheet-f"><a class="rec-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class="rec-btn primary" type="submit">{vi ? "Đổi liên hệ chính" : "Change main contact"}</button></div>
-    </form>
+      <Fragment slot="foot"><a class="ws-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class="ws-btn primary" type="submit">{vi ? "Đổi liên hệ chính" : "Change main contact"}</button></Fragment>
   </Sheet>}
 
-  {access.canEdit && <Sheet id="sheet-task" vi={vi} title={vi ? "Thêm việc hoặc lịch hẹn" : "Add a task or appointment"} open={open("task_create")} closeHref={here}>
-    <OppTaskForm {...p} cancelHref={here} />
+  {access.canEdit && <Sheet id="sheet-task" vi={vi} title={vi ? "Thêm việc hoặc lịch hẹn" : "Add a task or appointment"} open={open("task_create")} closeHref={here} action="#tasks">
+    <OppTaskForm {...p} />
+    <Fragment slot="foot"><a class="ws-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class="ws-btn primary" type="submit">{vi ? "Thêm việc" : "Add task"}</button></Fragment>
   </Sheet>}
 
-  {access.canEdit && <Sheet id="sheet-linked" vi={vi} title={vi ? "Mở cơ hội tiếp nối" : "Open a follow-on opportunity"} open={open("linked")} closeHref={here}>
-    <form class="rec-sheet-form" method="post" action={here}>
-      <div class="rec-sheet-b">
+  {access.canEdit && <Sheet id="sheet-linked" vi={vi} title={vi ? "Mở cơ hội tiếp nối" : "Open a follow-on opportunity"} open={open("linked")} closeHref={here} action={here}>
+    
         <Hidden intent="linked" state={state} />
         <p class="crm-help">{vi ? "Nâng cấp (Trust Kit → Starter), gia hạn, hoặc mở rộng sang giải pháp Lumi khi có vấn đề lặp lại và quyết định mua riêng. Không sao chép khách hàng." : "Upgrade (Trust Kit → Starter), renewal, or expansion to a Lumi solution when there is recurring pain and a separate buying decision. The customer is never copied."}</p>
         <Field name="relation" id="l-rel" type="select" label={vi ? "Loại" : "Kind"} lang={lang} value={v("linked", "relation", opp.outcome === "won" ? "upgrade" : "expansion")} error={e("linked", "relation")} options={["upgrade", "renewal", "expansion"].map((value) => ({ value, label: label(lang, "relation", value) }))} />
         <Field name="playbook_key" id="l-pb" type="select" label={vi ? "Quy trình bán" : "Playbook"} lang={lang} value={v("linked", "playbook_key", playbook.playbook_key)} error={e("linked", "playbook_key")} options={linkPlaybooks.map((item) => ({ value: item.playbook_key, label: vi ? item.name_vi : item.name_en }))} />
-      </div>
-      <div class="rec-sheet-f"><a class="rec-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class="rec-btn primary" type="submit">{vi ? "Mở cơ hội" : "Open opportunity"}</button></div>
-    </form>
+      <Fragment slot="foot"><a class="ws-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class="ws-btn primary" type="submit">{vi ? "Mở cơ hội" : "Open opportunity"}</button></Fragment>
   </Sheet>}
 
-  {access.canEdit && <Sheet id="sheet-cost" vi={vi} title={vi ? "Ghi thời gian / chi phí" : "Log time / cost"} open={open("cost")} closeHref={here}>
-    <form class="rec-sheet-form" method="post" action="#time">
-      <div class="rec-sheet-b">
+  {access.canEdit && <Sheet id="sheet-cost" vi={vi} title={vi ? "Ghi thời gian / chi phí" : "Log time / cost"} open={open("cost")} closeHref={here} action="#time">
+    
         <Hidden intent="cost" state={state} />
         <div class="crm-form-grid">
           <Field name="category" id="c-cat" type="select" label={vi ? "Loại" : "Category"} lang={lang} value={v("cost", "category", "research")} error={e("cost", "category")} options={costCategories.map((value) => ({ value, label: label(lang, "cost", value) }))} />
@@ -406,26 +379,24 @@ const saved = Astro.url.searchParams.get("saved");
           <Field name="occurred_on" id="c-date" type="date" label={vi ? "Ngày" : "Date"} lang={lang} value={v("cost", "occurred_on", vnDate())} error={e("cost", "occurred_on")} />
           <Field name="note" id="c-note" label={vi ? "Ghi chú" : "Note"} lang={lang} value={v("cost", "note")} maxlength={500} />
         </div>
-      </div>
-      <div class="rec-sheet-f"><a class="rec-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class="rec-btn primary" type="submit">{vi ? "Ghi" : "Log"}</button></div>
-    </form>
+      <Fragment slot="foot"><a class="ws-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class="ws-btn primary" type="submit">{vi ? "Ghi" : "Log"}</button></Fragment>
   </Sheet>}
 
   {actor.manager && <Sheet id="sheet-admin" vi={vi} title={vi ? "Quản trị hồ sơ" : "Record administration"} open={open("playbook_change", "move_account")} closeHref={here}>
-    <div class="rec-sheet-b">
+    
       <form class="crm-form" method="post" action={here}>
         <Hidden intent="playbook_change" state={state} version={opp.version} />
         <p class="crm-help">{vi ? `Hiện tại: ${playbookNames[opp.playbook_id]} · ${stageLabel(def, opp.stage_id, true)}. Đổi playbook cần chọn giai đoạn đích và lý do; lịch sử được giữ.` : `Now: ${playbookNames[opp.playbook_id]} · ${stageLabel(def, opp.stage_id, false)}. Choose a target stage and reason; history is kept.`}</p>
         <Field name="target_playbook_id" id="pc-pb" type="select" label={vi ? "Playbook / phiên bản đích" : "Target playbook / version"} lang={lang} value={v("playbook_change", "target_playbook_id", allVersions[0]?.id ?? "")} error={e("playbook_change", "target_playbook_id")} options={allVersions.map((item) => ({ value: item.id, label: playbookNames[item.id] }))} />
         <Field name="target_stage" id="pc-stage" type="select" label={vi ? "Giai đoạn đích" : "Target stage"} lang={lang} value={v("playbook_change", "target_stage")} error={e("playbook_change", "target_stage")} options={allVersions.flatMap((item) => item.def.stages.map((stage) => ({ value: stage.id, label: `${playbookNames[item.id]} → ${vi ? stage.vi : stage.en}` }))).filter((option, index, list) => list.findIndex((other) => other.value === option.value && other.label === option.label) === index)} />
         <Field name="reason" id="pc-reason" label={vi ? "Lý do" : "Reason"} lang={lang} value={v("playbook_change", "reason")} error={e("playbook_change", "reason")} required maxlength={1000} />
-        <div class="crm-actions"><button class="rec-btn" type="submit">{vi ? "Đổi playbook" : "Change playbook"}</button></div>
+        <div class="crm-actions"><button class="ws-btn" type="submit">{vi ? "Đổi playbook" : "Change playbook"}</button></div>
       </form>
       <form class="crm-form" method="post" action={here}>
         <Hidden intent="move_account" state={state} version={opp.version} />
         <Field name="target_account_id" id="ma-acc" label={vi ? "Gộp vào doanh nghiệp (mã)" : "Merge into account (ID)"} lang={lang} value={v("move_account", "target_account_id")} error={e("move_account", "target_account_id")} maxlength={60} help={vi ? "Dùng khi phát hiện trùng; xem gợi ý trên trang công ty." : "Use for duplicates; see suggestions on the company page."} />
-        <div class="crm-actions"><button class="rec-btn" type="submit">{vi ? "Chuyển" : "Move"}</button></div>
+        <div class="crm-actions"><button class="ws-btn" type="submit">{vi ? "Chuyển" : "Move"}</button></div>
       </form>
-    </div>
+    
   </Sheet>}
 </CrmShell>
