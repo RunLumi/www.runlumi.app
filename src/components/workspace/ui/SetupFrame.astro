@@ -1,0 +1,27 @@
+---
+// Setup page frame (board: Settings): the list-view header panel (object
+// square, eyebrow with optional badges, short title, actions) with the
+// board's blue info note, then the page's panels in the default slot.
+// Adopted from ui3's record kit.
+import ObjectIcon from "./ObjectIcon.astro";
+import type { IconName } from "../../../lib/workspace/nav";
+
+interface Props { vi: boolean; icon: IconName; eyebrow: string; title: string; info?: string; tone?: string }
+const { icon, eyebrow, title, info, tone = "setup" } = Astro.props;
+---
+<div class="ws-setup">
+  <section class="ws-lv" aria-labelledby="setup-h">
+    <div class="ws-oh">
+      <div class="ws-oh-id">
+        <ObjectIcon icon={icon} tone={tone} />
+        <div>
+          <p class="ws-eyebrow">{eyebrow}<slot name="badges" /></p>
+          <h1 class="ws-h1" id="setup-h">{title}</h1>
+        </div>
+      </div>
+      {Astro.slots.has("actions") && <div class="ws-oh-actions"><slot name="actions" /></div>}
+    </div>
+    {info && <div class="ws-setup-body"><p class="ws-info">{info}</p></div>}
+  </section>
+  <slot />
+</div>

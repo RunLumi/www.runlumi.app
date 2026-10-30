@@ -1,0 +1,51 @@
+---
+// Tài khoản của tôi › Thông báo (board: SetupNotifications, story UI1-S6).
+// Read-only: it lists what really reaches this person and why. The board's
+// switches, quiet hours, digest and reminders have no back end yet; they are
+// a founder decision, so nothing here pretends to save a preference.
+import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
+import Breadcrumbs from "./ui/Breadcrumbs.astro";
+import { accountModule, localized } from "../../lib/workspace/nav";
+import { eventLabel } from "../../lib/workspace/notify/labels";
+import type { accountNotificationsPage } from "../../lib/workspace/shell-pages";
+
+type Props = Awaited<ReturnType<typeof accountNotificationsPage>>;
+const { lang, vi, user, rules, hrmNotices, hasCode } = Astro.props;
+const t = (en: string, viText: string) => vi ? viText : en;
+const why = { person: t("you are named on the rule", "quy tắc ghi tên bạn"), role: t("your role is a recipient", "vai trò của bạn là người nhận"), admins: t("you are a System Super Admin", "bạn là Siêu quản trị hệ thống"), owner: t("you own the record", "bạn phụ trách bản ghi") };
+const rows = [
+  ...(hrmNotices ? [{ name: t("HR service requests", "Yêu cầu dịch vụ HR"), desc: t("A request you sent or handle is created, assigned or updated.", "Yêu cầu bạn gửi hoặc xử lý được tạo, phân công hoặc cập nhật."), email: false, app: true, note: t("Sent by HRM; it cannot be turned off.", "Do HRM gửi; không tắt được."), locked: true }] : []),
+  ...rules.map(({ rule, why: reasons, scope }) => ({
+    name: rule.name,
+    desc: `${rule.events.slice(0, 4).map((event) => eventLabel(event, vi)).join(", ")}${rule.events.length > 4 ? t(` and ${rule.events.length - 4} more`, ` và ${rule.events.length - 4} sự kiện khác`) : ""}`,
+    email: true, app: false, locked: false,
+    note: `${t("Because ", "Vì ")}${reasons.map((reason) => why[reason]).join(t(" and ", " và "))}. ${scope === "team" ? t("Every record you may see.", "Mọi bản ghi bạn được xem.") : t("Only records you own.", "Chỉ bản ghi bạn phụ trách.")}`,
+  })),
+];
+const home = localized(accountModule.path, vi);
+---
+<WorkspaceShell title={t("My notifications", "Thông báo của tôi")} lang={lang} user={user} module="account" current="notifications">
+  <section class="ws-page-head" aria-labelledby="nt-h">
+    <div>
+      <Breadcrumbs vi={vi} items={[{ label: t("My account", "Tài khoản của tôi"), href: home }, { label: t("Notifications", "Thông báo") }]} />
+      <h1 class="ws-h1" id="nt-h">{t("Notifications", "Thông báo")}</h1>
+      <p class="crm-lede">{t("What reaches you, on which channel, and why. Admins manage organisation rules in Admin › Notification rules. Personal switches, quiet hours and a daily digest are not available yet.", "Những gì gửi tới bạn, qua kênh nào và vì sao. Admin quản lý quy tắc của tổ chức ở Quản trị › Quy tắc thông báo. Chưa có công tắc cá nhân, giờ yên lặng hay bản tổng hợp hằng ngày.")}</p>
+    </div>
+  </section>
+
+  <section class="ws-panel" aria-labelledby="ch-h">
+    <div class="ws-panel-head ws-panel-head-row"><h2 class="crm-h2" id="ch-h">{t("Channels by event type", "Kênh nhận theo loại sự kiện")}</h2><span class="ws-meta">{t(`Email goes to ${user.email} and always starts with your anti-phishing code.`, `Email gửi tới ${user.email}, luôn kèm mã chống lừa đảo của bạn.`)}</span></div>
+    {rows.length === 0
+      ? <p class="ws-empty"><strong>{t("Nothing reaches you yet", "Chưa có gì gửi tới bạn")}</strong>{t("No notification rule names you or your roles, and you receive no in-app notices.", "Chưa có quy tắc thông báo nào nêu tên bạn hoặc vai trò của bạn, và bạn không nhận thông báo trong ứng dụng.")}</p>
+      : <div class="ws-table"><div class="ws-table-scroll" role="region" aria-labelledby="ch-h" tabindex="0"><table class="ws-tbl ws-mx-tbl" style="--ws-table-min:640px">
+          <thead><tr><th scope="col">{t("Event type", "Loại sự kiện")}</th><th scope="col" class="c">Email</th><th scope="col" class="c">{t("In the app", "Trong ứng dụng")}</th><th scope="col">{t("Notes", "Ghi chú")}</th></tr></thead>
+          <tbody>{rows.map((row) => <tr>
+            <th scope="row"><b>{row.name}</b><span class="ws-sub">{row.desc}</span></th>
+            <td class="c"><span class:list={["ws-state", row.email && "on"]} role="img" aria-label={row.email ? t("Email: on", "Email: bật") : t("Email: off", "Email: tắt")}></span></td>
+            <td class="c"><span class:list={["ws-state", row.app && (row.locked ? "lock" : "on")]} role="img" aria-label={row.app ? t("In the app: on", "Trong ứng dụng: bật") : t("In the app: off", "Trong ứng dụng: tắt")}></span></td>
+            <td>{row.locked && <span class="ws-badge info">{t("Required, cannot be turned off", "Bắt buộc, không tắt được")}</span>} <span class="ws-meta">{row.note}</span></td>
+          </tr>)}</tbody>
+        </table></div></div>}
+    <p class="ws-panel-note">{rules.length > 0 && t("The Workspace has no email provider yet, so rule emails are recorded as not sent. ", "Workspace chưa cấu hình gửi email, nên email theo quy tắc được ghi là chưa gửi. ")}{hasCode ? t("Your anti-phishing code is set.", "Bạn đã đặt mã chống lừa đảo.") : t("You have no anti-phishing code yet, so no email is ever composed for you. Set one in My account › Security.", "Bạn chưa đặt mã chống lừa đảo, nên không email nào được soạn cho bạn. Đặt mã ở Tài khoản của tôi › Bảo mật.")}</p>
+  </section>
+</WorkspaceShell>

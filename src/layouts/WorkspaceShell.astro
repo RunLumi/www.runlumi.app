@@ -1,17 +1,22 @@
 ---
-// One shell for every private module.
-// Row 1: brand, module tabs (a launcher below 1024px), language and the
-// account menu. Row 2: the current module and, for modules without groups,
-// its page tabs. A module with groups gets a grouped sidebar (R-05) on wide
-// screens and a Menu disclosure on narrow ones. Only entries the person may
-// open are listed. Server-rendered links, forms and <details>: no client script.
+// One shell for every private module, drawn to the TopNav, AppLauncher and
+// SetupNav boards (docs/redesign/UI-PARITY.md, story UI1-S1).
+// Row 1, the global header: logo, search, create (+), help (?), bell and the
+// avatar menu. Row 2, the app nav bar: the launcher (the module list), the app
+// label and the module's page tabs; a grouped module keeps its other pages in
+// a "More" menu, and side-layout modules (HRM, Finance, Admin) get a grouped
+// side navigation instead. Only entries the person may open are listed.
+// Links, GET forms and <details> work without script; the small script at the
+// end adds Escape-to-close and the launcher/side filters.
 import "../styles/crm.css";
 import "../styles/workspace.css";
 import NavIcon from "../components/workspace/NavIcon.astro";
 import GroupedMenu, { type MenuGroup } from "../components/workspace/ui/GroupedMenu.astro";
-import { type ModuleKey, accountModule, localized, moduleByKey, switchLocale, visibleGroups, visibleLinks, visibleModules } from "../lib/workspace/nav";
+import { envFromLocals } from "../lib/ats";
+import { hasNoticeSource, unreadNotices } from "../lib/workspace/inbox";
+import { type ModuleKey, accountModule, appBar, helpLinks, localized, moduleByKey, switchLocale, visibleCreateActions, visibleGroups, visibleLinks, visibleModules } from "../lib/workspace/nav";
 import { type WorkspaceUser, roleLabel } from "../lib/workspace/roles";
-import { initials, moduleSummaries } from "../lib/workspace/summaries";
+import { initials, moduleSummaries, moduleTone } from "../lib/workspace/summaries";
 
 interface Props { title: string; lang: "en" | "vi"; user: WorkspaceUser; module: ModuleKey; current?: string }
 const { title, lang, user, module, current } = Astro.props;
@@ -21,24 +26,40 @@ const available = visibleModules(user);
 const active = moduleByKey(module);
 const allowed = user.can(active.permission);
 const links = allowed ? visibleLinks(user, active) : [];
-const groups = allowed ? visibleGroups(user, active) : [];
-const grouped = groups.length > 0;
+const side = allowed && active.layout === "side";
+const bar = allowed && !side ? appBar(user, active) : { tabs: [], more: [] };
+const sideGroups = side ? visibleGroups(user, active) : [];
 const currentLink = links.find((link) => link.key === current);
 const pagesLabel = vi ? `Trang trong ${active.vi}` : `${active.en} pages`;
-const badges = user.admin ? [roleLabel("admin", vi)] : [...user.roles].map((role) => roleLabel(role, vi));
-const menuGroups: MenuGroup[] = groups.map(({ group, links: items }) => ({
+const toMenu = (groups: typeof sideGroups): MenuGroup[] => groups.map(({ group, links: items }) => ({
   key: group.key, label: label(group),
   items: items.map((link) => ({ key: link.key, label: label(link), href: localized(link.path, vi), icon: link.icon, current: link.key === current })),
 }));
+const sideMenu = toMenu(sideGroups);
+const moreMenu = toMenu(bar.more);
+const moreCurrent = bar.more.some(({ links: items }) => items.some((link) => link.key === current));
+const badges = user.admin ? [roleLabel("admin", vi)] : [...user.roles].map((role) => roleLabel(role, vi));
 const accountLinks = visibleLinks(user, accountModule);
-const showAppbar = module !== "home" && (links.length > 0 || grouped);
+const creates = visibleCreateActions(user);
+const guides = helpLinks(user);
+const bell = hasNoticeSource(user);
+let unread = 0;
+if (bell) {
+  try { unread = await unreadNotices(envFromLocals(Astro.locals).DB, user); } catch { unread = 0; }
+}
+const bellLabel = vi ? (unread ? `Thông báo, ${unread} chưa đọc` : "Thông báo") : (unread ? `Notifications, ${unread} unread` : "Notifications");
+const searchValue = Astro.url.pathname.replace(/^\/vi(?=\/)/, "") === "/workspace/search" ? (Astro.url.searchParams.get("q") ?? "").slice(0, 120) : "";
+const tileItems = (key: ModuleKey) => {
+  const items = visibleLinks(user, moduleByKey(key));
+  return items.length ? items.map(label).join(" · ") : moduleSummaries[key][vi ? 1 : 0];
+};
 ---
 <!doctype html>
 <html lang={lang}>
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#F4F0E8" />
+    <meta name="theme-color" content="#FFFFFF" />
     <meta name="robots" content="noindex, nofollow" />
     <title>{title} — Lumi Workspace</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -46,48 +67,105 @@ const showAppbar = module !== "home" && (links.length > 0 || grouped);
   <body class="crm ws">
     <a class="crm-skip" href="#main">{vi ? "Đến nội dung chính" : "Skip to content"}</a>
     <header class="ws-header">
-      <div class="ws-top"><div class="ws-wide ws-bar">
-        <details class="ws-launcher">
-          <summary><NavIcon name="apps" size={20} /><span class="crm-sr">{vi ? "Mở danh sách phân hệ" : "Open the module list"}</span></summary>
-          <div class="ws-pop ws-launcher-pop">
-            <p class="ws-gmenu-label">{vi ? "Phân hệ" : "Modules"}</p>
-            <ul>{available.map((item) => <li><a href={localized(item.path, vi)} aria-current={item.key === module ? "page" : undefined}><NavIcon name={item.icon} size={20} /><span><strong>{label(item)}</strong><span>{moduleSummaries[item.key][vi ? 1 : 0]}</span></span></a></li>)}</ul>
-          </div>
-        </details>
-        <a class="crm-brand" href={localized("/workspace", vi)}><img src="/brand/lumi-fulltext.svg" alt="Lumi" width="86" height="44" /><span>Workspace</span></a>
-        <nav class="ws-modules" aria-label={vi ? "Phân hệ" : "Modules"}>
-          {available.map((item) => <a href={localized(item.path, vi)} aria-current={item.key === module ? "page" : undefined}><NavIcon name={item.icon} size={18} />{label(item)}</a>)}
-        </nav>
-        <div class="ws-account">
-          <a class="ws-lang" href={switchLocale(Astro.url)} lang={vi ? "en" : "vi"} hreflang={vi ? "en" : "vi"}>{vi ? "English" : "Tiếng Việt"}</a>
-          <details class="ws-me">
-            <summary aria-label={vi ? `Tài khoản của tôi: ${user.name}` : `My account: ${user.name}`}><span class="ws-avatar" aria-hidden="true">{initials(user.name)}</span><span class="ws-user"><strong>{user.name}</strong><span>{badges.join(" · ")}</span></span></summary>
+      <div class="ws-gh">
+        <a class="ws-brand" href={localized("/workspace", vi)}><span class="ws-logo" aria-hidden="true">L</span><span class="ws-brand-name">Lumi Workspace</span></a>
+        <form class="ws-gsearch" role="search" method="get" action={localized("/workspace/search", vi)}>
+          <label><NavIcon name="search" size={16} /><span class="crm-sr">{vi ? "Tìm trong Workspace" : "Search the Workspace"}</span><input type="search" name="q" value={searchValue} minlength="2" maxlength="120" autocomplete="off" placeholder={vi ? "Tìm Lead, cơ hội, công ty, liên hệ, người…" : "Search leads, opportunities, companies, contacts, people…"} /></label>
+        </form>
+        <div class="ws-tools">
+          {creates.length > 0 && <details class="ws-drop ws-create">
+            <summary class="ws-ibtn" aria-label={vi ? "Tạo mới" : "Create"} title={vi ? "Tạo mới" : "Create"}><NavIcon name="plus" size={18} /></summary>
+            <div class="ws-pop ws-menu-pop">
+              <p class="ws-mi-head">{vi ? "Tạo mới" : "Create"}</p>
+              <ul>{creates.map((action) => <li><a href={localized(action.path, vi)}><NavIcon name={action.icon} size={18} />{label(action)}</a></li>)}</ul>
+            </div>
+          </details>}
+          {guides.length > 0 && <details class="ws-drop ws-help">
+            <summary class="ws-ibtn" aria-label={vi ? "Hướng dẫn" : "Help"} title={vi ? "Hướng dẫn" : "Help"}><NavIcon name="help" size={18} /></summary>
+            <div class="ws-pop ws-menu-pop">
+              <p class="ws-mi-head">{vi ? "Hướng dẫn" : "Guides"}</p>
+              <ul>{guides.map(({ module: owner, link }) => <li><a href={localized(link.path, vi)}><NavIcon name={link.icon} size={18} /><span>{label(link)}<small>{label(owner)}</small></span></a></li>)}</ul>
+            </div>
+          </details>}
+          {bell && <a class="ws-ibtn ws-bell" href={localized("/workspace/inbox", vi)} aria-label={bellLabel} title={bellLabel} aria-current={Astro.url.pathname.endsWith("/workspace/inbox") ? "page" : undefined}><NavIcon name="bell" size={18} />{unread > 0 && <span class="ws-bell-n" aria-hidden="true">{unread > 99 ? "99+" : unread}</span>}</a>}
+          <details class="ws-drop ws-me">
+            <summary aria-label={vi ? `Tài khoản của tôi: ${user.name}` : `My account: ${user.name}`}><span class="ws-avatar" aria-hidden="true">{initials(user.name)}</span></summary>
             <div class="ws-pop ws-me-pop">
-              <p class="ws-me-id"><strong>{user.name}</strong><span>{user.email}</span></p>
-              <p class="ws-gmenu-label">{label(accountModule)}</p>
+              <p class="ws-me-id"><span class="ws-avatar" aria-hidden="true">{initials(user.name)}</span><span><strong>{user.name}</strong><span>{user.email}</span><span>{badges.join(" · ")}</span></span></p>
+              <p class="ws-mi-head">{label(accountModule)}</p>
               <ul>{accountLinks.map((link) => <li><a href={localized(link.path, vi)} aria-current={module === "account" && link.key === current ? "page" : undefined}><NavIcon name={link.icon} size={18} />{label(link)}</a></li>)}</ul>
+              <ul class="ws-me-more"><li><a class="ws-lang" href={switchLocale(Astro.url)} lang={vi ? "en" : "vi"} hreflang={vi ? "en" : "vi"}>{vi ? "English" : "Tiếng Việt"}</a></li></ul>
               <form method="post" action="/_emdash/api/auth/logout?redirect=%2F"><button type="submit">{vi ? "Đăng xuất" : "Sign out"}</button></form>
             </div>
           </details>
         </div>
-      </div></div>
-      {showAppbar && <div class="ws-appbar"><div class="ws-wide ws-appbar-in">
-        <a class="ws-app-name" href={localized(active.path, vi)}><NavIcon name={active.icon} size={20} />{label(active)}</a>
-        {!grouped && <nav class="ws-pages" aria-label={pagesLabel}>
-          {links.map((link) => <a href={localized(link.path, vi)} aria-current={link.key === current ? "page" : undefined}><NavIcon name={link.icon} size={18} />{label(link)}</a>)}
+      </div>
+      <div class="ws-an">
+        <details class="ws-drop ws-launcher">
+          <summary class="ws-launch-btn" aria-label={vi ? "Mở danh sách ứng dụng" : "Open the app launcher"} title={vi ? "Ứng dụng" : "Apps"}><svg class="ws-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="5" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="12" cy="19" r="2"/><circle cx="19" cy="19" r="2"/></svg></summary>
+          <div class="ws-launcher-pop" role="group" aria-labelledby="ws-launcher-h">
+            <p class="ws-dlg-title" id="ws-launcher-h">{vi ? "Ứng dụng" : "App launcher"}</p>
+            <div class="ws-launcher-body">
+              <label class="ws-field-search" data-ws-filter-box hidden><NavIcon name="search" size={16} /><span class="crm-sr">{vi ? "Lọc ứng dụng" : "Filter apps"}</span><input type="search" data-ws-filter="#ws-launcher-list" placeholder={vi ? "Lọc ứng dụng hoặc trang, ví dụ: Lead" : "Filter apps or pages, for example: Leads"} /></label>
+              <p class="ws-eyebrow">{vi ? "Ứng dụng" : "Apps"}</p>
+              <nav class="ws-modules" aria-label={vi ? "Phân hệ" : "Modules"}>
+                <ul class="ws-lgrid" id="ws-launcher-list">{available.map((item) => <li><a class="ws-ltile" href={localized(item.path, vi)} aria-current={item.key === module ? "page" : undefined}><span class="ws-oi" style={`--ws-tone:${moduleTone[item.key]}`}><NavIcon name={item.icon} size={20} /></span><span><strong>{label(item)}</strong><span>{tileItems(item.key)}</span></span></a></li>)}</ul>
+              </nav>
+            </div>
+          </div>
+        </details>
+        <a class="ws-app-name" href={localized(active.path, vi)}>{label(active)}</a>
+        {bar.tabs.length > 0 && <nav class="ws-pages" aria-label={pagesLabel}>
+          {bar.tabs.map((link) => <a class="ws-tab" href={localized(link.path, vi)} aria-current={link.key === current ? "page" : undefined}>{label(link)}</a>)}
         </nav>}
-        {grouped && <details class="ws-menu ws-narrow">
-          <summary><NavIcon name="menu" size={18} /><span>{vi ? "Trang" : "Pages"}</span>{currentLink && <span class="ws-menu-current">{label(currentLink)}</span>}</summary>
-          <GroupedMenu groups={menuGroups} label={pagesLabel} idPrefix="mn" columns />
+        {moreMenu.length > 0 && <details class="ws-drop ws-more">
+          <summary class="ws-tab" aria-current={moreCurrent ? "true" : undefined}>{moreCurrent && currentLink ? label(currentLink) : (vi ? "Thêm" : "More")}<NavIcon name="chevron" size={14} /></summary>
+          <div class="ws-pop ws-more-pop"><GroupedMenu groups={moreMenu} label={vi ? `Trang khác trong ${active.vi}` : `More ${active.en} pages`} idPrefix="mo" columns /></div>
         </details>}
-      </div></div>}
+        {side && <details class="ws-drop ws-menu ws-narrow">
+          <summary class="ws-tab"><NavIcon name="menu" size={16} /><span>{currentLink ? label(currentLink) : (vi ? "Trang" : "Pages")}</span><NavIcon name="chevron" size={14} /></summary>
+          <div class="ws-pop ws-more-pop"><GroupedMenu groups={sideMenu} label={pagesLabel} idPrefix="mn" columns /></div>
+        </details>}
+      </div>
     </header>
-    {grouped
+    {side
       ? <div class="ws-frame">
-          <aside class="ws-side"><GroupedMenu groups={menuGroups} label={pagesLabel} idPrefix="sd" /></aside>
-          <main id="main" class="crm-main ws-content"><slot /></main>
+          <aside class="ws-side"><GroupedMenu groups={sideMenu} label={pagesLabel} idPrefix="sd" variant="side" title={label(active)} icon={active.icon} filter={vi ? `Tìm trong ${active.vi}` : `Find in ${active.en}`} /></aside>
+          <main id="main" class="ws-main ws-content"><slot /></main>
         </div>
-      : <main id="main" class="crm-main"><div class="ws-wide"><slot /></div></main>}
-    <footer class="crm-footer"><div class="ws-wide crm-footer-in"><span>Lumi Workspace · {vi ? "Nội bộ, chỉ người được cấp quyền" : "Internal, permitted users only"}</span><span>© 2026 Cloudjet Solutions Pte. Ltd.</span></div></footer>
+      : <main id="main" class="ws-main ws-page"><slot /></main>}
+    <footer class="ws-foot"><span>Lumi Workspace · {vi ? "Nội bộ, chỉ người được cấp quyền" : "Internal, permitted users only"}</span><span>© 2026 Cloudjet Solutions Pte. Ltd.</span></footer>
+    <script is:inline>
+      // Progressive extras: Escape closes an open pop-over or sheet, and the
+      // launcher/side filters narrow their lists. Everything works without it.
+      (() => {
+        document.querySelectorAll("[data-ws-filter-box]").forEach((box) => { box.hidden = false; });
+        document.addEventListener("input", (event) => {
+          const input = event.target;
+          if (!(input instanceof HTMLInputElement) || !input.dataset.wsFilter) return;
+          const list = document.querySelector(input.dataset.wsFilter);
+          const term = input.value.trim().toLocaleLowerCase();
+          list?.querySelectorAll("li").forEach((item) => { item.hidden = term !== "" && !item.textContent.toLocaleLowerCase().includes(term); });
+          list?.querySelectorAll(".ws-gmenu-group").forEach((group) => { group.hidden = ![...group.querySelectorAll("li")].some((item) => !item.hidden); });
+        });
+        document.addEventListener("keydown", (event) => {
+          if (event.key !== "Escape") return;
+          const open = document.querySelector("details.ws-drop[open]");
+          if (open) { open.open = false; open.querySelector("summary")?.focus(); return; }
+          const sheet = document.querySelector(".ws-overlay:target, .ws-overlay[data-open]");
+          const close = sheet?.querySelector("[data-ws-close]");
+          if (close instanceof HTMLAnchorElement) location.assign(close.href);
+        });
+        document.addEventListener("click", (event) => {
+          document.querySelectorAll("details.ws-drop[open]").forEach((drop) => { if (!drop.contains(event.target)) drop.open = false; });
+        });
+        const target = document.querySelector(".ws-overlay:target .ws-dlg, .ws-overlay[data-open] .ws-dlg");
+        if (target instanceof HTMLElement) (target.querySelector("[autofocus]") ?? target).focus();
+        window.addEventListener("hashchange", () => {
+          const sheet = document.querySelector(".ws-overlay:target .ws-dlg");
+          if (sheet instanceof HTMLElement) (sheet.querySelector("[autofocus]") ?? sheet).focus();
+        });
+      })();
+    </script>
   </body>
 </html>

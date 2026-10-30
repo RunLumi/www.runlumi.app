@@ -9,10 +9,18 @@ export type IconName =
   | "finance" | "cash_flow" | "balance" | "history"
   | "files" | "hrm" | "profile" | "hrm_people" | "hrm_settings"
   | "overview" | "hiring" | "crm" | "admin" | "today" | "leads" | "lead_settings" | "calendar" | "pipeline" | "new" | "referrals" | "companies" | "contacts" | "reports"
-  | "commission" | "model" | "fulfillment" | "assignment" | "playbooks" | "offers" | "process" | "agents" | "roles" | "candidates" | "users" | "menu" | "apps" | "account" | "security";
-export interface NavLink { key: string; en: string; vi: string; path: string; icon: IconName; group?: string; anyOf?: Permission[] }
+  | "commission" | "model" | "fulfillment" | "assignment" | "playbooks" | "offers" | "process" | "agents" | "roles" | "candidates" | "users" | "menu" | "apps" | "account" | "security"
+  | "search" | "plus" | "help" | "bell" | "chevron"
+  | "refresh" | "filter" | "left" | "right" | "table" | "warn" | "grip" | "tasks";
+/** `tab`: shown as a tab in the app nav bar of a grouped module; the other links sit in its "More" menu. */
+export interface NavLink { key: string; en: string; vi: string; path: string; icon: IconName; group?: string; anyOf?: Permission[]; tab?: boolean }
 export interface NavGroup { key: string; en: string; vi: string }
-export interface NavModule { key: ModuleKey; en: string; vi: string; path: string; icon: IconName; permission: Permission; links: NavLink[]; groups?: NavGroup[] }
+/**
+ * `layout`: "tabs" puts the pages in the app nav bar (TopNav board); grouped
+ * modules there show their `tab` links and a grouped "More" menu. "side" gives
+ * a grouped side navigation (SetupNav board). Defaults to "tabs".
+ */
+export interface NavModule { key: ModuleKey; en: string; vi: string; path: string; icon: IconName; permission: Permission; links: NavLink[]; groups?: NavGroup[]; layout?: "tabs" | "side" }
 
 export const modules: NavModule[] = [
   { key: "home", en: "Overview", vi: "Tổng quan", path: "/workspace", icon: "overview", permission: "workspace.access", links: [] },
@@ -35,15 +43,16 @@ export const modules: NavModule[] = [
       { key: "help", en: "Guides and tools", vi: "Hướng dẫn và công cụ" },
     ],
     links: [
-      { key: "today", en: "Today", vi: "Hôm nay", path: "/crm", icon: "today", group: "sell" },
-      { key: "leads", en: "Leads", vi: "Lead", path: "/crm/leads", icon: "leads", group: "sell" },
-      { key: "pipeline", en: "Pipeline", vi: "Cơ hội", path: "/crm/pipeline", icon: "pipeline", group: "sell" },
-      { key: "calendar", en: "Calendar", vi: "Lịch", path: "/crm/calendar", icon: "calendar", group: "sell" },
+      { key: "today", tab: true, en: "Today", vi: "Hôm nay", path: "/crm", icon: "today", group: "sell" },
+      { key: "leads", tab: true, en: "Leads", vi: "Lead", path: "/crm/leads", icon: "leads", group: "sell" },
+      { key: "pipeline", tab: true, en: "Pipeline", vi: "Cơ hội", path: "/crm/pipeline", icon: "pipeline", group: "sell" },
+      { key: "calendar", tab: true, en: "Calendar", vi: "Lịch", path: "/crm/calendar", icon: "calendar", group: "sell" },
+      { key: "tasks", tab: true, en: "Tasks", vi: "Công việc", path: "/crm/tasks", icon: "tasks", group: "sell" },
       { key: "new", en: "New opportunity", vi: "Tạo cơ hội", path: "/crm/new", icon: "new", group: "sell" },
       { key: "referrals", en: "Referrals", vi: "Giới thiệu khách", path: "/crm/referrals", icon: "referrals", group: "sell", anyOf: ["crm.refer"] },
-      { key: "companies", en: "Companies", vi: "Công ty", path: "/crm/accounts", icon: "companies", group: "customers" },
-      { key: "contacts", en: "Contacts", vi: "Liên hệ", path: "/crm/contacts", icon: "contacts", group: "customers" },
-      { key: "reports", en: "Reports", vi: "Báo cáo", path: "/crm/reports", icon: "reports", group: "results" },
+      { key: "companies", tab: true, en: "Companies", vi: "Công ty", path: "/crm/accounts", icon: "companies", group: "customers" },
+      { key: "contacts", tab: true, en: "Contacts", vi: "Liên hệ", path: "/crm/contacts", icon: "contacts", group: "customers" },
+      { key: "reports", tab: true, en: "Reports", vi: "Báo cáo", path: "/crm/reports", icon: "reports", group: "results" },
       { key: "commission", en: "Commission", vi: "Hoa hồng", path: "/crm/commission", icon: "commission", group: "results" },
       { key: "model", en: "Business model", vi: "Mô hình kinh doanh", path: "/crm/model", icon: "model", group: "results", anyOf: ["crm.team"] },
       { key: "fulfillment", en: "Fulfillment", vi: "Bàn giao", path: "/crm/fulfillment", icon: "fulfillment", group: "operations", anyOf: ["crm.fulfillment", "crm.team"] },
@@ -57,7 +66,7 @@ export const modules: NavModule[] = [
     ],
   },
   {
-    key: "hrm", en: "HRM", vi: "HRM", path: "/hrm", icon: "hrm", permission: "hrm.access",
+    key: "hrm", en: "HRM", vi: "HRM", path: "/hrm", icon: "hrm", permission: "hrm.access", layout: "side",
     // My own records first, then the work HR does for others, then policy
     // and compliance, then reports and settings.
     groups: [
@@ -102,7 +111,7 @@ export const modules: NavModule[] = [
     ],
   },
   {
-    key: "finance", en: "Finance", vi: "Tài chính", path: "/finance", icon: "finance", permission: "finance.access",
+    key: "finance", en: "Finance", vi: "Tài chính", path: "/finance", icon: "finance", permission: "finance.access", layout: "side",
     groups: [
       { key: "review", en: "Review", vi: "Theo dõi" },
       { key: "monthly", en: "Monthly work", vi: "Công việc tháng" },
@@ -124,7 +133,7 @@ export const modules: NavModule[] = [
     ],
   },
   {
-    key: "admin", en: "Admin", vi: "Quản trị", path: "/workspace/users", icon: "admin", permission: "users.manage",
+    key: "admin", en: "Admin", vi: "Quản trị", path: "/workspace/users", icon: "admin", permission: "users.manage", layout: "side",
     groups: [
       { key: "access", en: "People and access", vi: "Người dùng và quyền" },
       { key: "security", en: "Security and integrations", vi: "Bảo mật và tích hợp" },
@@ -150,8 +159,40 @@ export const accountModule: NavModule = {
   key: "account", en: "My account", vi: "Tài khoản của tôi", path: "/workspace/account", icon: "account", permission: "workspace.access", links: [
     { key: "profile", en: "Profile", vi: "Hồ sơ", path: "/workspace/account", icon: "profile" },
     { key: "security", en: "Security", vi: "Bảo mật", path: "/workspace/account/security", icon: "security" },
+    { key: "notifications", en: "Notifications", vi: "Thông báo", path: "/workspace/account/notifications", icon: "bell" },
   ],
 };
+
+/**
+ * The header's create (+) menu: each entry opens an existing create screen
+ * or sheet (`#id` targets a Sheet on that list). Shown only with `permission`
+ * and, when set, one of `anyOf`.
+ */
+export interface CreateAction { key: string; en: string; vi: string; path: string; icon: IconName; module: ModuleKey; anyOf?: Permission[] }
+export const createActions: CreateAction[] = [
+  { key: "lead", en: "Lead", vi: "Lead", path: "/crm/leads#new-lead", icon: "leads", module: "crm" },
+  { key: "opportunity", en: "Opportunity", vi: "Cơ hội", path: "/crm/new", icon: "pipeline", module: "crm" },
+  { key: "referral", en: "Referral", vi: "Giới thiệu khách", path: "/crm/referrals#new-h", icon: "referrals", module: "crm", anyOf: ["crm.refer"] },
+  { key: "role", en: "Hiring role", vi: "Vị trí tuyển dụng", path: "/admin/jobs#new-h", icon: "hiring", module: "hiring" },
+  { key: "member", en: "Workspace access", vi: "Cấp quyền Workspace", path: "/workspace/users/new", icon: "users", module: "admin" },
+];
+
+export function visibleCreateActions(user: WorkspaceUser): CreateAction[] {
+  const open = new Set(visibleModules(user).map((module) => module.key));
+  return createActions.filter((action) => open.has(action.module) && (!action.anyOf || action.anyOf.some((permission) => user.can(permission))));
+}
+
+/** Guides for the header's help (?) menu: the "help" group of each module the person may open. */
+export function helpLinks(user: WorkspaceUser): { module: NavModule; link: NavLink }[] {
+  return visibleModules(user).flatMap((module) => visibleLinks(user, module).filter((link) => link.group === "help").map((link) => ({ module, link })));
+}
+
+/** Tabs and "More" groups for the app nav bar of a "tabs" module. */
+export function appBar(user: WorkspaceUser, module: NavModule): { tabs: NavLink[]; more: { group: NavGroup; links: NavLink[] }[] } {
+  const links = visibleLinks(user, module);
+  if (!module.groups?.length) return { tabs: links, more: [] };
+  return { tabs: links.filter((link) => link.tab), more: visibleGroups(user, module).map(({ group, links: items }) => ({ group, links: items.filter((link) => !link.tab) })).filter((entry) => entry.links.length > 0) };
+}
 
 export function moduleByKey(key: ModuleKey): NavModule {
   return key === "account" ? accountModule : modules.find((module) => module.key === key)!;
@@ -196,5 +237,6 @@ export function moduleForPath(pathname: string): ModuleKey {
   if (path === "/crm" || path.startsWith("/crm/")) return "crm";
   if (["/workspace/users", "/workspace/roles", "/workspace/audit", "/workspace/security", "/workspace/notifications", "/workspace/webhooks", "/workspace/agents"].some((root) => path === root || path.startsWith(`${root}/`))) return "admin";
   if (path.startsWith("/workspace/account")) return "account";
+  // Search and notices belong to no module; they sit under Overview.
   return "home";
 }

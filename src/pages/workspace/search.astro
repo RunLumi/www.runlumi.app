@@ -1,0 +1,8 @@
+---
+import WorkspaceSearch from "../../components/workspace/WorkspaceSearch.astro";
+import { searchPage } from "../../lib/workspace/shell-pages";
+
+export const prerender = false;
+const data = await searchPage(Astro, "en");
+---
+<WorkspaceSearch {...data} />

@@ -1,0 +1,12 @@
+---
+// One labelled field for FormGrid: label (with * when required), the control
+// in the slot, then a hint and an error. Give the control the same `id`.
+interface Props { label: string; for?: string; required?: boolean; hint?: string; error?: string; span?: boolean }
+const { label, for: target, required = false, hint, error, span = false } = Astro.props;
+---
+<div class:list={["ws-fld", span && "span", error && "has-error"]}>
+  <label class="ws-fld-l" for={target}>{label}{required && <span class="ws-req" aria-hidden="true"> *</span>}</label>
+  <slot />
+  {hint && <span class="ws-fld-h">{hint}</span>}
+  {error && <span class="ws-fld-e" role="alert">{error}</span>}
+</div>
