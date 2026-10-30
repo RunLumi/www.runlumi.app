@@ -1,0 +1,30 @@
+---
+// Record highlights panel (LeadRecord, DealRecord, AccountRecord boards):
+// object icon, breadcrumbs, eyebrow, name, a button group on the right and a
+// row of highlight fields. Actions go in the "actions" slot.
+import NavIcon from "../NavIcon.astro";
+import Breadcrumbs, { type Crumb } from "../ui/Breadcrumbs.astro";
+import type { IconName } from "../../../lib/workspace/nav";
+
+export interface Highlight { label: string; value: string; href?: string; unknown?: boolean }
+interface Props { vi: boolean; icon: IconName; tone?: string; crumbs: Crumb[]; eyebrow: string; title: string; sub?: string; highlights?: Highlight[] }
+const { vi, icon, tone, crumbs, eyebrow, title, sub, highlights = [] } = Astro.props;
+---
+<section class="rec-panel" aria-label={vi ? "Thông tin chính" : "Highlights"}>
+  <div class="rec-oh">
+    <div class="rec-id">
+      <span class="rec-icon" data-tone={tone} aria-hidden="true"><NavIcon name={icon} size={22} /></span>
+      <div>
+        <Breadcrumbs items={crumbs} vi={vi} />
+        <p class="rec-eyebrow">{eyebrow}<slot name="badges" /></p>
+        <h1 class="rec-h1">{title}</h1>
+        {sub && <p class="rec-sub">{sub}</p>}
+        <slot name="sub" />
+      </div>
+    </div>
+    {Astro.slots.has("actions") && <div class="rec-bg" role="group" aria-label={vi ? "Thao tác" : "Actions"}><slot name="actions" /></div>}
+  </div>
+  {highlights.length > 0 && <dl class="rec-hl" style={`--rec-hl: ${Math.min(highlights.length, 5)}`}>
+    {highlights.map((item) => <div><dt>{item.label}</dt><dd>{item.href ? <a href={item.href}>{item.value}</a> : <span class:list={{ "rec-unknown": item.unknown }}>{item.value}</span>}</dd></div>)}
+  </dl>}
+</section>

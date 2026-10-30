@@ -1,0 +1,15 @@
+---
+// Related list card: lettered icon, title with count, an action, rows and a
+// "view all" foot.
+interface Props { title: string; letter: string; color?: string; count?: number; id?: string; wide?: boolean; footHref?: string; footLabel?: string; empty?: string }
+const { title, letter, color = "#006093", count, wide = false, footHref, footLabel, empty } = Astro.props;
+const id = Astro.props.id ?? `rl-${title.toLowerCase().normalize("NFD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40)}`;
+---
+<section class:list={["rec-rl", { wide }]} aria-labelledby={id}>
+  <div class="rec-rl-h">
+    <h3 class="rec-rl-t" id={id}><span class="rec-rl-i" style={`background:${color}`} aria-hidden="true">{letter}</span>{title}{count !== undefined && ` (${count})`}</h3>
+    <slot name="actions" />
+  </div>
+  <div class="rec-rl-b">{Astro.slots.has("default") ? <slot /> : empty && <p class="rec-rl-empty">{empty}</p>}</div>
+  {footHref && <div class="rec-rl-foot"><a href={footHref}>{footLabel}</a></div>}
+</section>

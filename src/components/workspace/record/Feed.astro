@@ -1,0 +1,16 @@
+---
+// Activity feed rows (LeadRecord/DealRecord boards): icon, title, time, meta.
+export interface FeedItem { title: string; meta?: string; when?: string; kind?: "note" | "task" | "event" | "warn" }
+interface Props { items: FeedItem[]; empty: string }
+const { items, empty } = Astro.props;
+const paths: Record<string, string> = {
+  note: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z",
+  task: "M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11",
+  event: "M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z",
+  warn: "M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z",
+};
+---
+{items.length ? <ol class="rec-feed">{items.map((item) => <li>
+  <span class:list={["rec-feed-ic", item.kind]} aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d={paths[item.kind ?? "note"]} /></svg></span>
+  <div class="rec-feed-b"><p class="rec-feed-t"><span>{item.title}</span>{item.when && <span class="rec-when">{item.when}</span>}</p>{item.meta && <p class="rec-feed-m">{item.meta}</p>}</div>
+</li>)}</ol> : <p class="rec-path-note">{empty}</p>}
