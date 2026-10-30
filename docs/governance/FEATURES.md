@@ -86,10 +86,10 @@ Brief: [UI-PARITY.md](../redesign/UI-PARITY.md). Stories: [USER-STORIES.md § CR
 | Tasks list and detail (Tasks) | `/crm/tasks` (new route over existing tasks) | *In redesign* (ui2) |
 | Companies list view (Accounts) | `/crm/accounts` | *In redesign* (ui2) |
 | Contacts list view (Contacts) | `/crm/contacts` | *In redesign* (ui2) |
-| CRM Today (Home) | `/crm` | *In redesign* (ui2) |
+| CRM Today (Home); sales dashboard moved to Reports | `/crm`, `/crm/reports` | *In redesign* (ui2) |
 | Phone Kanban and calendar (MobileKanban, MobileCalendar) | the same routes at 390 px | *In redesign* (ui2) |
 | Create Lead, opportunity, event and task in sheets | `?new=1` on Leads, Pipeline, Calendar, Tasks | *In redesign* (ui2) |
-| Kanban settings dialog (left half of CloseDialog), bulk actions bar (DealsTable), Import, campaigns, sales-target chart (Home) | — | Not planned in this round: no feature exists behind them ("no other new features") |
+| Kanban settings dialog (left half of CloseDialog), bulk actions bar (DealsTable), Import, campaigns, setting a sales target (Home), recently viewed records (no view log; Home shows recently edited) | — | Not planned in this round: no feature exists behind them ("no other new features") |
 
 ## HRM
 

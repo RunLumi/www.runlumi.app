@@ -60,6 +60,7 @@
 .cl-chev { height: 40px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 24px 0 26px; margin: 0; background: #e4f3fc; color: #102a43; font-size: 14px; font-weight: 600; clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%, 14px 50%); }
 .cl-col:first-child .cl-chev { padding-left: 14px; clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%); border-radius: 6px 0 0 6px; }
 .cl-chev span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cl-sum span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .cl-chev .n { font-weight: 500; flex: none; }
 .cl-col.drop-target .cl-chev { background: #006093; color: #fff; }
 .cl-sum { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 8px 4px; min-height: 34px; }
@@ -83,14 +84,16 @@
 .cl-kc dd { margin: 0; overflow: hidden; color: var(--crm-ink); text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .cl-kc dd.strong { font-weight: 600; }
 .cl-kc-foot { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding-left: 20px; font-size: 12px; color: var(--crm-slate); }
-/* "Move to": the card menu. Works by keyboard and without JavaScript. */
-.cl-kc-menu { padding-left: 20px; }
-.cl-kc-menu summary { display: inline-flex; align-items: center; gap: 4px; min-height: 28px; color: var(--crm-blue); font-size: 13px; font-weight: 500; cursor: pointer; list-style: none; }
-.cl-kc-menu summary::-webkit-details-marker { display: none; }
-.cl-kc-menu summary::after { content: "▾"; font-size: 11px; }
-.cl-kc-menu form { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 6px; }
-.cl-kc-menu select { height: 32px; max-width: 100%; padding: 0 6px; border: 1px solid #c8d0de; border-radius: 6px; background: #fff; color: var(--crm-ink); font-family: inherit; font-weight: 400; font-size: 14px; line-height: 1; }
-.cl-kc-menu button, .cl-kc-menu a { display: inline-flex; align-items: center; height: 30px; padding: 0 10px; border: 1px solid #c8d0de; border-radius: 6px; background: #fff; color: var(--crm-blue); font-size: 13px; font-weight: 500; text-decoration: none; cursor: pointer; }
+/* Card ⌄ menu (board .menu-btn): move to another column with the keyboard
+   and without JavaScript, plus the card's other actions. */
+.cl-kc-more { flex: none; position: relative; }
+.cl-menu-btn { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; padding: 0; border: 1px solid #d9dee8; border-radius: 4px; background: #fff; color: #5e6677; cursor: pointer; list-style: none; }
+.cl-menu-btn::-webkit-details-marker { display: none; }
+.cl-kc-more[open] > .cl-menu-btn, .cl-menu-btn:hover { border-color: #006093; color: #006093; background: #e4f3fc; }
+.cl-kc-pop { right: 0; width: 240px; z-index: 45; }
+.cl-kc-pop form { display: flex; gap: 6px; align-items: center; padding: 0 10px 6px; }
+.cl-kc-pop select { flex: 1; min-width: 0; height: 30px; padding: 0 6px; border: 1px solid #c8d0de; border-radius: 6px; background: #fff; color: var(--crm-ink); font-family: inherit; font-size: 13px; }
+.cl-kc-pop ul { border-top: 1px solid #e7eaf0; padding-top: 4px !important; }
 .cl-lane .cl-none { margin: 0; padding: 12px 4px; color: var(--crm-slate); font-size: 13px; text-align: center; }
 /* Drag status (KanbanDrag "Đang kéo") and the won/lost drop bar. */
 .cl-drag-status { display: flex; align-items: center; gap: 8px; margin: 0; min-height: 26px; color: var(--crm-ink); font-size: 14px; }
@@ -274,11 +277,11 @@ a.title:hover { text-decoration: underline; }
 .cl-wg-cell .cl-ev, .cl-wg-ad .cl-ev { display: block; white-space: normal; }
 .cl-wg-cell .cl-ev .t { display: block; }
 .cl-wg-cell .cl-ev span, .cl-wg-ad .cl-ev span { display: inline; }
-@media (max-width: 640px) { .crm-board-wrap:not(.is-dragging) .cl-drag-status { display: none; } }
+/* The board shows the status line only while dragging; screen readers keep the hint. */
+.crm-board-wrap:not(.is-dragging) .cl-drag-status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .cl-late { color: #8a5300; }
 .cl-eyebrow .cl-badge { text-transform: none; letter-spacing: 0; }
 .cl-detail .crm-field > label { color: #344054; font-size: 13px; font-weight: 500; }
-.cl-dash > * { margin: 0; }
 .cl-tbl td a { color: var(--crm-blue); text-decoration: none; }
 .cl-tbl td a:hover { text-decoration: underline; }
 .cl-item .cl-badge { flex: none; margin-top: 2px; }
@@ -297,3 +300,52 @@ a.title:hover { text-decoration: underline; }
 .ws-dlg .crm-fieldset { margin: 0; }
 .ws-dlg .crm-fieldset legend { color: #102a43; font-size: 14px; font-weight: 600; }
 .ws-dlg .crm-check.crm-sheet { padding: 10px 12px; box-shadow: none; }
+
+/* Today (board Home): panel head .ph, KPI row, quarter chart, timeline rows
+   .tl, checkbox rows, warnings .as and recent records, at the board's sizes. */
+.cl-ph { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 16px; border-bottom: 1px solid #e7eaf0; }
+.cl-ph a { font-size: 13px; text-decoration: none; }
+.cl-ph a:hover { text-decoration: underline; }
+.cl-sec-h { margin: 0; color: #102a43; font-size: 15px; font-weight: 600; line-height: 1.2; display: flex; align-items: center; gap: 8px; }
+.cl-small { font-size: 12px; }
+.cl-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; padding: 14px 16px; }
+.cl-kpis p { margin: 0; }
+.cl-kpi-l { color: var(--crm-slate); font-size: 12px; font-weight: 500; line-height: 1.2; }
+.cl-kpi-v { margin-top: 6px !important; color: #102a43; font-size: 24px; font-weight: 650; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.cl-kpi-v.won { color: #1f7a4d; }
+.cl-kpi-v.unset { color: #5e6677; }
+.cl-kpi-s { margin-top: 4px !important; color: var(--crm-slate); font-size: 12px; }
+.cl-chart { padding: 0 16px 14px; }
+.cl-chart svg { display: block; width: 100%; height: auto; font-family: inherit; }
+.cl-legend-row { display: flex; flex-wrap: wrap; gap: 18px; margin: 6px 0 0; font-size: 13px; }
+.cl-legend-row > span { display: inline-flex; align-items: center; gap: 6px; }
+.cl-tl { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 12px 16px; list-style: none; }
+.cl-tl li { display: flex; gap: 12px; }
+.cl-tl-ic { display: flex; align-items: center; justify-content: center; flex: none; width: 30px; height: 30px; border-radius: 15px; background: #e4f3fc; color: #006093; }
+.cl-tl-b { flex: 1; min-width: 0; padding-bottom: 12px; border-bottom: 1px solid #e7eaf0; }
+.cl-tl li:last-child .cl-tl-b { padding-bottom: 0; border-bottom: 0; }
+.cl-tl-t { color: #102a43; font-size: 14px; font-weight: 600; line-height: 1.3; text-decoration: none; }
+.cl-tl-t:hover { text-decoration: underline; }
+.cl-tl-m { margin: 2px 0 0; color: var(--crm-slate); font-size: 13px; line-height: 1.4; }
+.cl-checks { display: flex; flex-direction: column; margin: 0; padding: 8px 16px; list-style: none; }
+.cl-checks li { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #e7eaf0; font-size: 14px; }
+.cl-checks li:last-child { border-bottom: 0; }
+.cl-box { flex: none; width: 16px; height: 16px; border: 1px solid #8792a5; border-radius: 3px; background: #fff; }
+.cl-box:hover { border-color: #006093; box-shadow: inset 0 0 0 2px #e4f3fc; }
+.cl-check-t { flex: 1; min-width: 0; color: var(--crm-ink); text-decoration: none; }
+.cl-check-t:hover { color: var(--crm-blue); text-decoration: underline; }
+.cl-checks .cl-badge { margin-left: auto; }
+.cl-as { display: flex; gap: 10px; align-items: flex-start; padding: 10px 16px; border-bottom: 1px solid #e7eaf0; }
+.cl-as:last-child { border-bottom: 0; }
+.cl-as > div { flex: 1; min-width: 0; }
+.cl-as-ic { flex: none; display: inline-flex; width: 24px; height: 24px; align-items: center; justify-content: center; color: #9a5b00; }
+.cl-as-ic.danger { color: #c2410c; }
+.cl-as-t { margin: 0; color: var(--crm-ink); font-size: 14px; font-weight: 600; line-height: 1.3; }
+.cl-as-s { margin: 2px 0 0; color: var(--crm-slate); font-size: 13px; line-height: 1.35; overflow-wrap: anywhere; }
+.cl-as .ws-btn { flex: none; }
+.cl-recent { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 6px 16px 12px; list-style: none; font-size: 14px; }
+.cl-recent a { display: flex; align-items: center; gap: 10px; padding: 6px 0; text-decoration: none; }
+.cl-recent a:hover { text-decoration: underline; }
+.cl-recent .tag { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 24px; height: 24px; border-radius: 5px; color: #fff; font-size: 12px; font-weight: 600; }
+.cl-home > .side { flex: 1 1 380px; }
+@media (max-width: 640px) { .cl-kpis { grid-template-columns: minmax(0, 1fr); gap: 10px; } .cl-kpi-v { font-size: 20px; } }

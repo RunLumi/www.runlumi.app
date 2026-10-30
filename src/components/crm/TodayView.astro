@@ -1,107 +1,132 @@
 ---
 // CRM Today (board Home). Story: docs/governance/USER-STORIES.md § CRM list
-// screens (Home). Main column: today's appointments and tasks side by side
-// (equal height, R-04), the person's largest open opportunities and the
-// sales dashboard. Right rail: warnings with their next action, then leads,
-// renewals and credits. Everything is scoped like the pipeline.
+// screens (Home). No page-header card, as drawn: the main column holds this
+// quarter's results with the won line, today's appointments and today's
+// tasks side by side (equal height, R-04), and the person's largest open
+// opportunities; the right rail holds the warnings, each with one action, and
+// the records the person last edited. The sales dashboard is on Reports.
 import CrmShell from "../../layouts/CrmShell.astro";
-import SalesDashboard from "./SalesDashboard.astro";
-import ListHeader from "../workspace/ui/ListHeader.astro";
-import ButtonGroup from "../workspace/ui/ButtonGroup.astro";
 import NavIcon from "../workspace/NavIcon.astro";
 import { formatDate, label } from "../../lib/crm/i18n";
 import { formatVnd } from "../../lib/crm/view";
+import { compactVnd } from "../../lib/crm/dashboard";
 import type { TodayProps } from "../../lib/crm/routes/today";
 import type { TodayTask, TodayOpp } from "../../lib/crm/today";
 import "../../styles/crm-sales.css";
 import "../../styles/crm-lists.css";
 
 type Props = TodayProps;
-const { ctx, data, stageNames, leadStatus, dashboard, owners, playbooks, names } = Astro.props;
+const { ctx, data, stageNames, leadStatus, quarter, recent } = Astro.props;
 const { lang, vi, base } = ctx;
 const stageOf = (opp: TodayOpp) => stageNames[`${opp.playbook_id.split("@")[0]}:${opp.stage_id}`] ?? opp.stage_id;
 const appointmentKinds = new Set(["visit", "meeting", "demo", "pilot_review"]);
 const appointments = data.dueToday.filter((task) => appointmentKinds.has(task.kind));
 const todayTasks: (TodayTask & { late: boolean })[] = [...data.overdue.map((task) => ({ ...task, late: true })), ...data.dueToday.filter((task) => !appointmentKinds.has(task.kind)).map((task) => ({ ...task, late: false }))];
-const warnings = [
-  ...data.blocked.map((item) => ({ tone: "danger", title: item.title, detail: `${vi ? "Bàn giao bị chặn" : "Delivery blocked"} · ${item.blocked_reason}`, href: `${base}/${item.opportunity_id}#fulfillment`, action: vi ? "Mở bàn giao" : "Open delivery" })),
-  ...data.help.map((task) => ({ tone: "warn", title: task.title, detail: `${vi ? "Cần hỗ trợ" : "Help requested"} · ${task.account_name}${task.help_note ? ` · ${task.help_note}` : ""}`, href: `${base}/${task.opportunity_id}#tasks`, action: vi ? "Mở cơ hội" : "Open" })),
-  ...data.missingNext.map((opp) => ({ tone: "warn", title: vi ? "Không có hoạt động sắp tới" : "No upcoming activity", detail: `${opp.title} · ${stageOf(opp)}${opp.owner_id === null ? (vi ? " · chưa phân công" : " · unassigned") : ""}`, href: `${base}/${opp.id}#tasks`, action: vi ? "Tạo lịch hẹn" : "Add a task" })),
+const money = (value: number) => { const text = compactVnd(value, vi); return text.endsWith("₫") ? text : `${text} ₫`; };
+const short = (date: string | null) => date ? new Date(`${date}T00:00:00+07:00`).toLocaleDateString(vi ? "vi-VN" : "en-GB", { day: "2-digit", month: "2-digit", timeZone: "Asia/Ho_Chi_Minh" }) : "";
+
+// Warnings: one row each, with the one action that resolves it.
+type Warning = { tone: "danger" | "warn"; title: string; sub: string; href?: string; action?: string };
+const warnings: Warning[] = [
+  ...data.blocked.map((item) => ({ tone: "danger" as const, title: vi ? "Bàn giao bị chặn" : "Delivery blocked", sub: `${item.title} · ${item.blocked_reason}`, href: `${base}/${item.opportunity_id}#fulfillment`, action: vi ? "Mở bàn giao" : "Open delivery" })),
+  ...(ctx.actor.manager && data.unassignedLeads > 0 ? [{ tone: "warn" as const, title: vi ? `${data.unassignedLeads} Lead đang chờ phân công` : `${data.unassignedLeads} leads waiting for an owner`, sub: vi ? "Hàng chờ chung" : "Shared queue", href: `${base}/admin#leads`, action: vi ? "Phân công" : "Assign" }] : []),
+  ...(ctx.actor.manager && data.unassigned > 0 ? [{ tone: "warn" as const, title: vi ? `${data.unassigned} cơ hội đang chờ phân công` : `${data.unassigned} opportunities waiting for assignment`, sub: vi ? "Hàng chờ chung" : "Shared queue", href: `${base}/admin#inbound`, action: vi ? "Phân công" : "Assign" }] : []),
+  ...(ctx.actor.manager && data.inactiveOwners.length > 0 ? [{ tone: "warn" as const, title: vi ? "Người phụ trách không còn hoạt động" : "Owner no longer active", sub: vi ? `${data.inactiveOwners.length} cơ hội cần giao lại` : `${data.inactiveOwners.length} opportunities to reassign`, href: `${base}/pipeline?owner=inactive&playbook=all`, action: vi ? "Xem" : "View" }] : []),
+  ...(ctx.actor.finance && data.pendingPayments > 0 ? [{ tone: "warn" as const, title: vi ? "Thanh toán chờ xác nhận" : "Payments awaiting confirmation", sub: vi ? `${data.pendingPayments} khoản` : `${data.pendingPayments} payments`, href: `${base}/reports#pending`, action: vi ? "Xác nhận" : "Confirm" }] : []),
+  ...data.help.map((task) => ({ tone: "warn" as const, title: vi ? "Cần hỗ trợ" : "Help requested", sub: `${task.title} · ${task.account_name}${task.help_note ? ` · ${task.help_note}` : ""}`, href: `${base}/${task.opportunity_id}#tasks`, action: vi ? "Mở cơ hội" : "Open" })),
+  ...data.missingNext.map((opp) => ({ tone: "warn" as const, title: vi ? "Không có hoạt động sắp tới" : "No upcoming activity", sub: `${opp.title} · ${stageOf(opp)}${opp.owner_id === null ? (vi ? " · chưa phân công" : " · unassigned") : ""}`, href: `${base}/calendar?new=1#new-event`, action: vi ? "Tạo lịch hẹn" : "New event" })),
+  ...data.leads.map((lead) => ({ tone: "warn" as const, title: lead.next_action_due ? (vi ? "Lead đến hạn liên hệ" : "Lead due for contact") : (vi ? "Lead chưa có bước tiếp theo" : "Lead has no next step"), sub: `${lead.name} · ${lead.company} · ${leadStatus[`${lead.process_id}:${lead.status_id}`] ?? lead.status_id}${lead.next_action_due ? ` · ${vi ? "hạn" : "due"} ${short(lead.next_action_due)}` : ""}`, href: `${base}/leads/${lead.id}`, action: vi ? "Mở Lead" : "Open lead" })),
+  ...data.renewals.map((opp) => ({ tone: "warn" as const, title: vi ? "Gia hạn sắp đến hạn" : "Renewal due soon", sub: `${opp.title} · ${vi ? "hạn" : "due"} ${short(opp.renewal_due_on ?? null)}`, href: `${base}/${opp.id}`, action: vi ? "Mở cơ hội" : "Open" })),
+  ...data.renewalCandidates.map((opp) => ({ tone: "warn" as const, title: vi ? "Chưa có cơ hội gia hạn" : "No renewal opportunity yet", sub: `${opp.account_name} · ${vi ? "kỳ dịch vụ kết thúc" : "service ends"} ${short(opp.service_period_end ?? null)}`, href: `${base}/${opp.id}#linked`, action: vi ? "Mở cơ hội" : "Open" })),
+  ...data.credits.map((credit) => ({ tone: "warn" as const, title: vi ? "Credit Trust Kit sắp hết hạn" : "Trust Kit credit expiring", sub: `${credit.account_name} · ${vi ? "hết hạn" : "expires"} ${short(credit.expires_on)}`, href: `${base}/${credit.opportunity_id}#commercial`, action: vi ? "Mở cơ hội" : "Open" })),
 ];
-const total = data.overdue.length + data.dueToday.length;
-const today = capital(new Date(`${data.today}T00:00:00+07:00`).toLocaleDateString(vi ? "vi-VN" : "en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Ho_Chi_Minh" }));
-function capital(text: string) { return text.charAt(0).toLocaleUpperCase(vi ? "vi" : "en") + text.slice(1); }
+
+// Quarter chart: cumulative won (solid) up to today, then won + strong open (dashed) to the quarter's end.
+const W = { left: 56, right: 860, top: 20, bottom: 196 };
+const dayMs = 86_400_000;
+const dayIndex = (date: string) => Math.round((Date.parse(`${date}T00:00:00Z`) - Date.parse(`${quarter.from}T00:00:00Z`)) / dayMs);
+const span = Math.max(1, dayIndex(quarter.to));
+const x = (date: string) => Math.round(W.left + (Math.min(span, Math.max(0, dayIndex(date))) / span) * (W.right - W.left));
+const peak = Math.max(1, quarter.won + quarter.strongOpen);
+const magnitude = 10 ** Math.floor(Math.log10(peak));
+const niceMax = ([1, 2, 3, 5, 10].map((step) => step * magnitude).find((value) => value >= peak) ?? 10 * magnitude);
+const y = (value: number) => Math.round(W.bottom - (value / niceMax) * (W.bottom - W.top));
+const wonPoints = [`${W.left},${W.bottom}`];
+let last = 0;
+for (const point of quarter.wonByDay) { wonPoints.push(`${x(point.date)},${y(last)}`, `${x(point.date)},${y(point.total)}`); last = point.total; }
+wonPoints.push(`${x(quarter.today)},${y(quarter.won)}`);
+const projection = `${x(quarter.today)},${y(quarter.won)} ${x(quarter.to)},${y(quarter.won + quarter.strongOpen)}`;
+const months = [0, 1, 2].map((offset) => { const month = new Date(Date.UTC(Number(quarter.from.slice(0, 4)), Number(quarter.from.slice(5, 7)) - 1 + offset, 15)).toISOString().slice(0, 10); return { x: x(month), label: vi ? `T${Number(month.slice(5, 7))}` : new Date(`${month}T00:00:00Z`).toLocaleDateString("en-GB", { month: "short", timeZone: "UTC" }) }; });
+const chartLabel = vi
+  ? `Thắng ${money(quarter.won)} tính đến hôm nay; thêm cơ hội đang mở có xác suất từ 70% thì là ${money(quarter.won + quarter.strongOpen)} đến cuối quý.`
+  : `Won ${money(quarter.won)} to date; with open opportunities at 70% or more, ${money(quarter.won + quarter.strongOpen)} by the quarter's end.`;
+const recentTone: Record<string, [string, string]> = { opportunity: ["#006093", vi ? "Cơ hội" : "Opportunity"], company: ["#5B4FC4", vi ? "Công ty" : "Company"], lead: ["#0F7B7B", "Lead"] };
+const recentHref = (item: { kind: string; id: string }) => item.kind === "opportunity" ? `${base}/${item.id}` : item.kind === "company" ? `${base}/accounts/${item.id}` : `${base}/leads/${item.id}`;
 ---
 <CrmShell title={vi ? "Hôm nay" : "Today"} lang={lang} actor={ctx.actor} current="today">
-  <div class="cl-stack">
-    <ListHeader vi={vi} icon="today" tone="home" object="CRM" title={vi ? "Hôm nay" : "Today"} meta={`${today} · ${vi ? `${total} việc đến hạn hoặc quá hạn · CRM không tự gửi tin cho khách` : `${total} tasks due or overdue · the CRM never messages customers`}`}>
-      <ButtonGroup slot="actions" label={vi ? "Tạo mới" : "Create"}><a class="ws-btn" href={`${base}/leads?new=1#new-lead`}>{vi ? "Tạo Lead" : "New lead"}</a><a class="ws-btn" href={`${base}/pipeline?new=1#new-opp`}>{vi ? "Tạo cơ hội" : "New opportunity"}</a><a class="ws-btn" href={`${base}/calendar?new=1#new-event`}>{vi ? "Tạo lịch hẹn" : "New event"}</a></ButtonGroup>
-    </ListHeader>
-
-    <div class="cl-home">
-      <div class="main">
-        <div class="cl-row2">
-          <section class="cl-panel" aria-labelledby="h-appointments">
-            <div class="cl-panel-h"><h2 id="h-appointments">{vi ? "Lịch hẹn hôm nay" : "Today's appointments"}</h2><a href={`${base}/calendar?view=week`}>{vi ? "Mở lịch" : "Open calendar"}</a></div>
-            {appointments.length ? <ul class="cl-ul">{appointments.map((task) => <li class="cl-item">
-              <span class="ic" aria-hidden="true"><NavIcon name="calendar" size={16} /></span>
-              <div><a class="title" href={`${base}/${task.opportunity_id}#tasks`}>{task.title}</a><p>{task.due_time ?? (vi ? "Cả ngày" : "All day")} · {label(lang, "task", task.kind)} · {task.account_name}{task.kind === "meeting" || task.kind === "demo" ? (task.meeting_confirmed ? (vi ? " · đã xác nhận" : " · confirmed") : (vi ? " · chưa xác nhận" : " · not confirmed")) : ""}</p></div>
-            </li>)}</ul> : <p class="cl-empty">{vi ? "Không có lịch hẹn hôm nay." : "No appointments today."}</p>}
-          </section>
-          <section class="cl-panel" aria-labelledby="h-tasks">
-            <div class="cl-panel-h"><h2 id="h-tasks">{vi ? "Công việc hôm nay" : "Today's tasks"}<span class="cl-count">{todayTasks.length}</span></h2><a href={`${base}/tasks`}>{vi ? "Xem tất cả" : "View all"}</a></div>
-            {todayTasks.length ? <ul class="cl-ul">{todayTasks.map((task) => <li class="cl-item">
-              <div><a class="title" href={`${base}/tasks?task=${task.id}`}>{task.title}</a><p>{label(lang, "task", task.kind)} · {task.account_name}{task.needs_help ? (vi ? " · cần hỗ trợ" : " · help requested") : ""}</p></div>
-              <span class:list={["cl-badge", task.late ? "warn" : "info"]}>{task.late ? (vi ? `Quá hạn · ${formatDate(task.due_on, lang)}` : `Overdue · ${formatDate(task.due_on, lang)}`) : (vi ? "Hôm nay" : "Today")}</span>
-            </li>)}</ul> : <p class="cl-empty">{vi ? "Không có việc đến hạn hôm nay." : "Nothing due today."}</p>}
-          </section>
+  <h1 class="crm-sr">{vi ? "Hôm nay" : "Today"} · {formatDate(data.today, lang)}</h1>
+  <div class="cl-home">
+    <div class="main">
+      <section class="cl-panel" aria-labelledby="h-quarter">
+        <div class="cl-ph"><h2 class="cl-sec-h" id="h-quarter">{vi ? "Kết quả kinh doanh quý" : "Quarter results"} · {quarter.label}</h2><span class="cl-muted cl-small">{ctx.actor.manager ? (vi ? "Toàn đội" : "Whole team") : (vi ? "Của bạn" : "Yours")}</span></div>
+        <div class="cl-kpis">
+          <div><p class="cl-kpi-l">{vi ? "Thắng" : "Won"}</p><p class="cl-kpi-v won">{money(quarter.won)}</p>{quarter.wonUnknown > 0 && <p class="cl-kpi-s">{vi ? `+ ${quarter.wonUnknown} cơ hội thắng chưa có giá trị` : `+ ${quarter.wonUnknown} won without a value`}</p>}</div>
+          <div><p class="cl-kpi-l">{vi ? "Đang mở, xác suất ≥ 70%" : "Open, probability ≥ 70%"}</p><p class="cl-kpi-v">{money(quarter.strongOpen)}</p><p class="cl-kpi-s">{vi ? `${quarter.strongOpenCount} cơ hội có giá trị` : `${quarter.strongOpenCount} with a value`}</p></div>
+          <div><p class="cl-kpi-l">{vi ? "Chỉ tiêu" : "Target"}</p><p class="cl-kpi-v unset">{vi ? "[chưa đặt]" : "[not set]"}</p></div>
         </div>
+        <div class="cl-chart">
+          <svg viewBox="0 0 880 226" role="img" aria-label={chartLabel} preserveAspectRatio="none">
+            <g stroke="#E7EAF0" stroke-width="1">{[1, 2 / 3, 1 / 3].map((share) => <line x1={W.left} y1={y(niceMax * share)} x2={W.right} y2={y(niceMax * share)} />)}<line x1={W.left} y1={W.bottom} x2={W.right} y2={W.bottom} stroke="#C8D0DE" /></g>
+            <g font-size="12" fill="#5E6677">{[1, 2 / 3, 1 / 3].map((share) => <text x="48" y={y(niceMax * share) + 4} text-anchor="end">{compactVnd(niceMax * share, vi)}</text>)}<text x="48" y={W.bottom + 4} text-anchor="end">0</text>{months.map((month) => <text x={month.x} y="214" text-anchor="middle">{month.label}</text>)}</g>
+            <polyline fill="none" stroke="#1F7A4D" stroke-width="3" stroke-linejoin="round" points={wonPoints.join(" ")} />
+            {quarter.strongOpen > 0 && <polyline fill="none" stroke="#006093" stroke-width="3" stroke-dasharray="7 5" points={projection} />}
+            <line x1={x(quarter.today)} y1={W.top} x2={x(quarter.today)} y2={W.bottom} stroke="#C2410C" stroke-width="2" />
+            <text x={x(quarter.today) + 6} y="34" font-size="12" fill="#C2410C">{vi ? "Hôm nay" : "Today"}</text>
+          </svg>
+          <p class="cl-legend-row"><span><span class="cl-sw" style="background:#1F7A4D" />{vi ? "Thắng" : "Won"}</span><span><span class="cl-sw" style="background:#006093" />{vi ? "Thắng + Đang mở có xác suất ≥ 70%" : "Won + open at ≥ 70%"}</span></p>
+        </div>
+      </section>
 
-        <section class="cl-panel" aria-labelledby="h-largest">
-          <div class="cl-panel-h"><h2 id="h-largest">{vi ? "Cơ hội có giá trị lớn nhất của tôi" : "My largest opportunities"}</h2><a href={`${base}/pipeline?view=table`}>{vi ? "Xem tất cả" : "View all"}</a></div>
-          {data.largest.length ? <div class="cl-tbl-wrap" style="border-top:0"><table class="cl-tbl" style="min-width:560px">
-            <thead><tr><th scope="col">{vi ? "Tên cơ hội" : "Opportunity"}</th><th scope="col">{vi ? "Giai đoạn" : "Stage"}</th><th scope="col" class="r">{vi ? "Giá trị" : "Value"}</th><th scope="col">{vi ? "Hạn bước tiếp theo" : "Next step due"}</th></tr></thead>
-            <tbody>{data.largest.map((opp) => <tr><td><a href={`${base}/${opp.id}`}>{opp.title}</a></td><td>{stageOf(opp)}</td><td class="r">{formatVnd(opp.estimated_value_vnd, vi)}</td><td>{formatDate(opp.next_action_due, lang)}</td></tr>)}</tbody>
-          </table></div> : <p class="cl-empty">{vi ? "Chưa có cơ hội đang mở nào có giá trị. Ghi giá trị dự kiến trên bảng cơ hội." : "No open opportunity has a value yet. Record the expected value in the opportunity table."}</p>}
+      <div class="cl-row2">
+        <section class="cl-panel" aria-labelledby="h-appointments">
+          <div class="cl-ph"><h2 class="cl-sec-h" id="h-appointments">{vi ? "Lịch hẹn hôm nay" : "Today's appointments"}</h2><a href={`${base}/calendar?view=week`}>{vi ? "Mở lịch" : "Open calendar"}</a></div>
+          {appointments.length ? <ul class="cl-tl">{appointments.map((task) => <li>
+            <span class="cl-tl-ic" aria-hidden="true"><NavIcon name="calendar" size={16} /></span>
+            <div class="cl-tl-b"><a class="cl-tl-t" href={`${base}/tasks?task=${task.id}`}>{task.title}</a><p class="cl-tl-m">{task.due_time ?? (vi ? "Cả ngày" : "All day")} · {label(lang, "task", task.kind)} · {task.account_name}{task.kind === "meeting" || task.kind === "demo" ? (task.meeting_confirmed ? (vi ? " · đã xác nhận" : " · confirmed") : (vi ? " · chưa xác nhận" : " · not confirmed")) : ""}</p></div>
+          </li>)}</ul> : <p class="cl-empty">{vi ? "Không có lịch hẹn hôm nay." : "No appointments today."}</p>}
         </section>
-
-        <div class="cl-dash">
-          <SalesDashboard lang={lang} vi={vi} manager={ctx.actor.manager} dashboard={dashboard} owners={owners} playbooks={playbooks} names={names} selfName={ctx.actor.name} />
-        </div>
+        <section class="cl-panel" aria-labelledby="h-tasks">
+          <div class="cl-ph"><h2 class="cl-sec-h" id="h-tasks">{vi ? "Công việc hôm nay" : "Today's tasks"}</h2><a href={`${base}/tasks`}>{vi ? "Xem tất cả" : "View all"}</a></div>
+          {todayTasks.length ? <ul class="cl-checks">{todayTasks.map((task) => <li>
+            <a class="cl-box" href={`${base}/tasks?task=${task.id}#complete`} aria-label={vi ? `Hoàn tất ${task.title}` : `Complete ${task.title}`}></a>
+            <a class="cl-check-t" href={`${base}/tasks?task=${task.id}`}>{task.title}</a>
+            <span class:list={["cl-badge", task.late ? "warn" : "info"]}>{task.late ? (vi ? "Quá hạn" : "Overdue") : (vi ? "Hôm nay" : "Today")}</span>
+          </li>)}</ul> : <p class="cl-empty">{vi ? "Không có việc đến hạn hôm nay." : "Nothing due today."}</p>}
+        </section>
       </div>
 
-      <aside class="side" aria-label={vi ? "Cảnh báo và việc cần theo dõi" : "Warnings and follow-ups"}>
-        <section class="cl-panel" aria-labelledby="h-warn">
-          <div class="cl-panel-h"><h2 id="h-warn">{vi ? "Cảnh báo" : "Warnings"}</h2><span class="cl-count">{warnings.length + (ctx.actor.manager ? Number(data.unassignedLeads > 0) + Number(data.unassigned > 0) + Number(data.inactiveOwners.length > 0) : 0) + (ctx.actor.finance && data.pendingPayments > 0 ? 1 : 0)}</span></div>
-          <ul class="cl-ul">
-            {ctx.actor.manager && data.unassignedLeads > 0 && <li class="cl-item"><span class="ic warn" aria-hidden="true"><NavIcon name="warn" size={16} /></span><div><span class="title">{vi ? `${data.unassignedLeads} Lead đang chờ phân công` : `${data.unassignedLeads} leads waiting for an owner`}</span></div><a class="cl-act" href={`${base}/admin#leads`}>{vi ? "Phân công" : "Assign"}</a></li>}
-            {ctx.actor.manager && data.unassigned > 0 && <li class="cl-item"><span class="ic warn" aria-hidden="true"><NavIcon name="warn" size={16} /></span><div><span class="title">{vi ? `${data.unassigned} cơ hội đang chờ phân công` : `${data.unassigned} opportunities waiting for assignment`}</span></div><a class="cl-act" href={`${base}/admin#inbound`}>{vi ? "Phân công" : "Assign"}</a></li>}
-            {ctx.actor.manager && data.inactiveOwners.length > 0 && <li class="cl-item"><span class="ic warn" aria-hidden="true"><NavIcon name="warn" size={16} /></span><div><span class="title">{vi ? `${data.inactiveOwners.length} cơ hội có người phụ trách không còn hoạt động` : `${data.inactiveOwners.length} opportunities belong to inactive owners`}</span><p>{vi ? "Cần giao lại." : "Reassign them."}</p></div><a class="cl-act" href={`${base}/pipeline?owner=inactive&playbook=all`}>{vi ? "Xem" : "View"}</a></li>}
-            {ctx.actor.finance && data.pendingPayments > 0 && <li class="cl-item"><span class="ic warn" aria-hidden="true"><NavIcon name="warn" size={16} /></span><div><span class="title">{vi ? `${data.pendingPayments} khoản thanh toán chờ xác nhận` : `${data.pendingPayments} payments await confirmation`}</span></div><a class="cl-act" href={`${base}/reports#pending`}>{vi ? "Xác nhận" : "Confirm"}</a></li>}
-            {warnings.map((item) => <li class:list={["cl-item", `rail-${item.tone}`]}><span class:list={["ic", item.tone]} aria-hidden="true"><NavIcon name="warn" size={16} /></span><div><span class="title">{item.title}</span><p>{item.detail}</p></div><a class="cl-act" href={item.href}>{item.action}</a></li>)}
-          </ul>
-          {!warnings.length && !(ctx.actor.manager && (data.unassignedLeads || data.unassigned || data.inactiveOwners.length)) && !(ctx.actor.finance && data.pendingPayments) && <p class="cl-empty">{vi ? "Không có cảnh báo. Mọi cơ hội đều có bước tiếp theo." : "No warnings. Every opportunity has a next step."}</p>}
-        </section>
-
-        <section class="cl-panel" aria-labelledby="today-leads">
-          <div class="cl-panel-h"><h2 id="today-leads">{vi ? "Lead cần liên hệ" : "Leads to contact"}<span class="cl-count">{data.leads.length}</span></h2><a href={`${base}/leads`}>{vi ? "Xem tất cả" : "View all"}</a></div>
-          {data.leads.length ? <ul class="cl-ul">{data.leads.map((lead) => <li class="cl-item"><div><a class="title" href={`${base}/leads/${lead.id}`}>{lead.name}</a><p>{lead.company} · {lead.next_action_due ? `${lead.next_action || (vi ? "Bước tiếp theo" : "Next step")} · ${formatDate(lead.next_action_due, lang)}` : (vi ? "Chưa có bước tiếp theo" : "No next step yet")}</p></div><span class="cl-badge info">{leadStatus[`${lead.process_id}:${lead.status_id}`] ?? lead.status_id}</span></li>)}</ul> : <p class="cl-empty">{vi ? "Không có Lead cần liên hệ." : "No leads to contact."}</p>}
-        </section>
-
-        {data.upcoming.length > 0 && <section class="cl-panel" aria-labelledby="h-upcoming">
-          <div class="cl-panel-h"><h2 id="h-upcoming">{vi ? "Lịch 7 ngày tới" : "Next 7 days"}<span class="cl-count">{data.upcoming.length}</span></h2><a href={`${base}/calendar?view=week`}>{vi ? "Mở lịch" : "Open calendar"}</a></div>
-          <ul class="cl-ul">{data.upcoming.map((task) => <li class="cl-item"><div><a class="title" href={`${base}/tasks?task=${task.id}`}>{task.title}</a><p>{formatDate(task.due_on, lang)}{task.due_time ? ` · ${task.due_time}` : ""} · {label(lang, "task", task.kind)} · {task.account_name}</p></div></li>)}</ul>
-        </section>}
-
-        {(data.renewals.length + data.renewalCandidates.length + data.credits.length > 0) && <section class="cl-panel" aria-labelledby="renewals">
-          <div class="cl-panel-h"><h2 id="renewals">{vi ? "Gia hạn và credit sắp hết" : "Renewals and expiring credits"}<span class="cl-count">{data.renewals.length + data.renewalCandidates.length + data.credits.length}</span></h2></div>
-          <ul class="cl-ul">
-            {data.renewals.map((opp) => <li class="cl-item"><div><a class="title" href={`${base}/${opp.id}`}>{opp.title}</a><p>{stageOf(opp)} · {vi ? "Đến hạn" : "Due"} {formatDate(opp.renewal_due_on ?? null, lang)}</p></div></li>)}
-            {data.renewalCandidates.map((opp) => <li class="cl-item"><div><a class="title" href={`${base}/${opp.id}#linked`}>{opp.account_name}</a><p>{vi ? "Chưa có cơ hội gia hạn · kỳ dịch vụ kết thúc" : "No renewal yet · service period ends"} {formatDate(opp.service_period_end ?? null, lang)}</p></div></li>)}
-            {data.credits.map((credit) => <li class="cl-item"><div><a class="title" href={`${base}/${credit.opportunity_id}#commercial`}>{credit.account_name}</a><p>{vi ? "Credit Trust Kit · thanh toán" : "Trust Kit credit · paid"} {formatDate(credit.paid_on, lang)}</p></div><span class="cl-badge warn">{vi ? "Hết hạn" : "Expires"} {formatDate(credit.expires_on, lang)}</span></li>)}
-          </ul>
-        </section>}
-      </aside>
+      <section class="cl-panel" aria-labelledby="h-largest">
+        <div class="cl-ph"><h2 class="cl-sec-h" id="h-largest">{vi ? "Cơ hội có giá trị lớn nhất của tôi" : "My largest opportunities"}</h2><a href={`${base}/pipeline?view=table`}>{vi ? "Xem tất cả" : "View all"}</a></div>
+        {data.largest.length ? <div class="cl-tbl-wrap" style="border-top:0"><table class="cl-tbl" style="min-width:560px">
+          <thead><tr><th scope="col">{vi ? "Tên cơ hội" : "Opportunity"}</th><th scope="col">{vi ? "Giai đoạn" : "Stage"}</th><th scope="col" class="r">{vi ? "Giá trị" : "Value"}</th><th scope="col">{vi ? "Hạn bước tiếp theo" : "Next step due"}</th></tr></thead>
+          <tbody>{data.largest.map((opp) => <tr><td><a href={`${base}/${opp.id}`}>{opp.title}</a></td><td>{stageOf(opp)}</td><td class="r">{formatVnd(opp.estimated_value_vnd, vi)}</td><td>{opp.next_action_due ? short(opp.next_action_due) : "—"}</td></tr>)}</tbody>
+        </table></div> : <p class="cl-empty">{vi ? "Chưa có cơ hội đang mở nào có giá trị. Ghi giá trị dự kiến trong bảng cơ hội." : "No open opportunity has a value yet. Record the expected value in the opportunity table."}</p>}
+      </section>
     </div>
+
+    <aside class="side" aria-label={vi ? "Cảnh báo và gần đây" : "Warnings and recent"}>
+      <section class="cl-panel" aria-labelledby="h-warn">
+        <div class="cl-ph"><h2 class="cl-sec-h" id="h-warn">{vi ? "Cảnh báo" : "Warnings"}</h2><span class="cl-badge">{warnings.length}</span></div>
+        {warnings.length ? <ul class="cl-ul">{warnings.map((item) => <li class="cl-as">
+          <span class:list={["cl-as-ic", item.tone]} aria-hidden="true"><NavIcon name="warn" size={16} /></span>
+          <div><p class="cl-as-t">{item.title}</p><p class="cl-as-s">{item.sub}</p></div>
+          {item.href && <a class="ws-btn sm" href={item.href}>{item.action}</a>}
+        </li>)}</ul> : <p class="cl-empty">{vi ? "Không có cảnh báo. Mọi cơ hội đều có bước tiếp theo." : "No warnings. Every opportunity has a next step."}</p>}
+      </section>
+      <section class="cl-panel" aria-labelledby="h-recent">
+        <div class="cl-ph"><h2 class="cl-sec-h" id="h-recent">{vi ? "Bạn sửa gần đây" : "Recently edited by you"}</h2></div>
+        {recent.length ? <ul class="cl-recent">{recent.map((item) => <li><a href={recentHref(item)}><span class="tag" style={`background:${recentTone[item.kind][0]}`} title={recentTone[item.kind][1]} aria-hidden="true">{recentTone[item.kind][1].charAt(0)}</span><span class="crm-sr">{recentTone[item.kind][1]}: </span>{item.name}</a></li>)}</ul> : <p class="cl-empty">{vi ? "Bản ghi bạn sửa sẽ hiện ở đây. CRM không lưu lịch sử xem." : "Records you edit appear here. The CRM keeps no viewing history."}</p>}
+      </section>
+    </aside>
   </div>
 </CrmShell>
