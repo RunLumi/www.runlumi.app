@@ -423,7 +423,7 @@ test("admin board screens: member record shows security facts without secrets; f
   const hr = S.firstVisit.hr;
   const member = await S.admin.get(`/workspace/users/${hr.id}`);
   assert.equal(member.status, 200);
-  assert.match(member.html, /Passkey \(\d\)/);
+  assert.match(member.html, /Passkeys \(\d\)/);
   assert.doesNotMatch(member.html, new RegExp(hr.passkey.id), "no credential IDs on the admin view");
   assert.doesNotMatch(member.html, /Sông Hồng/, "never the anti-phishing code");
   for (const path of ["/workspace/users?filter=backup", "/workspace/users?filter=agents", "/workspace/webhooks?sheet=new", "/vi/workspace/webhooks?filter=slack", "/workspace/notifications?filter=on", `/workspace/security?recover=${hr.id}`, "/workspace/audit?kind=denied", "/vi/workspace/roles"]) {

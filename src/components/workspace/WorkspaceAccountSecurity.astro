@@ -62,7 +62,7 @@ const greeting = vi ? `Chào ${user.name || user.email},` : `Hello ${user.name |
 
   {!firstStep && <div class="s4-stack s4-mlist">
     <header class="s4-panel"><div class="s4-head"><div>
-      <nav class="s4-crumbs" aria-label={t("Breadcrumbs", "Đường dẫn")}><ol><li><a href={local("/workspace/account")}>{t("My account", "Tài khoản của tôi")}</a></li><li><span aria-current="page">{t("Security", "Bảo mật")}</span></li></ol></nav>
+      <nav class="ws-crumbs s4-crumbs" aria-label={t("Breadcrumbs", "Đường dẫn")}><ol><li><a href={local("/workspace/account")}>{t("My account", "Tài khoản của tôi")}</a></li><li><span aria-current="page">{t("Security", "Bảo mật")}</span></li></ol></nav>
       <h1 class="s4-title">{t("Security", "Bảo mật")}</h1>
       <p class="s4-desc">{t("Your organisation requires a passkey and an anti-phishing code for every member. Removing a passkey and changing the code ask for your passkey again.", "Tổ chức của bạn bắt buộc passkey và mã chống lừa đảo cho mọi thành viên. Xóa passkey và đổi mã đều phải xác thực lại bằng passkey.")}</p>
     </div></div></header>

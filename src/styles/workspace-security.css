@@ -16,8 +16,8 @@
 .s4-note { margin: 0; padding: 10px 20px; border-top: 1px solid var(--s4-line-soft); background: var(--s4-head); color: var(--s4-muted); font-size: 13px; line-height: 1.45; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px; border-radius: 0 0 8px 8px; }
 .s4-head { padding: 16px 20px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 12px 24px; }
 .s4-head > div:first-child { min-width: 0; flex: 1 1 28rem; display: grid; gap: 8px; }
-.s4-crumbs ol { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0; padding: 0; list-style: none; font-size: 13px; line-height: 1.4; color: var(--s4-muted); }
-.s4-crumbs li + li::before { content: "›"; margin-right: 6px; color: #9AA3B2; }
+.s4 .ws-crumbs ol, .s4-crumbs ol { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0; padding: 0; list-style: none; font-size: 13px; line-height: 1.4; color: var(--s4-muted); }
+.s4 .ws-crumbs li + li::before, .s4-crumbs li + li::before { content: "›"; margin-right: 6px; color: #9AA3B2; }
 .s4-crumbs a { color: var(--s4-accent); text-decoration: none; }
 .s4-crumbs a:hover { text-decoration: underline; }
 .s4-crumbs [aria-current="page"] { color: var(--s4-ink); }

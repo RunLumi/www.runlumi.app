@@ -25,7 +25,7 @@ const excludedNames: Record<string, string> = { hiring: t("Hiring", "Tuyển d�
 ---
 <WorkspaceShell title={t("Connect an AI agent", "Kết nối AI agent")} lang={lang} user={user} module="account" current="security">
   <div class="s4 s4-stack" style="max-width:780px;margin-inline:auto">
-    <nav class="s4-crumbs ws-crumbs" aria-label={t("Breadcrumbs", "Đường dẫn")}><ol><li><a href={localized("/workspace/account", vi)}>{t("My account", "Tài khoản của tôi")}</a></li><li><a href={back}>{t("Security", "Bảo mật")}</a></li><li><span aria-current="page">{t("Connect an AI agent", "Kết nối AI agent")}</span></li></ol></nav>
+    <nav class="ws-crumbs s4-crumbs" aria-label={t("Breadcrumbs", "Đường dẫn")}><ol><li><a href={localized("/workspace/account", vi)}>{t("My account", "Tài khoản của tôi")}</a></li><li><a href={back}>{t("Security", "Bảo mật")}</a></li><li><span aria-current="page">{t("Connect an AI agent", "Kết nối AI agent")}</span></li></ol></nav>
     {secret
       ? <section class="s4-panel" aria-labelledby="done-h"><div class="s4-pb" style="padding-top:20px">
           <h1 class="s4-title" id="done-h">{t("Agent connected", "Đã kết nối agent")}</h1>
