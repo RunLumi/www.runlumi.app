@@ -644,3 +644,24 @@ test("17. contact record, company breadcrumbs, Today leads and the lead report r
   assert.doesNotMatch((await S.c.get("/crm")).html, new RegExp(`TEST Today Lead ${run}`));
   assert.match((await S.a.get("/vi/crm/reports")).html, /Lead theo nguồn/);
 });
+
+test("18. tasks list: own open tasks only; create and complete go through the opportunity's checks", async () => {
+  for (const path of ["/crm/tasks", "/vi/crm/tasks"]) {
+    assert.equal((await S.outsider.get(path)).status, 403, `${path} needs CRM access`);
+    assert.equal((await S.a.get(path)).status, 200, path);
+  }
+  const id = await create(S.a, { playbook_key: "lumi-solution", account_name: `TEST Tasks Co ${run}`, contact_name: "TEST Tasks Owner", phone: phone() });
+  assert.equal((await S.a.post("/crm/tasks", { intent: "task_create", opportunity_id: id, kind: "follow_up", title: `TEST task list ${run}`, due_on: isoDaysAgo(1) })).status, 303);
+  assert.equal((await S.c.post("/crm/tasks", { intent: "task_create", opportunity_id: id, kind: "internal", title: "TEST probe" })).status, 404, "another seller cannot add a task to this deal");
+  const taskId = jobs(`SELECT id FROM crm_tasks WHERE opportunity_id = ${q(id)} AND title = ${q(`TEST task list ${run}`)}`)[0].id;
+  const mine = await S.a.get(`/vi/crm/tasks?task=${taskId}`);
+  assert.match(mine.html, new RegExp(`TEST task list ${run}`));
+  assert.match(mine.html, /Quá hạn/);
+  assert.doesNotMatch((await S.c.get(`/crm/tasks?task=${taskId}`)).html, new RegExp(`TEST task list ${run}`), "others' tasks are not listed or opened");
+  assert.match((await S.admin.get("/crm/tasks")).html, new RegExp(`TEST task list ${run}`), "the team sees everyone's");
+  assert.equal((await S.c.post("/crm/tasks", { intent: "task_update", task_id: taskId, task_action: "complete", outcome: "completed" })).status, 404, "another seller cannot complete it");
+  assert.equal((await S.a.post("/crm/tasks", { intent: "task_update", task_id: taskId, task_action: "complete" })).status, 422, "an outcome is required");
+  assert.equal((await S.a.post("/crm/tasks", { intent: "task_update", task_id: taskId, task_action: "complete", outcome: "completed", category: "sales" })).status, 303);
+  assert.equal(jobs(`SELECT status FROM crm_tasks WHERE id = ${q(taskId)}`)[0].status, "done");
+  assert.doesNotMatch((await S.a.get("/crm/tasks")).html, new RegExp(`TEST task list ${run}`), "done tasks leave the list");
+});

@@ -347,3 +347,8 @@ body:has(.cl-sheet-wrap.open), body:has(.cl-sheet-wrap:target) { overflow: hidde
 .cl-wg-cell .cl-ev .t { display: block; }
 .cl-wg-cell .cl-ev span, .cl-wg-ad .cl-ev span { display: inline; }
 @media (max-width: 640px) { .crm-board-wrap:not(.is-dragging) .cl-drag-status { display: none; } }
+.cl-h1.sm { font-size: 20px; }
+.cl-late { color: #8a5300; }
+.cl-list .cl-oh { padding-bottom: 12px; }
+.cl-eyebrow .cl-badge { text-transform: none; letter-spacing: 0; }
+.cl-detail .crm-field > label { color: #344054; font-size: 13px; font-weight: 500; }
