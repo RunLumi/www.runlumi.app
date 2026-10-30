@@ -1,0 +1,31 @@
+---
+// New task or appointment on an opportunity (opens in a sheet).
+import Hidden from "./Hidden.astro";
+import Field from "./Field.astro";
+import { options } from "../../lib/crm/i18n";
+import { errorFor, valueFor } from "../../lib/crm/page";
+import type { OppProps } from "../../lib/crm/routes/opportunity";
+
+type Props = OppProps & { cancelHref: string };
+const { ctx, state, contacts, cancelHref } = Astro.props;
+const { lang, vi } = ctx;
+const v = (name: string, fallback = "") => valueFor(state, "task_create", name, fallback);
+const e = (name: string) => errorFor(state, "task_create", name);
+const contactOptions = [{ value: "", label: vi ? "Không chọn" : "No specific contact" }, ...contacts.map((contact) => ({ value: contact.id, label: `${contact.name}${contact.do_not_contact ? (vi ? " — không liên hệ" : " — do not contact") : ""}` }))];
+---
+<form class="rec-sheet-form" method="post" action="#tasks">
+  <div class="rec-sheet-b">
+    <Hidden intent="task_create" state={state} />
+    <div class="crm-form-grid">
+      <Field name="kind" type="select" label={vi ? "Loại" : "Kind"} lang={lang} value={v("kind", "follow_up")} error={e("kind")} options={options(lang, "task")} required />
+      <Field name="title" label={vi ? "Việc cần làm" : "What to do"} lang={lang} value={v("title")} error={e("title")} required maxlength={300} />
+      <Field name="due_on" type="date" label={vi ? "Ngày" : "Date"} lang={lang} value={v("due_on")} error={e("due_on")} help={vi ? "Bắt buộc với ghé thăm, cuộc hẹn, demo." : "Required for visits, meetings and demos."} />
+      <Field name="due_time" type="time" label={vi ? "Giờ" : "Time"} lang={lang} value={v("due_time")} error={e("due_time")} />
+      <Field name="contact_id" type="select" label={vi ? "Người liên hệ" : "Contact"} lang={lang} value={v("contact_id")} error={e("contact_id")} options={contactOptions} />
+      <Field name="channel" type="select" label={vi ? "Kênh" : "Channel"} lang={lang} value={v("channel")} options={options(lang, "contactChannel")} />
+      <Field name="note" label={vi ? "Ghi chú" : "Note"} lang={lang} value={v("note")} maxlength={1000} wide />
+    </div>
+    <label class="crm-check"><input type="checkbox" name="meeting_confirmed" value="1" checked={v("meeting_confirmed") === "1"} /><span>{vi ? "Cuộc hẹn đã được cả hai bên xác nhận" : "Both sides have confirmed this meeting"}</span></label>
+  </div>
+  <div class="rec-sheet-f"><a class="rec-btn" href={cancelHref}>{vi ? "Hủy" : "Cancel"}</a><button class="rec-btn primary" type="submit">{vi ? "Thêm việc" : "Add task"}</button></div>
+</form>
