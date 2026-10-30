@@ -22,7 +22,7 @@
 
 /* Screen-level button sizes on top of the kit's ws-btn */
 .ws-btn.s4-lg { height: 48px; font-size: 16px; padding: 0 20px; }
-.ws-btn.s4-block { width: 100%; }
+.ws-btn.s4-block { width: 100%; box-sizing: border-box; white-space: normal; text-align: center; height: auto; min-height: 44px; padding-block: 8px; line-height: 1.3; }
 
 /* Segmented control (radio buttons styled as an attached group) */
 .s4-seg { display: inline-flex; border: 1px solid #C8D0DE; border-radius: 6px; overflow: hidden; margin: 0; padding: 0; }
