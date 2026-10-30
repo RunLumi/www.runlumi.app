@@ -3,6 +3,7 @@
    the Lumi tokens in crm.css: paper page, white panels, navy ink, one accent.
    Classes are prefixed s4- so the shared kit can replace them screen by screen. */
 .s4 { --s4-line: #D9DEE8; --s4-line-soft: #E7EAF0; --s4-head: #F7F8FA; --s4-ink: #102A43; --s4-text: #172033; --s4-muted: #5E6677; --s4-body: #344054; --s4-accent: var(--crm-blue); --s4-soft: #E4F3FC; --s4-red: #C2410C; --s4-red-line: #EBA98C; --s4-red-soft: #FFF1EC; --s4-amber: #8A5300; --s4-amber-line: #E7C27A; --s4-amber-soft: #FFF6E0; --s4-green: #1F7A4D; --s4-green-line: #8CC9A8; --s4-green-soft: #E9F7EF; color: var(--s4-text); }
+.s4 [hidden] { display: none !important; }
 .s4 :focus-visible { outline: 3px solid color-mix(in oklch, var(--s4-accent) 55%, white); outline-offset: 2px; }
 
 /* Panels and page header (crumbs, title, meta, action group) */

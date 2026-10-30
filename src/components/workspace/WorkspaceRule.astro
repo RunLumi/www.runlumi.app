@@ -35,7 +35,8 @@ const errors: Record<string, [string, string]> = {
   "destinations:invalid": ["A chosen webhook no longer exists.", "Một Webhook đã chọn không còn."],
 };
 const title = rule ? rule.name : t("New rule", "Quy tắc mới");
-const editor = rule ? people.find((person) => person.id === rule.updated_by)?.name ?? rule.updated_by : null;
+// System Super Admins are not Workspace members, so they are not in `people`.
+const editor = rule ? people.find((person) => person.id === rule.updated_by)?.name ?? (rule.updated_by === user.id ? user.name : roleLabel("admin", vi)) : null;
 const chosenEvents = values("events");
 const recipientCount = (has("record_owner", "1") ? 1 : 0) + (has("recipient_admins", "1") ? 1 : 0) + values("recipient_roles").length + values("recipient_users").length;
 ---

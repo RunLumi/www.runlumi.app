@@ -51,7 +51,7 @@ export async function verifyPage(astro: AstroGlobal, lang: Lang): Promise<Verify
 export interface AccountSecurityData {
   lang: Lang; vi: boolean; user: WorkspaceUser; passkeys: PasskeySummary[]; code: string | null; codeUpdated: string | null;
   setup: boolean; next: string; error: string | null; typed: string; saved: boolean; stepUpSeconds: number;
-  sheet: "code" | null; session: { verifiedAt: string | null; passkey: string | null };
+  sheet: "code" | null; session: { verifiedAt: string | null; passkey: string | null; passkeyId: string | null };
   tokens: { id: string; name: string; scope: string; created_at: string; expires_at: string; last_used_at: string | null }[]; canTokens: boolean;
 }
 
@@ -94,7 +94,7 @@ export async function accountSecurityPage(astro: AstroGlobal, lang: Lang): Promi
     lang, vi, user, passkeys, code: current?.code ?? null, codeUpdated: current?.updated_at ?? null,
     setup, next, error, typed, saved: astro.url.searchParams.get("saved") === "code", stepUpSeconds: await stepUpRemaining(astro.session, user.id),
     sheet: astro.url.searchParams.get("sheet") === "code" || (!!error && !!current) ? "code" : null,
-    session: { verifiedAt: mark ? new Date(mark.at).toISOString() : null, passkey: passkeys.find((key) => key.id === mark?.credentialId)?.name ?? null },
+    session: { verifiedAt: mark ? new Date(mark.at).toISOString() : null, passkey: passkeys.find((key) => key.id === mark?.credentialId)?.name ?? null, passkeyId: mark?.credentialId ?? null },
     tokens, canTokens: user.can("crm.access"),
   };
 }

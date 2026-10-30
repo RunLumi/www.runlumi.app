@@ -78,7 +78,7 @@ const greeting = vi ? `Chào ${user.name || user.email},` : `Hello ${user.name |
       <div class="s4-tw"><table class="s4-tbl">
         <thead><tr><th scope="col">{t("Name", "Tên")}</th><th scope="col">{t("Type", "Loại")}</th><th scope="col">{t("Created", "Tạo lúc")}</th><th scope="col">{t("Last used", "Dùng gần nhất")}</th><th scope="col" class="act"><span class="crm-sr">{t("Actions", "Thao tác")}</span></th></tr></thead>
         <tbody>{passkeys.map((key) => <tr>
-          <td><strong>{key.name || t("Unnamed passkey", "Passkey chưa đặt tên")}</strong>{session.passkey && key.name === session.passkey && <span class="sub">{t("used for this session", "dùng cho phiên này")}</span>}</td>
+          <td><strong>{key.name || t("Unnamed passkey", "Passkey chưa đặt tên")}</strong>{key.id === session.passkeyId && <span class="sub">{t("used for this session", "dùng cho phiên này")}</span>}</td>
           <td>{kind(key)}</td><td>{when(key.created_at)}</td><td>{when(key.last_used_at)}</td>
           <td class="act"><div class="s4-actions" style="justify-content:flex-end">
             <details class="s4-reveal"><summary class="s4-btn sm">{t("Rename", "Đổi tên")}</summary>
