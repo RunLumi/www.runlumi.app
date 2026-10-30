@@ -9,7 +9,7 @@ const d = Astro.props;
 const prefix = d.vi ? "/vi" : "";
 ---
 <HrmPage data={d} current="job-descriptions">
-  <p class="jd-intro">{d.vi
+  <p class="ws-info">{d.vi
     ? "Thống nhất mục tiêu của từng vị trí, trách nhiệm, quyền quyết định và kết quả cần đạt trước khi tuyển người."
     : "Agree on each role's purpose, responsibilities, decision authority and expected results before hiring."}</p>
   <div class="jd-catalog" data-job-description-catalog>
@@ -37,7 +37,7 @@ const prefix = d.vi ? "/vi" : "";
     })}
     {d.descriptions.length === 0 && <p class="crm-empty">{d.vi ? "Chưa có mô tả công việc." : "No job descriptions yet."}</p>}
   </div>
-  <p class="jd-review-note">{d.vi
+  <p class="ws-info">{d.vi
     ? "Bản nháp dùng để rà soát nội bộ. Chỉ tiêu, thẩm quyền và điều khoản tuyển dụng cần được thống nhất trước khi dùng cho tuyển dụng hoặc đánh giá nhân sự."
     : "Drafts are for internal review. Targets, authority and employment terms need agreement before use in recruitment or employee evaluation."}</p>
 </HrmPage>
