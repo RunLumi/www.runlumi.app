@@ -13,6 +13,8 @@ export interface TodayData {
   unassigned: number; inactiveOwners: TodayOpp[]; pendingPayments: number;
   /** The person's open leads whose next step is due, or that have none yet. */
   leads: TodayLead[]; unassignedLeads: number;
+  /** The person's own open opportunities with the largest known value (Home board). */
+  largest: (TodayOpp & { estimated_value_vnd: number })[];
 }
 export interface TodayLead { id: string; name: string; company: string; status_id: string; process_id: string; next_action: string; next_action_due: string | null; created_at: string; owner_id: string | null }
 
@@ -76,5 +78,9 @@ export async function loadToday(db: D1Database, actor: CrmActor, inactiveIds: re
     .bind(actor.id, today).all<TodayLead>()).results;
   const unassignedLeads = actor.manager ? (await db.prepare("SELECT COUNT(*) AS count FROM crm_lead_records WHERE owner_id IS NULL AND state = 'open'").first<{ count: number }>())?.count ?? 0 : 0;
   if (actor.finance) pendingPayments = (await db.prepare("SELECT COUNT(*) AS count FROM crm_ledger WHERE kind = 'payment' AND status = 'pending'").first<{ count: number }>())?.count ?? 0;
-  return { today, overdue, dueToday, upcoming, help, missingNext, renewals, renewalCandidates, credits, blocked, unassigned, inactiveOwners, pendingPayments, leads, unassignedLeads };
+  const largest = (await db.prepare(
+    `SELECT o.id, o.title, a.name AS account_name, o.stage_id, o.playbook_id, o.next_action, o.next_action_due, o.owner_id, o.estimated_value_vnd FROM crm_opportunities o JOIN crm_accounts a ON a.id = o.account_id
+     WHERE o.outcome = 'open' AND o.owner_id = ? AND o.estimated_value_vnd IS NOT NULL ORDER BY o.estimated_value_vnd DESC LIMIT 5`,
+  ).bind(actor.id).all<TodayOpp & { estimated_value_vnd: number }>()).results;
+  return { largest, today, overdue, dueToday, upcoming, help, missingNext, renewals, renewalCandidates, credits, blocked, unassigned, inactiveOwners, pendingPayments, leads, unassignedLeads };
 }

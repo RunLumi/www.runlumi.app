@@ -13,7 +13,7 @@ export type PipelineView = "list" | "board" | "table";
 export interface PipelineProps {
   ctx: Ctx; state: FormState; view: PipelineView; filters: Filters; playbooks: Playbook[]; offers: Offer[]; rows: Opportunity[]; total: number; page: number; pages: number;
   board: BoardOpportunity[]; counts: Record<string, number>; owners: OwnerOption[]; ownerNames: Record<string, { name: string; active: boolean }>; cohorts: string[];
-  failedId: string;
+  failedId: string; customers: PickableContact[];
 }
 
 export async function pipelineRoute(astro: AstroGlobal, lang: Lang): Promise<PipelineProps | Response> {
@@ -31,6 +31,8 @@ export async function pipelineRoute(astro: AstroGlobal, lang: Lang): Promise<Pip
       return back;
     },
     inline: async (form) => { await saveInline(ctx.db, ctx.actor, await editable(form), form); return back; },
+    // The create sheet: the same function as /crm/new.
+    create: (form) => createOpportunity(ctx, form),
   });
   if (posted instanceof Response) return posted;
   const filters = readFilters(astro.url);
@@ -49,7 +51,15 @@ export async function pipelineRoute(astro: AstroGlobal, lang: Lang): Promise<Pip
   const owners = ctx.actor.manager ? await ownerOptions(ctx.db, ctx.contentDb, ctx.actor) : [];
   const ownerNames = await displayNames(ctx.contentDb, [...list.rows, ...board].map((row) => row.owner_id ?? "").filter(Boolean));
   const cohorts = (await ctx.db.prepare("SELECT cohort_key FROM crm_cohorts ORDER BY starts_on DESC LIMIT 50").all<{ cohort_key: string }>()).results.map((row) => row.cohort_key);
-  return { ctx, state: posted ?? emptyState, view, filters, playbooks, offers: await latestOffers(ctx.db), ...list, board, counts, owners, ownerNames, cohorts, failedId: posted?.values.opportunity_id ?? "" };
+  return { ctx, state: posted ?? emptyState, view, filters, playbooks, offers: await latestOffers(ctx.db), ...list, board, counts, owners, ownerNames, cohorts, failedId: posted?.values.opportunity_id ?? "",
+    customers: astro.url.searchParams.get("new") === "1" || posted?.intent === "create" ? await pickableContacts(ctx.db, ctx.actor) : [] };
+}
+
+/** An existing contact (and so its company), or a new company and contact. */
+async function createOpportunity(ctx: Ctx, form: FormData): Promise<string> {
+  return form.get("contact_id")
+    ? `${ctx.base}/${await createOpportunityForContact(ctx.db, ctx.contentDb, ctx.actor, form)}`
+    : `${ctx.base}/${(await quickCreate(ctx.db, ctx.contentDb, ctx.actor, form)).id}`;
 }
 
 export interface NewProps { ctx: Ctx; state: FormState; playbooks: Playbook[]; owners: OwnerOption[]; customers: PickableContact[] }
@@ -58,10 +68,7 @@ export async function newRoute(astro: AstroGlobal, lang: Lang): Promise<NewProps
   const ctx = await context(astro, lang);
   if (ctx instanceof Response) return ctx;
   const posted = await handlePost(astro, ctx, {
-    // An existing contact (and so its company), or a new company and contact.
-    create: async (form) => form.get("contact_id")
-      ? `${ctx.base}/${await createOpportunityForContact(ctx.db, ctx.contentDb, ctx.actor, form)}`
-      : `${ctx.base}/${(await quickCreate(ctx.db, ctx.contentDb, ctx.actor, form)).id}`,
+    create: (form) => createOpportunity(ctx, form),
   });
   if (posted instanceof Response) return posted;
   return {

@@ -10,7 +10,8 @@ export type IconName =
   | "files" | "hrm" | "profile" | "hrm_people" | "hrm_settings"
   | "overview" | "hiring" | "crm" | "admin" | "today" | "leads" | "lead_settings" | "calendar" | "pipeline" | "new" | "referrals" | "companies" | "contacts" | "reports"
   | "commission" | "model" | "fulfillment" | "assignment" | "playbooks" | "offers" | "process" | "agents" | "roles" | "candidates" | "users" | "menu" | "apps" | "account" | "security"
-  | "search" | "plus" | "help" | "bell" | "chevron";
+  | "search" | "plus" | "help" | "bell" | "chevron"
+  | "refresh" | "filter" | "left" | "right" | "table" | "warn" | "grip" | "tasks";
 /** `tab`: shown as a tab in the app nav bar of a grouped module; the other links sit in its "More" menu. */
 export interface NavLink { key: string; en: string; vi: string; path: string; icon: IconName; group?: string; anyOf?: Permission[]; tab?: boolean }
 export interface NavGroup { key: string; en: string; vi: string }
@@ -46,6 +47,7 @@ export const modules: NavModule[] = [
       { key: "leads", tab: true, en: "Leads", vi: "Lead", path: "/crm/leads", icon: "leads", group: "sell" },
       { key: "pipeline", tab: true, en: "Pipeline", vi: "Cơ hội", path: "/crm/pipeline", icon: "pipeline", group: "sell" },
       { key: "calendar", tab: true, en: "Calendar", vi: "Lịch", path: "/crm/calendar", icon: "calendar", group: "sell" },
+      { key: "tasks", tab: true, en: "Tasks", vi: "Công việc", path: "/crm/tasks", icon: "tasks", group: "sell" },
       { key: "new", en: "New opportunity", vi: "Tạo cơ hội", path: "/crm/new", icon: "new", group: "sell" },
       { key: "referrals", en: "Referrals", vi: "Giới thiệu khách", path: "/crm/referrals", icon: "referrals", group: "sell", anyOf: ["crm.refer"] },
       { key: "companies", tab: true, en: "Companies", vi: "Công ty", path: "/crm/accounts", icon: "companies", group: "customers" },

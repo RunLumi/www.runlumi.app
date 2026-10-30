@@ -5,12 +5,14 @@
 // (link to "#id": no script, no round trip) or when the server passes `open`
 // (for example to re-show a form with errors). `closeHref` must lead back to
 // the page without the sheet. With `action`, the body and foot form one
-// POST form. Escape and initial focus come from the shell's small script.
+// POST form. `wide` gives the 720 px form width (`width` sets any other).
+// Escape and initial focus come from the shell's small script.
 
-interface Props { id: string; title: string; vi: boolean; open?: boolean; closeHref?: string; variant?: "sheet" | "dialog"; width?: string; action?: string; method?: "post" | "get"; note?: string }
-const { id, title, vi, open = false, closeHref = "#", variant = "sheet", width, action, method = "post", note } = Astro.props;
+interface Props { id: string; title: string; vi: boolean; open?: boolean; closeHref?: string; variant?: "sheet" | "dialog"; width?: string; wide?: boolean; action?: string; method?: "post" | "get"; note?: string; enctype?: string }
+const { id, title, vi, open = false, closeHref = "#", variant = "sheet", wide = false, action, method = "post", note, enctype } = Astro.props;
+const width = Astro.props.width ?? (wide ? "720px" : undefined);
 const Body = action !== undefined ? "form" : "div";
-const formProps = action !== undefined ? { method, action } : {};
+const formProps = action !== undefined ? { method, action, enctype } : {};
 ---
 <div class:list={["ws-overlay", variant]} id={id} data-open={open ? "" : undefined}>
   <a class="ws-scrim" href={closeHref} tabindex="-1" aria-hidden="true"></a>

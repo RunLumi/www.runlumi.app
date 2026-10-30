@@ -191,7 +191,8 @@ body.crm.ws { background: var(--crm-paper); font-size: 15px; line-height: 1.5; }
 .ws-ltile strong { color: var(--crm-navy); font-size: 15px; }
 .ws-ltile span span { color: var(--crm-slate); font-size: 13px; line-height: 1.4; }
 .ws-oi { display: inline-grid; place-items: center; inline-size: 40px; block-size: 40px; flex: none; border-radius: 8px; background: var(--ws-tone, var(--crm-blue)); color: white; }
-.ws .ws-oi .ws-icon { color: white; }
+.ws .ws-oi .ws-icon, .ws .ws-ltile .ws-oi .ws-icon { color: white; }
+.ws .ws-ltile, .ws .ws-ltile[aria-current="page"] { font-weight: 400; }
 .ws-oi.sm { inline-size: 24px; block-size: 24px; border-radius: 5px; }
 
 /* Page area: 16px rhythm, panels 12px apart (board .page). */
@@ -424,3 +425,36 @@ html:has(.ws-overlay:target), html:has(.ws-overlay[data-open]) { overflow: hidde
 .ws-card { display: flex; flex-direction: column; gap: 6px; height: 100%; box-sizing: border-box; padding: 14px 16px; border: 1px solid var(--crm-line); border-radius: 8px; background: white; color: #344054; font-size: 14px; text-decoration: none; }
 a.ws-card:hover { border-color: var(--crm-blue); background: #f7fbfe; text-decoration: none; }
 .ws-card b { color: var(--crm-navy); font-size: 15px; }
+
+/* Kit additions for workstreams 2 and 3: filter pop-over, related-list
+   actions and full width, path panel, feed and setup frame (ported from
+   ui2's crm-lists.css and ui3's record.css). */
+.ws-filters > summary { position: relative; }
+.ws-filter-n { position: absolute; top: -6px; right: -6px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--crm-blue); color: white; font-size: 10px; font-weight: 600; line-height: 16px; text-align: center; }
+.ws-filter-form { width: min(340px, calc(100vw - 32px)); gap: 10px; padding: 8px 12px 12px; }
+.ws-filter-form :is(label, .ws-fld-l) { color: #344054; font-size: 13px; font-weight: 500; }
+.ws-filter-form :is(input:not([type="checkbox"], [type="radio"]), select) { box-sizing: border-box; width: 100%; min-height: 36px; padding: 0 10px; border: 1px solid var(--crm-line-strong); border-radius: 6px; background: white; font: inherit; font-size: 14px; }
+.ws-filter-actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 4px; }
+.ws-rl.wide { grid-column: 1 / -1; }
+.ws-rl-actions { display: flex; align-items: center; gap: 8px; }
+.ws-rl-foot { padding: 9px 14px; border-top: 1px solid var(--crm-line-soft); font-size: 13px; text-align: center; }
+.ws-sheet-panel { background: var(--crm-sheet); border: 1px solid var(--crm-line); border-radius: 8px; box-shadow: 0 1px 2px rgba(16, 42, 67, .06); }
+.ws-pathbar { display: flex; flex-direction: column; gap: 14px; padding: 14px 20px; }
+.ws-path-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; padding-top: 14px; border-top: 1px solid var(--crm-line-soft); }
+.ws-path-cols :is(h2, h3) { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 8px; color: var(--crm-navy); font-size: 15px; font-weight: 600; line-height: 1.3; }
+@media (max-width: 760px) { .ws-path-cols { grid-template-columns: minmax(0, 1fr); } }
+.ws-feed { display: flex; flex-direction: column; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.ws-feed li { display: flex; gap: 12px; }
+.ws-feed-ic { display: flex; align-items: center; justify-content: center; inline-size: 30px; block-size: 30px; flex: none; border-radius: 15px; background: #f2f4f7; color: #344054; }
+.ws-feed-ic.task { background: #e6f4f1; color: #0f7b7b; }
+.ws-feed-ic.event { background: var(--crm-blue-soft); color: var(--crm-blue); }
+.ws-feed-ic.warn { background: #fff4dc; color: #9a5b00; }
+.ws-feed-b { flex: 1; min-width: 0; padding-bottom: 12px; border-bottom: 1px solid var(--crm-line-soft); }
+.ws-feed li:last-child .ws-feed-b { border-bottom: 0; }
+.ws-feed-t { display: flex; justify-content: space-between; gap: 8px; margin: 0; color: var(--crm-navy); font-size: 14px; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; white-space: pre-line; }
+.ws-feed-when { color: var(--crm-slate); font-size: 13px; font-weight: 400; white-space: nowrap; }
+.ws-feed-m { margin: 2px 0 0; color: var(--crm-slate); font-size: 13px; line-height: 1.4; overflow-wrap: anywhere; white-space: pre-line; }
+.ws-feed-empty { margin: 0; color: var(--crm-slate); font-size: 13px; }
+.ws-setup { display: flex; flex-direction: column; gap: 12px; }
+.ws-setup-body { display: flex; flex-direction: column; gap: 16px; padding: 0 20px 16px; }
+.ws-info { margin: 0; padding: 12px 14px; border-radius: 8px; background: var(--crm-blue-soft); color: #004f80; font-size: 14px; line-height: 1.5; }
