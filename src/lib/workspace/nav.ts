@@ -10,7 +10,8 @@ export type IconName =
   | "files" | "hrm" | "profile" | "hrm_people" | "hrm_settings"
   | "overview" | "hiring" | "crm" | "admin" | "today" | "leads" | "lead_settings" | "calendar" | "pipeline" | "new" | "referrals" | "companies" | "contacts" | "reports"
   | "commission" | "model" | "fulfillment" | "assignment" | "playbooks" | "offers" | "process" | "agents" | "roles" | "candidates" | "users" | "menu" | "apps" | "account" | "security"
-  | "search" | "plus" | "help" | "bell" | "chevron";
+  | "search" | "plus" | "help" | "bell" | "chevron"
+  | "refresh" | "filter" | "left" | "right" | "table" | "warn" | "grip" | "tasks";
 /** `tab`: shown as a tab in the app nav bar of a grouped module; the other links sit in its "More" menu. */
 export interface NavLink { key: string; en: string; vi: string; path: string; icon: IconName; group?: string; anyOf?: Permission[]; tab?: boolean }
 export interface NavGroup { key: string; en: string; vi: string }
