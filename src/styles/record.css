@@ -252,3 +252,4 @@
 .rec-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 12px; align-items: stretch; }
 .rec-setup .crm-grid { gap: 12px; }
 .rec-setup .crm-filter { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+.rec .ws-tbl code, .rec-setup .ws-tbl code { white-space: nowrap; font-size: 13px; color: #5E6677; }

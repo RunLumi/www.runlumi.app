@@ -1,5 +1,7 @@
 ---
 import CrmShell from "../../layouts/CrmShell.astro";
+import SetupFrame from "../workspace/record/SetupFrame.astro";
+import "../../styles/record.css";
 import "../../styles/crm-sales.css";
 import { formatDate, label, options } from "../../lib/crm/i18n";
 import { formatVnd } from "../../lib/crm/money";
@@ -20,11 +22,8 @@ const gateLabels: Record<string, [string, string]> = {
 };
 ---
 <CrmShell title={vi ? "Báo cáo" : "Reports"} lang={lang} actor={ctx.actor} current="reports">
-  <div class="crm-head"><div>
-    <p class="crm-eyebrow">{vi ? "Báo cáo" : "Reports"}</p>
-    <h1 class="crm-h1">{vi ? "Mô hình nào tạo khách trả tiền." : "Which models create paying customers."}</h1>
-    <p class="crm-lede">{vi ? "Mỗi quy trình bán được báo cáo riêng. Tỷ lệ luôn kèm mẫu số; thiếu dữ liệu hiển thị là chưa đủ dữ liệu, không phải 0." : "Each playbook is reported on its own. Rates show their denominator; missing data shows as not enough data, never zero."}</p>
-  </div></div>
+  <SetupFrame vi={vi} icon="reports" eyebrow={vi ? "Kết quả" : "Results"} title={vi ? "Báo cáo" : "Reports"} info={vi ? "Mỗi quy trình bán được báo cáo riêng. Tỷ lệ luôn kèm mẫu số; thiếu dữ liệu hiển thị là chưa đủ dữ liệu, không phải 0." : "Each playbook is reported on its own. Rates show their denominator; missing data shows as not enough data, never zero."}>
+    
 
   <form class="crm-sheet crm-filter" method="get" aria-label={vi ? "Bộ lọc báo cáo" : "Report filters"}>
     <div class="crm-field"><label for="r-channel">{vi ? "Kênh" : "Channel"}</label><select class="crm-select" id="r-channel" name="channel"><option value="">{vi ? "Tất cả" : "Any"}</option>{options(lang, "channel").map((item) => <option value={item.value} selected={filters.channel === item.value}>{item.label}</option>)}</select></div>
@@ -111,4 +110,5 @@ const gateLabels: Record<string, [string, string]> = {
     <h2 class="crm-h2" id="pending-h">{vi ? "Thanh toán chờ xác nhận" : "Payments awaiting confirmation"}<span class="crm-count">{pending.length}</span></h2>
     {pending.length ? <ul class="crm-list">{pending.map((item) => <li class="crm-row"><a class="crm-row-title" href={`${base}/${item.opportunity_id}#commercial`}>{item.title}</a><span class="crm-row-side crm-num">{formatVnd(item.amount_vnd, vi)}</span><span class="crm-row-meta"><span>{formatDate(item.occurred_on, lang)}</span><span>{item.evidence}</span></span></li>)}</ul> : <p class="crm-empty">{vi ? "Không có." : "None."}</p>}
   </section>}
+  </SetupFrame>
 </CrmShell>
