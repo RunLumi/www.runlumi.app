@@ -1,0 +1,33 @@
+---
+// List-view header (board: Leads). One white panel holds: the object icon,
+// the object label (eyebrow), the list name with its selector, the action
+// button group on the right, then the meta line ("12 items · sorted by …")
+// with the list toolbar, then the table or board in the default slot.
+// Use one per list screen, in place of a page title.
+import NavIcon from "../NavIcon.astro";
+import ObjectIcon, { type Tone } from "./ObjectIcon.astro";
+import type { IconName } from "../../../lib/workspace/nav";
+
+export interface ListOption { label: string; href: string; current?: boolean }
+interface Props { vi: boolean; icon: IconName; tone?: Tone | string; object: string; title: string; lists?: ListOption[]; meta?: string; id?: string; level?: 1 | 2 }
+const { vi, icon, tone, object, title, lists = [], meta, level = 1 } = Astro.props;
+const id = Astro.props.id ?? "lv-title";
+const Heading = level === 1 ? "h1" : "h2";
+---
+<section class="ws-lv" aria-labelledby={id}>
+  <div class="ws-oh">
+    <div class="ws-oh-id">
+      <ObjectIcon icon={icon} tone={tone} />
+      <div>
+        <p class="ws-eyebrow">{object}</p>
+        <Heading class="ws-h1" id={id}>{title}{lists.length > 1 && <details class="ws-drop ws-lv-pick">
+          <summary class="ws-btn icon ghost sm" aria-label={vi ? "Chọn danh sách" : "Choose a list"}><NavIcon name="chevron" size={16} /></summary>
+          <div class="ws-pop ws-menu-pop"><p class="ws-mi-head">{vi ? "Danh sách" : "Lists"}</p><ul>{lists.map((list) => <li><a href={list.href} aria-current={list.current ? "page" : undefined}>{list.label}</a></li>)}</ul></div>
+        </details>}</Heading>
+      </div>
+    </div>
+    {Astro.slots.has("actions") && <div class="ws-oh-actions"><slot name="actions" /></div>}
+  </div>
+  {(meta || Astro.slots.has("tools")) && <div class="ws-lv-meta"><p>{meta}</p><slot name="tools" /></div>}
+  <slot />
+</section>

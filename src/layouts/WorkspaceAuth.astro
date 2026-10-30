@@ -1,0 +1,32 @@
+---
+// Public Workspace pages before sign-in (sign-in, recovery). They hold no
+// Workspace data, so they live outside WorkspaceShell; private pages, the
+// passkey check included, stay inside it.
+import "../styles/crm.css";
+import "../styles/workspace.css";
+import "../styles/workspace-security.css";
+
+interface Props { title: string; lang: "en" | "vi"; switchHref: string }
+const { title, lang, switchHref } = Astro.props;
+const vi = lang === "vi";
+Astro.response.headers.set("Cache-Control", "private, no-store");
+Astro.response.headers.set("Referrer-Policy", "same-origin");
+---
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#F4F0E8" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{title} — Lumi Workspace</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body class="crm s4">
+    <a class="crm-skip" href="#main">{vi ? "Đến nội dung chính" : "Skip to content"}</a>
+    <main id="main" class="crm-main"><div class="ws-wide">
+      <p class="s4-actions" style="justify-content:flex-end;margin:0"><a class="crm-link" href={switchHref} lang={vi ? "en" : "vi"} hreflang={vi ? "en" : "vi"}>{vi ? "English" : "Tiếng Việt"}</a></p>
+      <slot />
+    </div></main>
+  </body>
+</html>

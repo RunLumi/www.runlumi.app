@@ -1,16 +1,28 @@
 ---
+// Opportunities: Kanban by stage and the full-width table (boards Main,
+// KanbanDrag, DealsTable, MobileKanban). Stories: docs/governance/USER-STORIES.md
+// § CRM list screens (Main, KanbanDrag, DealsTable, MobileKanban).
 import CrmShell from "../../layouts/CrmShell.astro";
 import { formatDate, formatVnd } from "../../lib/crm/view";
+import { compactVnd } from "../../lib/crm/dashboard";
 import { label, options } from "../../lib/crm/i18n";
 import type { PipelineProps } from "../../lib/crm/routes/pipeline";
 import Hidden from "./Hidden.astro";
 import FormNotices from "./FormNotices.astro";
+import NewOpportunityForm from "./NewOpportunityForm.astro";
+import ListHeader from "../workspace/ui/ListHeader.astro";
+import ButtonGroup from "../workspace/ui/ButtonGroup.astro";
+import ListToolbar from "../workspace/ui/ListToolbar.astro";
+import Sheet from "../workspace/ui/Sheet.astro";
+import NavIcon from "../workspace/NavIcon.astro";
 import { errorText } from "../../lib/crm/i18n";
 import { requirementLabel } from "../../lib/crm/playbook";
+import { initials } from "../../lib/workspace/summaries";
 import "../../styles/crm-sales.css";
+import "../../styles/crm-lists.css";
 
 type Props = PipelineProps;
-const { ctx, state, view, filters, playbooks, offers, rows, total, page, pages, board, counts, owners, ownerNames, cohorts, failedId } = Astro.props;
+const { ctx, state, view, filters, playbooks, offers, rows, total, page, pages, board, counts, owners, ownerNames, cohorts, failedId, customers } = Astro.props;
 const { lang, vi, base } = ctx;
 const playbook = playbooks.find((item) => item.playbook_key === filters.playbook);
 const byId = new Map(playbooks.map((item) => [item.playbook_key, item]));
@@ -24,8 +36,10 @@ const query = (changes: Record<string, string>) => {
   const text = params.toString();
   return text ? `?${text}` : "?";
 };
-const outcomeTone: Record<string, string> = { open: "blue", won: "green", lost: "", paused: "amber" };
-const ownerLabel = (id: string | null) => id ? `${ownerNames[id]?.name ?? (id === ctx.actor.id ? ctx.actor.name : (vi ? "Tài khoản không hoạt động" : "Inactive account"))}${ownerNames[id] && !ownerNames[id].active ? (vi ? " (không hoạt động)" : " (inactive)") : ""}` : (vi ? "Chưa phân công" : "Unassigned");
+const path = (changes: Record<string, string>) => `${base}/pipeline${query(changes)}`.replace(/\?$/, "");
+const outcomeTone: Record<string, string> = { open: "info", won: "ok", lost: "", paused: "warn" };
+const ownerName = (id: string | null) => id ? (ownerNames[id]?.name ?? (id === ctx.actor.id ? ctx.actor.name : (vi ? "Tài khoản không hoạt động" : "Inactive account"))) : (vi ? "Chưa phân công" : "Unassigned");
+const ownerLabel = (id: string | null) => `${ownerName(id)}${id && ownerNames[id] && !ownerNames[id].active ? (vi ? " (không hoạt động)" : " (inactive)") : ""}`;
 const canEdit = (row: { owner_id: string | null }) => ctx.actor.manager || row.owner_id === ctx.actor.id;
 const days = (iso: string | null) => iso ? Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000)) : null;
 const today = new Date(Date.now() + 7 * 3_600_000).toISOString().slice(0, 10);
@@ -35,147 +49,162 @@ const stageError = state.intent === "stage" ? state.errors.to_stage : undefined;
 const missing = stageError?.startsWith("missing:") ? stageError.slice(8).split(",") : [];
 const failedRow = [...board, ...rows].find((row) => row.id === failedId);
 const failedPlaybook = failedRow ? byId.get(failedRow.playbook_id.split("@")[0]) : undefined;
-const sum = (items: { estimated_value_vnd: number | null }[]) => { const known = items.filter((item) => item.estimated_value_vnd !== null); return { known: known.length, total: known.reduce((acc, item) => acc + (item.estimated_value_vnd ?? 0), 0) }; };
+const sum = (items: { estimated_value_vnd: number | null; win_probability: number | null }[]) => {
+  const known = items.filter((item) => item.estimated_value_vnd !== null);
+  const weighted = known.filter((item) => item.win_probability !== null);
+  return { known: known.length, total: known.reduce((acc, item) => acc + (item.estimated_value_vnd ?? 0), 0), weighted: weighted.length ? Math.round(weighted.reduce((acc, item) => acc + (item.estimated_value_vnd ?? 0) * (item.win_probability ?? 0) / 100, 0)) : null };
+};
 const cellError = (id: string, field: string) => state.intent === "inline" && state.values.opportunity_id === id && state.values.field === field ? state.errors.value : undefined;
+const pbName = (item: { name_vi: string; name_en: string }) => vi ? item.name_vi : item.name_en;
+const allLabel = vi ? "Tất cả quy trình" : "All playbooks";
+const outcomeName = filters.outcome ? label(lang, "outcome", filters.outcome) : (vi ? "Mọi trạng thái" : "Any status");
+const title = view === "board" ? `${vi ? "Đang mở" : "Open"} · ${playbook ? pbName(playbook) : ""}` : playbook ? pbName(playbook) : allLabel;
+const lists = [
+  ...playbooks.filter((item) => item.active || item.playbook_key === filters.playbook).map((item) => ({ label: pbName(item), href: path({ playbook: item.playbook_key, stage: "", page: "" }), current: filters.playbook === item.playbook_key })),
+  ...(view === "board" ? [] : [{ label: allLabel, href: path({ playbook: "all", stage: "", page: "" }), current: filters.playbook === "all" }]),
+];
+const stageFilter = playbook?.def.stages.find((stage) => stage.id === filters.stage);
+const filterCount = ["stage", "outcome", "channel", "offer", "cohort", "industry", "region", "owner"].filter((key) => filters[key as keyof typeof filters]).length;
+const meta = [
+  vi ? `${total} mục` : `${total} ${total === 1 ? "item" : "items"}`,
+  view === "board" ? (vi ? "Nhóm theo giai đoạn · Tổng theo giá trị đã biết" : "Grouped by stage · Totals of known values") : (vi ? "Sắp xếp theo hạn bước tiếp theo" : "Sorted by next step due"),
+  stageFilter ? (vi ? `Lọc theo giai đoạn ${stageFilter.vi}` : `Filtered by stage ${stageFilter.en}`) : "",
+  view !== "board" && filters.outcome ? outcomeName : "",
+  filters.q ? (vi ? `Tìm “${filters.q}”` : `Search “${filters.q}”`) : "",
+].filter(Boolean).join(" · ");
+const sheetOpen = Astro.url.searchParams.get("new") === "1" || (state.intent === "create" && (Object.keys(state.errors).length > 0 || state.serverError || state.conflict));
+const activePlaybooks = playbooks.filter((item) => item.active);
+const closeHref = path({ new: "" });
+// Drop zone: the playbook's closing stage names, then the outcome unless a stage already says it.
+const zoneLabel = (outcome: "won" | "lost") => {
+  const names = closingStages.filter((stage) => stage.outcome === outcome).map((stage) => vi ? stage.vi : stage.en);
+  const word = outcome === "won" ? (vi ? "Thắng" : "Won") : (vi ? "Thua" : "Lost");
+  const label = names.some((name) => name.toLowerCase() === word.toLowerCase()) ? names.join(" / ") : `${names.join(" / ")} · ${word}`;
+  return outcome === "lost" ? `${label} · ${vi ? "cần lý do" : "reason required"}` : label;
+};
 ---
 <CrmShell title={vi ? "Cơ hội" : "Pipeline"} lang={lang} actor={ctx.actor} current="pipeline">
-  <div class="crm-head">
-    <div>
-      <p class="crm-eyebrow">{playbook ? (vi ? playbook.name_vi : playbook.name_en) : (vi ? "Mọi quy trình" : "All playbooks")}</p>
-      <h1 class="crm-h1">{vi ? "Cơ hội theo quy trình bán." : "Opportunities by sales playbook."}</h1>
-      <p class="crm-lede">{vi ? `${total} cơ hội khớp bộ lọc. Mỗi quy trình có các giai đoạn riêng; số liệu không gộp giữa các quy trình.` : `${total} opportunities match. Each playbook has its own stages; counts are never combined across playbooks.`}</p>
-    </div>
-    <a class="crm-button" href={`${base}/new${playbook ? `?playbook=${playbook.playbook_key}` : ""}`}>{vi ? "Tạo cơ hội" : "New opportunity"}</a>
+  <div class="cl-stack">
+    <FormNotices state={state} lang={lang} saved={Astro.url.searchParams.get("saved")} intents={["inline"]} />
+    {state.intent === "stage" && (stageError || state.conflict) && <div class="crm-notice bad cl-notice" role="alert">
+      <strong>{failedRow ? failedRow.title : ""}: {state.conflict ? (vi ? "Người khác vừa đổi cơ hội này; giai đoạn chưa đổi." : "Someone else changed this opportunity; the stage was not changed.") : errorText(lang, stageError)}</strong>
+      {missing.length > 0 && failedPlaybook && <>{vi ? "Còn thiếu: " : "Missing: "}{missing.map((item) => requirementLabel(failedPlaybook.def, item, vi)).join(" · ")}. </>}
+      {failedRow && <a href={`${base}/${failedRow.id}#stage`}>{vi ? "Mở cơ hội để bổ sung" : "Open the opportunity to complete it"}</a>}
+    </div>}
+
+    <ListHeader vi={vi} icon="pipeline" tone="opportunity" object={vi ? "Cơ hội" : "Opportunities"} title={title} meta={meta} lists={lists}>
+      <ButtonGroup slot="actions" label={vi ? "Hành động" : "Actions"}><a class="ws-btn" href={`${path({ new: "1" })}#new-opp`}>{vi ? "Tạo" : "New"}</a></ButtonGroup>
+      <ListToolbar slot="tools" vi={vi} filterActive={filterCount} filterClear={path({ stage: "", outcome: "", channel: "", offer: "", cohort: "", industry: "", region: "", owner: "", q: "", page: "" })} q={filters.q} keep={{ playbook: filters.playbook, view: view === "list" ? "" : view, stage: filters.stage, outcome: filters.outcome, channel: filters.channel, offer: filters.offer, cohort: filters.cohort, industry: filters.industry, region: filters.region, owner: filters.owner }} views={[
+          { key: "table", label: vi ? "Bảng" : "Table", href: path({ view: "table", page: "" }), icon: "model", current: view !== "board" },
+          ...(filters.playbook !== "all" ? [{ key: "board", label: "Kanban", href: path({ view: "board", page: "", stage: "" }), icon: "pipeline" as const, current: view === "board" }] : []),
+        ]}>
+        <a class="ws-btn icon" href={path({})} aria-label={vi ? "Làm mới" : "Refresh"}><NavIcon name="refresh" size={16} /></a>
+                <Fragment slot="filters">
+          <input type="hidden" name="playbook" value={filters.playbook} />
+          {view !== "list" && <input type="hidden" name="view" value={view} />}
+          {view !== "board" && playbook && <div class="crm-field"><label for="stage">{vi ? "Giai đoạn" : "Stage"}</label><select class="crm-select" id="stage" name="stage"><option value="">{vi ? "Tất cả" : "Any"}</option>{playbook.def.stages.map((stage) => <option value={stage.id} selected={filters.stage === stage.id}>{vi ? stage.vi : stage.en} ({counts[stage.id] ?? 0})</option>)}</select></div>}
+          {view !== "board" && <div class="crm-field"><label for="outcome">{vi ? "Trạng thái" : "Status"}</label><select class="crm-select" id="outcome" name="outcome"><option value="">{vi ? "Tất cả" : "Any"}</option>{options(lang, "outcome").map((item) => <option value={item.value} selected={filters.outcome === item.value}>{item.label}</option>)}</select></div>}
+          <div class="crm-field"><label for="channel">{vi ? "Kênh" : "Channel"}</label><select class="crm-select" id="channel" name="channel"><option value="">{vi ? "Tất cả" : "Any"}</option>{options(lang, "channel").map((item) => <option value={item.value} selected={filters.channel === item.value}>{item.label}</option>)}</select></div>
+          <div class="crm-field"><label for="offer">{vi ? "Gói" : "Offer"}</label><select class="crm-select" id="offer" name="offer"><option value="">{vi ? "Tất cả" : "Any"}</option>{offers.map((offer) => <option value={offer.offer_key} selected={filters.offer === offer.offer_key}>{vi ? offer.name_vi : offer.name_en}</option>)}</select></div>
+          <div class="crm-field"><label for="cohort">Cohort</label><select class="crm-select" id="cohort" name="cohort"><option value="">{vi ? "Tất cả" : "Any"}</option>{cohorts.map((key) => <option value={key} selected={filters.cohort === key}>{key}</option>)}</select></div>
+          <div class="crm-field"><label for="industry">{vi ? "Ngành" : "Industry"}</label><input class="crm-input" id="industry" name="industry" value={filters.industry} maxlength="120" /></div>
+          <div class="crm-field"><label for="region">{vi ? "Khu vực" : "Region"}</label><input class="crm-input" id="region" name="region" value={filters.region} maxlength="120" /></div>
+          {ctx.actor.manager && <div class="crm-field"><label for="owner">{vi ? "Người phụ trách" : "Owner"}</label><select class="crm-select" id="owner" name="owner"><option value="">{vi ? "Tất cả" : "Anyone"}</option><option value="unassigned" selected={filters.owner === "unassigned"}>{vi ? "Chưa phân công" : "Unassigned"}</option><option value="inactive" selected={filters.owner === "inactive"}>{vi ? "Người phụ trách không hoạt động" : "Inactive owner"}</option>{owners.map((owner) => <option value={owner.id} selected={filters.owner === owner.id}>{owner.label}</option>)}</select></div>}
+        </Fragment>
+      </ListToolbar>
+
+      {view !== "board" && <>
+        {rows.length ? <div class="cl-tbl-wrap" tabindex="0" role="region" aria-label={vi ? "Bảng cơ hội, cuộn ngang được" : "Opportunity table, scrolls sideways"}>
+          <table class="cl-tbl">
+            <thead><tr>
+              <th class="fz fzr" scope="col"><span class="crm-sr">#</span></th><th class="fz fzn" scope="col">{vi ? "Tên cơ hội" : "Opportunity"}</th>
+              <th scope="col">{vi ? "Công ty" : "Company"}</th><th scope="col" class="r">{vi ? "Giá trị" : "Value"}</th><th scope="col">{vi ? "Hạn bước tiếp theo" : "Next step due"}</th>
+              <th scope="col">{vi ? "Giai đoạn" : "Stage"}</th><th scope="col" class="r">{vi ? "Xác suất" : "Probability"}</th><th scope="col">{vi ? "Người phụ trách" : "Owner"}</th>
+              <th scope="col">{vi ? "Bước tiếp theo" : "Next step"}</th><th scope="col">{vi ? "Kênh" : "Channel"}</th>
+            </tr></thead>
+            <tbody>{rows.map((row, index) => { const editable = canEdit(row) && (row.outcome === "open" || row.outcome === "paused"); const cell = (field: string, value: string, attrs: Record<string, string>) => editable
+              ? <form class="cl-cell" method="post"><Hidden intent="inline" state={state} version={row.version} /><input type="hidden" name="opportunity_id" value={row.id} /><input type="hidden" name="field" value={field} />
+                  <label class="crm-sr" for={`in-${field}-${row.id}`}>{`${row.title}: ${attrs.label}`}</label>
+                  <input id={`in-${field}-${row.id}`} name="value" value={state.intent === "inline" && state.values.opportunity_id === row.id && state.values.field === field ? state.values.value : value} type={attrs.type === "date" ? "date" : "text"} inputmode={attrs.inputmode as "numeric" | undefined} maxlength={attrs.maxlength ? Number(attrs.maxlength) : undefined} placeholder={attrs.placeholder} aria-invalid={cellError(row.id, field) ? "true" : undefined} style={attrs.align ? `text-align:${attrs.align}` : undefined} />
+                  <button type="submit">{vi ? "Lưu" : "Save"}<span class="crm-sr">: {attrs.label}</span></button>
+                  {cellError(row.id, field) && <span class="crm-error">{errorText(lang, cellError(row.id, field))}</span>}</form>
+              : <span>{value || "—"}</span>; return <tr>
+              <td class="fz fzr">{(page - 1) * 50 + index + 1}</td>
+              <td class="fz fzn"><a href={`${base}/${row.id}`}>{row.title}</a></td>
+              <td>{row.account_name}</td>
+              <td class="r">{editable ? cell("estimated_value_vnd", row.estimated_value_vnd === null ? "" : String(row.estimated_value_vnd), { label: vi ? "Giá trị (VND)" : "Value (VND)", inputmode: "numeric", maxlength: "20", placeholder: vi ? "Chưa biết" : "Unknown", align: "right" }) : formatVnd(row.estimated_value_vnd, vi)}</td>
+              <td class:list={{ late: !!row.next_action_due && row.next_action_due < today && row.outcome === "open" }}>{editable ? cell("next_action_due", row.next_action_due ?? "", { label: vi ? "Hạn" : "Due", type: "date" }) : formatDate(row.next_action_due, lang)}</td>
+              <td><span class="cl-badge info">{stageName(row.playbook_id, row.stage_id)}</span>{row.outcome !== "open" && <> <span class:list={["cl-badge", outcomeTone[row.outcome]]}>{label(lang, "outcome", row.outcome)}</span></>}{row.needs_review ? <> <span class="cl-badge warn">{vi ? "Cần xem lại" : "Needs review"}</span></> : null}</td>
+              <td class="r">{editable ? cell("win_probability", row.win_probability === null ? "" : String(row.win_probability), { label: vi ? "Xác suất %" : "Probability %", inputmode: "numeric", maxlength: "5", placeholder: vi ? "Chưa biết" : "Unknown", align: "right" }) : (row.win_probability === null ? (vi ? "Chưa biết" : "Unknown") : `${row.win_probability}%`)}</td>
+              <td>{ownerLabel(row.owner_id)}</td>
+              <td>{editable ? cell("next_action", row.next_action, { label: vi ? "Bước tiếp theo" : "Next step", maxlength: "500" }) : (row.next_action || "—")}</td>
+              <td>{label(lang, "channel", row.source_channel)}</td>
+            </tr>; })}</tbody>
+          </table>
+        </div> : <p class="cl-empty">{filterCount || filters.q ? (vi ? "Không có cơ hội khớp bộ lọc. Xóa lọc hoặc đổi từ khóa." : "No opportunities match. Clear the filters or change the search.") : (vi ? "Chưa có cơ hội. Chọn Tạo, hoặc chuyển đổi một Lead đã đủ điều kiện." : "No opportunities yet. Choose New, or convert a qualified lead.")}</p>}
+        {rows.length > 0 && <p class="cl-hint"><span>{vi ? "Cột số dòng và Tên cơ hội cố định khi cuộn ngang. Mỗi ô lưu riêng và không ghi đè thay đổi mới hơn." : "The row number and Opportunity stay in place when scrolling sideways. Each cell saves on its own and never overwrites a newer change."}</span><span>{vi ? "Bấm tên để mở trang chi tiết" : "Select a name to open the record"}</span></p>}
+        {pages > 1 && <nav class="cl-pager" aria-label={vi ? "Phân trang" : "Pagination"}>
+          <span>{vi ? `Trang ${page} / ${pages}` : `Page ${page} of ${pages}`}</span>
+          <span>{page > 1 && <a class="ws-btn sm" href={query({ page: String(page - 1) })}>{vi ? "Trước" : "Previous"}</a>}{page < pages && <a class="ws-btn sm" href={query({ page: String(page + 1) })}>{vi ? "Tiếp" : "Next"}</a>}</span>
+        </nav>}
+      </>}
+    </ListHeader>
+
+    {view === "board" && playbook && <section class="crm-board-wrap cl-stack" data-board-wrap aria-label={vi ? "Kanban cơ hội theo giai đoạn" : "Opportunities by stage"}
+        data-drag-hint={vi ? "{name} · Thả vào một cột để đổi giai đoạn, hoặc vào vùng chốt ở cuối màn hình. Esc để hủy." : "{name} · Drop on a column to change stage, or on a closing zone at the bottom. Esc cancels."}
+        data-moving-hint={vi ? "Đang chuyển {name}…" : "Moving {name}…"} data-cancel-hint={vi ? "Đã hủy kéo." : "Drag cancelled."}>
+      <p class="cl-drag-status" role="status" aria-live="polite"><span class="cl-badge info"><span class="dot" />{vi ? "Đang kéo" : "Dragging"}</span><span data-drag-status>{vi ? "Nút ⌄ trên mỗi thẻ có ô Chuyển sang để đổi giai đoạn bằng bàn phím. Kéo thẻ vào vùng Thắng / Thua để đóng cơ hội." : "Each card’s ⌄ button holds a Move to control for keyboard use. Drag a card to Won / Lost to close it."}</span></p>
+      <nav class="cl-strip" aria-label={vi ? "Giai đoạn" : "Stages"}>{openStages.map((stage) => <a href={`#col-${stage.id}`}>{vi ? stage.vi : stage.en} · {board.filter((row) => row.stage_id === stage.id).length}</a>)}</nav>
+      <div class="cl-kb-scroll"><div class="cl-kb">
+        {openStages.map((stage) => { const cards = board.filter((row) => row.stage_id === stage.id); const totals = sum(cards); return <section class="cl-col" id={`col-${stage.id}`} data-column={stage.id} aria-labelledby={`bc-${stage.id}`}>
+          <h2 class="cl-chev" id={`bc-${stage.id}`}><span>{vi ? stage.vi : stage.en} ({cards.length})</span></h2>
+          <div class="cl-sum"><b>{totals.known ? formatVnd(totals.total, vi) : (vi ? "Chưa biết giá trị" : "No known value")}</b><span title={totals.known < cards.length ? (vi ? `${cards.length - totals.known} cơ hội chưa có giá trị` : `${cards.length - totals.known} without a value`) : undefined}>{totals.weighted !== null ? (vi ? `Xác suất ${compactVnd(totals.weighted, vi)}` : `Weighted ${compactVnd(totals.weighted, vi)}`) : totals.known < cards.length ? (vi ? `${cards.length - totals.known} chưa có giá trị` : `${cards.length - totals.known} no value`) : ""}</span></div>
+          <div class="cl-lane">
+            {cards.map((row) => { const editable = canEdit(row); const inStage = days(row.stage_since); const alert = row.overdue_tasks > 0 ? (vi ? `${row.overdue_tasks} công việc quá hạn` : `${row.overdue_tasks} overdue task(s)`) : row.open_tasks === 0 && !row.next_action_due ? (vi ? "Không có hoạt động sắp tới" : "No upcoming activity") : ""; const danger = row.overdue_tasks > 0; return <article class:list={["cl-kc", { warn: alert && !danger, danger }]} data-card={editable ? row.id : undefined} data-name={`${row.title}`} data-current={row.stage_id}
+                data-zone-won={editable ? `${base}/${row.id}?close=won#close` : undefined} data-zone-lost={editable ? `${base}/${row.id}?close=lost#close` : undefined}>
+              <div class="cl-kc-top">
+                {editable ? <span class="cl-grip"><NavIcon name="grip" size={16} /></span> : <span class="cl-grip" />}
+                <a class="cl-kc-title" href={`${base}/${row.id}`}>{row.title}</a>
+                {alert && <span class:list={["cl-kc-alert", { danger }]} title={alert}><NavIcon name="warn" size={16} /><span class="crm-sr">{alert}</span></span>}
+                {editable && <details class="ws-drop cl-kc-more">
+                  <summary class="cl-menu-btn" aria-label={vi ? `Hành động cho ${row.title}` : `Actions for ${row.title}`}><NavIcon name="chevron" size={14} /></summary>
+                  <div class="ws-pop ws-menu-pop cl-kc-pop">
+                    <p class="ws-mi-head">{vi ? "Chuyển sang" : "Move to"}</p>
+                    <form method="post" data-move>
+                      <Hidden intent="stage" state={state} version={row.version} /><input type="hidden" name="opportunity_id" value={row.id} />
+                      <label class="crm-sr" for={`mv-${row.id}`}>{vi ? `Chuyển ${row.title} sang giai đoạn` : `Move ${row.title} to stage`}</label>
+                      <select id={`mv-${row.id}`} name="to_stage" data-move-to>{openStages.map((item) => <option value={item.id} selected={item.id === row.stage_id}>{vi ? item.vi : item.en}</option>)}</select>
+                      <button class="ws-btn sm" type="submit">{vi ? "Chuyển" : "Move"}</button>
+                    </form>
+                    <ul><li><a href={`${base}/${row.id}?close=won#close`}>{vi ? "Đóng cơ hội…" : "Close…"}</a></li><li><a href={`${base}/calendar?new=1#new-event`}>{vi ? "Tạo lịch hẹn" : "New event"}</a></li><li><a href={`${base}/${row.id}`}>{vi ? "Mở cơ hội" : "Open"}</a></li></ul>
+                  </div>
+                </details>}
+              </div>
+              <dl>
+                <dt>{vi ? "Công ty" : "Company"}</dt><dd>{row.account_name}</dd>
+                <dt>{vi ? "Giá trị" : "Value"}</dt><dd class="strong">{formatVnd(row.estimated_value_vnd, vi)}</dd>
+                <dt>{vi ? "Hạn bước tiếp" : "Next due"}</dt><dd>{formatDate(row.next_action_due, lang)}</dd>
+              </dl>
+              <div class="cl-kc-foot">
+                <span class="cl-av" title={ownerLabel(row.owner_id)} aria-hidden="true">{row.owner_id ? initials(ownerName(row.owner_id)) : "?"}</span><span class="crm-sr">{vi ? "Người phụ trách" : "Owner"}: {ownerLabel(row.owner_id)}.</span>
+                {inStage !== null && <span>{vi ? `${inStage} ngày ở giai đoạn này` : `${inStage} days in this stage`}</span>}
+                {alert ? <span class:list={["cl-badge", danger ? "danger" : "warn"]}><span class="dot" />{alert}</span> : <span class="cl-badge">{vi ? "Xác suất" : "Probability"}: {row.win_probability === null ? (vi ? "chưa biết" : "unknown") : `${row.win_probability}%`}</span>}
+              </div>
+            </article>; })}
+            {!cards.length && <p class="cl-none">{vi ? "Không có cơ hội." : "No opportunities."}</p>}
+          </div>
+        </section>; })}
+      </div></div>
+      <div class="cl-dropbar crm-dropzones" aria-hidden="true">
+        {closingStages.some((stage) => stage.outcome === "won") && <div class="cl-drop won" data-zone="won">{zoneLabel("won")}</div>}
+        {closingStages.some((stage) => stage.outcome === "lost") && <div class="cl-drop lost" data-zone="lost">{zoneLabel("lost")}</div>}
+      </div>
+    </section>}
   </div>
 
-  <nav aria-label={vi ? "Chọn quy trình" : "Choose playbook"} class="crm-actions" style="margin-bottom:16px">
-    {playbooks.map((item) => <a class:list={["crm-button small", filters.playbook === item.playbook_key ? "" : "secondary"]} aria-current={filters.playbook === item.playbook_key ? "true" : undefined} href={query({ playbook: item.playbook_key, stage: "", page: "" })}>{vi ? item.name_vi : item.name_en}</a>)}
-    <a class:list={["crm-button small", filters.playbook === "all" ? "" : "secondary"]} href={query({ playbook: "all", stage: "", page: "" })}>{vi ? "Tất cả (chỉ danh sách)" : "All (list only)"}</a>
-  </nav>
-
-  <FormNotices state={state} lang={lang} saved={Astro.url.searchParams.get("saved")} intents={["inline"]} />
-  {state.intent === "stage" && (stageError || state.conflict) && <div class="crm-notice bad" role="alert">
-    <strong>{failedRow ? failedRow.title : ""}: {state.conflict ? (vi ? "Người khác vừa đổi cơ hội này; giai đoạn chưa đổi." : "Someone else changed this opportunity; the stage was not changed.") : errorText(lang, stageError)}</strong>
-    {missing.length > 0 && failedPlaybook && <>{vi ? "Còn thiếu: " : "Missing: "}{missing.map((item) => requirementLabel(failedPlaybook.def, item, vi)).join(" · ")}. </>}
-    {failedRow && <a href={`${base}/${failedRow.id}#stage`}>{vi ? "Mở cơ hội để bổ sung" : "Open the opportunity to complete it"}</a>}
-  </div>}
-
-  <div class="crm-toolbar">
-    <nav class="crm-views" aria-label={vi ? "Cách xem" : "View"}>
-      <a href={query({ view: "", page: "" })} aria-current={view === "list" ? "page" : undefined}>{vi ? "Danh sách" : "List"}</a>
-      {filters.playbook !== "all" && <a href={query({ view: "board", page: "", stage: "" })} aria-current={view === "board" ? "page" : undefined}>Kanban</a>}
-      <a href={query({ view: "table", page: "" })} aria-current={view === "table" ? "page" : undefined}>{vi ? "Bảng" : "Table"}</a>
-    </nav>
-    {view === "board" && <p class="crm-meta">{vi ? `${board.length} cơ hội đang mở · nhóm theo giai đoạn · tổng theo giá trị đã biết` : `${board.length} open opportunities · grouped by stage · totals of known values`}</p>}
-  </div>
-
-  {view !== "board" && playbook && <ol class="crm-stages" aria-label={vi ? "Số cơ hội theo giai đoạn" : "Opportunities per stage"}>
-    {playbook.def.stages.map((stage) => <li><a href={query({ stage: filters.stage === stage.id ? "" : stage.id, page: "" })} aria-current={filters.stage === stage.id ? "true" : undefined} class:list={{ terminal: stage.outcome !== "open" }}><span>{vi ? stage.vi : stage.en}</span><strong>{counts[stage.id] ?? 0}</strong></a></li>)}
-  </ol>}
-
-  <form class="crm-sheet crm-filter" method="get" aria-label={vi ? "Bộ lọc" : "Filters"}>
-    <input type="hidden" name="playbook" value={filters.playbook} />
-    <div class="crm-field"><label for="q">{vi ? "Tìm" : "Search"}</label><input class="crm-input" id="q" name="q" value={filters.q} maxlength="120" /></div>
-    <div class="crm-field"><label for="outcome">{vi ? "Trạng thái" : "Status"}</label><select class="crm-select" id="outcome" name="outcome"><option value="">{vi ? "Tất cả" : "Any"}</option>{options(lang, "outcome").map((item) => <option value={item.value} selected={filters.outcome === item.value}>{item.label}</option>)}</select></div>
-    <div class="crm-field"><label for="channel">{vi ? "Kênh" : "Channel"}</label><select class="crm-select" id="channel" name="channel"><option value="">{vi ? "Tất cả" : "Any"}</option>{options(lang, "channel").map((item) => <option value={item.value} selected={filters.channel === item.value}>{item.label}</option>)}</select></div>
-    <div class="crm-field"><label for="offer">{vi ? "Gói" : "Offer"}</label><select class="crm-select" id="offer" name="offer"><option value="">{vi ? "Tất cả" : "Any"}</option>{offers.map((offer) => <option value={offer.offer_key} selected={filters.offer === offer.offer_key}>{vi ? offer.name_vi : offer.name_en}</option>)}</select></div>
-    <div class="crm-field"><label for="cohort">Cohort</label><select class="crm-select" id="cohort" name="cohort"><option value="">{vi ? "Tất cả" : "Any"}</option>{cohorts.map((key) => <option value={key} selected={filters.cohort === key}>{key}</option>)}</select></div>
-    <div class="crm-field"><label for="industry">{vi ? "Ngành" : "Industry"}</label><input class="crm-input" id="industry" name="industry" value={filters.industry} maxlength="120" /></div>
-    <div class="crm-field"><label for="region">{vi ? "Khu vực" : "Region"}</label><input class="crm-input" id="region" name="region" value={filters.region} maxlength="120" /></div>
-    {ctx.actor.manager && <div class="crm-field"><label for="owner">{vi ? "Người phụ trách" : "Owner"}</label><select class="crm-select" id="owner" name="owner"><option value="">{vi ? "Tất cả" : "Anyone"}</option><option value="unassigned" selected={filters.owner === "unassigned"}>{vi ? "Chưa phân công" : "Unassigned"}</option><option value="inactive" selected={filters.owner === "inactive"}>{vi ? "Người phụ trách không hoạt động" : "Inactive owner"}</option>{owners.map((owner) => <option value={owner.id} selected={filters.owner === owner.id}>{owner.label}</option>)}</select></div>}
-    <div class="crm-actions"><button class="crm-button secondary" type="submit">{vi ? "Lọc" : "Apply"}</button><a class="crm-link" href={`${base}/pipeline?playbook=${filters.playbook}`}>{vi ? "Xóa lọc" : "Clear"}</a></div>
-  </form>
-
-  {view === "list" && <section class="crm-sheet" aria-label={vi ? "Danh sách cơ hội" : "Opportunity list"} style="margin-top:18px">
-    {rows.length ? <ul class="crm-list">{rows.map((row) => <li class="crm-row">
-      <a class="crm-row-title" href={`${base}/${row.id}`}>{row.title}</a>
-      <span class="crm-row-side"><span class="crm-badge blue">{stageName(row.playbook_id, row.stage_id)}</span><span class:list={["crm-badge", outcomeTone[row.outcome]]}>{label(lang, "outcome", row.outcome)}</span>{row.needs_review ? <span class="crm-badge amber">{vi ? "Cần xem lại" : "Needs review"}</span> : null}</span>
-      <span class="crm-row-meta">
-        {row.account_name !== row.title && <span>{row.account_name}</span>}
-        <span>{label(lang, "relation", row.relation)}</span>
-        <span>{label(lang, "channel", row.source_channel)}</span>
-        <span>{vi ? "Bước tiếp theo" : "Next"}: {row.next_action || "—"} · {formatDate(row.next_action_due, lang)}</span>
-        <span class="crm-num">{vi ? "Giá trị HĐ mong đợi" : "Expected value"}: {formatVnd(row.estimated_value_vnd, vi)}</span>
-        <span class="crm-num">{vi ? "Tỉ lệ thành công" : "Win probability"}: {row.win_probability === null ? (vi ? "Chưa biết" : "Unknown") : `${row.win_probability}%`}</span>
-        {ctx.actor.manager && <span>{vi ? "Phụ trách" : "Owner"}: {row.owner_id ? `${ownerNames[row.owner_id]?.name ?? (row.owner_id === ctx.actor.id ? ctx.actor.name : (vi ? "Tài khoản không hoạt động" : "Inactive account"))}${ownerNames[row.owner_id] && !ownerNames[row.owner_id].active ? (vi ? " (không hoạt động)" : " (inactive)") : ""}` : (vi ? "Chưa phân công" : "Unassigned")}</span>}
-      </span>
-    </li>)}</ul> : <p class="crm-empty">{vi ? "Không có cơ hội khớp bộ lọc." : "No opportunities match these filters."}</p>}
-    {pages > 1 && <nav class="crm-pagination" aria-label={vi ? "Phân trang" : "Pagination"}>
-      <span class="crm-meta">{vi ? `Trang ${page} / ${pages}` : `Page ${page} of ${pages}`}</span>
-      <span class="crm-actions">{page > 1 && <a class="crm-button small secondary" href={query({ page: String(page - 1) })}>{vi ? "Trước" : "Previous"}</a>}{page < pages && <a class="crm-button small secondary" href={query({ page: String(page + 1) })}>{vi ? "Tiếp" : "Next"}</a>}</span>
-    </nav>}
-  </section>}
-
-  {view === "table" && <section aria-label={vi ? "Bảng cơ hội" : "Opportunity table"} style="margin-top:18px">
-    {rows.length ? <div class="crm-grid-table-wrap" tabindex="0" role="region" aria-label={vi ? "Bảng cơ hội, cuộn ngang được" : "Opportunity table, scrolls sideways"}>
-      <table class="crm-grid-table">
-        <thead><tr>
-          <th class="frozen frozen-1" scope="col">#</th><th class="frozen frozen-2" scope="col">{vi ? "Tên cơ hội" : "Opportunity"}</th>
-          <th scope="col">{vi ? "Công ty" : "Company"}</th><th scope="col">{vi ? "Giai đoạn" : "Stage"}</th><th scope="col" class="num">{vi ? "Giá trị HĐ mong đợi" : "Expected value"}</th>
-          <th scope="col" class="num">{vi ? "Tỉ lệ thành công" : "Win probability"}</th><th scope="col">{vi ? "Bước tiếp theo" : "Next step"}</th><th scope="col">{vi ? "Hạn" : "Due"}</th>
-          <th scope="col">{vi ? "Người phụ trách" : "Owner"}</th><th scope="col">{vi ? "Kênh" : "Channel"}</th>
-        </tr></thead>
-        <tbody>{rows.map((row, index) => { const editable = canEdit(row) && (row.outcome === "open" || row.outcome === "paused"); const cell = (field: string, value: string, attrs: Record<string, string>) => editable
-          ? <form class="crm-cell-form" method="post"><Hidden intent="inline" state={state} version={row.version} /><input type="hidden" name="opportunity_id" value={row.id} /><input type="hidden" name="field" value={field} />
-              <label class="crm-sr" for={`in-${field}-${row.id}`}>{`${row.title}: ${attrs.label}`}</label>
-              <input class="crm-input" id={`in-${field}-${row.id}`} name="value" value={state.intent === "inline" && state.values.opportunity_id === row.id && state.values.field === field ? state.values.value : value} type={attrs.type === "date" ? "date" : "text"} inputmode={attrs.inputmode as "numeric" | undefined} maxlength={attrs.maxlength ? Number(attrs.maxlength) : undefined} aria-invalid={cellError(row.id, field) ? "true" : undefined} />
-              <button class="crm-button small secondary" type="submit">{vi ? "Lưu" : "Save"}</button>
-              {cellError(row.id, field) && <span class="crm-error">{errorText(lang, cellError(row.id, field))}</span>}</form>
-          : <span>{value || "—"}</span>; return <tr>
-          <td class="frozen frozen-1 rowno">{(page - 1) * 50 + index + 1}</td>
-          <td class="frozen frozen-2"><a href={`${base}/${row.id}`}>{row.title}</a></td>
-          <td class="wrap">{row.account_name}</td>
-          <td><span class="crm-badge blue">{stageName(row.playbook_id, row.stage_id)}</span> <span class:list={["crm-badge", outcomeTone[row.outcome]]}>{label(lang, "outcome", row.outcome)}</span></td>
-          <td class="num">{editable ? cell("estimated_value_vnd", row.estimated_value_vnd === null ? "" : String(row.estimated_value_vnd), { label: vi ? "Giá trị (VND)" : "Value (VND)", inputmode: "numeric", maxlength: "20" }) : formatVnd(row.estimated_value_vnd, vi)}</td>
-          <td class="num">{editable ? cell("win_probability", row.win_probability === null ? "" : String(row.win_probability), { label: vi ? "Tỉ lệ %" : "Probability %", inputmode: "numeric", maxlength: "5" }) : (row.win_probability === null ? (vi ? "Chưa biết" : "Unknown") : `${row.win_probability}%`)}</td>
-          <td class="wrap">{editable ? cell("next_action", row.next_action, { label: vi ? "Bước tiếp theo" : "Next step", maxlength: "500" }) : (row.next_action || "—")}</td>
-          <td class:list={{ warn: !!row.next_action_due && row.next_action_due < today && row.outcome === "open" }}>{editable ? cell("next_action_due", row.next_action_due ?? "", { label: vi ? "Hạn" : "Due", type: "date" }) : formatDate(row.next_action_due, lang)}</td>
-          <td>{ownerLabel(row.owner_id)}</td><td>{label(lang, "channel", row.source_channel)}</td>
-        </tr>; })}</tbody>
-      </table>
-    </div> : <p class="crm-empty crm-sheet">{vi ? "Không có cơ hội khớp bộ lọc." : "No opportunities match these filters."}</p>}
-    <p class="crm-table-note">{vi ? "Cột số dòng và Tên cơ hội cố định khi cuộn ngang. Sửa giá trị, tỉ lệ, bước tiếp theo hoặc hạn ngay trong bảng; mỗi ô lưu riêng và không ghi đè thay đổi mới hơn của người khác." : "The row number and Opportunity stay in place when scrolling sideways. Edit value, probability, next step or due date in place; each cell saves on its own and never overwrites someone else's newer change."}</p>
-    {pages > 1 && <nav class="crm-pagination" aria-label={vi ? "Phân trang" : "Pagination"}>
-      <span class="crm-meta">{vi ? `Trang ${page} / ${pages}` : `Page ${page} of ${pages}`}</span>
-      <span class="crm-actions">{page > 1 && <a class="crm-button small secondary" href={query({ page: String(page - 1) })}>{vi ? "Trước" : "Previous"}</a>}{page < pages && <a class="crm-button small secondary" href={query({ page: String(page + 1) })}>{vi ? "Tiếp" : "Next"}</a>}</span>
-    </nav>}
-  </section>}
-
-  {view === "board" && playbook && <section class="crm-board-wrap" data-board-wrap aria-label={vi ? "Kanban cơ hội" : "Opportunity board"} style="margin-top:12px"
-      data-drag-hint={vi ? "Đang kéo {name}. Thả vào một cột để đổi giai đoạn, hoặc vào vùng Thắng / Thua ở cuối. Esc để hủy." : "Dragging {name}. Drop on a column to change stage, or on Won / Lost below. Esc cancels."}
-      data-moving-hint={vi ? "Đang chuyển {name}…" : "Moving {name}…"} data-cancel-hint={vi ? "Đã hủy kéo." : "Drag cancelled."}>
-    <p class="crm-help crm-drag-status" data-drag-status role="status" aria-live="polite">{vi ? "Mỗi thẻ có ô \"Chuyển sang\" để đổi giai đoạn bằng bàn phím; đóng cơ hội (thắng/thua) trên trang cơ hội." : "Every card has a \"Move to\" control for keyboard use; close (won/lost) from the opportunity page."}</p>
-    <div class="crm-board">
-      {openStages.map((stage) => { const cards = board.filter((row) => row.stage_id === stage.id); const totals = sum(cards); return <section class:list={["crm-col", { terminal: stage.outcome === "paused" }]} data-column={stage.id} aria-labelledby={`bc-${stage.id}`}>
-        <div class="crm-col-head"><h2 id={`bc-${stage.id}`}>{vi ? stage.vi : stage.en} ({cards.length})</h2><p>{totals.known ? formatVnd(totals.total, vi) : (vi ? "Chưa biết giá trị" : "No known value")}{totals.known && totals.known < cards.length ? (vi ? ` · ${cards.length - totals.known} chưa biết` : ` · ${cards.length - totals.known} unknown`) : ""}</p></div>
-        {cards.map((row) => { const editable = canEdit(row); const inStage = days(row.stage_since); return <article class="crm-card" data-card={editable ? row.id : undefined} data-name={row.title} data-current={row.stage_id}
-            data-zone-won={editable ? `${base}/${row.id}?close=won#close` : undefined} data-zone-lost={editable ? `${base}/${row.id}?close=lost#close` : undefined}>
-          <a class="crm-card-title" href={`${base}/${row.id}`}>{row.title}</a>
-          <dl>
-            {row.account_name !== row.title && <><dt>{vi ? "Công ty" : "Company"}</dt><dd>{row.account_name}</dd></>}
-            <dt>{vi ? "Giá trị" : "Value"}</dt><dd>{formatVnd(row.estimated_value_vnd, vi)}</dd>
-            <dt>{vi ? "Tỉ lệ" : "Probability"}</dt><dd>{row.win_probability === null ? (vi ? "Chưa biết" : "Unknown") : `${row.win_probability}%`}</dd>
-            <dt>{vi ? "Hạn bước tiếp" : "Next due"}</dt><dd>{formatDate(row.next_action_due, lang)}</dd>
-            <dt>{vi ? "Phụ trách" : "Owner"}</dt><dd>{ownerLabel(row.owner_id)}</dd>
-            {inStage !== null && <><dt>{vi ? "Ở giai đoạn" : "In stage"}</dt><dd>{vi ? `${inStage} ngày` : `${inStage} days`}</dd></>}
-          </dl>
-          {row.overdue_tasks > 0 && <p class="crm-card-alert">{vi ? `${row.overdue_tasks} công việc quá hạn` : `${row.overdue_tasks} overdue task(s)`}</p>}
-          {row.open_tasks === 0 && !row.next_action_due && <p class="crm-card-alert">{vi ? "Không có hoạt động sắp tới" : "No upcoming activity"}</p>}
-          {editable && <form class="crm-move" method="post" data-move>
-            <Hidden intent="stage" state={state} version={row.version} /><input type="hidden" name="opportunity_id" value={row.id} />
-            <label class="crm-sr" for={`mv-${row.id}`}>{vi ? `Chuyển ${row.title} sang giai đoạn` : `Move ${row.title} to stage`}</label>
-            <select class="crm-select" id={`mv-${row.id}`} name="to_stage" data-move-to>{openStages.map((item) => <option value={item.id} selected={item.id === row.stage_id}>{vi ? item.vi : item.en}</option>)}</select>
-            <button class="crm-button small secondary" type="submit">{vi ? "Chuyển" : "Move"}</button>
-            <a class="crm-link" href={`${base}/${row.id}?close=won#close`}>{vi ? "Đóng" : "Close"}</a>
-          </form>}
-        </article>; })}
-        {!cards.length && <p class="crm-empty crm-meta">{vi ? "Không có cơ hội." : "No opportunities."}</p>}
-      </section>; })}
-    </div>
-    <div class="crm-dropzones" aria-hidden="true">
-      {closingStages.some((stage) => stage.outcome === "won") && <div class="crm-dropzone won" data-zone="won">{closingStages.filter((stage) => stage.outcome === "won").map((stage) => vi ? stage.vi : stage.en).join(" / ")} · {vi ? "Thắng" : "Won"}</div>}
-      {closingStages.some((stage) => stage.outcome === "lost") && <div class="crm-dropzone lost" data-zone="lost">{closingStages.filter((stage) => stage.outcome === "lost").map((stage) => vi ? stage.vi : stage.en).join(" / ")} · {vi ? "Thua, cần lý do" : "Lost, reason required"}</div>}
-    </div>
-  </section>}
+  <Sheet id="new-opp" title={vi ? "Tạo cơ hội" : "New opportunity"} vi={vi} open={sheetOpen} closeHref={closeHref} action={`${path({ new: "1" })}#new-opp`} width="760px">
+    {sheetOpen ? <NewOpportunityForm ctx={ctx} state={state} playbooks={activePlaybooks} owners={owners} customers={customers} /> : <p><a class="ws-btn primary" href={`${path({ new: "1" })}#new-opp`}>{vi ? "Mở biểu mẫu tạo cơ hội" : "Open the new opportunity form"}</a></p>}
+    {sheetOpen && <Fragment slot="foot"><a class="ws-btn" href={closeHref}>{vi ? "Hủy" : "Cancel"}</a><button class="ws-btn primary" type="submit">{vi ? "Lưu" : "Save"}</button></Fragment>}
+  </Sheet>
 </CrmShell>
 <script>import "../../scripts/crm-board";</script>

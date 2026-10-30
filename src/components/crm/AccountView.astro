@@ -1,110 +1,164 @@
 ---
+// AccountRecord board: highlights header with a button group, Related/Details
+// tabs (contacts and an opportunities table as related lists) and a side
+// column with upcoming next steps. Edits open in sheets; no client script.
 import CrmShell from "../../layouts/CrmShell.astro";
 import Field from "./Field.astro";
 import FormNotices from "./FormNotices.astro";
-import Crumbs from "./Crumbs.astro";
-import "../../styles/crm-sales.css";
 import Hidden from "./Hidden.astro";
-import { formatDate, label, options } from "../../lib/crm/i18n";
+import RecordHeader from "../workspace/ui/RecordHeader.astro";
+import ButtonGroup from "../workspace/ui/ButtonGroup.astro";
+import RecordTabs from "../workspace/ui/RecordTabs.astro";
+import RelatedList from "../workspace/ui/RelatedList.astro";
+import Sheet from "../workspace/ui/Sheet.astro";
+import { activityKind, activityName, activitySummary } from "../../lib/crm/activity";
+import { monthGroups } from "../../lib/crm/feed";
+import Feed from "../workspace/ui/Feed.astro";
+import DataTable from "../workspace/ui/DataTable.astro";
+import { formatDate, formatDateTime, label, options } from "../../lib/crm/i18n";
+import { formatVnd } from "../../lib/crm/money";
 import { errorFor, valueFor } from "../../lib/crm/page";
 import type { AccountProps } from "../../lib/crm/routes/account";
+import "../../styles/crm-sales.css";
+import "../../styles/record.css";
 
 type Props = AccountProps;
-const { ctx, state, account, contacts, editable, opportunities, canEdit, duplicates, playbookNames, playbooks, owners, names } = Astro.props;
+const { ctx, state, account, contacts, editable, opportunities, canEdit, duplicates, playbookNames, playbooks, owners, names, stageNames, events } = Astro.props;
 const { lang, vi, base } = ctx;
+const here = `${base}/accounts/${account.id}`;
+const tab = Astro.url.searchParams.get("tab") === "details" ? "details" : "related";
 const v = (intent: string, name: string, fallback: string | number | null = "") => valueFor(state, intent, name, fallback);
 const e = (intent: string, name: string) => errorFor(state, intent, name);
 const editing = (id: string) => state.intent === "contact" && state.values.contact_id === id;
+const failed = Object.keys(state.errors).length > 0 || state.conflict || state.serverError;
+const open = (intent: string) => state.intent === intent && failed;
+const contactOpen = (id: string) => failed && (editing(id) || ((state.intent === "contact_owner" || state.intent === "dnc") && state.values.contact_id === id));
 const person = (id: string | null) => id ? (names[id]?.name ?? (id === ctx.actor.id ? ctx.actor.name : (vi ? "Tài khoản không hoạt động" : "Inactive account"))) : (vi ? "Chưa có người quản lý" : "Nobody yet");
 const ownerChoices = owners.map((owner) => ({ value: owner.id, label: owner.label }));
 const reachable = account.do_not_contact ? [] : contacts.filter((contact) => !contact.do_not_contact);
+const openOpps = opportunities.filter((opp) => opp.outcome === "open");
+const knownValue = openOpps.reduce((sum, opp) => sum + (opp.estimated_value_vnd ?? 0), 0);
+const unknownCount = openOpps.filter((opp) => opp.estimated_value_vnd === null).length;
+const openValue = openOpps.length === 0 ? "—" : unknownCount === openOpps.length ? (vi ? "Chưa biết" : "Unknown") : `${formatVnd(knownValue, vi)}${unknownCount ? (vi ? ` + ${unknownCount} chưa biết` : ` + ${unknownCount} unknown`) : ""}`;
+const upcoming = openOpps.filter((opp) => opp.next_action).sort((a, b) => (a.next_action_due ?? "9999").localeCompare(b.next_action_due ?? "9999")).slice(0, 8)
+  .map((opp) => ({ title: opp.next_action, meta: `${vi ? "Cơ hội" : "Opportunity"}: ${opp.title}`, when: opp.next_action_due ? formatDate(opp.next_action_due, lang) : (vi ? "Chưa có hạn" : "No due date"), kind: "task" as const }));
+const oppTitle = Object.fromEntries(opportunities.map((opp) => [opp.id, opp.title]));
+const historyGroups = monthGroups(events, vi).map((group) => ({ label: group.label, items: group.items.map((event) => {
+  const text = activitySummary(event.kind, event.body, vi, playbookNames);
+  return { title: event.kind === "note" && text ? text : activityName(event.kind, vi), meta: [`${vi ? "Cơ hội" : "Opportunity"}: ${oppTitle[event.opportunity_id] ?? "—"}`, event.kind === "note" ? "" : text, event.actor_name].filter(Boolean).join(" · "), when: formatDateTime(event.created_at, lang), kind: activityKind(event.kind) };
+}) }));
 const fieldLabels: Record<string, string> = vi
   ? { contact_id: "Người liên hệ", playbook_key: "Quy trình bán", source_channel: "Kênh", owner_id: "Người phụ trách", name: "Tên", phone: "Điện thoại", email: "Email", consent_evidence: "Bằng chứng đồng ý", dnc_reason: "Lý do" }
   : { contact_id: "Contact", playbook_key: "Sales playbook", source_channel: "Channel", owner_id: "Owner", name: "Name", phone: "Phone", email: "Email", consent_evidence: "Consent evidence", dnc_reason: "Reason" };
 ---
 <CrmShell title={account.name} lang={lang} actor={ctx.actor} current="companies">
-  <Crumbs vi={vi} items={[{ label: "CRM", href: base }, { label: vi ? "Công ty" : "Companies", href: `${base}/accounts` }, { label: account.name }]} />
-  <div class="crm-head"><div>
-    <h1 class="crm-h1">{account.name}</h1>
-    <p class="crm-lede">{[account.industry, account.region, account.address].filter(Boolean).join(" · ") || (vi ? "Chưa có ngành hoặc khu vực." : "No industry or area yet.")}</p>
-    <p class="crm-meta">{vi ? "Người quản lý" : "Managed by"}: <strong>{person(account.owner_id)}</strong></p>
-  </div>{account.do_not_contact ? <span class="crm-badge red">{vi ? "Không liên hệ" : "Do not contact"}</span> : null}</div>
-  <FormNotices state={state} lang={lang} saved={Astro.url.searchParams.get("saved")} fieldLabels={fieldLabels} />
-  <div class="crm-grid two">
-    <div>
-      <section class="crm-sheet" aria-labelledby="opps-h">
-        <h2 class="crm-h2" id="opps-h">{vi ? "Cơ hội bạn được xem" : "Opportunities you can view"}</h2>
-        <p class="crm-help">{vi ? "Một doanh nghiệp có thể có nhiều cơ hội và người phụ trách khác nhau; bạn chỉ thấy cơ hội của mình." : "A business can have several opportunities and owners; you see only the ones you may open."}</p>
-        {opportunities.length === 0 && <p class="crm-empty">{vi ? "Chưa có cơ hội nào bạn được xem." : "No opportunities you can view yet."}</p>}
-        <ul class="crm-list">{opportunities.map((opp) => <li class="crm-row"><a class="crm-row-title" href={`${base}/${opp.id}`}>{opp.title}</a><span class="crm-row-side"><span class="crm-badge">{label(lang, "relation", opp.relation)}</span><span class="crm-badge">{label(lang, "outcome", opp.outcome)}</span></span><span class="crm-row-meta"><span>{playbookNames[opp.playbook_id]}</span><span>{formatDate(opp.created_at, lang)}</span><span>{vi ? "Phụ trách" : "Owner"}: {opp.owner_id ? person(opp.owner_id) : (vi ? "Chưa phân công" : "Unassigned")}</span>{opp.primary_contact_id && <span>{vi ? "Liên hệ" : "Contact"}: {contacts.find((contact) => contact.id === opp.primary_contact_id)?.name ?? "—"}</span>}</span></li>)}</ul>
-      </section>
-      <section class="crm-sheet" id="contacts" aria-labelledby="contacts-h">
-        <h2 class="crm-h2" id="contacts-h">{vi ? "Người liên hệ và quyền liên hệ" : "Contacts and contact permission"}</h2>
-        <p class="crm-help">{vi ? "Yêu cầu không liên hệ áp dụng cho mọi kênh và mọi quy trình bán; không đổi kênh để tiếp cận lại. Ai cũng có thể đặt; chỉ admin gỡ, kèm bằng chứng." : "Do-not-contact applies across every channel and playbook; never switch channel to reach out again. Anyone can set it; only an admin can lift it, with evidence."}</p>
-        {!ctx.actor.manager && <p class="crm-help">{vi ? "Bạn chỉ thấy người liên hệ mình quản lý, của công ty mình quản lý, hoặc gắn với cơ hội của mình." : "You see the contacts you manage, those at companies you manage, and those on your opportunities."}</p>}
-        {contacts.length === 0 && <p class="crm-empty">{vi ? "Chưa có người liên hệ nào bạn được xem." : "No contacts you can see yet."}</p>}
-        {contacts.map((contact) => <article class="crm-sheet flat" style="margin-top:12px" aria-label={contact.name}>
-          <p style="margin:0" id={`contact-${contact.id}`}><a class="crm-link" href={`${base}/contacts/${contact.id}`}><strong>{contact.name}</strong></a> · {label(lang, "role", contact.role)} {contact.do_not_contact ? <span class="crm-badge red">{vi ? "Không liên hệ" : "Do not contact"}</span> : <span class="crm-badge">{label(lang, "consent", contact.consent_status)}</span>}</p>
-          <p class="crm-meta" style="margin:4px 0 0">{[contact.phone, contact.zalo && `Zalo ${contact.zalo}`, contact.email].filter(Boolean).join(" · ")}{contact.contact_basis && ` · ${contact.contact_basis}`}</p>
-          <p class="crm-meta" style="margin:4px 0 0">{vi ? "Quản lý" : "Managed by"}: {person(contact.owner_id)}</p>
-          {contact.consent_evidence && <p class="crm-help">{vi ? "Bằng chứng đồng ý" : "Consent evidence"}: {contact.consent_evidence}</p>}
-          {contact.do_not_contact ? <p class="crm-help">{contact.dnc_reason} · {formatDate(contact.dnc_recorded_at, lang)}</p> : null}
-          {ctx.actor.manager && <form class="crm-form" method="post" action="#contacts" style="margin-top:8px">
-            <Hidden intent="contact_owner" state={state} version={contact.version} /><input type="hidden" name="contact_id" value={contact.id} />
-            <Field name="owner_id" id={`co-${contact.id}`} type="select" label={vi ? "Giao người quản lý" : "Managed by"} lang={lang} value={contact.owner_id ?? ""} error={state.intent === "contact_owner" && state.values.contact_id === contact.id ? state.errors.owner_id : undefined} options={[...(contact.owner_id ? [] : [{ value: "", label: vi ? "Chọn người" : "Choose" }]), ...ownerChoices]} />
-            <div class="crm-actions"><button class="crm-button secondary small" type="submit">{vi ? "Giao" : "Assign"}</button></div>
-          </form>}
-          {(editable.has(contact.id) || !contact.do_not_contact || ctx.actor.manager) && <details class="crm-disclosure" open={editing(contact.id)}>
-            <summary>{editable.has(contact.id) ? (vi ? "Sửa" : "Edit") : (vi ? "Không liên hệ" : "Do not contact")}</summary>
-            {editable.has(contact.id) && <form class="crm-form" method="post" action="#contacts">
-              <Hidden intent="contact" state={state} version={contact.version} /><input type="hidden" name="contact_id" value={contact.id} />
-              <div class="crm-form-grid">
-                <Field name="name" id={`n-${contact.id}`} label={vi ? "Tên" : "Name"} lang={lang} value={editing(contact.id) ? state.values.name : contact.name} error={editing(contact.id) ? state.errors.name : undefined} required maxlength={160} />
-                <Field name="role" id={`r-${contact.id}`} type="select" label={vi ? "Vai trò" : "Role"} lang={lang} value={editing(contact.id) ? state.values.role : contact.role} options={options(lang, "role")} />
-                <Field name="phone" id={`p-${contact.id}`} type="tel" label={vi ? "Điện thoại" : "Phone"} lang={lang} value={editing(contact.id) ? state.values.phone : contact.phone} error={editing(contact.id) ? state.errors.phone : undefined} maxlength={40} />
-                <Field name="zalo" id={`z-${contact.id}`} label="Zalo" lang={lang} value={editing(contact.id) ? state.values.zalo : contact.zalo} maxlength={80} />
-                <Field name="email" id={`e-${contact.id}`} type="email" label="Email" lang={lang} value={editing(contact.id) ? state.values.email : contact.email} error={editing(contact.id) ? state.errors.email : undefined} maxlength={254} />
-                <Field name="preferred_channel" id={`pc-${contact.id}`} type="select" label={vi ? "Kênh ưu tiên" : "Preferred channel"} lang={lang} value={editing(contact.id) ? state.values.preferred_channel : contact.preferred_channel} options={options(lang, "contactChannel")} />
-                <Field name="contact_basis" id={`b-${contact.id}`} label={vi ? "Căn cứ liên hệ" : "Basis for contact"} lang={lang} value={editing(contact.id) ? state.values.contact_basis : contact.contact_basis} maxlength={500} wide />
-                <Field name="consent_status" id={`cs-${contact.id}`} type="select" label={vi ? "Đồng ý liên hệ" : "Contact consent"} lang={lang} value={editing(contact.id) ? state.values.consent_status : contact.consent_status} options={options(lang, "consent")} />
-                <Field name="consent_evidence" id={`ce-${contact.id}`} label={vi ? "Bằng chứng đồng ý" : "Consent evidence"} lang={lang} value={editing(contact.id) ? state.values.consent_evidence : contact.consent_evidence} error={editing(contact.id) ? state.errors.consent_evidence : undefined} maxlength={500} />
-              </div>
-              <div class="crm-actions"><button class="crm-button secondary small" type="submit">{vi ? "Lưu" : "Save"}</button></div>
-            </form>}
-            {(!contact.do_not_contact || ctx.actor.manager) && <form class="crm-form" method="post" action="#contacts" style="margin-top:12px">
-              <Hidden intent="dnc" state={state} /><input type="hidden" name="contact_id" value={contact.id} /><input type="hidden" name="do_not_contact" value={contact.do_not_contact ? "0" : "1"} />
-              <Field name="dnc_reason" id={`dnc-${contact.id}`} label={contact.do_not_contact ? (vi ? "Bằng chứng để gỡ (bắt buộc)" : "Evidence for lifting (required)") : (vi ? "Lý do / nguồn yêu cầu (bắt buộc)" : "Reason / source of the request (required)")} lang={lang} value="" error={state.intent === "dnc" && state.values.contact_id === contact.id ? state.errors.dnc_reason : undefined} required maxlength={500} />
-              <div class="crm-actions"><button class:list={["crm-button small", contact.do_not_contact ? "secondary" : "danger"]} type="submit">{contact.do_not_contact ? (vi ? "Gỡ không liên hệ" : "Lift do-not-contact") : (vi ? "Đặt không liên hệ" : "Set do-not-contact")}</button></div>
-            </form>}
-          </details>}
-        </article>)}
-        {canEdit && <details class="crm-disclosure" open={state.intent === "contact" && !state.values.contact_id}>
-          <summary>{vi ? "Thêm người liên hệ" : "Add a contact"}</summary>
-          <form class="crm-form" method="post" action="#contacts">
-            <Hidden intent="contact" state={state} /><input type="hidden" name="contact_id" value="" />
-            <div class="crm-form-grid">
-              <Field name="name" id="nc-name" label={vi ? "Tên" : "Name"} lang={lang} value={state.values.contact_id === "" ? v("contact", "name") : ""} error={state.values.contact_id === "" ? e("contact", "name") : undefined} required maxlength={160} />
-              <Field name="role" id="nc-role" type="select" label={vi ? "Vai trò" : "Role"} lang={lang} value="decision_maker" options={options(lang, "role")} />
-              <Field name="phone" id="nc-phone" type="tel" label={vi ? "Điện thoại" : "Phone"} lang={lang} value={state.values.contact_id === "" ? v("contact", "phone") : ""} error={state.values.contact_id === "" ? e("contact", "phone") : undefined} maxlength={40} />
-              <Field name="email" id="nc-email" type="email" label="Email" lang={lang} value={state.values.contact_id === "" ? v("contact", "email") : ""} error={state.values.contact_id === "" ? e("contact", "email") : undefined} maxlength={254} />
-              <Field name="zalo" id="nc-zalo" label="Zalo" lang={lang} value="" maxlength={80} />
-              <Field name="preferred_channel" id="nc-pc" type="select" label={vi ? "Kênh ưu tiên" : "Preferred channel"} lang={lang} value="" options={options(lang, "contactChannel")} />
-              <Field name="contact_basis" id="nc-basis" label={vi ? "Căn cứ liên hệ" : "Basis for contact"} lang={lang} value="" maxlength={500} wide />
-              <Field name="consent_status" id="nc-cs" type="select" label={vi ? "Đồng ý liên hệ" : "Contact consent"} lang={lang} value="unknown" options={options(lang, "consent")} />
-              <Field name="consent_evidence" id="nc-ce" label={vi ? "Bằng chứng đồng ý" : "Consent evidence"} lang={lang} value="" error={state.values.contact_id === "" ? e("contact", "consent_evidence") : undefined} maxlength={500} />
-              {ctx.actor.manager && <Field name="owner_id" id="nc-owner" type="select" label={vi ? "Người quản lý" : "Managed by"} lang={lang} value={account.owner_id ?? ctx.actor.id} error={state.values.contact_id === "" ? e("contact", "owner_id") : undefined} options={ownerChoices} />}
-            </div>
-            <div class="crm-actions"><button class="crm-button secondary" type="submit">{vi ? "Thêm" : "Add"}</button></div>
-          </form>
-        </details>}
-      </section>
+  {canEdit && <Sheet id="sheet-account" vi={vi} title={vi ? "Sửa thông tin công ty" : "Edit company"} open={open("account")} closeHref={here} action={here}>
+    
+        <Hidden intent="account" state={state} version={account.version} />
+        <Field name="name" id="a-name" label={vi ? "Tên" : "Name"} lang={lang} value={v("account", "name", account.name)} error={e("account", "name")} required maxlength={160} />
+        <div class="crm-form-grid">
+          <Field name="industry" id="a-ind" label={vi ? "Ngành" : "Industry"} lang={lang} value={v("account", "industry", account.industry)} maxlength={120} />
+          <Field name="region" id="a-reg" label={vi ? "Khu vực" : "Area"} lang={lang} value={v("account", "region", account.region)} maxlength={120} />
+        </div>
+        <Field name="address" id="a-addr" label={vi ? "Địa chỉ" : "Address"} lang={lang} value={v("account", "address", account.address)} maxlength={300} />
+        <Field name="notes" id="a-notes" type="textarea" label={vi ? "Ghi chú" : "Notes"} lang={lang} value={v("account", "notes", account.notes)} maxlength={3000} />
+      <Fragment slot="foot"><a class="ws-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class="ws-btn primary" type="submit">{vi ? "Lưu" : "Save"}</button></Fragment>
+  </Sheet>}
+
+  <div class="rec">
+    <RecordHeader vi={vi} icon="companies" tone="company" object={vi ? "Công ty" : "Company"} title={account.name}
+      crumbs={[{ label: "CRM", href: base }, { label: vi ? "Công ty" : "Companies", href: `${base}/accounts` }, { label: account.name }]}
+      highlights={[
+        { label: vi ? "Ngành" : "Industry", value: account.industry || "—" },
+        { label: vi ? "Khu vực" : "Area", value: account.region || "—" },
+        { label: vi ? "Địa chỉ" : "Address", value: account.address || "—" },
+        { label: vi ? "Người quản lý" : "Managed by", value: person(account.owner_id), tone: (!account.owner_id) ? "warn" : undefined },
+        { label: vi ? "Giá trị cơ hội đang mở" : "Open opportunity value", value: openValue, tone: (openOpps.length > 0 && unknownCount === openOpps.length) ? "warn" : undefined },
+      ]}>
+      {account.do_not_contact ? <span slot="sub" class="ws-badge bad">{vi ? "Không liên hệ" : "Do not contact"}</span> : null}
+      <ButtonGroup slot="actions" label={vi ? "Thao tác" : "Actions"} more={canEdit && (!account.do_not_contact || ctx.actor.manager) ? [{ label: account.do_not_contact ? (vi ? "Gỡ không liên hệ (admin)" : "Lift do-not-contact (admin)") : (vi ? "Không liên hệ doanh nghiệp này" : "Do not contact this business"), href: "#sheet-dnc", danger: !account.do_not_contact }] : []}>
+        {canEdit && <a class="ws-btn" href="#sheet-contact-new">{vi ? "Tạo liên hệ" : "New contact"}</a>}
+        {canEdit && <a class="ws-btn" href="#sheet-opportunity">{vi ? "Tạo cơ hội" : "New opportunity"}</a>}
+        {canEdit && <a class="ws-btn" href="#sheet-account">{vi ? "Sửa" : "Edit"}</a>}
+        {ctx.actor.manager && <a class="ws-btn" href="#sheet-owner">{vi ? "Đổi người quản lý" : "Change manager"}</a>}
+      </ButtonGroup>
+    </RecordHeader>
+
+    <FormNotices state={state} lang={lang} saved={Astro.url.searchParams.get("saved")} fieldLabels={fieldLabels} />
+    {account.do_not_contact ? <div class="crm-notice bad" role="status">{vi ? "Doanh nghiệp yêu cầu không liên hệ. Áp dụng cho mọi kênh và mọi quy trình bán." : "This business asked not to be contacted. It applies to every channel and playbook."}{account.dnc_reason ? ` ${account.dnc_reason}` : ""}</div> : null}
+
+    <div class="rec-split">
+      <div class="rec-main">
+        <section class="ws-sheet-panel" id="related" aria-label={vi ? "Liên quan và chi tiết" : "Related and details"}>
+          <RecordTabs label={vi ? "Phần của công ty" : "Company sections"} current={tab} tabs={[{ key: "related", label: vi ? "Liên quan" : "Related", href: `${here}#related` }, { key: "details", label: vi ? "Chi tiết" : "Details", href: `${here}?tab=details#related` }]} />
+          {tab === "details" ? <div class="rec-body">
+            <h3 class="rec-sec">{vi ? "Thông tin doanh nghiệp" : "Business details"}</h3>
+            <dl class="rec-fields">
+              <div><dt>{vi ? "Tên" : "Name"}</dt><dd>{account.name}</dd></div>
+              <div><dt>{vi ? "Ngành" : "Industry"}</dt><dd>{account.industry || "—"}</dd></div>
+              <div><dt>{vi ? "Khu vực" : "Area"}</dt><dd>{account.region || "—"}</dd></div>
+              <div><dt>{vi ? "Địa chỉ" : "Address"}</dt><dd>{account.address || "—"}</dd></div>
+              <div><dt>{vi ? "Người quản lý" : "Managed by"}</dt><dd>{person(account.owner_id)}</dd></div>
+              <div><dt>{vi ? "Không liên hệ" : "Do not contact"}</dt><dd>{account.do_not_contact ? (vi ? "Có" : "Yes") : (vi ? "Không" : "No")}</dd></div>
+            </dl>
+            <dl class="rec-fields one"><div><dt>{vi ? "Ghi chú" : "Notes"}</dt><dd>{account.notes || "—"}</dd></div></dl>
+            <h3 class="rec-sec">{vi ? "Thông tin hệ thống" : "System information"}</h3>
+            <dl class="rec-fields">
+              <div><dt>{vi ? "Tạo lúc" : "Created"}</dt><dd>{formatDateTime(account.created_at, lang)}</dd></div>
+              <div><dt>{vi ? "Sửa lần cuối" : "Last modified"}</dt><dd>{formatDateTime(account.updated_at, lang)}</dd></div>
+            </dl>
+          </div> : <div class="rec-body">
+            <RelatedList wide title={vi ? "Liên hệ" : "Contacts"} vi={vi} icon="contacts" tone="contact" count={contacts.length} id="contacts" href={canEdit ? "#sheet-contact-new" : undefined} hrefLabel={vi ? "Tạo" : "New"}>
+                            {contacts.length ? <div class="rec-rl-grid" style="gap:0">{contacts.map((contact) => <div class="ws-rl-row" id={`contact-${contact.id}`}>
+                <a href={`${base}/contacts/${contact.id}`}>{contact.name}</a>
+                <div class="rec-rl-f"><span>{vi ? "Vai trò" : "Role"}</span><span>{label(lang, "role", contact.role)}</span></div>
+                <div class="rec-rl-f"><span>{vi ? "Liên hệ qua" : "Reach"}</span><span>{[contact.phone, contact.zalo && `Zalo ${contact.zalo}`, contact.email].filter(Boolean).join(" · ") || "—"}</span></div>
+                <div class="rec-rl-f"><span>{vi ? "Đồng ý" : "Consent"}</span><span>{contact.do_not_contact ? <span class="ws-badge bad">{vi ? "Không liên hệ" : "Do not contact"}</span> : label(lang, "consent", contact.consent_status)}</span></div>
+                <div class="rec-rl-f"><span>{vi ? "Quản lý" : "Managed by"}</span><span>{person(contact.owner_id)}</span></div>
+                {(editable.has(contact.id) || !contact.do_not_contact || ctx.actor.manager) && <a class="ws-btn sm" style="align-self:flex-start;margin-top:4px" href={`#sheet-c-${contact.id}`}>{editable.has(contact.id) ? (vi ? "Sửa" : "Edit") : (vi ? "Thao tác" : "Actions")}</a>}
+              </div>)}</div> : <p class="ws-rl-empty">{vi ? "Chưa có người liên hệ nào bạn được xem." : "No contacts you can see yet."}</p>}
+            </RelatedList>
+            <RelatedList wide title={vi ? "Cơ hội" : "Opportunities"} vi={vi} icon="pipeline" tone="opportunity" count={opportunities.length} href={canEdit ? "#sheet-opportunity" : undefined} hrefLabel={vi ? "Tạo" : "New"}>
+                            {opportunities.length ? <DataTable label={vi ? "Cơ hội của công ty" : "Company opportunities"} vi={vi} frozen={1} widths={["16rem"]} minWidth="760px" frozenNames={vi ? "Tên cơ hội" : "Name"}>
+                <thead><tr><th scope="col">{vi ? "Tên cơ hội" : "Name"}</th><th scope="col">{vi ? "Giai đoạn" : "Stage"}</th><th scope="col" class="num">{vi ? "Giá trị" : "Value"}</th><th scope="col">{vi ? "Bước tiếp theo" : "Next step"}</th><th scope="col">{vi ? "Người phụ trách" : "Owner"}</th><th scope="col">Playbook</th></tr></thead>
+                <tbody>{opportunities.map((opp) => <tr>
+                  <th scope="row"><a href={`${base}/${opp.id}`}>{opp.title}</a></th>
+                  <td>{opp.outcome === "open" ? (stageNames[`${opp.playbook_id}:${opp.stage_id}`] ?? opp.stage_id) : <span class:list={["ws-badge", opp.outcome === "won" ? "ok" : opp.outcome === "lost" ? "bad" : "warn"]}>{label(lang, "outcome", opp.outcome)}</span>}</td>
+                  <td class="num">{opp.estimated_value_vnd === null ? <span class="rec-unknown">{vi ? "Chưa biết" : "Unknown"}</span> : formatVnd(opp.estimated_value_vnd, vi)}</td>
+                  <td>{opp.next_action_due ? formatDate(opp.next_action_due, lang) : "—"}</td>
+                  <td>{opp.owner_id ? person(opp.owner_id) : (vi ? "Chưa phân công" : "Unassigned")}</td>
+                  <td>{playbookNames[opp.playbook_id]}</td>
+                </tr>)}</tbody>
+              </DataTable> : <p class="ws-rl-empty">{vi ? "Chưa có cơ hội nào bạn được xem. Bạn chỉ thấy cơ hội mình được mở." : "No opportunities you can view yet. You see only the ones you may open."}</p>}
+            </RelatedList>
+          </div>}
+        </section>
+      </div>
+      <aside class="rec-side" aria-label={vi ? "Hoạt động" : "Activity"}>
+        <section class="ws-sheet-panel" aria-labelledby="act-h">
+          <div class="rec-head"><h2 id="act-h">{vi ? "Hoạt động" : "Activity"}</h2></div>
+          <div class="rec-body">
+            {canEdit && <div class="ws-bg" role="group" aria-label={vi ? "Thao tác" : "Actions"}><a class="ws-btn sm" href="#sheet-opportunity">{vi ? "Tạo cơ hội" : "New opportunity"}</a><a class="ws-btn sm" href="#sheet-contact-new">{vi ? "Tạo liên hệ" : "New contact"}</a><a class="ws-btn sm" href="#sheet-account">{vi ? "Sửa ghi chú" : "Edit notes"}</a></div>}
+            <p class="rec-feed-h"><span>{vi ? "Sắp tới & quá hạn" : "Upcoming and overdue"}</span></p>
+            <Feed items={upcoming} empty={vi ? "Không có bước tiếp theo trên các cơ hội đang mở." : "No next steps on open opportunities."} />
+            {historyGroups.map((group) => <><p class="rec-feed-h"><span>{group.label}</span><span>{group.items.length}</span></p><Feed items={group.items} empty="" /></>)}
+            {ctx.actor.manager && duplicates.length > 0 && <div class="rec-alert"><span class="ws-feed-ic warn" aria-hidden="true">!</span><div>
+              <strong>{vi ? `Có thể trùng: ${duplicates.length}` : `Possible duplicates: ${duplicates.length}`}</strong>
+              <ul class="rec-cv-dups">{duplicates.map((item) => <li><a href={`${base}/accounts/${item.id}`}>{item.name}</a><span>{item.region}</span></li>)}</ul>
+              <p>{vi ? "Gộp bằng cách chuyển từng cơ hội sang doanh nghiệp đúng (trên trang cơ hội)." : "Merge by moving each opportunity to the right business (on the opportunity page)."}</p>
+            </div></div>}
+            <p class="rec-path-note">{vi ? "Yêu cầu không liên hệ áp dụng cho mọi kênh và mọi quy trình bán. Ai cũng có thể đặt; chỉ admin gỡ, kèm bằng chứng." : "Do-not-contact applies across every channel and playbook. Anyone can set it; only an admin can lift it, with evidence."}</p>
+          </div>
+        </section>
+      </aside>
     </div>
-    <aside class="crm-grid">
-      {canEdit && <section class="crm-sheet" id="new-opportunity" aria-labelledby="new-opp-h">
-        <h2 class="crm-h2" id="new-opp-h">{vi ? "Mở cơ hội" : "Open an opportunity"}</h2>
+  </div>
+
+  {canEdit && (reachable.length
+    ? <Sheet id="sheet-opportunity" vi={vi} title={vi ? "Tạo cơ hội" : "New opportunity"} closeHref={here} open={open("opportunity")} action={here}>
+        <Hidden intent="opportunity" state={state} />
         <p class="crm-help">{vi ? "Mỗi cơ hội gắn với công ty này và một người liên hệ của công ty." : "Each opportunity is with this company and one of its contacts."}</p>
-        {reachable.length ? <form class="crm-form" method="post" action="#new-opportunity">
-          <Hidden intent="opportunity" state={state} />
+        <div class="crm-form-grid">
           <Field name="contact_id" id="o-contact" type="select" label={fieldLabels.contact_id} lang={lang} value={v("opportunity", "contact_id", reachable[0].id)} error={e("opportunity", "contact_id")} required options={reachable.map((contact) => ({ value: contact.id, label: `${contact.name} · ${label(lang, "role", contact.role)}` }))} />
           <Field name="playbook_key" id="o-playbook" type="select" label={fieldLabels.playbook_key} lang={lang} value={v("opportunity", "playbook_key", playbooks[0]?.playbook_key ?? "")} error={e("opportunity", "playbook_key")} required options={playbooks.map((item) => ({ value: item.playbook_key, label: vi ? item.name_vi : item.name_en }))} />
           <Field name="source_channel" id="o-channel" type="select" label={fieldLabels.source_channel} lang={lang} value={v("opportunity", "source_channel", "existing_customer")} error={e("opportunity", "source_channel")} required options={options(lang, "channel")} />
@@ -114,41 +168,74 @@ const fieldLabels: Record<string, string> = vi
           <Field name="next_action" id="o-next" label={vi ? "Bước tiếp theo" : "Next step"} lang={lang} value={v("opportunity", "next_action")} maxlength={500} />
           <Field name="next_action_due" id="o-due" type="date" label={vi ? "Ngày bước tiếp theo" : "Next step date"} lang={lang} value={v("opportunity", "next_action_due")} error={e("opportunity", "next_action_due")} />
           {ctx.actor.manager && <Field name="owner_id" id="o-owner" type="select" label={vi ? "Giao cho" : "Assign to"} lang={lang} value={v("opportunity", "owner_id", account.owner_id ?? ctx.actor.id)} error={e("opportunity", "owner_id")} options={ownerChoices} />}
-          <div class="crm-actions"><button class="crm-button" type="submit">{vi ? "Tạo cơ hội" : "Create opportunity"}</button></div>
-        </form> : <p class="crm-empty">{account.do_not_contact ? (vi ? "Doanh nghiệp yêu cầu không liên hệ." : "This business asked not to be contacted.") : (vi ? "Thêm một người liên hệ có thể liên hệ trước." : "Add a contact who may be contacted first.")}</p>}
-      </section>}
-      {ctx.actor.manager && <section class="crm-sheet" id="owner" aria-labelledby="owner-h">
-        <h2 class="crm-h2" id="owner-h">{vi ? "Người quản lý công ty" : "Company manager"}</h2>
-        <form class="crm-form" method="post" action="#owner">
-          <Hidden intent="account_owner" state={state} version={account.version} />
-          <Field name="owner_id" id="a-owner" type="select" label={vi ? "Giao cho" : "Assign to"} lang={lang} value={v("account_owner", "owner_id", account.owner_id ?? "")} error={e("account_owner", "owner_id")} options={[...(account.owner_id ? [] : [{ value: "", label: vi ? "Chọn người" : "Choose" }]), ...ownerChoices]} />
-          <label class="crm-check"><input type="checkbox" name="with_contacts" value="1" checked /><span>{vi ? "Chuyển cả những người liên hệ do người quản lý cũ phụ trách" : "Also move the contacts the previous manager looked after"}</span></label>
-          <p class="crm-help">{vi ? "Cơ hội giữ nguyên người phụ trách; giao lại từng cơ hội trên trang cơ hội." : "Opportunities keep their owners; reassign them on each opportunity."}</p>
-          <div class="crm-actions"><button class="crm-button secondary small" type="submit">{vi ? "Giao công ty" : "Assign company"}</button></div>
-        </form>
-      </section>}
-      {canEdit && <section class="crm-sheet" aria-labelledby="acc-h">
-        <h2 class="crm-h2" id="acc-h">{vi ? "Thông tin doanh nghiệp" : "Business details"}</h2>
-        <form class="crm-form" method="post">
-          <Hidden intent="account" state={state} version={account.version} />
-          <Field name="name" id="a-name" label={vi ? "Tên" : "Name"} lang={lang} value={v("account", "name", account.name)} error={e("account", "name")} required maxlength={160} />
-          <Field name="industry" id="a-ind" label={vi ? "Ngành" : "Industry"} lang={lang} value={v("account", "industry", account.industry)} maxlength={120} />
-          <Field name="region" id="a-reg" label={vi ? "Khu vực" : "Area"} lang={lang} value={v("account", "region", account.region)} maxlength={120} />
-          <Field name="address" id="a-addr" label={vi ? "Địa chỉ" : "Address"} lang={lang} value={v("account", "address", account.address)} maxlength={300} />
-          <Field name="notes" id="a-notes" type="textarea" label={vi ? "Ghi chú" : "Notes"} lang={lang} value={v("account", "notes", account.notes)} maxlength={3000} />
-          <div class="crm-actions"><button class="crm-button secondary" type="submit">{vi ? "Lưu" : "Save"}</button></div>
-        </form>
-        <form class="crm-form" method="post" style="margin-top:14px">
-          <Hidden intent="dnc" state={state} /><input type="hidden" name="contact_id" value="" /><input type="hidden" name="do_not_contact" value={account.do_not_contact ? "0" : "1"} />
-          {(!account.do_not_contact || ctx.actor.manager) && <><Field name="dnc_reason" id="a-dnc" label={account.do_not_contact ? (vi ? "Bằng chứng để gỡ" : "Evidence for lifting") : (vi ? "Cả doanh nghiệp yêu cầu không liên hệ — lý do" : "Whole business asked not to be contacted — reason")} lang={lang} value="" error={state.intent === "dnc" && !state.values.contact_id ? state.errors.dnc_reason : undefined} required maxlength={500} />
-            <button class:list={["crm-button small", account.do_not_contact ? "secondary" : "danger"]} type="submit">{account.do_not_contact ? (vi ? "Gỡ (admin)" : "Lift (admin)") : (vi ? "Không liên hệ doanh nghiệp này" : "Do not contact this business")}</button></>}
-        </form>
-      </section>}
-      {ctx.actor.manager && duplicates.length > 0 && <section class="crm-sheet" aria-labelledby="dup-h">
-        <h2 class="crm-h2" id="dup-h">{vi ? "Có thể trùng" : "Possible duplicates"}</h2>
-        <ul class="crm-list">{duplicates.map((item) => <li class="crm-row"><a class="crm-row-title" href={`${base}/accounts/${item.id}`}>{item.name}</a><span class="crm-row-meta"><span>{item.region}</span><span class="crm-num">{item.id}</span></span></li>)}</ul>
-        <p class="crm-help">{vi ? "Gộp bằng cách chuyển từng cơ hội sang doanh nghiệp đúng (trên trang cơ hội)." : "Merge by moving each opportunity to the right business (on the opportunity page)."}</p>
-      </section>}
-    </aside>
-  </div>
+        </div>
+      <Fragment slot="foot"><a class="ws-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class="ws-btn primary" type="submit">{vi ? "Tạo cơ hội" : "Create opportunity"}</button></Fragment>
+      </Sheet>
+    : <Sheet id="sheet-opportunity" vi={vi} title={vi ? "Tạo cơ hội" : "New opportunity"} closeHref={here}><p class="crm-empty">{account.do_not_contact ? (vi ? "Doanh nghiệp yêu cầu không liên hệ." : "This business asked not to be contacted.") : (vi ? "Thêm một người liên hệ có thể liên hệ trước." : "Add a contact who may be contacted first.")}</p></Sheet>)}
+
+  {canEdit && <Sheet id="sheet-contact-new" vi={vi} title={vi ? "Thêm người liên hệ" : "Add a contact"} open={failed && state.intent === "contact" && !state.values.contact_id} closeHref={here} action="#contacts">
+    
+        <Hidden intent="contact" state={state} /><input type="hidden" name="contact_id" value="" />
+        <div class="crm-form-grid">
+          <Field name="name" id="nc-name" label={vi ? "Tên" : "Name"} lang={lang} value={state.values.contact_id === "" ? v("contact", "name") : ""} error={state.values.contact_id === "" ? e("contact", "name") : undefined} required maxlength={160} />
+          <Field name="role" id="nc-role" type="select" label={vi ? "Vai trò" : "Role"} lang={lang} value="decision_maker" options={options(lang, "role")} />
+          <Field name="phone" id="nc-phone" type="tel" label={vi ? "Điện thoại" : "Phone"} lang={lang} value={state.values.contact_id === "" ? v("contact", "phone") : ""} error={state.values.contact_id === "" ? e("contact", "phone") : undefined} maxlength={40} />
+          <Field name="email" id="nc-email" type="email" label="Email" lang={lang} value={state.values.contact_id === "" ? v("contact", "email") : ""} error={state.values.contact_id === "" ? e("contact", "email") : undefined} maxlength={254} />
+          <Field name="zalo" id="nc-zalo" label="Zalo" lang={lang} value="" maxlength={80} />
+          <Field name="preferred_channel" id="nc-pc" type="select" label={vi ? "Kênh ưu tiên" : "Preferred channel"} lang={lang} value="" options={options(lang, "contactChannel")} />
+          <Field name="contact_basis" id="nc-basis" label={vi ? "Căn cứ liên hệ" : "Basis for contact"} lang={lang} value="" maxlength={500} wide />
+          <Field name="consent_status" id="nc-cs" type="select" label={vi ? "Đồng ý liên hệ" : "Contact consent"} lang={lang} value="unknown" options={options(lang, "consent")} />
+          <Field name="consent_evidence" id="nc-ce" label={vi ? "Bằng chứng đồng ý" : "Consent evidence"} lang={lang} value="" error={state.values.contact_id === "" ? e("contact", "consent_evidence") : undefined} maxlength={500} />
+          {ctx.actor.manager && <Field name="owner_id" id="nc-owner" type="select" label={vi ? "Người quản lý" : "Managed by"} lang={lang} value={account.owner_id ?? ctx.actor.id} error={state.values.contact_id === "" ? e("contact", "owner_id") : undefined} options={ownerChoices} />}
+        </div>
+      <Fragment slot="foot"><a class="ws-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class="ws-btn primary" type="submit">{vi ? "Thêm" : "Add"}</button></Fragment>
+  </Sheet>}
+
+  {ctx.actor.manager && <Sheet id="sheet-owner" vi={vi} title={vi ? "Người quản lý công ty" : "Company manager"} open={open("account_owner")} closeHref={here} action={here}>
+    
+        <Hidden intent="account_owner" state={state} version={account.version} />
+        <Field name="owner_id" id="a-owner" type="select" label={vi ? "Giao cho" : "Assign to"} lang={lang} value={v("account_owner", "owner_id", account.owner_id ?? "")} error={e("account_owner", "owner_id")} options={[...(account.owner_id ? [] : [{ value: "", label: vi ? "Chọn người" : "Choose" }]), ...ownerChoices]} />
+        <label class="crm-check"><input type="checkbox" name="with_contacts" value="1" checked /><span>{vi ? "Chuyển cả những người liên hệ do người quản lý cũ phụ trách" : "Also move the contacts the previous manager looked after"}</span></label>
+        <p class="crm-help">{vi ? "Cơ hội giữ nguyên người phụ trách; giao lại từng cơ hội trên trang cơ hội." : "Opportunities keep their owners; reassign them on each opportunity."}</p>
+      <Fragment slot="foot"><a class="ws-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class="ws-btn primary" type="submit">{vi ? "Giao công ty" : "Assign company"}</button></Fragment>
+  </Sheet>}
+
+  {canEdit && (!account.do_not_contact || ctx.actor.manager) && <Sheet id="sheet-dnc" vi={vi} title={account.do_not_contact ? (vi ? "Gỡ không liên hệ" : "Lift do-not-contact") : (vi ? "Không liên hệ doanh nghiệp này" : "Do not contact this business")} open={failed && state.intent === "dnc" && !state.values.contact_id} closeHref={here} action={here}>
+    
+        <Hidden intent="dnc" state={state} /><input type="hidden" name="contact_id" value="" /><input type="hidden" name="do_not_contact" value={account.do_not_contact ? "0" : "1"} />
+        <Field name="dnc_reason" id="a-dnc" label={account.do_not_contact ? (vi ? "Bằng chứng để gỡ" : "Evidence for lifting") : (vi ? "Cả doanh nghiệp yêu cầu không liên hệ — lý do" : "Whole business asked not to be contacted — reason")} lang={lang} value="" error={state.intent === "dnc" && !state.values.contact_id ? state.errors.dnc_reason : undefined} required maxlength={500} />
+      <Fragment slot="foot"><a class="ws-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class:list={["ws-btn", account.do_not_contact ? "" : "primary"]} type="submit">{account.do_not_contact ? (vi ? "Gỡ (admin)" : "Lift (admin)") : (vi ? "Đặt không liên hệ" : "Set do-not-contact")}</button></Fragment>
+  </Sheet>}
+
+  {contacts.filter((contact) => editable.has(contact.id) || !contact.do_not_contact || ctx.actor.manager).map((contact) => <Sheet id={`sheet-c-${contact.id}`} vi={vi} title={contact.name} open={contactOpen(contact.id)} closeHref={here}>
+    
+      {editable.has(contact.id) && <form class="crm-form" method="post" action="#contacts">
+        <Hidden intent="contact" state={state} version={contact.version} /><input type="hidden" name="contact_id" value={contact.id} />
+        <div class="crm-form-grid">
+          <Field name="name" id={`n-${contact.id}`} label={vi ? "Tên" : "Name"} lang={lang} value={editing(contact.id) ? state.values.name : contact.name} error={editing(contact.id) ? state.errors.name : undefined} required maxlength={160} />
+          <Field name="role" id={`r-${contact.id}`} type="select" label={vi ? "Vai trò" : "Role"} lang={lang} value={editing(contact.id) ? state.values.role : contact.role} options={options(lang, "role")} />
+          <Field name="phone" id={`p-${contact.id}`} type="tel" label={vi ? "Điện thoại" : "Phone"} lang={lang} value={editing(contact.id) ? state.values.phone : contact.phone} error={editing(contact.id) ? state.errors.phone : undefined} maxlength={40} />
+          <Field name="zalo" id={`z-${contact.id}`} label="Zalo" lang={lang} value={editing(contact.id) ? state.values.zalo : contact.zalo} maxlength={80} />
+          <Field name="email" id={`e-${contact.id}`} type="email" label="Email" lang={lang} value={editing(contact.id) ? state.values.email : contact.email} error={editing(contact.id) ? state.errors.email : undefined} maxlength={254} />
+          <Field name="preferred_channel" id={`pc-${contact.id}`} type="select" label={vi ? "Kênh ưu tiên" : "Preferred channel"} lang={lang} value={editing(contact.id) ? state.values.preferred_channel : contact.preferred_channel} options={options(lang, "contactChannel")} />
+          <Field name="contact_basis" id={`b-${contact.id}`} label={vi ? "Căn cứ liên hệ" : "Basis for contact"} lang={lang} value={editing(contact.id) ? state.values.contact_basis : contact.contact_basis} maxlength={500} wide />
+          <Field name="consent_status" id={`cs-${contact.id}`} type="select" label={vi ? "Đồng ý liên hệ" : "Contact consent"} lang={lang} value={editing(contact.id) ? state.values.consent_status : contact.consent_status} options={options(lang, "consent")} />
+          <Field name="consent_evidence" id={`ce-${contact.id}`} label={vi ? "Bằng chứng đồng ý" : "Consent evidence"} lang={lang} value={editing(contact.id) ? state.values.consent_evidence : contact.consent_evidence} error={editing(contact.id) ? state.errors.consent_evidence : undefined} maxlength={500} />
+        </div>
+        <div class="crm-actions"><button class="ws-btn primary" type="submit">{vi ? "Lưu" : "Save"}</button></div>
+      </form>}
+      {ctx.actor.manager && <form class="crm-form" method="post" action="#contacts">
+        <Hidden intent="contact_owner" state={state} version={contact.version} /><input type="hidden" name="contact_id" value={contact.id} />
+        <Field name="owner_id" id={`co-${contact.id}`} type="select" label={vi ? "Giao người quản lý" : "Managed by"} lang={lang} value={contact.owner_id ?? ""} error={state.intent === "contact_owner" && state.values.contact_id === contact.id ? state.errors.owner_id : undefined} options={[...(contact.owner_id ? [] : [{ value: "", label: vi ? "Chọn người" : "Choose" }]), ...ownerChoices]} />
+        <div class="crm-actions"><button class="ws-btn" type="submit">{vi ? "Giao" : "Assign"}</button></div>
+      </form>}
+      {(!contact.do_not_contact || ctx.actor.manager) && <form class="crm-form" method="post" action="#contacts">
+        <Hidden intent="dnc" state={state} /><input type="hidden" name="contact_id" value={contact.id} /><input type="hidden" name="do_not_contact" value={contact.do_not_contact ? "0" : "1"} />
+        <Field name="dnc_reason" id={`dnc-${contact.id}`} label={contact.do_not_contact ? (vi ? "Bằng chứng để gỡ (bắt buộc)" : "Evidence for lifting (required)") : (vi ? "Lý do / nguồn yêu cầu (bắt buộc)" : "Reason / source of the request (required)")} lang={lang} value="" error={state.intent === "dnc" && state.values.contact_id === contact.id ? state.errors.dnc_reason : undefined} required maxlength={500} />
+        <div class="crm-actions"><button class:list={["ws-btn", contact.do_not_contact ? "" : "danger"]} type="submit">{contact.do_not_contact ? (vi ? "Gỡ không liên hệ" : "Lift do-not-contact") : (vi ? "Đặt không liên hệ" : "Set do-not-contact")}</button></div>
+      </form>}
+      {contact.consent_evidence && <p class="crm-help">{vi ? "Bằng chứng đồng ý" : "Consent evidence"}: {contact.consent_evidence}</p>}
+      {contact.do_not_contact ? <p class="crm-help">{contact.dnc_reason} · {formatDate(contact.dnc_recorded_at, lang)}</p> : null}
+    
+  </Sheet>)}
 </CrmShell>

@@ -1,0 +1,8 @@
+---
+import WorkspaceAccountNotifications from "../../../../components/workspace/WorkspaceAccountNotifications.astro";
+import { accountNotificationsPage } from "../../../../lib/workspace/shell-pages";
+
+export const prerender = false;
+const data = await accountNotificationsPage(Astro, "vi");
+---
+<WorkspaceAccountNotifications {...data} />

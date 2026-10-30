@@ -1,57 +1,117 @@
 ---
-// The passkey check: once per EmDash session to enter the Workspace (R-08),
-// and again before sensitive actions when the last check is older than five
-// minutes. Passkeys belong to EmDash; adding one uses EmDash's own endpoints.
+// The Workspace passkey check, in three forms (boards PasskeyEnrol, SignIn
+// and StepUp):
+//   - no passkey yet (or a recovery window is open): create one, step 2 of the
+//     first visit. EmDash registers it; the new passkey counts as this
+//     session's check, so the next step is the anti-phishing code.
+//   - once per session: verify with one of your passkeys.
+//   - before a sensitive action: the step-up dialog.
+// Passkeys belong to EmDash; adding one uses EmDash's own endpoints.
 import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
+import "../../styles/workspace-security.css";
+import Brand from "./security/Brand.astro";
+import Steps from "./security/Steps.astro";
 import type { VerifyPageData } from "../../lib/workspace/security-pages";
 
 type Props = VerifyPageData;
-const { lang, vi, user, reason, next, passkeys, sessionVerified, stepUpSeconds, windowMinutes } = Astro.props;
+const { lang, vi, user, reason, next, passkeys, sessionVerified, stepUpSeconds, windowMinutes, lastCheckMinutes, lastPasskey, recoveryUntil } = Astro.props;
 const t = (en: string, viText: string) => (vi ? viText : en);
-const when = (value: string | null) => value ? new Date(value).toLocaleString(vi ? "vi-VN" : "en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Ho_Chi_Minh" }) : "—";
+const when = (value: string | null) => value ? new Date(value).toLocaleString(vi ? "vi-VN" : "en-GB", { dateStyle: "short", timeStyle: "short", timeZone: "Asia/Ho_Chi_Minh" }) : "—";
+const local = (path: string) => `${vi ? "/vi" : ""}${path}`;
+const enrol = reason === "session" && !sessionVerified && (passkeys.length === 0 || !!recoveryUntil);
+const action = /export|\.csv/.test(next) ? t("export data", "xuất dữ liệu") : /\/workspace\/users/.test(next) ? t("change access", "đổi quyền truy cập") : /\/crm\/api/.test(next) ? t("create an API token", "tạo API token") : /account\/security/.test(next) ? t("change your security settings", "đổi cài đặt bảo mật") : /\/workspace\/(security|agents|webhooks|notifications|audit)/.test(next) ? t("change organisation settings", "đổi cài đặt tổ chức") : null;
 const messages = {
   "data-msg-working": t("Waiting for your device…", "Đang chờ thiết bị của bạn…"),
   "data-msg-done": t("Verified. Taking you back…", "Đã xác thực. Đang quay lại…"),
   "data-msg-failed": t("That passkey could not be verified. Try again, or use another of your passkeys.", "Không xác thực được passkey này. Thử lại hoặc dùng passkey khác của bạn."),
   "data-msg-cancelled": t("No passkey was used. Try again when you are ready.", "Chưa dùng passkey nào. Thử lại khi bạn sẵn sàng."),
-  "data-msg-none": t("This account has no passkey yet. Add one below.", "Tài khoản chưa có passkey. Hãy thêm ở dưới."),
+  "data-msg-none": t("This account has no passkey yet. Create one first.", "Tài khoản chưa có passkey. Hãy tạo passkey trước."),
   "data-msg-unsupported": t("This browser cannot use passkeys. Open the Workspace in a current version of Chrome, Edge, Firefox or Safari.", "Trình duyệt này không dùng được passkey. Hãy mở Workspace bằng bản mới của Chrome, Edge, Firefox hoặc Safari."),
 };
+const enrolMessages = {
+  ...messages,
+  "data-msg-done": t("Passkey created.", "Đã tạo passkey."),
+  "data-msg-failed": t("EmDash did not create the passkey. If you already have one, verify with it, or ask an admin to open recovery.", "EmDash chưa tạo passkey. Nếu đã có passkey, hãy xác thực bằng passkey đó, hoặc nhờ admin mở khôi phục."),
+  "data-msg-cancelled": t("No passkey was created. Try again when you are ready.", "Chưa tạo passkey nào. Thử lại khi bạn sẵn sàng."),
+};
+const title = enrol ? t("Create a passkey", "Tạo passkey") : reason === "session" ? t("Verify with your passkey", "Xác thực bằng passkey") : t("Verify again", "Xác thực lại");
 ---
-<WorkspaceShell title={t("Verify with your passkey", "Xác thực bằng passkey")} lang={lang} user={user} module="home">
-  <div class="crm-head"><div>
-    <p class="crm-eyebrow">{t("Security", "Bảo mật")}</p>
-    <h1 class="crm-h1">{reason === "session" ? t("Verify with your passkey to open the Workspace.", "Xác thực bằng passkey để vào Workspace.") : t("Verify again before this action.", "Xác thực lại trước thao tác này.")}</h1>
-    <p class="crm-lede">{reason === "session"
-      ? t("Every Workspace session needs one passkey check, whichever way you signed in to EmDash. It lasts for this session, up to 12 hours.", "Mỗi phiên Workspace cần một lần xác thực passkey, dù bạn đăng nhập EmDash bằng cách nào. Lần xác thực có hiệu lực trong phiên này, tối đa 12 giờ.")
-      : t(`Exports, deletions, access changes and new API tokens need a passkey check from the last ${windowMinutes} minutes. Failed attempts are recorded in the audit log.`, `Xuất dữ liệu, xóa, đổi quyền và tạo API token cần một lần xác thực passkey trong ${windowMinutes} phút gần nhất. Lần thử thất bại được ghi vào nhật ký kiểm toán.`)}</p>
-  </div></div>
+<WorkspaceShell title={title} lang={lang} user={user} module="home">
+  <div class="s4">
+  {enrol && <div class="s4-auth"><div class="s4-auth-wrap">
+    <Brand />
+    <Steps vi={vi} current="passkey" />
+    <div class="s4-auth-pair">
+      <section class="s4-card" aria-labelledby="enrol-h">
+        <h1 id="enrol-h">{recoveryUntil && passkeys.length ? t("Create a new passkey", "Tạo passkey mới") : t("Create a passkey to continue", "Tạo passkey để tiếp tục")}</h1>
+        <p>{t("Every Lumi Workspace account needs a passkey. It stays on your device and opens with Face ID, a fingerprint or your screen lock. Lumi never stores the private key, so a fake email cannot steal it.", "Mọi tài khoản Lumi Workspace phải có passkey. Passkey nằm trên thiết bị của bạn và mở bằng Face ID, vân tay hoặc mã khóa máy. Lumi không lưu khóa bí mật, nên kẻ gian không lấy được bằng email giả.")}</p>
+        {recoveryUntil && passkeys.length > 0 && <p class="ws-badge warn" style="align-self:flex-start">{t(`Recovery open until ${when(recoveryUntil)}`, `Đang mở khôi phục đến ${when(recoveryUntil)}`)}</p>}
+        <form class="s4-stack" method="post" data-passkey="enrol" data-created="[data-passkey-created]" {...enrolMessages} style="gap:16px">
+          <div class="s4-device"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true" style="color:var(--s4-accent)"><rect x="3" y="4" width="18" height="12" rx="2"></rect><path d="M8 20h8M12 16v4"></path></svg>
+            <div><strong>{t("This device", "Thiết bị này")}</strong><span data-device>{t("Your browser asks which passkey provider to use.", "Trình duyệt sẽ hỏi lưu passkey ở đâu.")}</span></div></div>
+          <div class="s4-field"><label for="passkey_name">{t("Name for this passkey", "Tên passkey")}</label><input class="s4-in" id="passkey_name" name="passkey_name" maxlength="80" autocomplete="off" placeholder={t("e.g. Work laptop", "Ví dụ: Laptop công ty")} /></div>
+          <button class="ws-btn primary s4-lg s4-block" type="submit">{t("Create a passkey on this device", "Tạo passkey trên thiết bị này")}</button>
+          <p class="s4-hint">{t("To keep the passkey on your phone instead, choose \"Use a phone or tablet\" in the browser's dialog and scan the QR code.", "Muốn lưu passkey trên điện thoại, chọn \"Dùng điện thoại hoặc máy tính bảng\" trong hộp thoại của trình duyệt rồi quét mã QR.")}</p>
+          <p class="s4-live" data-passkey-status role="status" aria-live="polite" hidden></p>
+          <noscript><p class="s4-error">{t("Passkeys need JavaScript. Turn it on for runlumi.app and reload.", "Passkey cần JavaScript. Hãy bật cho runlumi.app rồi tải lại trang.")}</p></noscript>
+        </form>
+        <p class="s4-hint">{t("You can add passkeys for other devices in My account › Security. Without a passkey the Workspace stays closed.", "Bạn thêm được passkey cho máy khác trong Tài khoản của tôi › Bảo mật. Chưa tạo passkey thì chưa vào được Lumi Workspace.")}</p>
+      </section>
+      <section class="s4-card" aria-labelledby="created-h" data-passkey-created hidden>
+        <p class="s4-auth-h" id="created-h" style="display:flex;gap:10px;align-items:center;font-size:18px"><span class="ws-badge ok" aria-hidden="true">✓</span>{t("Passkey created", "Đã tạo passkey")}</p>
+        <dl class="s4-facts" style="grid-template-columns:1fr"><div><dt>{t("Created at", "Tạo lúc")}</dt><dd data-created-at></dd></div></dl>
+        <form class="s4-stack" data-passkey-rename data-id="" data-msg-done={t("Name saved.", "Đã lưu tên.")} data-msg-failed={t("The name was not saved.", "Chưa lưu được tên.")}>
+          <div class="s4-field"><label for="created_name">{t("Rename the passkey", "Đổi tên passkey")}</label><input class="s4-in" id="created_name" name="name" maxlength="80" required autocomplete="off" /></div>
+          <div class="s4-actions"><button class="ws-btn sm" type="submit">{t("Save name", "Lưu tên")}</button></div>
+          <p class="s4-live" data-passkey-status role="status" aria-live="polite" hidden></p>
+        </form>
+        <a class="ws-btn primary s4-block" href={next}>{t("Next: set your anti-phishing code", "Tiếp: đặt mã chống lừa đảo")}</a>
+      </section>
+    </div>
+  </div></div>}
 
-  {reason === "step_up" && stepUpSeconds > 0 && <div class="crm-notice good" role="status">{t(`Verified. Sensitive actions stay open for about ${Math.ceil(stepUpSeconds / 60)} more min.`, `Đã xác thực. Thao tác nhạy cảm còn mở khoảng ${Math.ceil(stepUpSeconds / 60)} phút nữa.`)} <a class="crm-link" href={next}>{t("Continue", "Tiếp tục")}</a></div>}
-  {reason === "session" && sessionVerified && <div class="crm-notice good" role="status">{t("This session is already verified.", "Phiên này đã được xác thực.")} <a class="crm-link" href={next}>{t("Continue", "Tiếp tục")}</a></div>}
+  {!enrol && reason === "session" && <div class="s4-auth">
+    <section class="s4-card narrow" aria-labelledby="verify-h">
+      <Brand />
+      <h1 id="verify-h">{t("Verify with your passkey", "Xác thực bằng passkey")}</h1>
+      {sessionVerified
+        ? <><p>{t("This session is already verified.", "Phiên này đã được xác thực.")}</p><a class="ws-btn primary s4-lg s4-block" href={next}>{t("Continue", "Tiếp tục")}</a></>
+        : <><p>{t("You signed in with a link, so the Workspace asks for one passkey check. It lasts for this session, up to 12 hours.", "Bạn đăng nhập bằng link, nên Workspace cần một lần xác thực passkey. Lần xác thực có hiệu lực trong phiên này, tối đa 12 giờ.")}</p>
+          <form class="s4-stack" method="post" data-passkey="verify" data-purpose="session" data-next={next} {...messages} style="gap:12px">
+            <button class="ws-btn primary s4-lg s4-block" type="submit">{t("Verify with passkey", "Xác thực bằng passkey")}</button>
+            <p class="s4-live" data-passkey-status role="status" aria-live="polite" hidden></p>
+            <noscript><p class="s4-error">{t("Passkeys need JavaScript. Turn it on for runlumi.app and reload.", "Passkey cần JavaScript. Hãy bật cho runlumi.app rồi tải lại trang.")}</p></noscript>
+          </form>
+          <p class="s4-center"><a class="crm-link" href={local("/workspace/recovery")}>{t("Lost the device with your passkey? Recover your account", "Mất thiết bị có passkey? Khôi phục tài khoản")}</a></p></>}
+    </section>
+  </div>}
 
-  {passkeys.length > 0 && <section class="crm-sheet" aria-labelledby="verify-h">
-    <h2 class="crm-h2" id="verify-h">{t("Use one of your passkeys", "Dùng một passkey của bạn")}</h2>
-    <form method="post" data-passkey="verify" data-purpose={reason} data-next={next} {...messages}>
-      <p class="crm-help">{t("Your device asks for Face ID, a fingerprint, your screen lock or a security key. Lumi never sees the private key.", "Thiết bị sẽ hỏi Face ID, vân tay, mã khóa màn hình hoặc khóa bảo mật. Lumi không bao giờ thấy khóa bí mật.")}</p>
-      <div class="crm-actions"><button class="crm-button" type="submit">{t("Verify with passkey", "Xác thực bằng passkey")}</button><a class="crm-button secondary" href={next}>{t("Cancel", "Hủy")}</a></div>
-      <p class="crm-help" data-passkey-status role="status" aria-live="polite" hidden></p>
-      <noscript><p class="crm-notice bad">{t("Passkeys need JavaScript. Turn it on for runlumi.app and reload.", "Passkey cần JavaScript. Hãy bật cho runlumi.app rồi tải lại trang.")}</p></noscript>
-    </form>
-  </section>}
-
-  <section class="crm-sheet" aria-labelledby="keys-h" style="margin-top:18px">
-    <h2 class="crm-h2" id="keys-h">{t("Your passkeys", "Passkey của bạn")}<span class="crm-count">{passkeys.length}</span></h2>
-    {passkeys.length
-      ? <ul class="crm-list">{passkeys.map((key) => <li class="crm-row"><strong>{key.name || t("Unnamed passkey", "Passkey chưa đặt tên")}</strong><span class="crm-row-meta"><span>{t("Added", "Thêm lúc")} {when(key.created_at)}</span><span>{t("Last used", "Dùng gần nhất")} {when(key.last_used_at)}</span></span></li>)}</ul>
-      : <p class="crm-help">{t("Every Workspace account must have a passkey (no opt-out). Add one on this device; you can add a second device later so losing one device does not lock you out.", "Mọi tài khoản Workspace phải có passkey, không có ngoại lệ. Hãy thêm passkey trên thiết bị này; sau đó nên thêm thiết bị thứ hai để mất một máy không bị khóa tài khoản.")}</p>}
-    <form method="post" data-passkey="enrol" {...messages} data-msg-done={t("Passkey added.", "Đã thêm passkey.")}>
-      <div class="crm-field"><label for="passkey_name">{t("Name for this passkey", "Tên passkey")}</label><input class="crm-input" id="passkey_name" name="passkey_name" maxlength="80" autocomplete="off" placeholder={t("e.g. Work laptop", "Ví dụ: Laptop công ty")} /></div>
-      <div class="crm-actions"><button class={passkeys.length ? "crm-button secondary" : "crm-button"} type="submit">{t("Add a passkey on this device", "Thêm passkey trên thiết bị này")}</button></div>
-      <p class="crm-help" data-passkey-status role="status" aria-live="polite" hidden></p>
-    </form>
-    <p class="crm-help">{t("Lost every passkey? An EmDash System Super Admin can restore access; recovery is never by SMS or an emailed code.", "Mất hết passkey? Siêu quản trị hệ thống trong EmDash có thể khôi phục quyền truy cập; không khôi phục bằng SMS hay mã gửi qua email.")}</p>
-  </section>
+  {!enrol && reason === "step_up" && <div class="s4-scrim">
+    <section class="s4-dlg" role="dialog" aria-modal="false" aria-labelledby="su-h">
+      <h1 class="s4-dlg-h" id="su-h">{action ? t(`Verify again to ${action}`, `Xác thực lại để ${action}`) : t("Verify again before this action", "Xác thực lại trước thao tác này")}</h1>
+      <div class="s4-dlg-b">
+        {stepUpSeconds > 0
+          ? <p role="status">{t(`Verified. Sensitive actions stay open for about ${Math.ceil(stepUpSeconds / 60)} more min.`, `Đã xác thực. Thao tác nhạy cảm còn mở khoảng ${Math.ceil(stepUpSeconds / 60)} phút nữa.`)}</p>
+          : <p>{lastCheckMinutes === null
+              ? t(`This is a sensitive action. It needs a passkey check from the last ${windowMinutes} minutes.`, `Đây là thao tác nhạy cảm, cần một lần xác thực passkey trong ${windowMinutes} phút gần nhất.`)
+              : t(`This is a sensitive action. Your last passkey check was ${lastCheckMinutes} minutes ago, past the ${windowMinutes}-minute limit.`, `Đây là thao tác nhạy cảm. Lần xác thực passkey gần nhất của bạn là ${lastCheckMinutes} phút trước, quá giới hạn ${windowMinutes} phút.`)}</p>}
+        {passkeys.length > 0
+          ? <p class="s4-key"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 018 0v4"></path></svg>
+              <span>{lastPasskey ? (vi ? <>Dùng passkey <strong>{lastPasskey}</strong> hoặc một passkey khác của bạn.</> : <>Use your passkey <strong>{lastPasskey}</strong> or another of yours.</>) : t("Use one of your passkeys.", "Dùng một passkey của bạn.")}</span></p>
+          : <p class="s4-error">{t("This account has no passkey yet. Create one in My account › Security first.", "Tài khoản chưa có passkey. Hãy tạo passkey trong Tài khoản của tôi › Bảo mật trước.")}</p>}
+        <p class="s4-hint">{t(`The check lasts ${windowMinutes} minutes for every sensitive action. Failed attempts are recorded in the audit log.`, `Lần xác thực này có hiệu lực ${windowMinutes} phút cho mọi thao tác nhạy cảm. Lần thử thất bại được ghi vào nhật ký kiểm toán.`)}</p>
+        <p class="s4-live" data-passkey-status role="status" aria-live="polite" hidden></p>
+      </div>
+      <form class="s4-dlg-f" method="post" data-passkey="verify" data-purpose="step_up" data-next={next} {...messages}>
+        <a class="ws-btn" href={next}>{stepUpSeconds > 0 ? t("Continue", "Tiếp tục") : t("Cancel", "Hủy")}</a>
+        {passkeys.length > 0
+          ? <button class="ws-btn primary" type="submit">{t("Verify with passkey", "Xác thực bằng passkey")}</button>
+          : <a class="ws-btn primary" href={local("/workspace/account/security")}>{t("Create a passkey", "Tạo passkey")}</a>}
+      </form>
+      <noscript><p class="s4-error" style="padding:0 24px 16px">{t("Passkeys need JavaScript. Turn it on for runlumi.app and reload.", "Passkey cần JavaScript. Hãy bật cho runlumi.app rồi tải lại trang.")}</p></noscript>
+    </section>
+  </div>}
+  </div>
 </WorkspaceShell>
 <script>
   import "../../scripts/workspace-passkey";

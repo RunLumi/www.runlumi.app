@@ -1,0 +1,88 @@
+---
+// Tài khoản của tôi › Bảo mật › Kết nối AI agent (board AgentConsent). What
+// the agent will receive per module (asked for vs granted under the
+// organisation's levels), what never reaches agents, the connection details,
+// and Cancel / Allow with passkey. The secret is shown once after creating.
+import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
+import "../../styles/workspace-security.css";
+import DataTable from "./ui/DataTable.astro";
+import Breadcrumbs from "./ui/Breadcrumbs.astro";
+import { localized } from "../../lib/workspace/nav";
+import type { AgentConnectData } from "../../lib/workspace/agent-connect";
+import { excludedModules } from "../../lib/workspace/agents";
+import { initials } from "../../lib/workspace/summaries";
+
+type Props = AgentConnectData;
+const { lang, vi, user, policy, lifetimes, secret, errors, typed } = Astro.props;
+const t = (en: string, viText: string) => (vi ? viText : en);
+const back = localized("/workspace/account/security", vi);
+const level = { off: t("Off", "Tắt"), read: t("Read", "Đọc"), write: t("Read and write", "Đọc và ghi") };
+const granted = (module: "crm" | "workspace", asked: "read" | "write") => policy[module] === "off" ? "off" : asked === "write" && policy[module] === "write" ? "write" : "read";
+const asked = typed.scope === "write" ? "write" : "read";
+const errorText: Record<string, [string, string]> = { required: ["Required.", "Bắt buộc."], invalid: ["Choose one of the options.", "Hãy chọn một lựa chọn."], too_many_tokens: ["You already have 10 active agents. Revoke one first.", "Bạn đã có 10 agent đang dùng. Hãy thu hồi bớt."] };
+const message = (field: string) => errors[field] ? errorText[errors[field]]?.[vi ? 1 : 0] ?? errors[field] : null;
+const moduleNames = { crm: ["CRM", t("Companies, contacts, opportunities and notes you may see.", "Công ty, liên hệ, cơ hội và ghi chú bạn được xem.")], workspace: ["Workspace", t("Your own roles and modules.", "Vai trò và phân hệ của chính bạn.")] } as const;
+const excludedNames: Record<string, string> = { hiring: t("Hiring", "Tuyển dụng"), hrm: "HRM", finance: t("Finance", "Tài chính") };
+---
+<WorkspaceShell title={t("Connect an AI agent", "Kết nối AI agent")} lang={lang} user={user} module="account" current="security">
+  <div class="s4 s4-stack" style="max-width:780px;margin-inline:auto">
+    <Breadcrumbs vi={vi} items={[{ label: t("My account", "Tài khoản của tôi"), href: localized("/workspace/account", vi) }, { label: t("Security", "Bảo mật"), href: back }, { label: t("Connect an AI agent", "Kết nối AI agent") }]} />
+    {secret
+      ? <section class="s4-panel" aria-labelledby="done-h"><div class="s4-pb" style="padding-top:20px">
+          <h1 class="s4-title" id="done-h">{t("Agent connected", "Đã kết nối agent")}</h1>
+          <p>{t("Copy this token into your agent's MCP settings now. It is shown only once; Lumi keeps only its hash.", "Chép token này vào cài đặt MCP của agent ngay. Token chỉ hiện một lần; Lumi chỉ lưu bản băm.")}</p>
+          <p><code class="s4-code" style="display:block;padding:10px;font-size:14px" data-token>{secret}</code></p>
+          <dl class="s4-facts"><div><dt>{t("MCP server address", "Địa chỉ MCP server")}</dt><dd><code class="s4-code">https://runlumi.app/api/crm/mcp</code></dd></div><div><dt>{t("Header", "Header")}</dt><dd><code class="s4-code">Authorization: Bearer …</code></dd></div></dl>
+          <p class="s4-actions"><a class="ws-btn primary" href={back}>{t("Back to Security", "Về Bảo mật")}</a></p>
+        </div></section>
+      : <form class="s4-stack" method="post">
+          <input type="hidden" name="request_key" value={crypto.randomUUID()} />
+          <section class="s4-panel"><div class="s4-pb" style="padding-top:18px">
+            <div style="display:flex;gap:16px;align-items:center"><span class="s4-avatar" aria-hidden="true" style="background:#102A43;border-radius:10px">AI</span><span aria-hidden="true" style="width:28px;height:2px;background:var(--s4-line)"></span><span class="s4-logo" aria-hidden="true" style="width:48px;height:48px;font-size:20px;border-radius:10px">L</span>
+              <div><h1 class="s4-title">{t("Let an AI agent use Lumi Workspace for you", "Cho AI agent dùng Lumi Workspace thay bạn")}</h1>
+                <p class="s4-meta">{t(`Signed in as ${user.email}`, `Đăng nhập là ${user.email}`)} · <span class="s4-ini" aria-hidden="true">{initials(user.name)}</span></p></div></div>
+            <p class="s4-p">{t("The agent works with your access. It sees only what you may see, only in the modules your admin allows. You can revoke it at any time in Security.", "Agent làm việc bằng quyền của bạn. Nó chỉ thấy những gì bạn được thấy, và chỉ trong các module admin cho phép. Bạn thu hồi được bất cứ lúc nào ở Bảo mật.")}</p>
+            <div class="s4-grid2">
+              <div class="s4-field"><label for="ag-name">{t("Agent name", "Tên agent")} *</label><input class="s4-in" id="ag-name" name="name" required maxlength="80" value={typed.name} placeholder={t("e.g. Claude Desktop on my laptop", "Ví dụ: Claude Desktop trên laptop")} aria-invalid={message("name") ? "true" : undefined} />{message("name") && <p class="s4-error">{message("name")}</p>}</div>
+              <div class="s4-field"><span class="s4-label" id="ag-scope">{t("The agent asks for", "Agent xin")}</span><fieldset class="s4-seg" aria-labelledby="ag-scope"><legend>{t("Access", "Quyền")}</legend>
+                <label><input type="radio" name="scope" value="read" checked={asked === "read"} /><span>{level.read}</span></label><label><input type="radio" name="scope" value="write" checked={asked === "write"} /><span>{level.write}</span></label></fieldset></div>
+              <div class="s4-field"><label for="ag-days">{t("Expires after", "Hết hạn sau")}</label><select class="s4-in" id="ag-days" name="days">{lifetimes.map((days) => <option value={days} selected={String(days) === typed.days}>{t(`${days} days`, `${days} ngày`)}</option>)}</select></div>
+            </div>
+          </div></section>
+
+          <section class="s4-panel" aria-labelledby="gets-h">
+            <div class="s4-ph"><h2 id="gets-h">{t("The agent receives", "Agent sẽ nhận")}</h2><span class="s4-aside">{t("Limited by your organisation's policy", "Giới hạn theo chính sách của tổ chức")}</span></div>
+            <DataTable vi={vi} label={t("The agent receives", "Agent sẽ nhận")}>
+              <thead><tr><th scope="col">Module</th><th scope="col">{t("Agent asks", "Agent xin")}</th><th scope="col">{t("Agent gets", "Agent nhận")}</th></tr></thead>
+              <tbody>
+                {(["crm", "workspace"] as const).map((module) => { const got = granted(module, module === "workspace" ? "read" : asked); return <tr><td><strong>{moduleNames[module][0]}</strong><span class="sub">{moduleNames[module][1]}</span></td><td>{module === "workspace" ? level.read : level[asked]}</td><td><span class:list={["ws-badge", got === "off" ? "" : "ok"]}>{level[got]}</span></td></tr>; })}
+                {excludedModules.map((module) => <tr><td><strong>{excludedNames[module.key] ?? module.key}</strong></td><td>—</td><td><span class="ws-badge">{t("Never", "Không bao giờ")}</span></td></tr>)}
+              </tbody>
+            </DataTable>
+            <p class="s4-note"><span>{t("To give agents more, ask an admin to change the level on Admin › AI agents. An agent cannot ask for more access itself.", "Muốn agent dùng nhiều hơn, hãy nhờ admin đổi mức ở Quản trị › AI agent. Agent không tự xin thêm quyền được.")}</span></p>
+          </section>
+
+          <section class="s4-panel" aria-labelledby="keep-h">
+            <div class="s4-ph"><h2 id="keep-h">{t("What stays with you", "Những gì vẫn thuộc về bạn")}</h2></div>
+            <div class="s4-pb"><ul style="margin:0;padding-left:20px;display:grid;gap:6px">
+              <li>{t("Payments, ledger, commission, fulfillment, assignment and configuration are never available to agents.", "Thanh toán, sổ cái, hoa hồng, bàn giao, phân công và cấu hình không bao giờ mở cho agent.")}</li>
+              <li>{t("Every agent call is recorded in the organisation's audit log (never its arguments).", "Mọi lần agent gọi đều được ghi vào nhật ký kiểm toán của tổ chức (không ghi nội dung).")}</li>
+              <li>{t("If your Workspace access is revoked, the agent stops at once.", "Nếu quyền Workspace của bạn bị thu hồi, agent dừng ngay.")}</li>
+            </ul></div>
+          </section>
+
+          <section class="s4-panel" aria-labelledby="conn-h">
+            <div class="s4-ph"><h2 id="conn-h">{t("Connection details", "Thông tin kết nối")}</h2></div>
+            <div class="s4-pb"><dl class="s4-facts">
+              <div><dt>{t("MCP server address", "Địa chỉ MCP server")}</dt><dd><code class="s4-code">https://runlumi.app/api/crm/mcp</code></dd></div>
+              <div><dt>{t("This page", "Trang này")}</dt><dd><code class="s4-code">runlumi.app</code> · {t("check the address before you touch your passkey", "kiểm tra đúng địa chỉ này trước khi chạm passkey")}</dd></div>
+              <div><dt>{t("How it connects", "Cách kết nối")}</dt><dd>{t("A personal bearer token, shown once", "Token cá nhân, chỉ hiện một lần")}</dd></div>
+              <div><dt>{t("Rate limit", "Giới hạn")}</dt><dd>{t("120 calls a minute", "120 lần gọi mỗi phút")}</dd></div>
+            </dl></div>
+          </section>
+
+          <section class="s4-panel"><div class="s4-ph"><p class="s4-hint" style="margin:0">{t("Connecting needs your passkey and is recorded in the CRM history.", "Kết nối cần passkey của bạn và được ghi vào lịch sử CRM.")}</p>
+            <div class="s4-actions"><a class="ws-btn" href={back}>{t("Cancel", "Từ chối")}</a><button class="ws-btn primary" type="submit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="9" cy="9" r="4"></circle><path d="M13 13l7 7M17 17l2-2M15 19l2-2"></path></svg>{t("Allow with passkey", "Cho phép bằng passkey")}</button></div></div></section>
+        </form>}
+  </div>
+</WorkspaceShell>

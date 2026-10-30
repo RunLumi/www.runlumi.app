@@ -1,0 +1,8 @@
+---
+import WorkspaceRecovery from "../../../components/workspace/WorkspaceRecovery.astro";
+import { recoveryPage } from "../../../lib/workspace/sign-in-pages";
+
+export const prerender = false;
+const data = await recoveryPage(Astro, "vi");
+---
+<WorkspaceRecovery {...data} />

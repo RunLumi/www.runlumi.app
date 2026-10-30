@@ -1,4 +1,6 @@
 import type { AstroGlobal } from "astro";
+import { type OwnerOption, displayNames, ownerOptions } from "../access";
+import { type Dashboard, loadDashboard, readDashboardFilters } from "../dashboard";
 import { type Offer, latestOffers, latestPlaybooks } from "../config";
 import type { Lang } from "../i18n";
 import { type Ctx, context } from "../page";
@@ -12,6 +14,8 @@ export interface PendingPayment { id: string; opportunity_id: string; title: str
 export interface ReportsProps {
   ctx: Ctx; filters: Filters; summaries: PipelineSummary[]; offers: Offer[]; cohorts: CohortRow[];
   cohort: { cohort: CohortRow; report: CohortReport; policySource: string } | null; pending: PendingPayment[]; leads: LeadSourceRow[];
+  /** Sales dashboard (moved here from Today): own figures for sellers; company, one seller or one product for the team. */
+  dashboard: Dashboard; dashboardPlaybooks: Playbook[]; owners: OwnerOption[]; names: Record<string, { name: string; active: boolean }>;
 }
 
 export async function reportsRoute(astro: AstroGlobal, lang: Lang): Promise<ReportsProps | Response> {
@@ -44,5 +48,12 @@ export async function reportsRoute(astro: AstroGlobal, lang: Lang): Promise<Repo
     `SELECT l.id, l.opportunity_id, o.title, l.amount_vnd, l.occurred_on, l.evidence FROM crm_ledger l JOIN crm_opportunities o ON o.id = l.opportunity_id
      WHERE l.kind = 'payment' AND l.status = 'pending' ORDER BY l.created_at LIMIT 100`,
   ).all<PendingPayment>()).results : [];
-  return { ctx, filters, summaries, offers: await latestOffers(ctx.db), cohorts, cohort, pending, leads: await leadReport(ctx.db, ctx.actor) };
+  const dashboard = await loadDashboard(ctx.db, ctx.actor, readDashboardFilters(astro.url, ctx.actor));
+  const people = [dashboard.filters.owner, ...(dashboard.owners ?? []).map((row) => row.key)].filter(Boolean);
+  return {
+    ctx, filters, summaries, offers: await latestOffers(ctx.db), cohorts, cohort, pending, leads: await leadReport(ctx.db, ctx.actor),
+    dashboard, dashboardPlaybooks: playbooks.filter((item) => item.kind !== "legacy"),
+    owners: ctx.actor.manager ? await ownerOptions(ctx.db, ctx.contentDb, ctx.actor) : [],
+    names: await displayNames(ctx.contentDb, [...new Set(people)]),
+  };
 }

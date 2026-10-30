@@ -21,35 +21,60 @@ the time of the last Workspace passkey check and the credential used.
 
 ## Deployment switch: `WORKSPACE_PASSKEY_REQUIRED`
 
-**From release, step-up is always on:** a person without an EmDash passkey must add one at `/workspace/verify` or **My account › Security** before exports, deletes, access changes or API token creation. Failed passkey checks are limited to 10 per person per 15 minutes (`429`), and nothing more is audited while limited.
+**Step-up is always on:** exports, deletes, access changes, API token
+creation and passkey removal need a passkey check from the last 5 minutes.
+Failed passkey checks are limited to 10 per person per 15 minutes (`429`), and
+nothing more is audited while limited.
 
-Rules 1 and 2 below, and the passkey-registration guard, are enforced only
-when the Worker variable `WORKSPACE_PASSKEY_REQUIRED` is exactly `"true"`.
-`wrangler.jsonc` (generated from `infra/workspace.manifest.mjs`) ships it as
-`"false"` for production and staging, so a release cannot lock out existing
-users. Step-up (rule 3) and the audit log are always on.
-
-Turning it on (owner decision):
-1. On **Admin › Security**, check that every member has a passkey (ideally
-   two) and an anti-phishing code; people can add both on
-   **My account › Security** while the switch is off.
-2. Tell the team that every Workspace session will ask for a passkey once.
-3. Set the variable to `"true"` in `infra/workspace.manifest.mjs`, run
-   `node scripts/generate-wrangler.mjs`, and merge (merging `main` deploys).
-   Turning it off is the same change back to `"false"`.
+Rules 1 and 2 below, and the passkey-registration guard, apply when the
+Worker variable `WORKSPACE_PASSKEY_REQUIRED` is exactly `"true"`. From round 2
+of the redesign (founder, 2026-10-30) production ships it as `"true"`
+(`infra/workspace.manifest.mjs` → `wrangler.jsonc`). Staging keeps `"false"`
+until the founder creates its resources. Turning it off is the same change
+back to `"false"`, then merging (merging `main` deploys).
 
 The integration suite runs with the switch on.
+
+### Rollout: what each person sees on the first visit after release
+
+Nobody is locked out: a person with no passkey creates one on the way in.
+
+| Who | First visit after release |
+|---|---|
+| Signed out (anyone) | A private page sends them to **Sign in** (`/workspace/sign-in`, EN/VI): work email, *Sign in with passkey*, *No passkey yet? Email me a sign-in link*, *Lost your passkey?* |
+| Signs in **with a passkey** (most people: EmDash invites register one) | EmDash signs them in; that passkey sign-in (with user verification) is also the session's Workspace check, so there is no second prompt. If they have no anti-phishing code yet, they set it once (step 3), then land on the page they asked for. |
+| Signs in **by link** (magic link, recovery link, OAuth) and **has a passkey** | One passkey check (`/workspace/verify`), then the code if missing, then their page. |
+| Signs in by link and has **no passkey yet** | Step 2 of 3: *Create a passkey to continue*. EmDash's own registration stores it (any EmDash role may), and it counts as this session's check. Then step 3, the code, then their page. |
+| Lost every passkey | *Lost your passkey?* explains the steps. An admin confirms who they are (in person or by video), opens a 24-hour recovery window on **Admin › Security** and sends an EmDash recovery link. The person signs in with it and creates a new passkey; the window closes once used. |
+| System Super Admins | The same as everyone. Recovery for an admin needs another admin; with one System Super Admin, Admin › Security says so. |
+
+Later sessions: a passkey sign-in opens the Workspace directly; a link
+sign-in asks for one passkey check; the session check lasts up to 12 hours.
+
+Before merging the switch (owner):
+1. **Admin › Security** lists who has no passkey, only one, or no code. People
+   without them are not blocked; they create them on the way in.
+2. Tell the team: "Next time you open the Workspace, it asks you to sign in
+   with a passkey (or create one) and to choose an anti-phishing code."
+3. Email sign-in links need an EmDash email provider. Without one, people with
+   no passkey yet need an invite or recovery link from an admin (EmDash
+   admin › Users). See "Email and the anti-phishing code" below.
 
 ## Rules
 
 1. **Workspace passkey check (R-08).** Every private Workspace page and API
    (`/workspace`, `/admin/jobs`, `/crm`, `/hrm`, `/finance`, `/api/admin`,
    `/api/hrm`, `/api/finance`) requires one passkey check in the current
-   EmDash session, at most 12 hours old. Pages redirect to
+   EmDash session, at most 12 hours old. Signed-out visitors go to
+   `/workspace/sign-in?next=…`. Signed-in pages without the check redirect to
    `/workspace/verify?reason=session`; APIs answer `401 {"error":{"code":"passkey_required"}}`.
-   A person with no passkey adds one on that page first. There is no opt-out.
-   Because EmDash does not record how the session signed in, a passkey sign-in
-   is asked once more by the Workspace (once per session).
+   A person with no passkey creates one on that page first. There is no opt-out.
+   Two EmDash events also count as the check, both bound to the user ID: a
+   passkey sign-in through `/_emdash/api/auth/passkey/verify` whose assertion
+   carries user verification (the middleware reads the flag from the
+   authenticator data EmDash just verified and checks the credential belongs to
+   the signed-in user), and a guarded passkey registration whose attestation
+   carries user verification.
 2. **Anti-phishing code (R-08).** After the passkey check, every page needs the
    person's own code (Tài khoản của tôi › Bảo mật, `/workspace/account/security`).
    4–20 letters, numbers and spaces; not their name or email. Changing it needs
@@ -105,9 +130,18 @@ the retry so a test can assert the denial itself.
     sign-in, as in EmDash itself);
   - another passkey needs step-up with an existing one;
   - or a 24-hour recovery window an admin opened on **Admin › Security**
-    (never for oneself, reason required, used once, audited).
+    (never for oneself, identity confirmation and reason required, used once,
+    audited).
 - Every passkey added is audited (`passkey_added`).
-- Recovery: the admin confirms who the person is, opens the window, then sends
+- Renaming and removing: **My account › Security** calls EmDash's
+  `/_emdash/api/auth/passkey/:id` (PATCH, DELETE), which acts only on the
+  signed-in person's own passkeys and keeps the last one. For Workspace people
+  the middleware requires step-up before DELETE (always on) and audits
+  `passkey_removed`. Every EmDash role can do this; the Workspace no longer
+  links to `/_emdash/admin/settings/security`.
+- Recovery: the person reads the steps on `/workspace/recovery` (their own
+  state when signed in). The admin confirms who the person is (in person or
+  by video; a required checkbox), writes how, opens the window, then sends
   an EmDash recovery sign-in link (EmDash admin › Users). EmDash 0.38 cannot
   delete another person's passkeys, and there is no SMS or emailed code.
 - People outside the Workspace (CMS-only accounts) are left to EmDash.

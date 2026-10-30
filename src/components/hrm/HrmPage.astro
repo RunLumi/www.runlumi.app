@@ -1,11 +1,12 @@
 ---
 import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
-import PageHeader from "../workspace/ui/PageHeader.astro";
+import RecordHeader from "../workspace/ui/RecordHeader.astro";
+import "../../styles/record.css";
 import type { Crumb } from "../workspace/ui/Breadcrumbs.astro";
 import "../../styles/modules.css";
 import { localized, modules } from "../../lib/workspace/nav";
 import type { Failure, PageBase } from "../../lib/hrm/pages";
-interface Props { data: PageBase|Failure; module?:"hrm"; current?:string }
+interface Props { data: PageBase|Failure; module?:"hrm"; current?:string; meta?:string }
 const {data}=Astro.props;const vi=data.vi;
 const messages:Record<string,[string,string]>={
  financial_disposition_retryable:["Disposition is not fully confirmed. Reconcile the existing request before starting another operation.","Việc xử lý chưa được xác nhận đầy đủ. Cần đối soát yêu cầu hiện có trước khi bắt đầu lần khác."],
@@ -245,10 +246,14 @@ const parent=hrmLinks.filter(link=>link.path!=="/hrm"&&(path===link.path||path.s
 const crumbs:Crumb[]=[{label:"HRM",href:localized("/hrm",vi)}];
 if(parent&&parent.path!==path)crumbs.push({label:vi?parent.vi:parent.en,href:localized(parent.path,vi)});
 if(path!=="/hrm"||title!=="HRM")crumbs.push({label:title});
+const hrmGroups=modules.find(item=>item.key==="hrm")!.groups??[];
+const here=hrmLinks.find(link=>link.path===path)??parent;
+const group=hrmGroups.find(item=>item.key===here?.group);
+const eyebrow=group?`HRM · ${vi?group.vi:group.en}`:"HRM";
 ---
 <WorkspaceShell title={title} lang={data.lang} user={data.user} module={Astro.props.module??"hrm"} current={Astro.props.current}>
-  <div class="md-scope">
-  <PageHeader vi={vi} title={title} crumbs={crumbs} />
+  <div class="md-scope rec-module">
+  <RecordHeader vi={vi} title={title} crumbs={crumbs} object={eyebrow} icon={here?.icon??"hrm"} tone="hrm">{Astro.slots.has("actions")&&<div slot="actions" class="ws-bg"><slot name="actions" /></div>}{(Astro.props.meta||Astro.slots.has("tools"))&&<div class="ws-lv-meta"><p>{Astro.props.meta}</p><slot name="tools" /></div>}</RecordHeader>
   {error && <div class="crm-notice bad" role="alert"><strong>{vi?"Chưa hoàn tất":"Could not complete"}</strong><p>{messages[error]?.[vi?1:0]??(vi?"Yêu cầu không hợp lệ hoặc hồ sơ không còn khả dụng.":"The request is invalid or the record is no longer available.")}</p></div>}
   {savedMessages[saved]&&<div class="crm-notice good" role="status">{savedMessages[saved][vi?1:0]}</div>}
   {import.meta.env.DEV&&error?.startsWith("internal_error:")&&<pre class="crm-meta">{error.slice(15)}</pre>}

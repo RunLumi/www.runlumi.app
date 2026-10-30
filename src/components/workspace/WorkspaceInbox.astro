@@ -1,0 +1,53 @@
+---
+// Notices (board: Notifications, story UI1-S4): one panel with the header
+// (bell icon, unread count, "mark all read", "my notification settings"),
+// filter tabs and the person's own notices with "you receive this because".
+import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
+import ObjectIcon from "./ui/ObjectIcon.astro";
+import RecordTabs from "./ui/RecordTabs.astro";
+import { localized } from "../../lib/workspace/nav";
+import { noticeReason, noticeTitle } from "../../lib/workspace/inbox";
+import type { inboxPage } from "../../lib/workspace/shell-pages";
+import { dateTime } from "../../lib/workspace/format";
+
+type Props = Exclude<Awaited<ReturnType<typeof inboxPage>>, Response>;
+const { lang, vi, user, source, notices, unread, filter, saved, error } = Astro.props;
+const t = (en: string, viText: string) => vi ? viText : en;
+const self = localized("/workspace/inbox", vi);
+const shown = filter === "unread" ? notices.filter((notice) => notice.unread) : notices;
+const key = () => crypto.randomUUID().replaceAll("-", "");
+---
+<WorkspaceShell title={t("Notifications", "Thông báo")} lang={lang} user={user} module="home">
+  <section class="ws-lv" aria-labelledby="inbox-h">
+    <div class="ws-oh">
+      <div class="ws-oh-id">
+        <ObjectIcon icon="bell" tone="report" />
+        <div><p class="ws-eyebrow">{t("Notifications", "Thông báo")}</p><h1 class="ws-h1" id="inbox-h">{source ? (vi ? `${unread} chưa đọc` : `${unread} unread`) : t("No in-app notices", "Không có thông báo trong ứng dụng")}</h1></div>
+      </div>
+      <div class="ws-oh-actions">
+        {source && unread > 0 && <form method="post" action={filter === "unread" ? `${self}?filter=unread` : self}><input type="hidden" name="intent" value="mark_all" /><input type="hidden" name="request_key" value={key()} /><button class="ws-btn" type="submit">{t("Mark all as read", "Đánh dấu tất cả đã đọc")}</button></form>}
+        <a class="ws-btn" href={localized("/workspace/account/notifications", vi)}>{t("My notification settings", "Cài đặt thông báo của tôi")}</a>
+      </div>
+    </div>
+    {saved && <p class="ws-flash" role="status">{t("Marked as read.", "Đã đánh dấu đã đọc.")}</p>}
+    {error && <p class="ws-flash bad" role="alert">{t("That notice changed or is not yours. The list below is current.", "Thông báo đó đã thay đổi hoặc không phải của bạn. Danh sách dưới đây là mới nhất.")}</p>}
+    {source && <RecordTabs label={t("Filter notices", "Lọc thông báo")} current={filter} tabs={[
+      { key: "all", label: t("All", "Tất cả"), href: self },
+      { key: "unread", label: t("Unread", "Chưa đọc"), href: `${self}?filter=unread`, count: unread },
+    ]} />}
+    {!source
+      ? <p class="ws-empty"><strong>{t("Nothing is sent to you here yet", "Chưa có gì gửi tới bạn ở đây")}</strong>{t("In-app notices come from HRM service requests, for people who send or handle them while HRM is live. Email rules are listed under My notification settings.", "Thông báo trong ứng dụng đến từ yêu cầu dịch vụ HRM, cho người gửi hoặc xử lý yêu cầu khi HRM đang mở. Quy tắc gửi email được liệt kê ở Cài đặt thông báo của tôi.")}</p>
+      : shown.length === 0
+        ? <p class="ws-empty"><strong>{filter === "unread" ? t("All read", "Đã đọc hết") : t("No notices yet", "Chưa có thông báo")}</strong>{t("When an HR service request you send or handle changes, it appears here.", "Khi yêu cầu dịch vụ HR bạn gửi hoặc xử lý có thay đổi, thông báo sẽ hiện ở đây.")}</p>
+        : <ul class="ws-notices">{shown.map((notice) => <li class:list={["ws-notice", notice.unread && "unread"]}>
+            <ObjectIcon icon="hrm" tone="hrm" size="sm" />
+            <div class="ws-notice-b">
+              <div class="ws-notice-t"><a href={localized(notice.href, vi)}>{noticeTitle(notice.type, vi)}</a><time datetime={notice.created_at}>{dateTime(notice.created_at, vi)}</time></div>
+              <span class="ws-notice-src">HRM · {t("You receive this because ", "Bạn nhận vì: ")}{noticeReason(notice.type, vi)}</span>
+            </div>
+            {notice.unread
+              ? <form method="post" action={filter === "unread" ? `${self}?filter=unread` : self}><input type="hidden" name="intent" value="mark_read" /><input type="hidden" name="request_key" value={key()} /><input type="hidden" name="id" value={notice.id} /><input type="hidden" name="version" value={notice.version} /><button class="ws-btn ghost sm icon ws-dot-btn" type="submit" aria-label={t(`Mark as read: ${noticeTitle(notice.type, vi)}`, `Đánh dấu đã đọc: ${noticeTitle(notice.type, vi)}`)} title={t("Mark as read", "Đánh dấu đã đọc")}><span class="ws-dot" aria-hidden="true"></span></button></form>
+              : <span class="crm-sr">{t("Read", "Đã đọc")}</span>}
+          </li>)}</ul>}
+  </section>
+</WorkspaceShell>

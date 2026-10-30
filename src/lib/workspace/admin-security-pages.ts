@@ -55,6 +55,8 @@ export async function securityPage(astro: AstroGlobal, lang: Lang): Promise<Secu
   if (astro.request.method === "POST") {
     const result = await post(astro, lang, async (form) => {
       if (form.get("intent") !== "recovery") throw new AccessError("intent", "invalid");
+      // The admin confirms who the person is (in person or by video call) before opening a window.
+      if (form.get("confirmed") !== "1") throw new AccessError("confirmed", "required");
       await openRecoveryWindow(DB, CONTENT_DB, data.user, String(form.get("user_id") ?? ""), String(form.get("reason") ?? ""));
       return `${astro.url.pathname}?saved=recovery`;
     });

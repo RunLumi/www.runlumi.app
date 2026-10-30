@@ -1,0 +1,28 @@
+---
+// Record page header (boards: LeadRecord, DealRecord, AccountRecord): crumbs
+// back to the list (R-03), object icon, object label, the record name, the
+// action button group, then the highlights row of up to six key fields.
+import Breadcrumbs, { type Crumb } from "./Breadcrumbs.astro";
+import ObjectIcon, { type Tone } from "./ObjectIcon.astro";
+import type { IconName } from "../../../lib/workspace/nav";
+
+export interface Highlight { label: string; value: string; href?: string; tone?: "warn" | "bad" | "ok" }
+interface Props { vi: boolean; icon: IconName; tone?: Tone | string; object: string; title: string; crumbs?: Crumb[]; highlights?: Highlight[] }
+const { vi, icon, tone, object, title, crumbs = [], highlights = [] } = Astro.props;
+---
+<section class="ws-rec" aria-labelledby="rec-title">
+  <div class="ws-oh">
+    <div class="ws-oh-id">
+      <ObjectIcon icon={icon} tone={tone} />
+      <div>
+        {crumbs.length > 0 && <Breadcrumbs items={crumbs} vi={vi} />}
+        <p class="ws-eyebrow">{object}</p>
+        <h1 class="ws-h1" id="rec-title">{title}</h1>
+        <slot name="sub" />
+      </div>
+    </div>
+    {Astro.slots.has("actions") && <div class="ws-oh-actions"><slot name="actions" /></div>}
+  </div>
+  {highlights.length > 0 && <dl class="ws-hl-row">{highlights.map((item) => <div class="ws-hl"><dt>{item.label}</dt><dd class:list={[item.tone && `tone-${item.tone}`]}>{item.href ? <a href={item.href}>{item.value}</a> : item.value}</dd></div>)}</dl>}
+  <slot />
+</section>

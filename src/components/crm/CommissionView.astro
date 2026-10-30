@@ -1,6 +1,8 @@
 ---
 import CrmShell from "../../layouts/CrmShell.astro";
-import Crumbs from "./Crumbs.astro";
+import CrmSetupLayout from "./CrmSetupLayout.astro";
+import SetupFrame from "../workspace/ui/SetupFrame.astro";
+import "../../styles/record.css";
 import "../../styles/crm-sales.css";
 import Field from "./Field.astro";
 import FormNotices from "./FormNotices.astro";
@@ -42,12 +44,9 @@ const v = (intent: string, field: string, fallback: string | number = "") => val
 const e = (intent: string, field: string) => errorFor(state, intent, field);
 ---
 <CrmShell title={vi ? "Hoa hồng" : "Commission"} lang={lang} actor={ctx.actor} current="commission">
-  <Crumbs vi={vi} items={[{ label: "CRM", href: base }, { label: vi ? "Hoa hồng" : "Commission" }]} />
-  <div class="crm-head"><div>
-    <p class="crm-eyebrow">{vi ? "Hoa hồng" : "Commission"}</p>
-    <h1 class="crm-h1">{vi ? "Trả cho khách đã thu tiền, đã bàn giao và còn ở lại." : "Paid for customers who paid, were delivered and stayed."}</h1>
-    <p class="crm-lede">{vi ? "CRM tính dự kiến từ sổ thương mại và trạng thái bàn giao. CRM không chi tiền; tài chính ghi nhận khoản đã chi theo bảng kê." : "The CRM estimates from the ledger and delivery state. It pays nothing; finance records payouts made against a statement."}</p>
-  </div></div>
+  <CrmSetupLayout vi={vi} current="commission">
+  <SetupFrame vi={vi} icon="commission" eyebrow={vi ? "Kết quả" : "Results"} title={vi ? "Hoa hồng" : "Commission"} info={vi ? "CRM tính dự kiến từ sổ thương mại và trạng thái bàn giao. CRM không chi tiền; tài chính ghi nhận khoản đã chi theo bảng kê." : "The CRM estimates from the ledger and delivery state. It pays nothing; finance records payouts made against a statement."}>
+    
   <FormNotices state={state} lang={lang} saved={Astro.url.searchParams.get("saved")} />
   {!approved && <div class="crm-notice warn" role="status"><strong>{vi ? "Chính sách đang là ĐỀ XUẤT, chưa được duyệt." : "This policy is a PROPOSAL and has not been approved."}</strong>{vi ? "Số liệu bên dưới là mô phỏng chỉ để admin/tài chính xem. Cộng tác viên chưa thấy số; không ghi nhận chi trả cho tới khi admin lưu một phiên bản đã duyệt." : "Figures below are a simulation for admins and finance only. Collaborators see nothing, and no payout can be recorded until an admin saves an approved version."}</div>}
   {!view.visible && <div class="crm-sheet"><p class="crm-empty">{vi ? "Chính sách hoa hồng chưa được duyệt. Khi được duyệt, bạn sẽ thấy các khoản dự kiến của mình tại đây." : "The commission policy has not been approved yet. Once it is, your estimated commission appears here."}</p></div>}
@@ -172,4 +171,6 @@ const e = (intent: string, field: string) => errorFor(state, intent, field);
       <div class="crm-actions"><button class="crm-button secondary" type="submit">{vi ? "Lưu" : "Save"}</button></div>
     </form>
   </section>}
+  </SetupFrame>
+  </CrmSetupLayout>
 </CrmShell>

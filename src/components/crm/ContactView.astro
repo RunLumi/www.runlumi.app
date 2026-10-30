@@ -1,35 +1,37 @@
 ---
+// Contact record on the AccountRecord frame: highlights, Related/Details tabs
+// and edits in sheets, with the company's contact and do-not-contact rules.
 import CrmShell from "../../layouts/CrmShell.astro";
-import Crumbs from "./Crumbs.astro";
 import Field from "./Field.astro";
 import FormNotices from "./FormNotices.astro";
 import Hidden from "./Hidden.astro";
-import { formatDate, label, options } from "../../lib/crm/i18n";
+import RecordHeader from "../workspace/ui/RecordHeader.astro";
+import ButtonGroup from "../workspace/ui/ButtonGroup.astro";
+import RecordTabs from "../workspace/ui/RecordTabs.astro";
+import RelatedList from "../workspace/ui/RelatedList.astro";
+import Sheet from "../workspace/ui/Sheet.astro";
+import DataTable from "../workspace/ui/DataTable.astro";
+import { formatDate, formatDateTime, label, options } from "../../lib/crm/i18n";
 import { errorFor, valueFor } from "../../lib/crm/page";
 import type { ContactProps } from "../../lib/crm/routes/account";
 import "../../styles/crm-sales.css";
+import "../../styles/record.css";
 
 type Props = ContactProps;
 const { ctx, state, contact, canEdit, opportunities, stageNames, names } = Astro.props;
 const { lang, vi, base } = ctx;
+const here = `${base}/contacts/${contact.id}`;
+const tab = Astro.url.searchParams.get("tab") === "details" ? "details" : "related";
 const v = (name: string, stored: string | null) => valueFor(state, "contact", name, stored);
 const e = (name: string) => errorFor(state, "contact", name);
+const failed = Object.keys(state.errors).length > 0 || state.conflict || state.serverError;
 const person = (id: string | null) => id ? (names[id]?.name ?? (id === ctx.actor.id ? ctx.actor.name : (vi ? "Tài khoản không hoạt động" : "Inactive account"))) : (vi ? "Chưa có người quản lý" : "Nobody yet");
 const blocked = !!contact.do_not_contact || !!contact.account_dnc;
+const canDnc = !contact.do_not_contact || ctx.actor.configure;
 ---
 <CrmShell title={contact.name} lang={lang} actor={ctx.actor} current="contacts">
-  <Crumbs vi={vi} items={[{ label: "CRM", href: base }, { label: vi ? "Liên hệ" : "Contacts", href: `${base}/contacts` }, { label: contact.account_name, href: `${base}/accounts/${contact.account_id}` }, { label: contact.name }]} />
-  <div class="crm-head"><div>
-    <p class="crm-eyebrow">{vi ? "Liên hệ" : "Contact"} · {label(lang, "role", contact.role)}</p>
-    <h1 class="crm-h1">{contact.name}</h1>
-    <p class="crm-lede"><a class="crm-link" href={`${base}/accounts/${contact.account_id}`}>{contact.account_name}</a></p>
-  </div>{blocked ? <span class="crm-badge red">{vi ? "Không liên hệ" : "Do not contact"}</span> : <span class="crm-badge">{label(lang, "consent", contact.consent_status)}</span>}</div>
-  <FormNotices state={state} lang={lang} saved={Astro.url.searchParams.get("saved")} fieldLabels={vi ? { name: "Tên", phone: "Điện thoại", email: "Email", consent_evidence: "Bằng chứng đồng ý", dnc_reason: "Lý do" } : { name: "Name", phone: "Phone", email: "Email", consent_evidence: "Consent evidence", dnc_reason: "Reason" }} />
-  {blocked && <div class="crm-notice bad" role="status">{vi ? "Yêu cầu không liên hệ áp dụng cho mọi kênh và mọi quy trình bán. Chỉ admin gỡ, kèm bằng chứng." : "Do-not-contact applies across every channel and playbook. Only an admin can lift it, with evidence."}{contact.dnc_reason ? ` ${contact.dnc_reason} · ${formatDate(contact.dnc_recorded_at, lang)}` : ""}</div>}
-  <div class="crm-row-panels">
-    <section class="crm-sheet" aria-labelledby="c-details-h">
-      <h2 class="crm-h2" id="c-details-h">{vi ? "Thông tin liên hệ" : "Contact details"}</h2>
-      {canEdit ? <form class="crm-form" method="post">
+  {canEdit && <Sheet id="sheet-edit" vi={vi} title={vi ? "Sửa liên hệ" : "Edit contact"} open={failed && state.intent === "contact"} closeHref={here} action={here}>
+    
         <Hidden intent="contact" state={state} version={contact.version} />
         <div class="crm-form-grid">
           <Field name="name" label={vi ? "Tên" : "Name"} lang={lang} value={v("name", contact.name)} error={e("name")} required maxlength={160} />
@@ -42,28 +44,68 @@ const blocked = !!contact.do_not_contact || !!contact.account_dnc;
           <Field name="consent_evidence" label={vi ? "Bằng chứng đồng ý" : "Consent evidence"} lang={lang} value={v("consent_evidence", contact.consent_evidence)} error={e("consent_evidence")} maxlength={500} />
         </div>
         <Field name="contact_basis" label={vi ? "Căn cứ liên hệ" : "Basis for contact"} lang={lang} value={v("contact_basis", contact.contact_basis)} maxlength={500} />
-        <div class="crm-actions"><button class="crm-button secondary" type="submit">{vi ? "Lưu" : "Save"}</button></div>
-      </form> : <dl class="crm-facts">
-        <div><dt>{vi ? "Điện thoại" : "Phone"}</dt><dd>{contact.phone || "—"}</dd></div>
-        <div><dt>Zalo</dt><dd>{contact.zalo || "—"}</dd></div>
-        <div><dt>Email</dt><dd>{contact.email || "—"}</dd></div>
-        <div><dt>{vi ? "Căn cứ liên hệ" : "Basis for contact"}</dt><dd>{contact.contact_basis || "—"}</dd></div>
-      </dl>}
-      <p class="crm-meta">{vi ? "Người quản lý" : "Managed by"}: {person(contact.owner_id)}</p>
-    </section>
-    <section class="crm-sheet" aria-labelledby="c-opps-h">
-      <h2 class="crm-h2" id="c-opps-h">{vi ? "Cơ hội với người này" : "Opportunities with this person"}<span class="crm-count">{opportunities.length}</span></h2>
-      {opportunities.length ? <ul class="crm-list">{opportunities.map((opp) => <li class="crm-row"><a class="crm-row-title" href={`${base}/${opp.id}`}>{opp.title}</a><span class="crm-row-side"><span class="crm-badge blue">{stageNames[`${opp.playbook_id}:${opp.stage_id}`] ?? opp.stage_id}</span><span class="crm-badge">{label(lang, "outcome", opp.outcome)}</span></span><span class="crm-row-meta"><span>{vi ? "Phụ trách" : "Owner"}: {opp.owner_id ? person(opp.owner_id) : (vi ? "Chưa phân công" : "Unassigned")}</span></span></li>)}</ul>
-        : <p class="crm-empty">{vi ? "Chưa có cơ hội nào bạn được xem." : "No opportunities you can view."}</p>}
-      {!blocked && <p><a class="crm-button small secondary" href={`${base}/new?contact=${contact.id}`}>{vi ? "Tạo cơ hội" : "New opportunity"}</a></p>}
-      {(!contact.do_not_contact || ctx.actor.configure) && <details class="crm-disclosure" open={state.intent === "dnc"}>
-        <summary>{contact.do_not_contact ? (vi ? "Gỡ không liên hệ (admin)" : "Lift do-not-contact (admin)") : (vi ? "Đặt không liên hệ" : "Set do-not-contact")}</summary>
-        <form class="crm-form" method="post">
-          <Hidden intent="dnc" state={state} /><input type="hidden" name="do_not_contact" value={contact.do_not_contact ? "0" : "1"} />
-          <Field name="dnc_reason" label={contact.do_not_contact ? (vi ? "Bằng chứng để gỡ" : "Evidence for lifting") : (vi ? "Lý do / nguồn yêu cầu" : "Reason / source of the request")} lang={lang} value="" error={errorFor(state, "dnc", "dnc_reason")} required maxlength={500} />
-          <div class="crm-actions"><button class:list={["crm-button small", contact.do_not_contact ? "secondary" : "danger"]} type="submit">{contact.do_not_contact ? (vi ? "Gỡ" : "Lift") : (vi ? "Đặt không liên hệ" : "Set do-not-contact")}</button></div>
-        </form>
-      </details>}
+      <Fragment slot="foot"><a class="ws-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class="ws-btn primary" type="submit">{vi ? "Lưu" : "Save"}</button></Fragment>
+  </Sheet>}
+
+  <div class="rec">
+    <RecordHeader vi={vi} icon="contacts" tone="contact" object={vi ? "Liên hệ" : "Contact"} title={contact.name}
+      crumbs={[{ label: "CRM", href: base }, { label: vi ? "Liên hệ" : "Contacts", href: `${base}/contacts` }, { label: contact.account_name, href: `${base}/accounts/${contact.account_id}` }, { label: contact.name }]}
+      highlights={[
+        { label: vi ? "Vai trò" : "Role", value: label(lang, "role", contact.role) },
+        { label: vi ? "Công ty" : "Company", value: contact.account_name, href: `${base}/accounts/${contact.account_id}` },
+        { label: vi ? "Điện thoại" : "Phone", value: contact.phone || "—" },
+        { label: vi ? "Đồng ý liên hệ" : "Contact consent", value: blocked ? (vi ? "Không liên hệ" : "Do not contact") : label(lang, "consent", contact.consent_status), tone: (blocked) ? "warn" : undefined },
+        { label: vi ? "Người quản lý" : "Managed by", value: person(contact.owner_id), tone: (!contact.owner_id) ? "warn" : undefined },
+      ]}>
+      {blocked ? <span slot="sub" class="ws-badge bad">{vi ? "Không liên hệ" : "Do not contact"}</span> : null}
+      <ButtonGroup slot="actions" label={vi ? "Thao tác" : "Actions"}>
+        {canEdit && <a class="ws-btn" href="#sheet-edit">{vi ? "Sửa" : "Edit"}</a>}
+        {!blocked && <a class="ws-btn" href={`${base}/new?contact=${contact.id}`}>{vi ? "Tạo cơ hội" : "New opportunity"}</a>}
+        {canDnc && <a class="ws-btn" href="#sheet-dnc">{contact.do_not_contact ? (vi ? "Gỡ không liên hệ (admin)" : "Lift do-not-contact (admin)") : (vi ? "Đặt không liên hệ" : "Set do-not-contact")}</a>}
+      </ButtonGroup>
+    </RecordHeader>
+    <FormNotices state={state} lang={lang} saved={Astro.url.searchParams.get("saved")} fieldLabels={vi ? { name: "Tên", phone: "Điện thoại", email: "Email", consent_evidence: "Bằng chứng đồng ý", dnc_reason: "Lý do" } : { name: "Name", phone: "Phone", email: "Email", consent_evidence: "Consent evidence", dnc_reason: "Reason" }} />
+    {blocked && <div class="crm-notice bad" role="status">{vi ? "Yêu cầu không liên hệ áp dụng cho mọi kênh và mọi quy trình bán. Chỉ admin gỡ, kèm bằng chứng." : "Do-not-contact applies across every channel and playbook. Only an admin can lift it, with evidence."}{contact.dnc_reason ? ` ${contact.dnc_reason} · ${formatDate(contact.dnc_recorded_at, lang)}` : ""}</div>}
+
+    <section class="ws-sheet-panel" id="related" aria-label={vi ? "Liên quan và chi tiết" : "Related and details"}>
+      <RecordTabs label={vi ? "Phần của liên hệ" : "Contact sections"} current={tab} tabs={[{ key: "related", label: vi ? "Liên quan" : "Related", href: `${here}#related` }, { key: "details", label: vi ? "Chi tiết" : "Details", href: `${here}?tab=details#related` }]} />
+      {tab === "details" ? <div class="rec-body">
+        <h3 class="rec-sec">{vi ? "Thông tin liên hệ" : "Contact details"}</h3>
+        <dl class="rec-fields">
+          <div><dt>{vi ? "Tên" : "Name"}</dt><dd>{contact.name}</dd></div>
+          <div><dt>{vi ? "Vai trò" : "Role"}</dt><dd>{label(lang, "role", contact.role)}</dd></div>
+          <div><dt>{vi ? "Điện thoại" : "Phone"}</dt><dd>{contact.phone || "—"}</dd></div>
+          <div><dt>Zalo</dt><dd>{contact.zalo || "—"}</dd></div>
+          <div><dt>Email</dt><dd>{contact.email || "—"}</dd></div>
+          <div><dt>{vi ? "Kênh ưu tiên" : "Preferred channel"}</dt><dd>{contact.preferred_channel ? label(lang, "contactChannel", contact.preferred_channel) : "—"}</dd></div>
+          <div><dt>{vi ? "Căn cứ liên hệ" : "Basis for contact"}</dt><dd>{contact.contact_basis || "—"}</dd></div>
+          <div><dt>{vi ? "Bằng chứng đồng ý" : "Consent evidence"}</dt><dd>{contact.consent_evidence || "—"}</dd></div>
+        </dl>
+        <h3 class="rec-sec">{vi ? "Thông tin hệ thống" : "System information"}</h3>
+        <dl class="rec-fields">
+          <div><dt>{vi ? "Tạo lúc" : "Created"}</dt><dd>{formatDateTime(contact.created_at, lang)}</dd></div>
+        </dl>
+      </div> : <div class="rec-body">
+        <RelatedList wide title={vi ? "Cơ hội với người này" : "Opportunities with this person"} vi={vi} icon="pipeline" tone="opportunity" count={opportunities.length} href={blocked ? undefined : `${base}/new?contact=${contact.id}`} hrefLabel={vi ? "Tạo" : "New"}>
+          {opportunities.length ? <DataTable label={vi ? "Cơ hội với người này" : "Opportunities with this person"} vi={vi} frozen={1} widths={["16rem"]} minWidth="620px" frozenNames={vi ? "Tên cơ hội" : "Name"}>
+            <thead><tr><th scope="col">{vi ? "Tên cơ hội" : "Name"}</th><th scope="col">{vi ? "Giai đoạn" : "Stage"}</th><th scope="col">{vi ? "Kết quả" : "Outcome"}</th><th scope="col">{vi ? "Người phụ trách" : "Owner"}</th></tr></thead>
+            <tbody>{opportunities.map((opp) => <tr>
+              <th scope="row"><a href={`${base}/${opp.id}`}>{opp.title}</a></th>
+              <td>{stageNames[`${opp.playbook_id}:${opp.stage_id}`] ?? opp.stage_id}</td>
+              <td>{label(lang, "outcome", opp.outcome)}</td>
+              <td>{opp.owner_id ? person(opp.owner_id) : (vi ? "Chưa phân công" : "Unassigned")}</td>
+            </tr>)}</tbody>
+          </DataTable> : <p class="ws-rl-empty">{vi ? "Chưa có cơ hội nào bạn được xem." : "No opportunities you can view."}</p>}
+        </RelatedList>
+      </div>}
     </section>
   </div>
+
+  {canDnc && <Sheet id="sheet-dnc" vi={vi} title={contact.do_not_contact ? (vi ? "Gỡ không liên hệ" : "Lift do-not-contact") : (vi ? "Đặt không liên hệ" : "Set do-not-contact")} open={failed && state.intent === "dnc"} closeHref={here} action={here}>
+    
+        <Hidden intent="dnc" state={state} /><input type="hidden" name="do_not_contact" value={contact.do_not_contact ? "0" : "1"} />
+        <p class="crm-help">{vi ? "Áp dụng cho mọi kênh và mọi quy trình bán. Ai cũng có thể đặt; chỉ admin gỡ, kèm bằng chứng." : "Applies across every channel and playbook. Anyone can set it; only an admin can lift it, with evidence."}</p>
+        <Field name="dnc_reason" label={contact.do_not_contact ? (vi ? "Bằng chứng để gỡ" : "Evidence for lifting") : (vi ? "Lý do / nguồn yêu cầu" : "Reason / source of the request")} lang={lang} value="" error={errorFor(state, "dnc", "dnc_reason")} required maxlength={500} />
+      <Fragment slot="foot"><a class="ws-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class:list={["ws-btn", contact.do_not_contact ? "" : "danger"]} type="submit">{contact.do_not_contact ? (vi ? "Gỡ" : "Lift") : (vi ? "Đặt không liên hệ" : "Set do-not-contact")}</button></Fragment>
+  </Sheet>}
 </CrmShell>

@@ -1,0 +1,26 @@
+---
+// Create and edit open here, never inline under a list (UI-PARITY §2).
+// variant "sheet" slides in from the right; "dialog" is centred (boards:
+// NewEvent, CloseDialog). It opens when its `id` is the URL fragment
+// (link to "#id": no script, no round trip) or when the server passes `open`
+// (for example to re-show a form with errors). `closeHref` must lead back to
+// the page without the sheet. With `action`, the body and foot form one
+// POST form. `wide` gives the 720 px form width (`width` sets any other).
+// Escape and initial focus come from the shell's small script.
+
+interface Props { id: string; title: string; vi: boolean; open?: boolean; closeHref?: string; variant?: "sheet" | "dialog"; width?: string; wide?: boolean; action?: string; method?: "post" | "get"; note?: string; enctype?: string }
+const { id, title, vi, open = false, closeHref = "#", variant = "sheet", wide = false, action, method = "post", note, enctype } = Astro.props;
+const width = Astro.props.width ?? (wide ? "720px" : undefined);
+const Body = action !== undefined ? "form" : "div";
+const formProps = action !== undefined ? { method, action, enctype } : {};
+---
+<div class:list={["ws-overlay", variant]} id={id} data-open={open ? "" : undefined}>
+  <a class="ws-scrim" href={closeHref} tabindex="-1" aria-hidden="true"></a>
+  <section class="ws-dlg" role="dialog" aria-modal="true" aria-labelledby={`${id}-h`} tabindex="-1" style={width ? `--ws-dlg-w:${width}` : undefined}>
+    <header class="ws-dlg-h"><h2 id={`${id}-h`}>{title}</h2><a class="ws-btn icon ghost sm" href={closeHref} data-ws-close aria-label={vi ? "Đóng" : "Close"}><svg class="ws-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></a></header>
+    <Body class="ws-dlg-form" {...formProps}>
+      <div class="ws-dlg-b">{note && <p class="ws-dlg-note">{note}</p>}<slot /></div>
+      {Astro.slots.has("foot") && <footer class="ws-dlg-f"><slot name="foot" /></footer>}
+    </Body>
+  </section>
+</div>

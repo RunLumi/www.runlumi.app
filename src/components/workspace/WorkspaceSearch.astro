@@ -1,0 +1,55 @@
+---
+// Search results (board: Search, story UI1-S3): a header panel with the
+// query and count, the object-type filter on the left, then one related
+// list per object type. Results come from each list's own scoped function.
+import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
+import RelatedList from "./ui/RelatedList.astro";
+import { localized } from "../../lib/workspace/nav";
+import type { SearchKind, searchPage } from "../../lib/workspace/shell-pages";
+
+type Props = Awaited<ReturnType<typeof searchPage>>;
+const { lang, vi, user, q, ready, only, kinds, groups, counts } = Astro.props;
+const t = (en: string, viText: string) => vi ? viText : en;
+const names: Record<SearchKind, [string, string]> = {
+  opportunities: ["Opportunities", "Cơ hội"], companies: ["Companies", "Công ty"], contacts: ["Contacts", "Liên hệ"], leads: ["Leads", "Lead"], members: ["People with access", "Người dùng"],
+};
+const icons = { opportunities: "pipeline", companies: "companies", contacts: "contacts", leads: "leads", members: "users" } as const;
+const tones = { opportunities: "opportunity", companies: "company", contacts: "contact", leads: "lead", members: "person" } as const;
+const name = (kind: SearchKind) => names[kind][vi ? 1 : 0];
+const total = Object.values(counts).reduce((sum, value) => sum + (value ?? 0), 0);
+const outcome: Record<string, [string, string]> = { open: ["Open", "Đang mở"], won: ["Won", "Thắng"], lost: ["Lost", "Thua"], paused: ["Paused", "Tạm dừng"] };
+const leadState: Record<string, [string, string]> = { open: ["Open lead", "Lead đang mở"], converted: ["Converted", "Đã chuyển đổi"], disqualified: ["Disqualified", "Không tiếp tục"] };
+const meta = (items: string[]) => items.map((item) => item.startsWith("outcome:") ? outcome[item.slice(8)]?.[vi ? 1 : 0] ?? item.slice(8)
+  : item.startsWith("lead:") ? leadState[item.slice(5)]?.[vi ? 1 : 0] ?? item.slice(5)
+  : item === "revoked" ? t("Access revoked", "Đã thu hồi quyền") : item).filter(Boolean).join(" · ");
+const href = (kind: SearchKind | "") => localized(`/workspace/search?q=${encodeURIComponent(q)}${kind ? `&type=${kind}` : ""}`, vi);
+const title = ready ? `“${q}” · ${total} ${t(total === 1 ? "result" : "results", "kết quả")}` : t("Search the Workspace", "Tìm trong Workspace");
+---
+<WorkspaceShell title={ready ? `${t("Search", "Tìm kiếm")}: ${q}` : t("Search", "Tìm kiếm")} lang={lang} user={user} module="home">
+  <section class="ws-page-head" aria-labelledby="search-h">
+    <div>
+      <p class="ws-eyebrow">{t("Search results", "Kết quả tìm kiếm")}</p>
+      <h1 class="ws-h1" id="search-h">{title}</h1>
+    </div>
+  </section>
+  {!kinds.length
+    ? <p class="ws-empty ws-panel"><strong>{t("Nothing to search yet", "Chưa có gì để tìm")}</strong>{t("Search covers CRM records and, for admins, people with access. Your roles open neither.", "Tìm kiếm bao gồm bản ghi CRM và, với admin, người có quyền truy cập. Vai trò của bạn chưa mở phần nào trong đó.")}</p>
+    : !ready
+      ? <p class="ws-empty ws-panel"><strong>{t("Type at least 2 characters", "Gõ ít nhất 2 ký tự")}</strong>{t("Use the search field at the top. It finds ", "Dùng ô tìm kiếm ở trên cùng. Ô này tìm ")}{kinds.map(name).join(", ").toLocaleLowerCase(vi ? "vi" : "en")}{t(" you may already open.", " mà bạn đã có quyền xem.")}</p>
+      : <div class="ws-split">
+          <nav class="ws-gmenu side ws-filter-nav" aria-label={t("Filter by object", "Lọc theo loại dữ liệu")}>
+            <p class="ws-gmenu-label">{t("Object type", "Loại dữ liệu")}</p>
+            <ul>
+              <li><a href={href("")} aria-current={!only ? "page" : undefined}><span>{t("All", "Tất cả")}</span><span class="ws-count">{total}</span></a></li>
+              {kinds.map((kind) => <li><a href={href(kind)} aria-current={only === kind ? "page" : undefined}><span>{name(kind)}</span><span class="ws-count">{counts[kind] ?? 0}</span></a></li>)}
+            </ul>
+            <p class="ws-side-note">{t("Only records you may open are shown.", "Chỉ hiện bản ghi bạn có quyền xem.")}</p>
+          </nav>
+          <div class="ws-stack ws-grow">
+            {groups.filter((group) => group.total > 0 || only).map((group) => <RelatedList vi={vi} title={name(group.kind)} count={group.total} icon={icons[group.kind]} tone={tones[group.kind]}
+                href={group.total > group.hits.length ? localized(group.all, vi) : undefined} hrefLabel={t(`Open the ${name(group.kind).toLowerCase()} list`, `Mở danh sách ${name(group.kind).toLocaleLowerCase("vi")}`)}
+                items={group.hits.map((hit) => ({ title: hit.title, href: localized(hit.href, vi), meta: meta(hit.meta) }))} empty={t("No match.", "Không có kết quả.")} />)}
+            {total === 0 && !only && <p class="ws-empty ws-panel"><strong>{t("No match", "Không tìm thấy")}</strong>{t("Nothing you may open matches this text. Check the spelling, or search by company or phone in the list itself.", "Không có bản ghi nào bạn được xem khớp với nội dung này. Kiểm tra chính tả, hoặc tìm theo công ty hay số điện thoại ngay trong danh sách.")}</p>}
+          </div>
+        </div>}
+</WorkspaceShell>

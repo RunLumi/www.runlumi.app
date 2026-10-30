@@ -1,0 +1,19 @@
+---
+// The path (boards: LeadRecord, DealRecord): chevron steps from the
+// playbook or status list, done → current → to do, with the main action on
+// the right in the "action" slot. Steps with `href` are links (for example
+// to choose a stage); the current step carries aria-current="step".
+interface Step { label: string; state: "done" | "current" | "todo" | "selected" | "won" | "lost"; href?: string }
+interface Props { label: string; steps: Step[]; vi: boolean }
+const { label, steps, vi } = Astro.props;
+const stateText = (state: Step["state"]) => ({ done: vi ? "đã xong" : "done", current: vi ? "hiện tại" : "current", todo: vi ? "chưa tới" : "to do", selected: vi ? "đang chọn" : "selected", won: vi ? "thắng" : "won", lost: vi ? "thua" : "lost" })[state];
+---
+<div class="ws-path-row">
+  <ol class="ws-path" aria-label={label}>
+    {steps.map((step) => {
+      const inner = <>{step.state === "done" && <svg class="ws-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>}<span class:list={[step.state === "done" && "ws-path-done-label"]}>{step.label}</span><span class="crm-sr">, {stateText(step.state)}</span></>;
+      return <li class:list={["ws-step", `s-${step.state}`]} aria-current={step.state === "current" ? "step" : undefined} title={step.label}>{step.href ? <a href={step.href}>{inner}</a> : <span>{inner}</span>}</li>;
+    })}
+  </ol>
+  {Astro.slots.has("action") && <div class="ws-path-action"><slot name="action" /></div>}
+</div>

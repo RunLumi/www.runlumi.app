@@ -1,0 +1,120 @@
+---
+// Tasks: the person's open tasks grouped by due date, with the selected task's
+// detail beside them (board Tasks). Story: docs/governance/USER-STORIES.md
+// § CRM list screens (Tasks). Completing and creating go through the
+// opportunity's checks, as on the record page.
+import CrmShell from "../../layouts/CrmShell.astro";
+import Field from "./Field.astro";
+import FormNotices from "./FormNotices.astro";
+import Hidden from "./Hidden.astro";
+import ListHeader from "../workspace/ui/ListHeader.astro";
+import ButtonGroup from "../workspace/ui/ButtonGroup.astro";
+import ObjectIcon from "../workspace/ui/ObjectIcon.astro";
+import NavIcon from "../workspace/NavIcon.astro";
+import Sheet from "../workspace/ui/Sheet.astro";
+import { formatDate, label, options } from "../../lib/crm/i18n";
+import { errorFor, valueFor } from "../../lib/crm/page";
+import type { TasksProps } from "../../lib/crm/routes/tasks";
+import { type TaskGroup, type TaskRow, taskGroup } from "../../lib/crm/task-list";
+import { taskOutcomes } from "../../lib/crm/tasks";
+import "../../styles/crm-sales.css";
+import "../../styles/crm-lists.css";
+
+type Props = TasksProps;
+const { ctx, state, tasks, selected, today, names, opportunities } = Astro.props;
+const { lang, vi, base } = ctx;
+const groups = ([
+  { key: "overdue", name: vi ? "Quá hạn" : "Overdue" }, { key: "today", name: vi ? "Hôm nay" : "Today" },
+  { key: "upcoming", name: vi ? "Sắp tới" : "Upcoming" }, { key: "undated", name: vi ? "Chưa có hạn" : "No due date" },
+] as { key: TaskGroup; name: string }[]).map((group) => ({ ...group, items: tasks.filter((task) => taskGroup(task, today) === group.key) })).filter((group) => group.items.length);
+const daysLate = (task: TaskRow) => task.due_on ? Math.round((Date.parse(`${today}T00:00:00Z`) - Date.parse(`${task.due_on}T00:00:00Z`)) / 86_400_000) : 0;
+const due = (task: TaskRow) => task.due_on ? `${formatDate(task.due_on, lang)}${task.due_time ? ` · ${task.due_time}` : ""}` : (vi ? "Chưa có hạn" : "No due date");
+const shortDue = (task: TaskRow) => { const group = taskGroup(task, today); return group === "today" ? (task.due_time ?? (vi ? "Hôm nay" : "Today")) : group === "undated" ? "—" : new Date(`${task.due_on}T00:00:00+07:00`).toLocaleDateString(vi ? "vi-VN" : "en-GB", { day: "2-digit", month: "2-digit", timeZone: "Asia/Ho_Chi_Minh" }); };
+const ownerName = (id: string | null) => id ? (names[id]?.name ?? (id === ctx.actor.id ? ctx.actor.name : (vi ? "Tài khoản không hoạt động" : "Inactive account"))) : (vi ? "Chưa phân công" : "Unassigned");
+const canEdit = (task: TaskRow) => ctx.actor.manager || task.owner_id === ctx.actor.id;
+const u = (name: string, fallback = "") => state.intent === "task_update" ? valueFor(state, "task_update", name, fallback) : fallback;
+const ue = (name: string) => errorFor(state, "task_update", name);
+const v = (name: string, fallback = "") => valueFor(state, "task_create", name, fallback);
+const e = (name: string) => errorFor(state, "task_create", name);
+const sheetOpen = Astro.url.searchParams.get("new") === "1" || (state.intent === "task_create" && (Object.keys(state.errors).length > 0 || state.serverError || state.conflict));
+const closeHref = selected ? `${base}/tasks?task=${selected.id}` : `${base}/tasks`;
+const lateBy = selected ? daysLate(selected) : 0;
+const fieldLabels = vi ? { opportunity_id: "Liên quan đến", kind: "Loại", title: "Chủ đề", due_on: "Hạn", due_time: "Giờ", contact_id: "Liên hệ", outcome: "Kết quả", minutes: "Thời gian (phút)", task_id: "Công việc" } : { opportunity_id: "Related to", kind: "Kind", title: "Subject", due_on: "Due", due_time: "Time", contact_id: "Contact", outcome: "Outcome", minutes: "Time spent (minutes)", task_id: "Task" };
+---
+<CrmShell title={vi ? "Công việc" : "Tasks"} lang={lang} actor={ctx.actor} current="tasks">
+  <div class="cl-stack">
+    <FormNotices state={state} lang={lang} saved={Astro.url.searchParams.get("saved")} intents={["task_update"]} fieldLabels={fieldLabels} />
+    <div class="cl-split">
+      <div class="cl-list"><ListHeader vi={vi} icon="tasks" tone="task" object={vi ? "Công việc CRM" : "CRM tasks"} title={ctx.actor.manager ? (vi ? "Việc của nhóm" : "Team tasks") : (vi ? "Việc của tôi" : "My tasks")} meta={vi ? `${tasks.length} việc đang mở · Sắp xếp theo hạn` : `${tasks.length} open tasks · Sorted by due date`}>
+        <ButtonGroup slot="actions" label={vi ? "Hành động" : "Actions"}><a class="ws-btn" href={`${base}/tasks?new=1#new-task`}>{vi ? "Tạo công việc" : "New task"}</a></ButtonGroup>
+        {groups.map((group) => <section aria-labelledby={`g-${group.key}`}>
+          <h2 class="cl-grp" id={`g-${group.key}`}>{group.name} · {group.items.length}</h2>
+          <ul class="cl-ul">{group.items.map((task) => <li class:list={["cl-ti", { on: selected?.id === task.id }]}>
+            <span class="k" aria-hidden="true"><NavIcon name={["meeting", "visit", "demo", "pilot_review"].includes(task.kind) ? "calendar" : "tasks"} size={16} /></span>
+            <div><a href={`${base}/tasks?task=${task.id}`} aria-current={selected?.id === task.id ? "true" : undefined}>{task.title}</a><p>{label(lang, "task", task.kind)} · {task.opp_title}{ctx.actor.manager ? ` · ${ownerName(task.owner_id)}` : ""}</p></div>
+            <span class:list={["cl-badge", group.key === "overdue" ? "warn" : group.key === "today" ? "info" : ""]}>{shortDue(task)}</span>
+          </li>)}</ul>
+        </section>)}
+        {!tasks.length && <p class="cl-empty">{vi ? "Không có việc đang mở. Chọn Tạo công việc, hoặc thêm việc từ trang cơ hội." : "No open tasks. Choose New task, or add one from an opportunity."}</p>}
+      </ListHeader></div>
+
+      <section class="cl-panel cl-detail" aria-labelledby="task-h">
+        {selected ? <>
+          <div class="cl-oh">
+            <div class="cl-oh-id">
+              <ObjectIcon icon="tasks" tone="task" />
+              <div class="cl-oh-name">
+                <p class="cl-eyebrow">{vi ? "Công việc" : "Task"} {lateBy > 0 ? <span class="cl-badge warn"><span class="dot" />{vi ? `Quá hạn ${lateBy} ngày` : `${lateBy} days overdue`}</span> : taskGroup(selected, today) === "today" ? <span class="cl-badge info">{vi ? "Hôm nay" : "Today"}</span> : null}</p>
+                <h2 class="cl-h1" id="task-h">{selected.title}</h2>
+              </div>
+            </div>
+            <ButtonGroup label={vi ? "Hành động" : "Actions"}>
+              {canEdit(selected) && <a class="ws-btn" href="#complete">{vi ? "Đánh dấu hoàn tất" : "Mark complete"}</a>}
+              <a class="ws-btn" href={`${base}/${selected.opportunity_id}#tasks`}>{vi ? "Mở cơ hội" : "Open opportunity"}</a>
+            </ButtonGroup>
+          </div>
+          <dl class="cl-rgrid">
+            <div><dt>{vi ? "Chủ đề" : "Subject"}</dt><dd>{selected.title}</dd></div>
+            <div><dt>{vi ? "Hạn" : "Due"}</dt><dd class:list={{ "cl-late": lateBy > 0 }}>{due(selected)}</dd></div>
+            <div><dt>{vi ? "Loại" : "Kind"}</dt><dd>{label(lang, "task", selected.kind)}{(selected.kind === "meeting" || selected.kind === "demo") && <> · {selected.meeting_confirmed ? (vi ? "hai bên đã xác nhận" : "confirmed by both") : (vi ? "chưa xác nhận" : "not confirmed")}</>}</dd></div>
+            <div><dt>{vi ? "Trạng thái" : "Status"}</dt><dd>{vi ? "Đang mở" : "Open"}{selected.needs_help ? (vi ? " · cần hỗ trợ" : " · help requested") : ""}</dd></div>
+            <div><dt>{vi ? "Liên quan đến" : "Related to"}</dt><dd><a href={`${base}/${selected.opportunity_id}`}>{selected.opp_title}</a>{selected.account_name !== selected.opp_title && <span class="cl-muted"> · {selected.account_name}</span>}</dd></div>
+            <div><dt>{vi ? "Liên hệ" : "Contact"}</dt><dd>{selected.contact_name ? `${selected.contact_name}${selected.contact_role ? ` · ${label(lang, "role", selected.contact_role)}` : ""}` : "—"}</dd></div>
+            <div><dt>{vi ? "Người phụ trách" : "Owner"}</dt><dd>{ownerName(selected.owner_id)}</dd></div>
+            <div><dt>{vi ? "Tạo lúc" : "Created"}</dt><dd>{formatDate(selected.created_at, lang)}</dd></div>
+            <div class="full"><dt>{vi ? "Ghi chú" : "Note"}</dt><dd>{selected.note || "—"}{selected.help_note && <><br />{vi ? "Cần hỗ trợ: " : "Help: "}{selected.help_note}</>}</dd></div>
+          </dl>
+          {canEdit(selected) && <form class="crm-form cl-detail-form" id="complete" method="post" action={`${base}/tasks?task=${selected.id}#complete`} aria-labelledby="complete-h">
+            <p class="cl-sheet-sec" id="complete-h">{vi ? "Hoàn tất công việc" : "Complete the task"}</p>
+            <Hidden intent="task_update" state={state} /><input type="hidden" name="task_id" value={selected.id} /><input type="hidden" name="task_action" value="complete" />
+            <input type="hidden" name="category" value={selected.kind === "visit" ? "travel" : "sales"} />
+            <div class="crm-form-grid">
+              <Field name="outcome" type="select" label={fieldLabels.outcome} lang={lang} value={u("outcome")} error={ue("outcome")} required options={[{ value: "", label: vi ? "Chọn" : "Choose" }, ...taskOutcomes.map((value) => ({ value, label: label(lang, "taskOutcome", value) }))]} />
+              <Field name="minutes" label={fieldLabels.minutes} lang={lang} value={u("minutes")} error={ue("minutes")} inputmode="numeric" maxlength={6} />
+              <Field name="note" label={vi ? "Ghi chú kết quả" : "Outcome note"} lang={lang} value={u("note")} maxlength={1000} />
+            </div>
+            <div class="crm-actions" style="margin-top:12px"><button class="ws-btn primary" type="submit">{vi ? "Đánh dấu hoàn tất" : "Mark complete"}</button></div>
+          </form>}
+        </> : <p class="cl-empty" id="task-h">{vi ? "Chọn một công việc để xem chi tiết." : "Select a task to see its detail."}</p>}
+      </section>
+    </div>
+  </div>
+
+  <Sheet id="new-task" title={vi ? "Tạo công việc" : "New task"} vi={vi} open={sheetOpen} closeHref={closeHref} action={opportunities.length ? `${base}/tasks?new=1#new-task` : undefined} width="640px">
+    <FormNotices state={state} lang={lang} intents={["task_create"]} fieldLabels={fieldLabels} />
+    {opportunities.length ? <>
+      <Hidden intent="task_create" state={state} />
+      <p class="cl-sheet-sec">{vi ? "Thông tin công việc" : "Task details"}</p>
+      <div class="crm-form-grid">
+        <Field name="title" wide label={fieldLabels.title} lang={lang} value={v("title")} error={e("title")} required maxlength={300} />
+        <Field name="opportunity_id" type="select" label={fieldLabels.opportunity_id} lang={lang} value={v("opportunity_id")} error={e("opportunity_id")} options={opportunities.map((item) => ({ value: item.id, label: item.title === item.account_name ? item.title : `${item.title} · ${item.account_name}` }))} />
+        <Field name="kind" type="select" label={fieldLabels.kind} lang={lang} value={v("kind", "follow_up")} error={e("kind")} options={options(lang, "task")} />
+        <Field name="due_on" type="date" label={fieldLabels.due_on} lang={lang} value={v("due_on", today)} error={e("due_on")} />
+        <Field name="due_time" type="time" label={vi ? "Giờ (giờ Việt Nam)" : "Time (Vietnam)"} lang={lang} value={v("due_time")} error={e("due_time")} />
+        <Field name="note" type="textarea" wide label={vi ? "Ghi chú nội bộ" : "Internal note"} lang={lang} value={v("note")} maxlength={1000} />
+      </div>
+      {e("contact_id") === "do_not_contact" && <p class="crm-error">{vi ? "Khách đã yêu cầu không liên hệ; không tạo được việc liên hệ." : "The customer asked not to be contacted; outreach cannot be scheduled."}</p>}
+    </> : <p class="cl-empty">{vi ? "Bạn chưa có cơ hội đang mở để thêm công việc." : "You have no open opportunities to add a task to."}</p>}
+    {opportunities.length > 0 && <Fragment slot="foot"><a class="ws-btn" href={closeHref}>{vi ? "Hủy" : "Cancel"}</a><button class="ws-btn primary" type="submit">{vi ? "Lưu" : "Save"}</button></Fragment>}
+  </Sheet>
+</CrmShell>

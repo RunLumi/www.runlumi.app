@@ -1,6 +1,10 @@
 ---
 import CrmShell from "../../layouts/CrmShell.astro";
-import Crumbs from "./Crumbs.astro";
+import CrmSetupLayout from "./CrmSetupLayout.astro";
+import SetupFrame from "../workspace/ui/SetupFrame.astro";
+import Sheet from "../workspace/ui/Sheet.astro";
+import DataTable from "../workspace/ui/DataTable.astro";
+import "../../styles/record.css";
 import FormNotices from "./FormNotices.astro";
 import Hidden from "./Hidden.astro";
 import { formatDateTime } from "../../lib/crm/i18n";
@@ -9,7 +13,7 @@ import "../../styles/crm-sales.css";
 
 type Props = LeadSettingsProps;
 const { ctx, state, versions } = Astro.props;
-const { lang, vi, base } = ctx;
+const { lang, vi } = ctx;
 const current = versions[0];
 const posted = state.intent === "lead_process" ? state.values : null;
 // Existing rows plus blank rows for additions; a re-rendered form keeps what was typed.
@@ -22,18 +26,40 @@ const rows = (prefix: "status" | "reason", items: { id: string; en: string; vi: 
   });
 };
 ---
-<CrmShell title={vi ? "Thiết lập Lead" : "Lead settings"} lang={lang} actor={ctx.actor} current="lead-settings">
-  <Crumbs vi={vi} items={[{ label: "CRM", href: base }, { label: "Playbook", href: `${base}/admin/playbooks` }, { label: vi ? "Thiết lập Lead" : "Lead settings" }]} />
-  <div class="crm-head"><div>
-    <p class="crm-eyebrow">{vi ? "Cấu hình" : "Setup"}</p>
-    <h1 class="crm-h1">{vi ? "Trạng thái Lead và lý do không tiếp tục." : "Lead statuses and disqualification reasons."}</h1>
-    <p class="crm-lede">{vi ? "Tên trạng thái và lý do là dữ liệu của tổ chức. Mỗi lần lưu tạo phiên bản mới; Lead đã có giữ phiên bản lúc tạo. Trạng thái đầu tiên là nơi Lead mới bắt đầu." : "Status and reason names are your organisation's data. Each save creates a new version; existing leads keep the version they were created with. New leads start at the first status."}</p>
-  </div></div>
-  <FormNotices state={state} lang={lang} saved={Astro.url.searchParams.get("saved")} fieldLabels={vi ? { statuses: "Trạng thái", disqualify_reasons: "Lý do" } : { statuses: "Statuses", disqualify_reasons: "Reasons" }} />
-  <form class="crm-form" method="post">
+<CrmShell title={vi ? "Trạng thái Lead" : "Lead statuses"} lang={lang} actor={ctx.actor} current="lead-settings">
+  <CrmSetupLayout vi={vi} current="lead-settings">
+  <SetupFrame vi={vi} icon="lead_settings" eyebrow={vi ? "Cấu hình CRM" : "CRM setup"} title={vi ? "Trạng thái Lead và lý do không tiếp tục" : "Lead statuses and disqualification reasons"}
+    info={vi ? "Tên trạng thái và lý do là dữ liệu của tổ chức. Mỗi lần lưu tạo phiên bản mới; Lead đã có giữ phiên bản lúc tạo. Trạng thái đầu tiên là nơi Lead mới bắt đầu." : "Status and reason names are your organisation's data. Each save creates a new version; existing leads keep the version they were created with. New leads start at the first status."}>
+    <Fragment slot="badges">{current && <span class="ws-badge">v{current.version}</span>}</Fragment>
+    <a slot="actions" class="ws-btn primary" href="#sheet-process">{vi ? "Lưu phiên bản mới" : "Save a new version"}</a>
+    <FormNotices state={state} lang={lang} saved={Astro.url.searchParams.get("saved")} fieldLabels={vi ? { statuses: "Trạng thái", disqualify_reasons: "Lý do" } : { statuses: "Statuses", disqualify_reasons: "Reasons" }} />
+    <div class="rec-row">
+      <section class="crm-sheet" aria-labelledby="cur-status-h">
+        <h2 class="crm-h2" id="cur-status-h">{vi ? "Trạng thái Lead đang mở" : "Open lead statuses"}</h2>
+        <DataTable label={vi ? "Trạng thái Lead" : "Lead statuses"} vi={vi} minWidth="420px">
+          <thead><tr><th scope="col">{vi ? "Tên hiển thị" : "Label"}</th><th scope="col">{vi ? "Mã API" : "API key"}</th><th scope="col">{vi ? "Mục tiêu" : "Target"}</th></tr></thead>
+          <tbody>{(current?.def.statuses ?? []).map((item, index) => <tr><td><strong>{vi ? item.vi : item.en}</strong>{index === 0 && <span class="ws-badge info" style="margin-left:6px">{vi ? "Mặc định" : "Default"}</span>}</td><td><code>{item.id}</code></td><td>{item.target_hours ? `${item.target_hours} ${vi ? "giờ" : "h"}` : "—"}</td></tr>)}</tbody>
+        </DataTable>
+        <p class="crm-help">{vi ? "Lead mới nhận trạng thái đầu tiên. Chuyển đổi đặt Lead thành Đã chuyển đổi; Không tiếp tục cần lý do." : "New leads get the first status. Conversion marks a lead Converted; disqualifying needs a reason."}</p>
+      </section>
+      <section class="crm-sheet" aria-labelledby="cur-reason-h">
+        <h2 class="crm-h2" id="cur-reason-h">{vi ? "Lý do không tiếp tục" : "Disqualification reasons"}</h2>
+        <DataTable label={vi ? "Lý do" : "Reasons"} vi={vi} minWidth="320px">
+          <thead><tr><th scope="col">{vi ? "Tên hiển thị" : "Label"}</th><th scope="col">{vi ? "Mã API" : "API key"}</th></tr></thead>
+          <tbody>{(current?.def.disqualify_reasons ?? []).map((item) => <tr><td>{vi ? item.vi : item.en}</td><td><code>{item.id}</code></td></tr>)}</tbody>
+        </DataTable>
+      </section>
+    </div>
+    <section class="crm-sheet" aria-labelledby="ver-h">
+      <h2 class="crm-h2" id="ver-h">{vi ? "Các phiên bản" : "Versions"}</h2>
+      <ul class="crm-list">{versions.map((item) => <li class="crm-row"><strong>v{item.version}</strong><span class="crm-row-meta"><span>{formatDateTime(item.created_at, lang)}</span><span>{item.def.statuses.map((status) => vi ? status.vi : status.en).join(" → ")}</span></span></li>)}</ul>
+    </section>
+  </SetupFrame>
+  <Sheet id="sheet-process" vi={vi} variant="dialog" width="900px" open={state.intent === "lead_process" && (Object.keys(state.errors).length > 0 || !!state.serverError)} closeHref={Astro.url.pathname} title={vi ? `Trạng thái Lead · phiên bản ${(current?.version ?? 0) + 1}` : `Lead statuses · version ${(current?.version ?? 0) + 1}`} action="">
+  
     <Hidden intent="lead_process" state={state} />
-    {([["status", vi ? "Trạng thái Lead đang mở" : "Open lead statuses", current?.def.statuses ?? []], ["reason", vi ? "Lý do không tiếp tục" : "Disqualification reasons", current?.def.disqualify_reasons ?? []]] as const).map(([prefix, title, items]) => <section class="crm-sheet" aria-labelledby={`${prefix}-h`}>
-      <h2 class="crm-h2" id={`${prefix}-h`}>{title}</h2>
+    {([["status", vi ? "Trạng thái Lead đang mở" : "Open lead statuses", current?.def.statuses ?? []], ["reason", vi ? "Lý do không tiếp tục" : "Disqualification reasons", current?.def.disqualify_reasons ?? []]] as const).map(([prefix, title, items]) => <section aria-labelledby={`${prefix}-h`}>
+      <h3 class="crm-h3" id={`${prefix}-h`}>{title}</h3>
       <p class="crm-help">{vi ? "Mã: chữ thường, số và dấu gạch dưới (vd. reached). Để trống cả dòng để bỏ." : "Key: lower-case letters, digits and underscores (e.g. reached). Leave a whole row blank to remove it."}</p>
       <div class="crm-grid-table-wrap"><table class="crm-grid-table">
         <thead><tr><th scope="col">#</th><th scope="col">{vi ? "Mã" : "Key"}</th><th scope="col">English</th><th scope="col">Tiếng Việt</th>{prefix === "status" && <th scope="col">{vi ? "Mục tiêu (giờ)" : "Target (hours)"}</th>}</tr></thead>
@@ -46,10 +72,7 @@ const rows = (prefix: "status" | "reason", items: { id: string; en: string; vi: 
         </tr>)}</tbody>
       </table></div>
     </section>)}
-    <div class="crm-actions"><button class="crm-button" type="submit">{vi ? "Lưu phiên bản mới" : "Save a new version"}</button></div>
-  </form>
-  <section class="crm-sheet" aria-labelledby="ver-h" style="margin-top:18px">
-    <h2 class="crm-h2" id="ver-h">{vi ? "Các phiên bản" : "Versions"}</h2>
-    <ul class="crm-list">{versions.map((item) => <li class="crm-row"><strong>v{item.version}</strong><span class="crm-row-meta"><span>{formatDateTime(item.created_at, lang)}</span><span>{item.def.statuses.map((status) => vi ? status.vi : status.en).join(" → ")}</span></span></li>)}</ul>
-  </section>
+    <Fragment slot="foot"><a class="ws-btn" href={Astro.url.pathname}>{vi ? "Hủy" : "Cancel"}</a><button class="ws-btn primary" type="submit">{vi ? "Lưu phiên bản mới" : "Save a new version"}</button></Fragment>
+  </Sheet>
+  </CrmSetupLayout>
 </CrmShell>
