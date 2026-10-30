@@ -186,9 +186,30 @@ body.crm.ws { --ws-z: 1; --ws-max: 2560px; --ws-gut: 24px; min-height: calc(100v
 .ws .ws-tab[aria-current="page"], .ws .ws-tab[aria-current="true"] { box-shadow: none; border-radius: 0; border-bottom-color: var(--crm-blue); background: #f7f8fa; color: var(--crm-navy); font-weight: 600; }
 .ws-more-pop { left: 0; width: min(560px, calc(100vw - 32px)); padding: 12px 14px; }
 .ws-menu.ws-narrow { display: none; }
-.ws-launcher-pop { position: absolute; top: calc(100% + 12px); left: -14px; z-index: 40; width: min(960px, calc(100vw - 32px)); border-radius: 10px; background: var(--crm-sheet); box-shadow: 0 0 0 100vmax rgba(16, 42, 67, .45), 0 24px 48px rgba(16, 42, 67, .28); overflow: hidden; }
+/* App launcher: a full-screen, centred grid of apps (Launchpad style). */
+.ws-launcher-pop { position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; align-items: center; box-sizing: border-box; padding: clamp(40px, 10vh, 120px) 24px 48px; overflow: auto; background: rgba(16, 42, 67, .62); -webkit-backdrop-filter: blur(20px) saturate(1.2); backdrop-filter: blur(20px) saturate(1.2); }
+.ws-launcher-pop .ws-dlg-title { padding: 0 0 20px; border: 0; color: white; font-size: 20px; text-align: center; }
+/* The header blurs what scrolls under it; a backdrop filter would trap the fixed launcher inside the header, so it is off while the launcher is open. */
+.ws .ws-header:has(details.ws-launcher[open]) { -webkit-backdrop-filter: none; backdrop-filter: none; }
+.ws-launch-close { position: fixed; top: 16px; right: 16px; display: inline-grid; place-items: center; inline-size: 40px; block-size: 40px; border: 0; border-radius: 50%; background: rgba(255, 255, 255, .14); color: white; font-size: 24px; line-height: 1; cursor: pointer; }
+.ws-launch-close:hover { background: rgba(255, 255, 255, .26); }
 .ws-dlg-title { margin: 0; padding: 18px 24px; border-bottom: 1px solid var(--crm-line-soft); color: var(--crm-navy); font-size: 18px; font-weight: 650; line-height: 1.3; }
-.ws-launcher-body { display: grid; gap: 16px; padding: 20px 24px; max-height: calc(100vh / var(--ws-z, 1) - 200px); overflow: auto; }
+.ws-launcher-body { display: grid; gap: 24px; width: min(1040px, 100%); padding: 0; }
+.ws-launcher .ws-field-search { justify-self: center; width: min(480px, 100%); border-color: transparent; background: rgba(255, 255, 255, .92); }
+.ws-launcher .ws-field-search input:focus, .ws-launcher .ws-field-search input:focus-visible { outline: none; box-shadow: none; border: 0; }
+.ws-launcher .ws-field-search:focus-within { outline: 3px solid rgba(255, 255, 255, .55); outline-offset: 2px; }
+.ws-launcher .ws-eyebrow { justify-self: center; color: rgba(255, 255, 255, .78); }
+.ws-launcher .ws-lgrid { grid-template-columns: repeat(auto-fill, 168px); grid-auto-rows: auto; justify-content: center; gap: 28px 20px; }
+.ws .ws-launcher .ws-ltile { flex-direction: column; align-items: center; gap: 10px; padding: 14px 10px; border: 0; border-radius: 14px; background: transparent; color: white; text-align: center; }
+.ws .ws-launcher .ws-ltile:hover, .ws .ws-launcher .ws-ltile:focus-visible { background: rgba(255, 255, 255, .14); }
+.ws .ws-launcher .ws-ltile[aria-current="page"] { padding: 14px 10px; border: 0; background: rgba(255, 255, 255, .18); }
+.ws-launcher .ws-ltile > span:last-child { justify-items: center; }
+.ws-launcher .ws-ltile .ws-oi { inline-size: 72px; block-size: 72px; border-radius: 18px; box-shadow: 0 10px 24px rgba(0, 0, 0, .28); }
+.ws-launcher .ws-ltile strong { color: white; font-size: 15px; }
+.ws-launcher .ws-ltile span span { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; color: rgba(255, 255, 255, .78); font-size: 12.5px; white-space: normal; }
+.ws-launcher .ws-lresults { justify-self: center; width: min(720px, 100%); padding: 12px; border-radius: 12px; background: var(--crm-sheet); box-shadow: 0 16px 40px rgba(0, 0, 0, .25); }
+.ws-launcher .ws-lresults .ws-eyebrow { justify-self: start; color: var(--crm-slate); }
+.ws-launcher .ws-lpages { padding-bottom: 0; border-bottom: 0; }
 .ws-eyebrow { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--crm-slate); font-size: 12px; font-weight: 600; letter-spacing: .08em; line-height: 1.2; text-transform: uppercase; }
 .ws .ws-modules { display: block; order: 0; overflow: visible; }
 .ws-lgrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: 1fr; gap: 12px; margin: 0; padding: 0; list-style: none; }
@@ -245,7 +266,8 @@ body.crm.ws { --ws-z: 1; --ws-max: 2560px; --ws-gut: 24px; min-height: calc(100v
   .ws-tab { padding-inline: 8px; }
   .ws-page, .ws .ws-frame { padding: 12px 12px 24px; }
   .ws-lgrid { grid-template-columns: minmax(0, 1fr); }
-  .ws-launcher-pop { position: fixed; top: 112px; left: 8px; width: calc(100vw - 16px); }
+  .ws-launcher .ws-lgrid { grid-template-columns: repeat(auto-fill, 136px); gap: 20px 12px; }
+  .ws-launcher .ws-ltile .ws-oi { inline-size: 60px; block-size: 60px; border-radius: 15px; }
   .ws-more-pop { position: fixed; top: 112px; left: 8px; width: calc(100vw - 16px); }
   .ws-foot { padding: 12px; }
 }
