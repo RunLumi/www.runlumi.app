@@ -332,3 +332,18 @@ body:has(.cl-sheet-wrap.open), body:has(.cl-sheet-wrap:target) { overflow: hidde
 /* Inline cell save: Enter submits; the button shows on hover and keyboard focus. */
 .cl-tbl .cl-cell button { opacity: 0; }
 .cl-tbl tr:hover .cl-cell button, .cl-tbl .cl-cell:focus-within button, .cl-tbl .cl-cell input[aria-invalid="true"] ~ button { opacity: 1; }
+.cl-mg-row { display: contents; }
+.cl-cal-head .cl-oh-id { flex-wrap: wrap; }
+.cl-cal-nav { display: flex; gap: 8px; align-items: center; margin-left: 12px; }
+.cl-cal-main { min-width: 0; overflow: hidden; }
+.cl-legend-toggle { display: flex; align-items: center; gap: 10px; width: 100%; color: var(--crm-ink); text-decoration: none; }
+.cl-legend li:has(.cl-legend-toggle) { padding: 0; }
+.cl-legend-toggle { padding: 7px 8px; border-radius: 6px; }
+.cl-legend-toggle:hover { background: #f7f8fa; }
+.cl-check { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border: 1px solid #9aa3b2; border-radius: 3px; color: #fff; font-size: 12px; line-height: 1; }
+.cl-legend-toggle[aria-pressed="true"] .cl-check { background: #006093; border-color: #006093; }
+.cl-wg-cell.now { box-shadow: inset 0 2px 0 #c2410c; }
+.cl-wg-cell .cl-ev, .cl-wg-ad .cl-ev { display: block; white-space: normal; }
+.cl-wg-cell .cl-ev .t { display: block; }
+.cl-wg-cell .cl-ev span, .cl-wg-ad .cl-ev span { display: inline; }
+@media (max-width: 640px) { .crm-board-wrap:not(.is-dragging) .cl-drag-status { display: none; } }
