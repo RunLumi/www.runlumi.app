@@ -2,7 +2,7 @@
 
 Brief: [UI-PARITY.md](../UI-PARITY.md). Spec: [FEATURES.md § Round 2, workstream 4](../../governance/FEATURES.md) and [USER-STORIES.md § Round 2 security and admin](../../governance/USER-STORIES.md). Contract: [docs/workspace/security.md](../../workspace/security.md).
 
-Status on 2026-10-30: Part A and Part B built; gates below. Nothing here is released until the founder merges the draft PR.
+Status on 2026-10-30: done. Part A and Part B built, gates green on the merged head (below), merged into `claude/loving-pasteur-z7ly65`. Nothing here is released until the founder merges the draft PR.
 
 ## Part A: passkey and anti-phishing ready
 
@@ -59,7 +59,7 @@ Run on `ae7e104` (ui4 + `origin/claude/loving-pasteur-z7ly65` @e16f004, which co
 | Integration: workspace | 15/15 (after ui1's b8dbd23) |
 | Integration: crm, api, finance, files, directory, dashboard, sales-process, business-model | 19, 7, 9, 6, 7, 5, 12, 5: all pass |
 | Integration: HRM P1, P3, P4 (separate scopes) | pass |
-| Integration: HRM P5 | first run: test 4 failed on `SQLITE_BUSY` (the local D1 file locked while the test's wrangler CLI read it; no assertion failed); one re-run: see P5_RERUN |
+| Integration: HRM P5 | first run: test 4 failed on `SQLITE_BUSY` (the local D1 file locked while the test's wrangler CLI read it; no assertion failed); one re-run on the same head: pass (1/1) |
 | Integration: hrm-journey | not run (round-1 note: known container flake) |
 | Parity screenshots | 20 boards, each under 400 KB |
 
