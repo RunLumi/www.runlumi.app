@@ -64,7 +64,7 @@ export async function homePage(astro: AstroGlobal, lang: Lang) {
 
 export type UsersState = AccessFormState;
 
-export type UsersFilter = "all" | "active" | "revoked" | "admins" | "terms";
+export type UsersFilter = "all" | "backup" | "agents" | "active" | "revoked" | "admins" | "terms";
 
 /** Admin › Users: the access table, quick filters, search and recent changes. */
 export async function usersPage(astro: AstroGlobal, lang: Lang): Promise<Response | {
@@ -80,13 +80,13 @@ export async function usersPage(astro: AstroGlobal, lang: Lang): Promise<Respons
     state = result;
   }
   const rows = await accessRows(DB, CONTENT_DB);
-  const filters: UsersFilter[] = ["all", "active", "revoked", "admins", "terms"];
+  const filters: UsersFilter[] = ["all", "backup", "agents", "active", "revoked", "admins", "terms"];
   const requested = astro.url.searchParams.get("filter") as UsersFilter | null;
   const filter = requested && filters.includes(requested) ? requested : "all";
   const query = (astro.url.searchParams.get("q") ?? "").trim().slice(0, 100);
   const needle = query.toLocaleLowerCase("vi");
   const shown = rows.filter((row) => ({
-    all: true, active: row.enabled && row.active, revoked: !row.enabled || !row.active, admins: row.admin, terms: row.sellerTermsMissing,
+    all: true, backup: row.passkeys !== null && row.passkeys < 2, agents: row.tokens > 0, active: row.enabled && row.active, revoked: !row.enabled || !row.active, admins: row.admin, terms: row.sellerTermsMissing,
   })[filter]).filter((row) => !needle || `${row.name} ${row.email}`.toLocaleLowerCase("vi").includes(needle));
   const audit = await auditFor(DB, undefined, 10);
   const names = await namesFor(CONTENT_DB, audit.map((row) => row.target_user_id));
@@ -115,7 +115,7 @@ export async function newMemberPage(astro: AstroGlobal, lang: Lang): Promise<Res
 
 /** Admin › Users › person: identity, roles, modules, credentials and access history. */
 export async function memberPage(astro: AstroGlobal, lang: Lang): Promise<Response | {
-  lang: Lang; vi: boolean; user: WorkspaceUser; member: AccessRow; audit: AuditEntry[]; names: Map<string, string>; state: UsersState; self: boolean;
+  lang: Lang; vi: boolean; user: WorkspaceUser; member: AccessRow; audit: AuditEntry[]; names: Map<string, string>; state: UsersState; self: boolean; security: MemberSecurity;
 }> {
   const user = astro.locals.workspace!;
   if (!user.can("users.manage")) return new Response("Forbidden", { status: 403 });
@@ -133,7 +133,26 @@ export async function memberPage(astro: AstroGlobal, lang: Lang): Promise<Respon
   if (!member) return notFound();
   const audit = await auditFor(DB, id, 100);
   const names = await namesFor(CONTENT_DB, [member.granted_by]);
-  return { lang, vi: lang === "vi", user, member, audit, names, state, self: member.user_id === user.id };
+  return { lang, vi: lang === "vi", user, member, audit, names, state, self: member.user_id === user.id, security: await memberSecurity(DB, CONTENT_DB, member.user_id) };
+}
+
+/** What an admin sees about a member's security: passkey list (no IDs), whether a code is set (never its value), tokens and recent activity. */
+export interface MemberSecurity {
+  passkeys: { name: string | null; device_type: string | null; backed_up: number | null; created_at: string | null; last_used_at: string | null }[];
+  codeUpdated: string | null; lastCheck: string | null;
+  tokens: { name: string; scope: string; last_used_at: string | null }[];
+  activity: { id: string; action: string; created_at: string }[];
+}
+
+async function memberSecurity(db: D1Database, contentDb: D1Database, userId: string): Promise<MemberSecurity> {
+  const [passkeys, code, check, tokens, activity] = await Promise.all([
+    contentDb.prepare("SELECT name, device_type, backed_up, created_at, last_used_at FROM credentials WHERE user_id = ? ORDER BY created_at").bind(userId).all<MemberSecurity["passkeys"][number]>(),
+    db.prepare("SELECT updated_at FROM workspace_anti_phishing WHERE user_id = ?").bind(userId).first<{ updated_at: string }>(),
+    db.prepare("SELECT MAX(created_at) AS at FROM workspace_audit WHERE actor_id = ? AND action = 'passkey_verified'").bind(userId).first<{ at: string | null }>(),
+    db.prepare("SELECT name, scope, last_used_at FROM crm_api_tokens WHERE user_id = ? AND revoked_at IS NULL AND expires_at > ? ORDER BY created_at DESC LIMIT 20").bind(userId, new Date().toISOString()).all<MemberSecurity["tokens"][number]>(),
+    db.prepare("SELECT id, action, created_at FROM workspace_audit WHERE actor_id = ? ORDER BY created_at DESC LIMIT 8").bind(userId).all<MemberSecurity["activity"][number]>(),
+  ]);
+  return { passkeys: passkeys.results, codeUpdated: code?.updated_at ?? null, lastCheck: check?.at ?? null, tokens: tokens.results, activity: activity.results };
 }
 
 /** Admin › Roles and permissions: the permission map as a matrix. */

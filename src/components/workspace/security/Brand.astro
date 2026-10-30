@@ -1,0 +1,7 @@
+---
+interface Props { href?: string }
+const { href } = Astro.props;
+---
+{href
+  ? <a class="s4-brand" href={href}><span class="s4-logo" aria-hidden="true">L</span>Lumi Workspace</a>
+  : <span class="s4-brand"><span class="s4-logo" aria-hidden="true">L</span>Lumi Workspace</span>}

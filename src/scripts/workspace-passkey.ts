@@ -3,21 +3,12 @@
 // security: it asks the operating system for a passkey and posts the signed
 // answer. Adding a passkey goes to EmDash's own endpoints, so the passkey is
 // stored by EmDash exactly as if it were added in the EmDash admin.
-const toB64 = (buffer: ArrayBuffer): string => {
-  let text = "";
-  for (const byte of new Uint8Array(buffer)) text += String.fromCharCode(byte);
-  return btoa(text).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
-};
-const fromB64 = (value: string): Uint8Array<ArrayBuffer> => {
-  const padded = value.replaceAll("-", "+").replaceAll("_", "/") + "===".slice((value.length + 3) % 4);
-  return Uint8Array.from(atob(padded), (char) => char.charCodeAt(0));
-};
+import { type Descriptor, fromB64, toB64 } from "./webauthn-codec";
 
-type Descriptor = { id: string; type?: "public-key"; transports?: AuthenticatorTransport[] };
 const descriptors = (items: Descriptor[] | undefined) => items?.map((item) => ({ type: "public-key" as const, id: fromB64(item.id), transports: item.transports }));
 
 function say(form: HTMLElement, key: string): void {
-  const status = form.querySelector<HTMLElement>("[data-passkey-status]");
+  const status = form.querySelector<HTMLElement>("[data-passkey-status]") ?? form.closest("section")?.querySelector<HTMLElement>("[data-passkey-status]");
   const message = form.dataset[`msg${key[0].toUpperCase()}${key.slice(1)}`] ?? form.dataset.msgFailed ?? "";
   if (status) { status.textContent = message; status.hidden = !message; }
 }
@@ -68,7 +59,51 @@ async function enrol(form: HTMLFormElement): Promise<void> {
   }) });
   if (!done.ok) return say(form, "failed");
   say(form, "done");
+  // The first-visit page shows the created card (rename, next step) instead of reloading.
+  const created = form.dataset.created ? document.querySelector<HTMLElement>(form.dataset.created) : null;
+  const passkey = (await done.json().catch(() => null) as { data?: { passkey?: { id: string; name: string | null; createdAt: string } } } | null)?.data?.passkey;
+  if (!created || !passkey) { window.location.reload(); return; }
+  const rename = created.querySelector<HTMLFormElement>("form[data-passkey-rename]");
+  if (rename) rename.dataset.id = passkey.id;
+  const input = created.querySelector<HTMLInputElement>("[name=name]");
+  if (input) input.value = passkey.name ?? name;
+  const at = created.querySelector<HTMLElement>("[data-created-at]");
+  if (at) at.textContent = new Date(passkey.createdAt).toLocaleString(document.documentElement.lang === "vi" ? "vi-VN" : "en-GB", { dateStyle: "short", timeStyle: "short" });
+  form.closest("section")?.setAttribute("hidden", "");
+  created.hidden = false;
+  created.querySelector<HTMLElement>("a, input")?.focus();
+}
+
+const emdashHeaders = { "Content-Type": "application/json", "X-EmDash-Request": "1" };
+
+/** Renames one of the person's own passkeys through EmDash (it checks ownership). */
+async function rename(form: HTMLFormElement): Promise<void> {
+  const name = (form.querySelector<HTMLInputElement>("[name=name]")?.value ?? "").trim().slice(0, 80);
+  if (!name || !form.dataset.id) return say(form, "failed");
+  const done = await fetch(`/_emdash/api/auth/passkey/${encodeURIComponent(form.dataset.id)}`, { method: "PATCH", credentials: "same-origin", headers: emdashHeaders, body: JSON.stringify({ name }) });
+  say(form, done.ok ? "done" : "failed");
+  if (done.ok && form.dataset.reload !== undefined) window.location.reload();
+}
+
+/** Removes one of the person's own passkeys through EmDash; the Workspace asks for step-up first. */
+async function remove(form: HTMLFormElement): Promise<void> {
+  if (!form.dataset.id) return say(form, "failed");
+  const done = await fetch(`/_emdash/api/auth/passkey/${encodeURIComponent(form.dataset.id)}`, { method: "DELETE", credentials: "same-origin", headers: emdashHeaders });
+  if (done.status === 403 && form.dataset.verify) { window.location.assign(form.dataset.verify); return; }
+  if (done.status === 400) return say(form, "last");
+  if (!done.ok) return say(form, "failed");
   window.location.reload();
+}
+
+for (const form of document.querySelectorAll<HTMLFormElement>("form[data-passkey-rename], form[data-passkey-remove]")) {
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const button = form.querySelector<HTMLButtonElement>("button[type=submit]");
+    if (button) button.disabled = true;
+    (form.dataset.passkeyRemove !== undefined ? remove(form) : rename(form))
+      .catch(() => say(form, "failed"))
+      .finally(() => { if (button) button.disabled = false; });
+  });
 }
 
 for (const form of document.querySelectorAll<HTMLFormElement>("form[data-passkey]")) {

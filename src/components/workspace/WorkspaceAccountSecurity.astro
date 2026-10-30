@@ -1,27 +1,31 @@
 ---
-// Tài khoản của tôi › Bảo mật. The person's own EmDash passkeys and their own
-// anti-phishing code; both are mandatory (R-08). Changing an existing code or
-// adding a second passkey needs a passkey check from the last five minutes.
+// Tài khoản của tôi › Bảo mật (boards SetupSecurity, MobileSecurity), and on
+// the first visit step 3, the anti-phishing code (board AntiPhishing). The
+// person's own EmDash passkeys and their own code; both are mandatory (R-08).
+// Renaming and removing passkeys call EmDash's own endpoints, which act only
+// on the signed-in person's passkeys; removing needs step-up. Changing an
+// existing code needs step-up too.
 import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
+import "../../styles/workspace-security.css";
+import DataTable from "./ui/DataTable.astro";
+import Brand from "./security/Brand.astro";
+import Steps from "./security/Steps.astro";
+import CodeForm from "./security/CodeForm.astro";
+import Sheet from "./ui/Sheet.astro";
+import RecordHeader from "./ui/RecordHeader.astro";
 import type { AccountSecurityData } from "../../lib/workspace/security-pages";
+import { maskCode } from "../../lib/workspace/anti-phishing";
 import { verifyPath } from "../../lib/workspace/passkey";
-import { renderEmail } from "../../lib/workspace/email";
 
 type Props = AccountSecurityData;
-const { lang, vi, user, passkeys, code, codeUpdated, setup, next, error, typed, saved, stepUpSeconds } = Astro.props;
+const { lang, vi, user, passkeys, code, codeUpdated, setup, next, error, typed, saved, stepUpSeconds, sheet, session, tokens, canTokens } = Astro.props;
 const t = (en: string, viText: string) => (vi ? viText : en);
-const when = (value: string | null) => value ? new Date(value).toLocaleString(vi ? "vi-VN" : "en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Ho_Chi_Minh" }) : "—";
-const errors: Record<string, [string, string]> = {
-  required: ["Enter a code.", "Hãy nhập mã."],
-  length: ["Use 4 to 20 characters.", "Dùng từ 4 đến 20 ký tự."],
-  characters: ["Use only letters, numbers and spaces.", "Chỉ dùng chữ, số và khoảng trắng."],
-  personal: ["Do not use your name or email address.", "Đừng dùng tên hoặc địa chỉ email của bạn."],
-};
-const self = Astro.url.pathname + Astro.url.search;
-const preview = renderEmail({ id: user.id, email: user.email, name: user.name, vi }, code ?? (vi ? "Mã của bạn" : "Your code"), {
-  subject: t("Task overdue: send the acceptance record", "Công việc quá hạn: gửi biên bản nghiệm thu"),
-  lines: [t("This is how every email from Lumi Workspace starts.", "Mọi email từ Lumi Workspace đều bắt đầu như thế này.")],
-});
+const when = (value: string | null) => value ? new Date(value).toLocaleString(vi ? "vi-VN" : "en-GB", { dateStyle: "short", timeStyle: "short", timeZone: "Asia/Ho_Chi_Minh" }) : "—";
+const day = (value: string | null) => value ? new Date(value).toLocaleDateString(vi ? "vi-VN" : "en-GB", { timeZone: "Asia/Ho_Chi_Minh" }) : "—";
+const local = (path: string) => `${vi ? "/vi" : ""}${path}`;
+const self = Astro.url.pathname;
+const firstStep = setup && !code;
+const kind = (key: AccountSecurityData["passkeys"][number]) => key.device_type === "multiDevice" || key.backed_up ? t("Synced passkey", "Passkey đồng bộ") : t("This device only", "Chỉ trên thiết bị");
 const messages = {
   "data-msg-working": t("Waiting for your device…", "Đang chờ thiết bị của bạn…"),
   "data-msg-done": t("Passkey added.", "Đã thêm passkey."),
@@ -29,52 +33,104 @@ const messages = {
   "data-msg-cancelled": t("No passkey was created.", "Chưa tạo passkey nào."),
   "data-msg-unsupported": t("This browser cannot create passkeys.", "Trình duyệt này không tạo được passkey."),
 };
+const sample = code ?? (typed || (vi ? "Mã của bạn" : "Your code"));
+const greeting = vi ? `Chào ${user.name || user.email},` : `Hello ${user.name || user.email},`;
 ---
-<WorkspaceShell title={t("Security", "Bảo mật")} lang={lang} user={user} module="account" current="security">
-  <div class="crm-head"><div>
-    <p class="crm-eyebrow">{t("My account", "Tài khoản của tôi")}</p>
-    <h1 class="crm-h1">{t("Security", "Bảo mật")}</h1>
-    <p class="crm-lede">{t("Passkeys and an anti-phishing code are required for every Workspace account. Your EmDash account owns the passkeys; the code is yours to choose.", "Passkey và mã chống lừa đảo là bắt buộc với mọi tài khoản Workspace. Passkey thuộc tài khoản EmDash của bạn; mã do bạn tự chọn.")}</p>
-  </div></div>
-  {setup && !code && <div class="crm-notice" role="status">{t("One more step: set your anti-phishing code to open the Workspace.", "Còn một bước: đặt mã chống lừa đảo để vào Workspace.")}</div>}
-  {saved && <div class="crm-notice good" role="status">{t("Code saved.", "Đã lưu mã.")}</div>}
-  {error && <div class="crm-notice bad" role="alert">{errors[error]?.[vi ? 1 : 0] ?? error}</div>}
+<WorkspaceShell title={firstStep ? t("Set your anti-phishing code", "Đặt mã chống lừa đảo") : t("Security", "Bảo mật")} lang={lang} user={user} module="account" current="security">
+  <div class="s4">
+  {firstStep && <div class="s4-auth"><div class="s4-auth-wrap">
+    <Brand />
+    <Steps vi={vi} current="code" />
+    <div class="s4-auth-pair">
+      <section class="s4-card" aria-labelledby="code-h">
+        <h1 id="code-h">{t("Set your anti-phishing code", "Đặt mã chống lừa đảo")}</h1>
+        <p>{t("Lumi prints this code at the top of every email it sends you. Someone faking a Lumi email does not know it, so a fake email will be missing it.", "Lumi in mã này ở đầu mọi email gửi cho bạn. Kẻ gian không biết mã, nên email giả sẽ thiếu nó.")}</p>
+        <CodeForm vi={vi} action={Astro.url.pathname + Astro.url.search} hasCode={!!code} typed={typed} error={error} stepUpNeeded={stepUpSeconds === 0} label={t("Save code and open Lumi Workspace", "Lưu mã và vào Lumi Workspace")} />
+        <p class="s4-hint">{t("Change it later in My account › Security; changing it asks for your passkey again.", "Đổi mã sau trong Tài khoản của tôi › Bảo mật; khi đổi, Lumi yêu cầu xác thực lại bằng passkey.")}</p>
+      </section>
+      <section class="s4-stack" aria-labelledby="preview-h" style="align-content:start">
+        <h2 class="s4-eyebrow" id="preview-h">{t("Preview: an email from Lumi", "Xem trước: email từ Lumi")}</h2>
+        <div class="s4-mail">
+          <dl><dt>{t("From", "Từ")}</dt><dd>Lumi Workspace &lt;no-reply@runlumi.app&gt;</dd><dt>{t("To", "Tới")}</dt><dd>{user.email}</dd><dt>{t("Subject", "Chủ đề")}</dt><dd><strong>{t("Task overdue: send the acceptance record", "Công việc quá hạn: gửi biên bản nghiệm thu")}</strong></dd></dl>
+          <div class="body">
+            <p class="s4-codeband" data-code-band><span>{t("Your anti-phishing code", "Mã chống lừa đảo của bạn")}</span><strong>{sample}</strong></p>
+            <p>{greeting}</p>
+            <p>{t("This is how every email from Lumi Workspace starts.", "Mọi email từ Lumi Workspace đều bắt đầu như thế này.")}</p>
+          </div>
+        </div>
+        <p class="s4-hint">{t("An email without exactly this code: do not open its links; forward it to your organisation's admin.", "Email không có đúng mã này: đừng bấm link, chuyển tiếp cho admin của tổ chức.")}</p>
+      </section>
+    </div>
+  </div></div>}
 
-  <div class="crm-grid cols">
-    <section class="crm-sheet" aria-labelledby="code-h">
-      <h2 class="crm-h2" id="code-h">{t("Anti-phishing code", "Mã chống lừa đảo")}</h2>
-      <p class="crm-help">{t("Lumi prints this code at the top of every email it sends you. Someone faking a Lumi email does not know it.", "Lumi in mã này ở đầu mọi email gửi cho bạn. Kẻ giả mạo email Lumi không biết mã này.")}</p>
-      {code && <p class="crm-help">{t("Current code", "Mã hiện tại")}: <strong>{code}</strong> · {t("changed", "đổi lúc")} {when(codeUpdated)}</p>}
-      <form class="crm-form" method="post">
-        <input type="hidden" name="intent" value="code" />
-        <div class="crm-field"><label for="code">{code ? t("New code", "Mã mới") : t("Code", "Mã")} *</label>
-          <input class="crm-input" id="code" name="code" required minlength="4" maxlength="20" autocomplete="off" spellcheck="false" value={typed} aria-invalid={error ? "true" : undefined} aria-describedby="code-hint" />
-          <p class="crm-help" id="code-hint">{t("4–20 characters: letters, numbers and spaces. Not a password, your name or your email.", "4–20 ký tự: chữ, số, khoảng trắng. Không dùng mật khẩu, tên hay email.")}</p></div>
-        {code && stepUpSeconds === 0 && <p class="crm-help">{t("Changing the code asks for your passkey first.", "Đổi mã cần xác thực passkey trước.")}</p>}
-        <div class="crm-actions"><button class="crm-button" type="submit">{code ? t("Change code", "Đổi mã") : setup ? t("Save code and open the Workspace", "Lưu mã và vào Workspace") : t("Save code", "Lưu mã")}</button></div>
-      </form>
+  {!firstStep && <div class="s4-stack s4-mlist">
+    <RecordHeader vi={vi} icon="security" tone="person" object={t("My account", "Tài khoản của tôi")} crumbs={[{ label: t("My account", "Tài khoản của tôi"), href: local("/workspace/account") }, { label: t("Security", "Bảo mật") }]} title={t("Security", "Bảo mật")}>
+      <p slot="sub" class="s4-desc">{t("Your organisation requires a passkey and an anti-phishing code for every member. Removing a passkey and changing the code ask for your passkey again.", "Tổ chức của bạn bắt buộc passkey và mã chống lừa đảo cho mọi thành viên. Xóa passkey và đổi mã đều phải xác thực lại bằng passkey.")}</p>
+    </RecordHeader>
+    {saved && <p class="crm-notice good" role="status">{t("Code saved.", "Đã lưu mã.")}</p>}
+    {setup && code && <p class="crm-notice good" role="status">{t("All set.", "Đã xong.")} <a class="crm-link" href={next}>{t("Open the Workspace", "Vào Workspace")}</a></p>}
+
+    <section class="s4-panel" aria-labelledby="keys-h">
+      <div class="s4-ph"><h2 id="keys-h">{t(`Passkeys (${passkeys.length})`, `Passkey (${passkeys.length})`)}</h2>
+        {passkeys.length > 0 && stepUpSeconds === 0
+          ? <a class="ws-btn" href={verifyPath(vi, self)}>{t("Add passkey", "Thêm passkey")}</a>
+          : <form method="post" data-passkey="enrol" {...messages} class="s4-actions"><input type="hidden" name="passkey_name" value="" /><button class="ws-btn" type="submit">{t("Add passkey", "Thêm passkey")}</button><span class="s4-live" data-passkey-status role="status" aria-live="polite" hidden></span></form>}
+      </div>
+      <DataTable vi={vi} label={t(`Passkeys (${passkeys.length})`, `Passkey (${passkeys.length})`)}>
+        <thead><tr><th scope="col">{t("Name", "Tên")}</th><th scope="col">{t("Type", "Loại")}</th><th scope="col">{t("Created", "Tạo lúc")}</th><th scope="col">{t("Last used", "Dùng gần nhất")}</th><th scope="col" class="act"><span class="crm-sr">{t("Actions", "Thao tác")}</span></th></tr></thead>
+        <tbody>{passkeys.map((key) => <tr>
+          <td><strong>{key.name || t("Unnamed passkey", "Passkey chưa đặt tên")}</strong>{key.id === session.passkeyId && <span class="sub">{t("used for this session", "dùng cho phiên này")}</span>}</td>
+          <td>{kind(key)}</td><td>{when(key.created_at)}</td><td>{when(key.last_used_at)}</td>
+          <td class="act"><div class="s4-actions" style="justify-content:flex-end">
+            <details class="s4-reveal"><summary class="ws-btn sm">{t("Rename", "Đổi tên")}</summary>
+              <form class="s4-actions" data-passkey-rename data-reload data-id={key.id} data-msg-failed={t("Not saved.", "Chưa lưu.")} style="margin-top:6px">
+                <label class="crm-sr" for={`rn-${key.id}`}>{t("New name", "Tên mới")}</label><input class="s4-in" id={`rn-${key.id}`} name="name" maxlength="80" required value={key.name ?? ""} style="width:180px;min-height:32px" />
+                <button class="ws-btn sm primary" type="submit">{t("Save", "Lưu")}</button><span class="s4-live" data-passkey-status role="status" aria-live="polite" hidden></span>
+              </form></details>
+            {passkeys.length > 1 && <form data-passkey-remove data-id={key.id} data-verify={verifyPath(vi, self)} data-msg-failed={t("Not removed.", "Chưa xóa được.")} data-msg-last={t("Your last passkey stays.", "Phải còn ít nhất 1 passkey.")}>
+              <button class="ws-btn sm danger" type="submit">{t("Remove", "Xóa")}</button><span class="s4-live" data-passkey-status role="status" aria-live="polite" hidden></span></form>}
+          </div></td>
+        </tr>)}</tbody>
+      </DataTable>
+      {passkeys.length === 0 && <p class="s4-empty">{t("No passkey yet. Add one on this device.", "Chưa có passkey. Hãy thêm trên thiết bị này.")}</p>}
+      <p class="s4-note"><span>{t("At least one passkey must remain. Keep a passkey on two devices so losing one does not lock you out.", "Phải còn ít nhất 1 passkey. Nên có passkey trên 2 thiết bị để không bị khóa khi mất máy.")}</span></p>
     </section>
-    <section class="crm-sheet" aria-labelledby="preview-h">
-      <h2 class="crm-h2" id="preview-h">{t("Preview: an email from Lumi", "Xem trước: email từ Lumi")}</h2>
-      <dl class="crm-facts"><div><dt>{t("Subject", "Tiêu đề")}</dt><dd>{preview.subject}</dd></div></dl>
-      <pre class="crm-help" style="white-space:pre-wrap;font:inherit">{preview.text}</pre>
+
+    <section class="s4-panel" aria-labelledby="ap-h">
+      <div class="s4-ph"><div><h2 id="ap-h">{t("Anti-phishing code", "Mã chống lừa đảo")}</h2>
+        <p class="s4-p" style="font-size:14px;margin-top:4px">{code ? <>{t("Current code", "Mã hiện tại")}: <span class="s4-code">{maskCode(code)}</span> · {t("last changed", "đổi lần cuối")} {day(codeUpdated)}</> : t("Not set yet.", "Chưa đặt.")}</p></div>
+        <div class="s4-actions">
+          {code && <details class="s4-reveal"><summary class="ws-btn">{t("Show code", "Hiện mã")}</summary><p class="s4-codeband" data-code-band style="margin-top:8px"><span>{t("Your anti-phishing code", "Mã chống lừa đảo của bạn")}</span><strong>{code}</strong></p></details>}
+          <a class="ws-btn" href="#code-sheet">{code ? t("Change code", "Đổi mã") : t("Set code", "Đặt mã")}</a>
+        </div></div>
     </section>
+
+    <section class="s4-panel" aria-labelledby="ses-h">
+      <div class="s4-ph"><h2 id="ses-h">{t("This session", "Phiên này")}</h2>
+        <form method="post" action="/_emdash/api/auth/logout?redirect=%2F"><button class="ws-btn danger" type="submit">{t("Sign out", "Đăng xuất")}</button></form></div>
+      <DataTable vi={vi} label={t("This session", "Phiên này")}>
+        <thead><tr><th scope="col">{t("Device", "Thiết bị")}</th><th scope="col">{t("Workspace passkey check", "Xác thực passkey Workspace")}</th><th scope="col">{t("Passkey", "Passkey")}</th></tr></thead>
+        <tbody><tr><td><strong>{t("This browser", "Trình duyệt này")}</strong> <span class="ws-badge info">{t("This session", "Phiên này")}</span></td><td>{when(session.verifiedAt)}</td><td>{session.passkey ?? "—"}</td></tr></tbody>
+      </DataTable>
+      <p class="s4-note"><span>{t("Other sessions are kept by EmDash and are not listed here.", "Các phiên khác do EmDash quản lý và không liệt kê ở đây.")}</span></p>
+    </section>
+
+    {canTokens && <section class="s4-panel" aria-labelledby="ag-h">
+      <div class="s4-ph"><div><h2 id="ag-h">{t(`Connected AI agents (${tokens.length})`, `AI agent đã kết nối (${tokens.length})`)}</h2>
+        <p class="s4-p" style="font-size:14px;margin-top:4px">{t("An agent uses your own access, only in the modules your admin allows.", "Agent dùng quyền của bạn, chỉ trong các module admin cho phép.")}</p></div>
+        <a class="ws-btn" href={local("/workspace/account/agents/connect")}>{t("Connect an agent", "Kết nối agent")}</a></div>
+      {tokens.length > 0 && <DataTable vi={vi} label={t(`Connected AI agents (${tokens.length})`, `AI agent đã kết nối (${tokens.length})`)}>
+        <thead><tr><th scope="col">{t("Agent", "Agent")}</th><th scope="col">{t("Access", "Quyền")}</th><th scope="col">{t("Connected", "Kết nối lúc")}</th><th scope="col">{t("Last call", "Gọi gần nhất")}</th><th scope="col" class="act"><span class="crm-sr">{t("Actions", "Thao tác")}</span></th></tr></thead>
+        <tbody>{tokens.map((token) => <tr><td><strong>{token.name}</strong></td><td>{token.scope === "write" ? t("Read and write", "Đọc và ghi") : t("Read", "Đọc")}</td><td>{day(token.created_at)}</td><td>{when(token.last_used_at)}</td>
+          <td class="act"><a class="ws-btn sm danger" href={local("/crm/api")}>{t("Revoke", "Thu hồi")}</a></td></tr>)}</tbody>
+      </DataTable>}
+    </section>}
+  </div>}
+
+  {!firstStep && <Sheet id="code-sheet" vi={vi} title={code ? t("Change your anti-phishing code", "Đổi mã chống lừa đảo") : t("Set your anti-phishing code", "Đặt mã chống lừa đảo")} open={sheet === "code"} closeHref={self}>
+    <CodeForm vi={vi} action={Astro.url.pathname + Astro.url.search} hasCode={!!code} typed={typed} error={error} stepUpNeeded={stepUpSeconds === 0} label={code ? t("Change code", "Đổi mã") : t("Save code", "Lưu mã")} />
+  </Sheet>}
   </div>
-
-  <section class="crm-sheet" aria-labelledby="keys-h" style="margin-top:18px">
-    <h2 class="crm-h2" id="keys-h">{t("Passkeys", "Passkey")}<span class="crm-count">{passkeys.length}</span></h2>
-    <ul class="crm-list">{passkeys.map((key) => <li class="crm-row"><strong>{key.name || t("Unnamed passkey", "Passkey chưa đặt tên")}</strong><span class="crm-row-meta"><span>{t("Added", "Thêm lúc")} {when(key.created_at)}</span><span>{t("Last used", "Dùng gần nhất")} {when(key.last_used_at)}</span></span></li>)}</ul>
-    <p class="crm-help">{t("Add a passkey on a second device so losing one device does not lock you out.", "Thêm passkey trên thiết bị thứ hai để mất một máy không bị khóa tài khoản.")}</p>
-    {passkeys.length > 0 && stepUpSeconds === 0
-      ? <p><a class="crm-button secondary" href={verifyPath(vi, self)}>{t("Verify to add another passkey", "Xác thực để thêm passkey")}</a></p>
-      : <form method="post" data-passkey="enrol" {...messages}>
-          <div class="crm-field"><label for="passkey_name">{t("Name for the new passkey", "Tên passkey mới")}</label><input class="crm-input" id="passkey_name" name="passkey_name" maxlength="80" autocomplete="off" /></div>
-          <div class="crm-actions"><button class="crm-button secondary" type="submit">{t("Add a passkey on this device", "Thêm passkey trên thiết bị này")}</button></div>
-          <p class="crm-help" data-passkey-status role="status" aria-live="polite" hidden></p>
-        </form>}
-    <p class="crm-help">{t("Rename or remove passkeys in your EmDash account settings.", "Đổi tên hoặc xóa passkey trong phần cài đặt tài khoản EmDash.")}</p>
-  </section>
-  {setup && code && <p><a class="crm-button" href={next}>{t("Open the Workspace", "Vào Workspace")}</a></p>}
 </WorkspaceShell>
 <script>
   import "../../scripts/workspace-passkey";

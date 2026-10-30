@@ -12,9 +12,18 @@ export const AUDIT_EXPORT_MAX = 5000;
 export const auditKinds = ["security", "access", "data", "agent", "denied"] as const;
 export type AuditKind = typeof auditKinds[number];
 
-const SECURITY_ACTIONS = ["passkey_verified", "passkey_failed", "passkey_added", "passkey_recovery_opened", "anti_phishing_set", "anti_phishing_changed"];
+const SECURITY_ACTIONS = ["passkey_verified", "passkey_failed", "passkey_added", "passkey_removed", "passkey_recovery_opened", "anti_phishing_set", "anti_phishing_changed"];
 const ACCESS_ACTIONS = ["access_saved", "access_revoked", "agent_policy_changed", "notification_rule_saved", "notification_destination_saved", "notification_destination_removed"];
 const DATA_ACTIONS = ["data_exported", "record_deleted", "candidates_purged", "report.export"];
+
+/** Which quick-filter kind an event belongs to, for the list's "Kind" column. */
+export function auditKindOf(entry: Pick<AuditEntry, "action" | "via">): "security" | "access" | "data" | "agent" | "other" {
+  if (entry.via === "api" || entry.via === "mcp") return "agent";
+  if (SECURITY_ACTIONS.includes(entry.action) || entry.action === "passkey_removed") return "security";
+  if (ACCESS_ACTIONS.includes(entry.action)) return "access";
+  if (DATA_ACTIONS.includes(entry.action)) return "data";
+  return "other";
+}
 
 export interface AuditFilters { source: "all" | "workspace" | "finance"; kind: AuditKind | ""; module: string; actor: string; outcome: "" | "success" | "denied" | "failed"; from: string; to: string; q: string; cursor: string }
 
@@ -117,7 +126,7 @@ export async function nearbyEvents(db: D1Database, entry: AuditEntry, options: {
 const actionLabels: Record<string, [string, string]> = {
   access_saved: ["Access saved", "Lưu quyền"], access_revoked: ["Access revoked", "Thu hồi quyền"],
   passkey_verified: ["Passkey verified", "Xác thực passkey"], passkey_failed: ["Passkey check failed", "Xác thực passkey thất bại"],
-  passkey_added: ["Passkey added", "Thêm passkey"], passkey_recovery_opened: ["Passkey recovery window opened", "Mở khôi phục passkey"],
+  passkey_added: ["Passkey added", "Thêm passkey"], passkey_removed: ["Passkey removed", "Xóa passkey"], passkey_recovery_opened: ["Passkey recovery window opened", "Mở khôi phục passkey"],
   anti_phishing_set: ["Anti-phishing code set", "Đặt mã chống lừa đảo"], anti_phishing_changed: ["Anti-phishing code changed", "Đổi mã chống lừa đảo"],
   data_exported: ["Data exported", "Xuất dữ liệu"], record_deleted: ["Record deleted", "Xóa bản ghi"], candidates_purged: ["Expired candidates deleted", "Xóa ứng viên quá hạn"],
   agent_tool_called: ["AI agent tool call", "AI agent gọi công cụ"], agent_policy_changed: ["AI agent module access changed", "Đổi quyền module cho AI agent"],

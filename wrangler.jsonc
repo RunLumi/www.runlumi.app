@@ -10,9 +10,9 @@
     // Company data remains unavailable until Super Admin completes book setup.
     "FINANCE_LIVE_ENABLED": "true",
     "WORKSPACE_RESTORE_MODE": "false",
-    // R-08 passkey and anti-phishing enforcement. Off until the owner confirms every
-    // Workspace user has an EmDash passkey; see docs/workspace/security.md.
-    "WORKSPACE_PASSKEY_REQUIRED": "false"
+    // R-08 passkey and anti-phishing enforcement, on from round 2 (founder, 2026-10-30).
+    // A person without a passkey creates one on the way in; see docs/workspace/security.md.
+    "WORKSPACE_PASSKEY_REQUIRED": "true"
   },
   "routes": [
     {

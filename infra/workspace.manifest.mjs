@@ -20,7 +20,7 @@ export const manifest = {
     vars: {
       FINANCE_LIVE_ENABLED: { value: "true", comment: "Company data remains unavailable until Super Admin completes book setup." },
       WORKSPACE_RESTORE_MODE: { value: "false" },
-      WORKSPACE_PASSKEY_REQUIRED: { value: "false", comment: "R-08 passkey and anti-phishing enforcement. Off until the owner confirms every\nWorkspace user has an EmDash passkey; see docs/workspace/security.md." },
+      WORKSPACE_PASSKEY_REQUIRED: { value: "true", comment: "R-08 passkey and anti-phishing enforcement, on from round 2 (founder, 2026-10-30).\nA person without a passkey creates one on the way in; see docs/workspace/security.md." },
     },
     routes: ["runlumi.app/*", "www.runlumi.app/*", "landing.runlumi.app/*"],
     zone: "runlumi.app",
