@@ -1,5 +1,6 @@
 ---
 import CrmShell from "../../layouts/CrmShell.astro";
+import CrmSetupLayout from "./CrmSetupLayout.astro";
 import SetupFrame from "../workspace/ui/SetupFrame.astro";
 import "../../styles/record.css";
 import "../../styles/crm-sales.css";
@@ -11,6 +12,7 @@ const { ctx, rows, names } = Astro.props;
 const { lang, vi, base } = ctx;
 ---
 <CrmShell title={vi ? "Bàn giao" : "Fulfillment"} lang={lang} actor={ctx.actor} current="fulfillment">
+  <CrmSetupLayout vi={vi} current="fulfillment">
   <SetupFrame vi={vi} icon="fulfillment" eyebrow={vi ? "Vận hành" : "Operations"} title={vi ? "Bàn giao sau bán" : "Delivery after the sale"} info={vi ? "CRM ghi nhận và điều phối; không mua tên miền, không xuất bản website, không thu tiền hay gửi tin cho khách." : "The CRM records and coordinates; it never buys domains, publishes sites, collects money or messages customers."}>
     
   <section class="crm-sheet">
@@ -21,4 +23,5 @@ const { lang, vi, base } = ctx;
     </li>)}</ul> : <p class="crm-empty">{vi ? "Không có việc bàn giao đang mở." : "No open delivery work."}</p>}
   </section>
   </SetupFrame>
+  </CrmSetupLayout>
 </CrmShell>
