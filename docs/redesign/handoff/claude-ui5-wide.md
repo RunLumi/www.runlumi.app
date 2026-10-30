@@ -57,7 +57,18 @@ What they show: at 2560 and 3840 px the header, page and footer use the width up
 
 ### Gates
 
-Integration scopes running at the time of this commit; results follow in the next handoff commit.
+Run on `fecf3ae`+docs (code unchanged after), each integration scope on its own fresh local Worker and D1 (`scripts/run-integration.mjs`).
+
+| Gate | Result |
+|---|---|
+| `npm run lint` | ok (646 source files) |
+| `npm test` | 468 pass, 0 fail (9 new: `tests/crm-activity.test.ts`, launcher test in `tests/workspace-shell.test.ts`) |
+| `npm run build` (astro check + build) | 0 errors, 0 warnings; build complete |
+| Integration workspace | 15/15 |
+| Integration crm | 19/19 |
+| Integration finance | 9/9 |
+| Integration security | 19/19 |
+| Integration HRM phases | not run (no HRM file touched) |
 
 ## Open
 
