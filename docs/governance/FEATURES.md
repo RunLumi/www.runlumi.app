@@ -79,7 +79,7 @@ Brief: [UI-PARITY.md](../redesign/UI-PARITY.md). Stories: [USER-STORIES.md § CR
 | Lead list view (Leads) | `/crm/leads` | *In redesign* (ui2) |
 | Lead Kanban (LeadsKanban) | `/crm/leads?view=board` | *In redesign* (ui2) |
 | Opportunity Kanban (Main, KanbanDrag) | `/crm/pipeline?view=board` | *In redesign* (ui2) |
-| Close dialog (CloseDialog, right-hand dialog only) | `/crm/[id]?close=won\|lost` | *In redesign* (ui2) |
+| Close dialog (CloseDialog, right-hand dialog only) | `/crm/[id]?close=won\|lost` | *In redesign* (drawn in ui3's OpportunityView; parity after ui3 merges) |
 | Opportunity table (DealsTable) | `/crm/pipeline?view=table` | *In redesign* (ui2) |
 | Calendar month and week (Calendar, CalendarWeek) | `/crm/calendar`, `?view=week` | *In redesign* (ui2) |
 | New event sheet (NewEvent) | `/crm/calendar?new=1` | *In redesign* (ui2) |
