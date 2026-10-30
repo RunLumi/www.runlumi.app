@@ -37,6 +37,10 @@ Built on ui1's kit (`origin/claude/ui1-shell` `a54e7ce`, merged in `f8646ff`; mi
 
 Unchanged: every form keeps its intent, field names, version and request key; routes and permissions are untouched. Two read-only route additions: the converted summary reads `created_at` to say "created" vs "existing", plus value and owner name; the company route adds stage names for its table. `OppTasks` lost its inline "add task" form, which moved to `OppTaskForm` in a sheet.
 
+### Gates (second pass)
+
+On `11f2301` (`c9be53f` + `origin/claude/loving-pasteur-z7ly65`): unit 459/459; build 0 errors; integration workspace 15/15, finance 9/9, crm 19/19, hrm-p1, hrm-p3, hrm-p4 and hrm-p5 pass (each as its own scope).
+
 ### Gates
 
 Final run on `8694388`: `claude/ui3-crm-records` after merging ui1's kit (`cd0d414`) and `origin/claude/loving-pasteur-z7ly65` (which already holds ui2). Run locally in the cloud container, one integration scope at a time.
