@@ -1,0 +1,8 @@
+---
+// A centred Sheet (boards: NewEvent, CloseDialog, StepUp). Same props.
+import Sheet from "./Sheet.astro";
+
+type Props = Omit<Parameters<typeof Sheet>[0], "variant">;
+const hasFoot = Astro.slots.has("foot");
+---
+<Sheet {...Astro.props} variant="dialog"><slot />{hasFoot && <Fragment slot="foot"><slot name="foot" /></Fragment>}</Sheet>

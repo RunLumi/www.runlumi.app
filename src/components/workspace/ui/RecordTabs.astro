@@ -1,0 +1,11 @@
+---
+// Record tabs (boards: LeadRecord "Hoạt động · Chi tiết · Bình luận",
+// Notifications filters). Links, so each tab has its own URL and needs no
+// script; the server renders the chosen panel.
+export interface Tab { key: string; label: string; href: string; count?: number }
+interface Props { label: string; tabs: Tab[]; current: string }
+const { label, tabs, current } = Astro.props;
+---
+<nav class="ws-rtabs" aria-label={label}>
+  {tabs.map((tab) => <a href={tab.href} aria-current={tab.key === current ? "page" : undefined}>{tab.label}{tab.count !== undefined && <span class="ws-rtab-n"> · {tab.count}</span>}</a>)}
+</nav>

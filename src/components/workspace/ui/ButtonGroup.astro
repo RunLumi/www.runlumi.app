@@ -1,0 +1,18 @@
+---
+// Joined action buttons (boards: Leads, LeadRecord). Put links or buttons
+// with class "ws-btn" in the slot. `more` adds the trailing ▾ menu for the
+// remaining actions; each is a link to a real screen or sheet.
+import NavIcon from "../NavIcon.astro";
+
+export interface MoreAction { label: string; href: string; danger?: boolean }
+interface Props { label: string; more?: MoreAction[]; moreLabel?: string }
+const { label, more = [], moreLabel } = Astro.props;
+const moreName = moreLabel ?? `${label}: ${more.map((action) => action.label).join(", ")}`;
+---
+<div class="ws-bg" role="group" aria-label={label}>
+  <slot />
+  {more.length > 0 && <details class="ws-drop ws-bg-more">
+    <summary class="ws-btn icon" aria-label={moreName}><NavIcon name="chevron" size={16} /></summary>
+    <div class="ws-pop ws-menu-pop right"><ul>{more.map((action) => <li><a class:list={[action.danger && "danger"]} href={action.href}>{action.label}</a></li>)}</ul></div>
+  </details>}
+</div>
