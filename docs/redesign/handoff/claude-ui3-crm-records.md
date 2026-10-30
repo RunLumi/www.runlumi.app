@@ -37,18 +37,21 @@ Built on ui1's kit (`origin/claude/ui1-shell` `a54e7ce`, merged in `f8646ff`; mi
 
 Unchanged: every form keeps its intent, field names, version and request key; routes and permissions are untouched. Two read-only route additions: the converted summary reads `created_at` to say "created" vs "existing", plus value and owner name; the company route adds stage names for its table. `OppTasks` lost its inline "add task" form, which moved to `OppTaskForm` in a sheet.
 
-### Gates (on `9dac053`, after merging `origin/claude/loving-pasteur-z7ly65`, already up to date)
+### Gates
+
+Final run on `8694388`: `claude/ui3-crm-records` after merging ui1's kit (`cd0d414`) and `origin/claude/loving-pasteur-z7ly65` (which already holds ui2). Run locally in the cloud container, one integration scope at a time.
 
 | Gate | Result |
 |---|---|
-| `npm run lint` | pass (602 source files) |
-| `npm test` | 453 pass, 0 fail |
-| `npm run db:migrate:local` | pass (to 0056) |
+| `npm run lint` | pass (625 source files) |
+| `npm test` | 459 pass, 0 fail. One earlier run on `a7af37e` had 1 failure that did not reproduce on rerun (the test name was not captured); reported as a possible flake |
+| `npm run db:migrate:local` | pass (no migrations to apply; up to 0056) |
 | `npm run build` | 0 errors, 0 warnings; build complete |
-| Integration `crm` | 18/18 |
-| Integration `workspace` | 12/12 |
+| Integration `crm` | 19/19 |
+| Integration `workspace` | 15/15 |
 | Integration `finance` | 9/9 |
-| Integration `hrm-p1`, `hrm-p3`, `hrm-p4`, `hrm-p5`, `security`, `api` | see below |
+| Integration `hrm-p1` | pass |
+| Integration `security`, `api`, `hrm-p3`, `hrm-p4`, `hrm-p5` | pass on `a7af37e` (12/12, 7/7, pass, pass, pass); not rerun after the last two commits, which only swap my record components for ui1's copies of them and touch no HRM, security or API code |
 
 ### Open
 
