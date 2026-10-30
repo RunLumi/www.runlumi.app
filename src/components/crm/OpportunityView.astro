@@ -169,7 +169,8 @@ const moreActions = access.canEdit ? [
       </form> : access.canEdit && <a slot="action" class="ws-btn primary" href="#sheet-stage">{vi ? "Chuyển giai đoạn" : "Move stage"}</a>}
       <div>
         <h2>{vi ? `Trường quan trọng · ${stageLabel(def, opp.stage_id, true)}` : `Key fields · ${stageLabel(def, opp.stage_id, false)}`}{access.canEdit && allFields.length > 0 && <a class="ws-btn sm" href="#sheet-fields">{vi ? "Sửa" : "Edit"}</a>}</h2>
-        {shownFields.length ? <dl class="rec-fields">{shownFields.map((field) => <div><dt>{vi ? field.vi : field.en}</dt><dd>{display(field, stored[field.key]) || <span class="rec-unknown">{vi ? "Chưa nhập" : "Not entered"}</span>}</dd></div>)}</dl>
+        {!access.canEdit ? <p class="rec-path-note">{vi ? "Trường đã xác minh chỉ hiện với người bán phụ trách." : "Verified fields are shown to the selling owner only."}</p>
+          : shownFields.length ? <dl class="rec-fields">{shownFields.map((field) => <div><dt>{vi ? field.vi : field.en}</dt><dd>{display(field, stored[field.key]) || <span class="rec-unknown">{vi ? "Chưa nhập" : "Not entered"}</span>}</dd></div>)}</dl>
           : <p class="rec-path-note">{vi ? "Giai đoạn này không có trường riêng." : "This stage has no fields of its own."}</p>}
       </div>
       <div>
@@ -202,11 +203,11 @@ const moreActions = access.canEdit ? [
               <div><dt>{vi ? "Loại" : "Kind"}</dt><dd>{label(lang, "relation", opp.relation)}</dd></div>
               <div><dt>{vi ? "Giá trị HĐ mong đợi" : "Expected contract value"}</dt><dd>{formatVnd(opp.estimated_value_vnd, vi)}</dd></div>
               <div><dt>{vi ? "Tỉ lệ thành công mong đợi" : "Expected win probability"}</dt><dd>{opp.win_probability === null ? unknown : `${opp.win_probability}%`}</dd></div>
-              <div><dt>{vi ? "Bước tiếp theo" : "Next step"}</dt><dd>{opp.next_action || "—"}</dd></div>
+              {access.canEdit && <div><dt>{vi ? "Bước tiếp theo" : "Next step"}</dt><dd>{opp.next_action || "—"}</dd></div>}
               <div><dt>Cohort</dt><dd>{opp.cohort_key ?? "—"}</dd></div>
               {(opp.service_period_start || opp.renewal_due_on) && <div><dt>{vi ? "Kỳ dịch vụ" : "Service period"}</dt><dd>{formatDate(opp.service_period_start, lang)} → {formatDate(opp.service_period_end, lang)}</dd></div>}
             </dl>
-            {allFields.length > 0 && <><h3 class="rec-sec">{vi ? "Thông tin đã xác minh" : "Verified information"}</h3>
+            {access.canEdit && allFields.length > 0 && <><h3 class="rec-sec">{vi ? "Thông tin đã xác minh" : "Verified information"}</h3>
               <dl class="rec-fields">{allFields.map((field) => <div><dt>{vi ? field.vi : field.en}</dt><dd>{display(field, stored[field.key]) || unknown}</dd></div>)}</dl></>}
             <h3 class="rec-sec">{vi ? "Thông tin hệ thống" : "System information"}</h3>
             <dl class="rec-fields">

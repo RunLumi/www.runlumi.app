@@ -118,7 +118,7 @@ const newHref = `${base}/leads${query({ new: "1" })}#new-lead`;
           <div class="cl-sum"><b>{vi ? `${column.cards.length} Lead` : `${column.cards.length} ${column.cards.length === 1 ? "lead" : "leads"}`}</b>{column.hint && <span>{column.hint}</span>}</div>
           <div class="cl-lane">
             {column.cards.map((row) => { const pr = processes.get(row.process_id); const late = overTarget(pr, row); const editable = ctx.actor.manager || row.owner_id === ctx.actor.id; const alert = late ? (vi ? "Quá thời gian mục tiêu" : "Past the target time") : !row.owner_id ? (vi ? "Chưa có người phụ trách" : "No owner yet") : ""; return <article class:list={["cl-kc", { warn: !!alert }]} data-card={editable ? row.id : undefined} data-name={`${row.name} · ${row.company}`} data-current={row.status_id}
-                data-zone-convert={editable ? `${base}/leads/${row.id}?convert=1#convert` : undefined} data-zone-disqualify={editable ? `${base}/leads/${row.id}#disqualify` : undefined}>
+                data-zone-convert={editable ? `${base}/leads/${row.id}?convert=1#convert` : undefined} data-zone-disqualify={editable ? `${base}/leads/${row.id}#sheet-disqualify` : undefined}>
               <div class="cl-kc-top">
                 {editable ? <span class="cl-grip"><NavIcon name="grip" size={16} /></span> : <span class="cl-grip" />}
                 <a class="cl-kc-title" href={`${base}/leads/${row.id}`}>{row.name}</a>
@@ -133,7 +133,7 @@ const newHref = `${base}/leads${query({ new: "1" })}#new-lead`;
                       <select id={`mv-${row.id}`} name="status_id" data-move-to>{(pr ?? process).def.statuses.map((item) => <option value={item.id} selected={item.id === row.status_id}>{vi ? item.vi : item.en}</option>)}</select>
                       <button class="ws-btn sm" type="submit">{vi ? "Chuyển" : "Move"}</button>
                     </form>
-                    <ul><li><a href={`${base}/leads/${row.id}?convert=1#convert`}>{vi ? "Chuyển đổi…" : "Convert…"}</a></li><li><a href={`${base}/leads/${row.id}#disqualify`}>{vi ? "Không tiếp tục…" : "Disqualify…"}</a></li><li><a href={`${base}/leads/${row.id}`}>{vi ? "Mở Lead" : "Open lead"}</a></li></ul>
+                    <ul><li><a href={`${base}/leads/${row.id}?convert=1#convert`}>{vi ? "Chuyển đổi…" : "Convert…"}</a></li><li><a href={`${base}/leads/${row.id}#sheet-disqualify`}>{vi ? "Không tiếp tục…" : "Disqualify…"}</a></li><li><a href={`${base}/leads/${row.id}`}>{vi ? "Mở Lead" : "Open lead"}</a></li></ul>
                   </div>
                 </details>}
               </div>
