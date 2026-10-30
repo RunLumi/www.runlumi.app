@@ -106,6 +106,7 @@ const tileTerms = (key: ModuleKey) => launchPages.filter(({ module: owner }) => 
           <summary class="ws-launch-btn" aria-label={vi ? "Mở danh sách ứng dụng" : "Open the app launcher"} title={vi ? "Ứng dụng" : "Apps"}><svg class="ws-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="5" r="2"/><circle cx="12" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="12" cy="19" r="2"/><circle cx="19" cy="19" r="2"/></svg></summary>
           <div class="ws-launcher-pop" role="group" aria-labelledby="ws-launcher-h">
             <p class="ws-dlg-title" id="ws-launcher-h">{vi ? "Ứng dụng" : "App launcher"}</p>
+            <button type="button" class="ws-launch-close" data-ws-launcher-close hidden aria-label={vi ? "Đóng danh sách ứng dụng" : "Close the app launcher"}>×</button>
             <div class="ws-launcher-body">
               <label class="ws-field-search" data-ws-filter-box hidden><NavIcon name="search" size={16} /><span class="crm-sr">{vi ? "Lọc ứng dụng" : "Filter apps"}</span><input type="search" data-ws-filter="#ws-launcher-list" data-ws-results="#ws-launcher-results" placeholder={vi ? "Lọc ứng dụng hoặc trang, ví dụ: Lead" : "Filter apps or pages, for example: Leads"} /></label>
               <section class="ws-lresults" id="ws-launcher-results" aria-labelledby="ws-lresults-h" hidden>
@@ -114,7 +115,7 @@ const tileTerms = (key: ModuleKey) => launchPages.filter(({ module: owner }) => 
               </section>
               <p class="ws-eyebrow">{vi ? "Ứng dụng" : "Apps"}</p>
               <nav class="ws-modules" aria-label={vi ? "Phân hệ" : "Modules"}>
-                <ul class="ws-lgrid" id="ws-launcher-list">{available.map((item) => <li data-ws-terms={tileTerms(item.key)}><a class="ws-ltile" href={localized(item.path, vi)} aria-current={item.key === module ? "page" : undefined}><span class="ws-oi" style={`--ws-tone:${moduleTone[item.key]}`}><NavIcon name={item.icon} size={20} /></span><span><strong>{label(item)}</strong><span>{launcherBlurbs[item.key][vi ? 1 : 0]}</span></span></a></li>)}</ul>
+                <ul class="ws-lgrid" id="ws-launcher-list">{available.map((item) => <li data-ws-terms={tileTerms(item.key)}><a class="ws-ltile" href={localized(item.path, vi)} aria-current={item.key === module ? "page" : undefined}><span class="ws-oi" style={`--ws-tone:${moduleTone[item.key]}`}><NavIcon name={item.icon} size={32} /></span><span><strong>{label(item)}</strong><span>{launcherBlurbs[item.key][vi ? 1 : 0]}</span></span></a></li>)}</ul>
               </nav>
             </div>
           </div>
@@ -144,7 +145,21 @@ const tileTerms = (key: ModuleKey) => launchPages.filter(({ module: owner }) => 
       // Progressive extras: Escape closes an open pop-over or sheet, and the
       // launcher/side filters narrow their lists. Everything works without it.
       (() => {
-        document.querySelectorAll("[data-ws-filter-box]").forEach((box) => { box.hidden = false; });
+        document.querySelectorAll("[data-ws-filter-box], [data-ws-launcher-close]").forEach((box) => { box.hidden = false; });
+        // The full-screen launcher closes from its × button or a click on its backdrop.
+        document.addEventListener("click", (event) => {
+          const target = event.target;
+          if (!(target instanceof Element)) return;
+          if (target.closest("[data-ws-launcher-close]") || target.classList.contains("ws-launcher-pop") || target.classList.contains("ws-launcher-body")) {
+            const drop = target.closest("details.ws-launcher");
+            if (drop instanceof HTMLDetailsElement) { drop.open = false; drop.querySelector("summary")?.focus(); }
+          }
+        });
+        // Focus the filter when the launcher opens.
+        document.querySelector("details.ws-launcher")?.addEventListener("toggle", (event) => {
+          const drop = event.currentTarget;
+          if (drop instanceof HTMLDetailsElement && drop.open) drop.querySelector("[data-ws-filter]")?.focus();
+        });
         document.addEventListener("input", (event) => {
           const input = event.target;
           if (!(input instanceof HTMLInputElement) || !input.dataset.wsFilter) return;
