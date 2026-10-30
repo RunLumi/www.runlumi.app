@@ -70,6 +70,27 @@ Brief: [UI-PARITY.md](../redesign/UI-PARITY.md). Each screen is done only with i
 | Lark team notifications | Live | AGENTS.md (Collaborator CRM contract) |
 | Leads and Lead conversion, Kanban, calendar, record pages, reports (Salesforce model) | *In redesign* (rd3) | `claude/rd3-crm` handoff |
 
+### CRM list screens: board parity (round 2, workstream 2)
+
+Brief: [UI-PARITY.md](../redesign/UI-PARITY.md). Stories: [USER-STORIES.md § CRM list screens](USER-STORIES.md#crm-list-screens-round-2-workstream-2). Proof: `docs/redesign/parity/<Board>/` and the `claude/ui2-crm-lists` handoff.
+
+| Screen (board) | Route (EN and `/vi` peer) | Status |
+|---|---|---|
+| Lead list view (Leads) | `/crm/leads` | *In redesign* (ui2) |
+| Lead Kanban (LeadsKanban) | `/crm/leads?view=board` | *In redesign* (ui2) |
+| Opportunity Kanban (Main, KanbanDrag) | `/crm/pipeline?view=board` | *In redesign* (ui2) |
+| Close dialog (CloseDialog, right-hand dialog only) | `/crm/[id]?close=won\|lost` | *In redesign* (drawn in ui3's OpportunityView; parity after ui3 merges) |
+| Opportunity table (DealsTable) | `/crm/pipeline?view=table` | *In redesign* (ui2) |
+| Calendar month and week (Calendar, CalendarWeek) | `/crm/calendar`, `?view=week` | *In redesign* (ui2) |
+| New event sheet (NewEvent) | `/crm/calendar?new=1` | *In redesign* (ui2) |
+| Tasks list and detail (Tasks) | `/crm/tasks` (new route over existing tasks) | *In redesign* (ui2) |
+| Companies list view (Accounts) | `/crm/accounts` | *In redesign* (ui2) |
+| Contacts list view (Contacts) | `/crm/contacts` | *In redesign* (ui2) |
+| CRM Today (Home) | `/crm` | *In redesign* (ui2) |
+| Phone Kanban and calendar (MobileKanban, MobileCalendar) | the same routes at 390 px | *In redesign* (ui2) |
+| Create Lead, opportunity, event and task in sheets | `?new=1` on Leads, Pipeline, Calendar, Tasks | *In redesign* (ui2) |
+| Kanban settings dialog (left half of CloseDialog), bulk actions bar (DealsTable), Import, campaigns, sales-target chart (Home) | — | Not planned in this round: no feature exists behind them ("no other new features") |
+
 ## HRM
 
 | Feature | Status | Evidence |

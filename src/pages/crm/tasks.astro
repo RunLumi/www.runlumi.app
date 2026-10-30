@@ -1,0 +1,9 @@
+---
+import TasksView from "../../components/crm/TasksView.astro";
+import { tasksRoute } from "../../lib/crm/routes/tasks";
+
+export const prerender = false;
+const result = await tasksRoute(Astro, "en");
+if (result instanceof Response) return result;
+---
+<TasksView {...result} />
