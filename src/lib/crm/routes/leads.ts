@@ -91,7 +91,7 @@ export async function leadRoute(astro: AstroGlobal, lang: Lang, id: string): Pro
   };
 }
 
-export interface LeadConvertedProps { ctx: Ctx; lead: Lead; account: { id: string; name: string } | null; contact: { id: string; name: string } | null; opportunity: { id: string; title: string; stage: string } | null }
+export interface LeadConvertedProps { ctx: Ctx; lead: Lead; account: { id: string; name: string; region: string; created: boolean } | null; contact: { id: string; name: string; role: string; created: boolean } | null; opportunity: { id: string; title: string; stage: string; value: number | null } | null; ownerName: string }
 
 export async function leadConvertedRoute(astro: AstroGlobal, lang: Lang, id: string): Promise<LeadConvertedProps | Response> {
   const ctx = await context(astro, lang);
@@ -100,16 +100,21 @@ export async function leadConvertedRoute(astro: AstroGlobal, lang: Lang, id: str
   try { access = await loadLead(ctx.db, ctx.actor, id); } catch { return new Response(lang === "vi" ? "Không tìm thấy hồ sơ." : "Record not found.", { status: 404, headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "private, no-store" } }); }
   const lead = access.lead;
   if (lead.state !== "converted") return new Response(null, { status: 303, headers: { Location: `${ctx.base}/leads/${id}`, "Cache-Control": "private, no-store" } });
-  const account = await ctx.db.prepare("SELECT id, name FROM crm_accounts WHERE id = ?").bind(lead.converted_account_id).first<{ id: string; name: string }>();
-  const contact = await ctx.db.prepare("SELECT id, name FROM crm_contacts WHERE id = ?").bind(lead.converted_contact_id).first<{ id: string; name: string }>();
-  const opp = await ctx.db.prepare("SELECT id, title, playbook_id, stage_id FROM crm_opportunities WHERE id = ?").bind(lead.converted_opportunity_id).first<{ id: string; title: string; playbook_id: string; stage_id: string }>();
+  // A record created by the conversion carries the conversion's timestamp; an
+  // earlier one was reused.
+  const accountRow = await ctx.db.prepare("SELECT id, name, region, created_at FROM crm_accounts WHERE id = ?").bind(lead.converted_account_id).first<{ id: string; name: string; region: string | null; created_at: string }>();
+  const contactRow = await ctx.db.prepare("SELECT id, name, role, created_at FROM crm_contacts WHERE id = ?").bind(lead.converted_contact_id).first<{ id: string; name: string; role: string; created_at: string }>();
+  const account = accountRow ? { id: accountRow.id, name: accountRow.name, region: accountRow.region ?? "", created: accountRow.created_at === lead.converted_at } : null;
+  const contact = contactRow ? { id: contactRow.id, name: contactRow.name, role: contactRow.role, created: contactRow.created_at === lead.converted_at } : null;
+  const opp = await ctx.db.prepare("SELECT id, title, playbook_id, stage_id, estimated_value_vnd FROM crm_opportunities WHERE id = ?").bind(lead.converted_opportunity_id).first<{ id: string; title: string; playbook_id: string; stage_id: string; estimated_value_vnd: number | null }>();
   let opportunity = null;
   if (opp) {
     const playbook = (await latestPlaybooks(ctx.db)).find((item) => item.id === opp.playbook_id) ?? null;
     const stage = playbook?.def.stages.find((item) => item.id === opp.stage_id);
-    opportunity = { id: opp.id, title: opp.title, stage: stage ? (ctx.vi ? stage.vi : stage.en) : opp.stage_id };
+    opportunity = { id: opp.id, title: opp.title, stage: stage ? (ctx.vi ? stage.vi : stage.en) : opp.stage_id, value: opp.estimated_value_vnd };
   }
-  return { ctx, lead, account, contact, opportunity };
+  const ownerName = lead.owner_id ? ((await displayNames(ctx.contentDb, [lead.owner_id]))[lead.owner_id]?.name ?? "") : "";
+  return { ctx, lead, account, contact, opportunity, ownerName };
 }
 
 export interface LeadSettingsProps { ctx: Ctx; state: FormState; versions: LeadProcess[] }
