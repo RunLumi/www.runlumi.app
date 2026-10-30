@@ -1,12 +1,12 @@
 import { defineMiddleware } from "astro:middleware";
-import { activeUser, emdashLoginUrl } from "./lib/admin-auth";
+import { activeUser } from "./lib/admin-auth";
 import { envFromLocals } from "./lib/ats";
 import type { Permission } from "./lib/workspace/roles";
 import { workspaceUser } from "./lib/workspace/roles";
 import { sameOrigin } from "./lib/http";
 import { financeArea, financeBoundary, setFinanceReadiness } from "./lib/finance/access";
 import { restoreBlocksPath, restoreMaintenanceResponse } from "./lib/workspace/restore-maintenance";
-import { passkeyRegistrationGuard, passkeyRegistrationPath, passkeyRequired, workspaceGate } from "./lib/workspace/security-gate";
+import { PASSKEY_SIGN_IN_PATH, passkeyItemPath, passkeyRegistrationGuard, passkeyRegistrationPath, passkeyRemovalGuard, passkeyRequired, passkeySignInHook, publicWorkspacePath, signInPath, workspaceGate } from "./lib/workspace/security-gate";
 
 /** Private areas and the permission each needs. The first match wins. */
 const areas: { test: (path: string) => boolean; permission: Permission; api?: boolean }[] = [
@@ -48,7 +48,22 @@ export const onRequest = defineMiddleware(async (context, next) => {
     if (guard) await guard(response);
     return response;
   }
-  const area = path === "/admin/jobs/login" ? undefined : areas.find((item) => item.test(path));
+  // A passkey sign-in through EmDash is also this session's Workspace passkey check.
+  if (path === PASSKEY_SIGN_IN_PATH) {
+    const after = await passkeySignInHook(context, environment.DB, environment.CONTENT_DB);
+    const response = await next();
+    await after(response);
+    return response;
+  }
+  // Removing a passkey through EmDash needs step-up for Workspace people.
+  if (passkeyItemPath(path)) {
+    const guard = await passkeyRemovalGuard(context, environment.DB);
+    if (guard instanceof Response) return guard;
+    const response = await next();
+    if (guard) await guard(response);
+    return response;
+  }
+  const area = path === "/admin/jobs/login" || publicWorkspacePath(path) ? undefined : areas.find((item) => item.test(path));
   const isPrivate = !!area || path.startsWith("/api/intake/") || path.startsWith("/api/crm/");
 
   // HRM page handlers need their native URL-encoded form even if an adapter or
@@ -65,7 +80,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
   if (area) {
     if (!activeUser(context.locals)) {
       if (area.api) return new Response("Unauthorized", { status: 401, headers: { "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff", "Referrer-Policy": "same-origin" } });
-      return new Response(null, { status: 303, headers: { Location: emdashLoginUrl(path + context.url.search), "Cache-Control": "private, no-store" } });
+      return new Response(null, { status: 303, headers: { Location: signInPath(path, context.url.search), "Cache-Control": "private, no-store" } });
     }
     const { DB } = environment;
     const user = await workspaceUser(context.locals, DB);
