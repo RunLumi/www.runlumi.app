@@ -48,10 +48,10 @@ const modules = (row: typeof rows[number]) => modulesFor(row.admin, row.roles).m
       <div class="s4-lvbar"><p>{t(`${shown.length} members · sorted by name · select a name for details`, `${shown.length} thành viên · sắp xếp theo tên · bấm một tên để xem chi tiết`)}</p>
         <ListToolbar vi={vi} q={query} keep={{ filter: filter === "all" ? "" : filter }} placeholder={t("Search by name or email", "Tìm theo tên hoặc email")} /></div>
       {shown.length
-        ? <DataTable vi={vi} label={t("Members", "Thành viên")} frozen={1} widths={["17rem"]} frozenNames={t("Name", "Tên")} minWidth="1100px" meta={t(`1–${shown.length} of ${rows.length}`, `1–${shown.length} trên ${rows.length}`)}>
+        ? <DataTable vi={vi} label={t("Members", "Thành viên")} frozen={1} widths={["17rem"]} frozenNames={t("Name", "Tên")} minWidth="1240px" meta={t(`1–${shown.length} of ${rows.length}`, `1–${shown.length} trên ${rows.length}`)}>
             <thead><tr><th scope="col">{t("Name", "Tên")}</th><th scope="col">Email</th><th scope="col">{t("Roles", "Vai trò")}</th><th scope="col">{t("Modules", "Phân hệ")}</th><th scope="col" class="num">Passkey</th><th scope="col" class="num">{t("AI agents", "AI agent")}</th><th scope="col">{t("Status", "Trạng thái")}</th><th scope="col">{t("Last change", "Thay đổi gần nhất")}</th></tr></thead>
             <tbody>{shown.map((row) => { const [tone, label] = status(row); return <tr>
-              <th scope="row"><span class="ws-member-id" style="display:inline-flex;gap:8px;align-items:center"><span class="ws-avatar" aria-hidden="true">{initials(row.name || row.email)}</span><a class="ws-row-link" href={`${base}/${encodeURIComponent(row.user_id)}`}>{row.name || t("EmDash account unavailable", "Không còn tài khoản EmDash")}</a></span></th>
+              <th scope="row"><span style="display:inline-flex;gap:8px;align-items:center"><span class="s4-ini" aria-hidden="true">{initials(row.name || row.email)}</span><a class="ws-row-link" href={`${base}/${encodeURIComponent(row.user_id)}`}>{row.name || t("EmDash account unavailable", "Không còn tài khoản EmDash")}</a></span></th>
               <td>{row.email}</td>
               <td>{row.admin ? roleLabel("admin", vi) : row.roles.map((role: Role) => roleLabel(role, vi)).join(", ") || "—"}</td>
               <td>{modules(row)}</td>

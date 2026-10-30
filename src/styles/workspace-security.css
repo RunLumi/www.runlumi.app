@@ -172,3 +172,4 @@
   .s4-mlist .s4-ph h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--s4-muted); }
 }
 @media (prefers-reduced-motion: reduce) { .s4 * { transition: none !important; } }
+.s4-ini { width: 28px; height: 28px; border-radius: 50%; background: #5B4FC4; color: #fff; display: inline-grid; place-items: center; font-size: 12px; font-weight: 650; flex: none; }
