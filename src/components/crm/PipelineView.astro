@@ -75,6 +75,13 @@ const meta = [
 const sheetOpen = Astro.url.searchParams.get("new") === "1" || (state.intent === "create" && (Object.keys(state.errors).length > 0 || state.serverError || state.conflict));
 const activePlaybooks = playbooks.filter((item) => item.active);
 const closeHref = path({ new: "" });
+// Drop zone: the playbook's closing stage names, then the outcome unless a stage already says it.
+const zoneLabel = (outcome: "won" | "lost") => {
+  const names = closingStages.filter((stage) => stage.outcome === outcome).map((stage) => vi ? stage.vi : stage.en);
+  const word = outcome === "won" ? (vi ? "Thắng" : "Won") : (vi ? "Thua" : "Lost");
+  const label = names.some((name) => name.toLowerCase() === word.toLowerCase()) ? names.join(" / ") : `${names.join(" / ")} · ${word}`;
+  return outcome === "lost" ? `${label} · ${vi ? "cần lý do" : "reason required"}` : label;
+};
 ---
 <CrmShell title={vi ? "Cơ hội" : "Pipeline"} lang={lang} actor={ctx.actor} current="pipeline">
   <div class="cl-stack">
@@ -187,8 +194,8 @@ const closeHref = path({ new: "" });
         </section>; })}
       </div></div>
       <div class="cl-dropbar crm-dropzones" aria-hidden="true">
-        {closingStages.some((stage) => stage.outcome === "won") && <div class="cl-drop won" data-zone="won">{closingStages.filter((stage) => stage.outcome === "won").map((stage) => vi ? stage.vi : stage.en).join(" / ")} · {vi ? "Thắng" : "Won"}</div>}
-        {closingStages.some((stage) => stage.outcome === "lost") && <div class="cl-drop lost" data-zone="lost">{closingStages.filter((stage) => stage.outcome === "lost").map((stage) => vi ? stage.vi : stage.en).join(" / ")} · {vi ? "Thua, cần lý do" : "Lost, reason required"}</div>}
+        {closingStages.some((stage) => stage.outcome === "won") && <div class="cl-drop won" data-zone="won">{zoneLabel("won")}</div>}
+        {closingStages.some((stage) => stage.outcome === "lost") && <div class="cl-drop lost" data-zone="lost">{zoneLabel("lost")}</div>}
       </div>
     </section>}
   </div>
