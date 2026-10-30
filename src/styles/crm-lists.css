@@ -321,3 +321,14 @@ body:has(.cl-sheet-wrap.open), body:has(.cl-sheet-wrap:target) { overflow: hidde
 .cl-sheet .crm-field > label { color: #344054; font-size: 13px; font-weight: 500; }
 .cl-sheet .crm-input, .cl-sheet .crm-select { min-height: 40px; }
 .cl-sheet .crm-notice { margin: 0 0 14px; }
+.cl-form-panel { padding: 20px 24px 0; }
+.cl-form-panel .crm-field > label { color: #344054; font-size: 13px; font-weight: 500; }
+.cl-form-panel .cl-sheet-f { border-radius: 0 0 8px 8px; }
+.cl-sheet .crm-fieldset, .cl-form-panel .crm-fieldset { margin: 0 0 16px; }
+.cl-sheet .crm-fieldset legend, .cl-form-panel .crm-fieldset legend { color: #102a43; font-size: 14px; font-weight: 600; }
+.cl-sheet .crm-check.crm-sheet { padding: 10px 12px; box-shadow: none; }
+.cl-sum b { white-space: nowrap; }
+.cl-sum span { text-align: right; }
+/* Inline cell save: Enter submits; the button shows on hover and keyboard focus. */
+.cl-tbl .cl-cell button { opacity: 0; }
+.cl-tbl tr:hover .cl-cell button, .cl-tbl .cl-cell:focus-within button, .cl-tbl .cl-cell input[aria-invalid="true"] ~ button { opacity: 1; }
