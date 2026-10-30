@@ -20,10 +20,10 @@ import "../../styles/crm-lists.css";
 type Props = TasksProps;
 const { ctx, state, tasks, selected, today, names, opportunities } = Astro.props;
 const { lang, vi, base } = ctx;
-const groups: { key: TaskGroup; name: string }[] = [
+const groups = ([
   { key: "overdue", name: vi ? "Quá hạn" : "Overdue" }, { key: "today", name: vi ? "Hôm nay" : "Today" },
   { key: "upcoming", name: vi ? "Sắp tới" : "Upcoming" }, { key: "undated", name: vi ? "Chưa có hạn" : "No due date" },
-].map((group) => ({ ...group, items: tasks.filter((task) => taskGroup(task, today) === group.key) })).filter((group) => group.items.length);
+] as { key: TaskGroup; name: string }[]).map((group) => ({ ...group, items: tasks.filter((task) => taskGroup(task, today) === group.key) })).filter((group) => group.items.length);
 const daysLate = (task: TaskRow) => task.due_on ? Math.round((Date.parse(`${today}T00:00:00Z`) - Date.parse(`${task.due_on}T00:00:00Z`)) / 86_400_000) : 0;
 const due = (task: TaskRow) => task.due_on ? `${formatDate(task.due_on, lang)}${task.due_time ? ` · ${task.due_time}` : ""}` : (vi ? "Chưa có hạn" : "No due date");
 const shortDue = (task: TaskRow) => { const group = taskGroup(task, today); return group === "today" ? (task.due_time ?? (vi ? "Hôm nay" : "Today")) : group === "undated" ? "—" : new Date(`${task.due_on}T00:00:00+07:00`).toLocaleDateString(vi ? "vi-VN" : "en-GB", { day: "2-digit", month: "2-digit", timeZone: "Asia/Ho_Chi_Minh" }); };
