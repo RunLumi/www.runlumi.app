@@ -66,3 +66,26 @@ Snapshot: 2026-10-29, written by workstream 1 of the redesign.
 |---|---|---|
 | Plans, actuals, close, statements, imports/exports, audit (System Super Admin only) | Built (gated) | [docs/specs/finance/STATUS.md](../specs/finance/STATUS.md). The owner must set up the book; `FINANCE_LIVE_ENABLED` is required. |
 | New design for all `/finance/*` | *In redesign* (rd2) | `claude/rd2-modules` handoff |
+
+## Round 2, workstream 4 (`claude/ui4-security`): passkey readiness, security and admin screens
+
+Board parity per [UI-PARITY.md](../redesign/UI-PARITY.md). Stories: [USER-STORIES.md § Round 2 security and admin](USER-STORIES.md#round-2-security-and-admin-ui4). Evidence: `tests/integration/security.integration.test.mjs` (run with `WORKSPACE_PASSKEY_REQUIRED=true`), `docs/redesign/parity/<Board>/` and the ui4 handoff.
+
+| Feature (screen) | Board | Status | Evidence |
+|---|---|---|---|
+| R-08 enforcement on in production (`WORKSPACE_PASSKEY_REQUIRED="true"`), with the rollout in docs/workspace/security.md | — | *In redesign* (ui4) | `infra/workspace.manifest.mjs`, `tests/iac.test.ts`, security IT "first visit" |
+| Workspace sign-in page: email, passkey sign-in through EmDash, sign-in link for people without a passkey yet, "lost your passkey" link, anti-phishing note; the passkey sign-in also counts as the session's Workspace passkey check (no second prompt) | SignIn, MobileSignIn | *In redesign* (ui4) | security IT "sign-in" |
+| First-passkey enrolment: three-step header (email verified, create passkey, anti-phishing code), create card, created card with rename and "Next: set your code" | PasskeyEnrol | *In redesign* (ui4) | security IT "first visit" |
+| Anti-phishing code setup: step 3, code card, email preview with the code band | AntiPhishing | *In redesign* (ui4) | security IT "first visit" |
+| Step-up dialog: title for the action, how long since the last check, the passkey to use, footer Cancel / Verify | StepUp | *In redesign* (ui4) | security IT "step-up" |
+| Recovery: the person's page (what happens, in order, with their real state) and the admin's confirmation dialog (identity confirmed, reason) | Recovery | *In redesign* (ui4) | security IT "recovery" |
+| My account › Security: passkeys table with rename and remove (remove needs step-up), anti-phishing code panel (masked, show, change in a sheet), this session, own AI agent tokens; mobile grouped list | SetupSecurity, MobileSecurity | *In redesign* (ui4) | security IT "account security" |
+| Admin › Security: policy rows (fixed values, enforcement state), members without a second passkey, single-admin warning, recovery windows | OrgSecurity | *In redesign* (ui4) | security IT "admin screens" |
+| Admin › AI agents: module levels as segmented controls, never-available modules, connected agents table with frozen Member/Agent columns and revoke | OrgAgents | *In redesign* (ui4) | security IT "AI agents" |
+| Connect an AI agent (consent page for creating a personal MCP token) | AgentConsent | *In redesign* (ui4) | security IT "AI agents" |
+| Notification rules list (quick filters, failure banner, frozen name column) and rule editor (numbered sections, preview column) | NotificationRules, NotificationRuleEdit | *In redesign* (ui4) | security IT "notification rules" |
+| Webhooks list (quick filters, failure banner, table) and webhook record (config, events, delivery log) | Webhooks, WebhookDetail | *In redesign* (ui4) | security IT "notification rules" |
+| Audit log (quick filters, filter row, table with frozen Time/Who, CSV behind step-up) and audit event record | AuditLog, AuditEvent | *In redesign* (ui4) | security IT "audit review" |
+| Members (list-view header, quick filters, frozen name column) and member record (highlights, passkey warning, info, roles, passkeys, agents, activity) | MembersTeams, MemberDetail | *In redesign* (ui4) | workspace IT "admin screens" |
+| Roles and permissions matrix (read-only, grouped, Có / Của mình / Không) | Roles | *In redesign* (ui4) | workspace IT "admin screens" |
+| Board items with no back end: sign-in sessions list and "sign out other sessions", departments, groups, invitations, two-admin recovery, reminders, "send test", webhook signing keys, agent write confirmation and OAuth connection | — | Not planned in this redesign | ui4 handoff § Differences |
