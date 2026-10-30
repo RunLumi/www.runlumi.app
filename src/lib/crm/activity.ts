@@ -15,13 +15,28 @@ const kinds: Record<string, [string, string]> = {
   linked_created: ["Created from an earlier deal", "Tạo từ giao dịch trước"], child_created: ["Follow-on opportunity opened", "Mở cơ hội tiếp nối"], playbook_changed: ["Playbook changed", "Đổi playbook"],
   account_moved: ["Moved to another account", "Chuyển sang doanh nghiệp khác"], inbound: ["Website enquiry received", "Nhận yêu cầu từ website"], fulfillment_assigned: ["Delivery assigned", "Giao người thực hiện"],
 };
-export function activitySummary(kind: string, raw: string, vi: boolean, playbookNames: Record<string, string>): string {
+/** Stage labels by `${playbookId}:${stageId}` in the reader's locale, for every playbook version. */
+export type StageNames = Record<string, string>;
+
+/**
+ * Names a stage id from an event body (story UI5-S4): the label in the given
+ * playbook version first, then the same id in any version, else the raw id.
+ */
+export function stageName(stageNames: StageNames, id: string, playbookId?: string): string {
+  if (playbookId && stageNames[`${playbookId}:${id}`]) return stageNames[`${playbookId}:${id}`];
+  const suffix = `:${id}`;
+  for (const key in stageNames) if (key.endsWith(suffix)) return stageNames[key];
+  return id;
+}
+
+export function activitySummary(kind: string, raw: string, vi: boolean, playbookNames: Record<string, string>, stageNames: StageNames = {}, playbookId?: string): string {
   try {
     const body = JSON.parse(raw) as Record<string, any>;
+    const stage = (id: string, playbook = playbookId) => stageName(stageNames, String(id), playbook);
     if (kind === "note") return body.text ?? "";
     if (kind.startsWith("legacy_")) return body.body ?? "";
-    if (kind === "stage") return `${body.from} → ${body.to}${body.skipped?.length ? ` (${vi ? "bỏ qua" : "skipped"}: ${body.skipped.join(", ")})` : ""}${body.reason ? ` — ${body.reason}` : ""}`;
-    if (kind === "playbook_changed") return `${playbookNames[body.from?.playbook] ?? body.from?.playbook}:${body.from?.stage} → ${playbookNames[body.to?.playbook] ?? body.to?.playbook}:${body.to?.stage} — ${body.reason}`;
+    if (kind === "stage") return `${stage(body.from)} → ${stage(body.to)}${body.skipped?.length ? ` (${vi ? "bỏ qua" : "skipped"}: ${body.skipped.map((id: string) => stage(id)).join(", ")})` : ""}${body.reason ? ` — ${body.reason}` : ""}`;
+    if (kind === "playbook_changed") return `${playbookNames[body.from?.playbook] ?? body.from?.playbook}:${stage(body.from?.stage, body.from?.playbook)} → ${playbookNames[body.to?.playbook] ?? body.to?.playbook}:${stage(body.to?.stage, body.to?.playbook)} — ${body.reason}`;
     if (kind === "task_created" || kind === "task_completed") return [body.title, body.outcome, body.minutes ? `${body.minutes} min` : ""].filter(Boolean).join(" · ");
     if (kind === "fulfillment_status") return `${body.from} → ${body.to}`;
     if (kind === "external_state") return `${body.from} → ${body.to}${body.note ? ` — ${body.note}` : ""}`;

@@ -4,6 +4,7 @@ import { type OwnerOption, displayNames, ownerOptions } from "../access";
 import {
   type LedgerRow, type Quote, acceptQuote, createQuote, creditFor, opportunityLedger, opportunityQuotes, recordPayment, recordReceivable, recordRefund, reviewPayment, voidEntry, withdrawQuote,
 } from "../commercial";
+import type { StageNames } from "../activity";
 import { type Offer, type OfferRow, allPlaybookVersions, getPlaybook, latestPlaybooks, offersForPlaybook, parseOffer } from "../config";
 import { NotFoundError } from "../core";
 import { setReferrer } from "../commission-store";
@@ -25,7 +26,7 @@ export interface OppProps {
   credit: CreditDecision | null; fulfillment: Fulfillment | null; tasks: Task[]; costs: CostRow[]; contacts: Contact[];
   related: Opportunity[]; events: { id: string; actor_name: string; kind: string; body: string; created_at: string }[];
   names: Record<string, { name: string; active: boolean }>; owners: OwnerOption[]; cohorts: string[];
-  linkPlaybooks: Playbook[]; allVersions: Playbook[]; playbookNames: Record<string, string>;
+  linkPlaybooks: Playbook[]; allVersions: Playbook[]; playbookNames: Record<string, string>; stageNames: StageNames;
   fromLead: { id: string; name: string; company: string; converted_at: string | null } | null;
 }
 
@@ -97,14 +98,17 @@ export async function opportunityRoute(astro: AstroGlobal, lang: Lang): Promise<
   const people = [opportunity.owner_id, opportunity.seller_id, opportunity.referrer_id, opportunity.created_by, ...ledger.flatMap((entry) => [entry.recorded_by, entry.confirmed_by]), fulfillment?.assignee_id].filter((id): id is string => !!id && !id.includes(":"));
   const latest = await latestPlaybooks(ctx.db, { activeOnly: true });
   const fromLead = await sourceLead(ctx.db, ctx.actor, access.opportunity.id);
+  const versions = await allPlaybookVersions(ctx.db);
+  const stageNames: StageNames = {};
+  for (const version of versions) for (const stage of version.def.stages) stageNames[`${version.id}:${stage.id}`] = lang === "vi" ? stage.vi : stage.en;
   return {
-    fromLead,
+    fromLead, stageNames,
     ctx, state: posted ?? emptyState, access, playbook, transitions, offers, quoteOffers, quotes, ledger, summary, payment: paymentState(summary), credit,
     fulfillment, tasks, costs, contacts, related, events, names: await displayNames(ctx.contentDb, people),
     owners: ctx.actor.manager ? await ownerOptions(ctx.db, ctx.contentDb, ctx.actor) : [],
     cohorts: (await ctx.db.prepare("SELECT cohort_key FROM crm_cohorts ORDER BY starts_on DESC LIMIT 50").all<{ cohort_key: string }>()).results.map((row) => row.cohort_key),
     linkPlaybooks: latest.filter((item) => item.kind !== "legacy"),
-    allVersions: ctx.actor.manager ? (await allPlaybookVersions(ctx.db)).filter((item) => item.active && item.kind !== "legacy") : [],
-    playbookNames: Object.fromEntries((await allPlaybookVersions(ctx.db)).map((item) => [item.id, `${lang === "vi" ? item.name_vi : item.name_en} v${item.version}`])),
+    allVersions: ctx.actor.manager ? versions.filter((item) => item.active && item.kind !== "legacy") : [],
+    playbookNames: Object.fromEntries(versions.map((item) => [item.id, `${lang === "vi" ? item.name_vi : item.name_en} v${item.version}`])),
   };
 }

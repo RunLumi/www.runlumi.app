@@ -1,6 +1,7 @@
 ---
 // Activity feed (boards: LeadRecord, DealRecord): rows with a round kind
-// icon, title, time and meta, newest first as given. Adopted from ui3.
+// icon, title, then meta and time on one line (the time takes no column of
+// its own, so titles use the width; story UI5-S4), newest first as given.
 export interface FeedItem { title: string; meta?: string; when?: string; kind?: "note" | "task" | "event" | "warn" }
 interface Props { items: FeedItem[]; empty: string }
 const { items, empty } = Astro.props;
@@ -13,5 +14,5 @@ const paths: Record<string, string> = {
 ---
 {items.length ? <ol class="ws-feed">{items.map((item) => <li>
   <span class:list={["ws-feed-ic", item.kind]} aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d={paths[item.kind ?? "note"]} /></svg></span>
-  <div class="ws-feed-b"><p class="ws-feed-t"><span>{item.title}</span>{item.when && <span class="ws-feed-when">{item.when}</span>}</p>{item.meta && <p class="ws-feed-m">{item.meta}</p>}</div>
+  <div class="ws-feed-b"><p class="ws-feed-t">{item.title}</p>{(item.meta || item.when) && <p class="ws-feed-m">{item.meta}{item.meta && item.when && " · "}{item.when && <span class="ws-feed-when">{item.when}</span>}</p>}</div>
 </li>)}</ol> : <p class="ws-feed-empty">{empty}</p>}
