@@ -43,15 +43,30 @@ Every folder is `docs/redesign/parity/<Board>/` with `board-1440.png`, `app-vi-1
 | MemberDetail | `/workspace/users/<id>` | Highlights row, single-passkey warning, information, roles and permissions, passkeys (no credential IDs), AI agents, recent activity, change roles | Admins cannot remove someone's passkey (only the person; EmDash 0.38). No sessions panel. |
 | Roles | `/workspace/roles` | Header, role list, grouped matrix with Yes / Own / No and * for step-up | Read-only: no Create or Copy role (roles live in code). |
 
-Shared files changed in their own commits: `src/middleware.ts`, `infra/workspace.manifest.mjs`, `wrangler.jsonc`, `docs/governance/*`. No migration. ui4 styles live in `src/styles/workspace-security.css` (`s4-` classes, board values on the Lumi tokens); tables use the kit's `DataTable` where tests depend on it and its `Breadcrumbs` in every header. Swapping the remaining `s4-` primitives for kit components is a follow-up.
+Shared files changed in their own commits: `src/middleware.ts`, `infra/workspace.manifest.mjs`, `wrangler.jsonc`, `docs/governance/*`. No migration. Screens are built on the round-2 kit (`RecordHeader`, `DataTable`, `Sheet`, `Dialog`, `FormGrid`/`FormField`, `ListToolbar`, `ws-btn`, `ws-badge`, `ws-chips`); `src/styles/workspace-security.css` holds screen layout only.
 
 ## Gates
 
-See the gate table appended below (filled from the run on the final head).
+Run on `ae7e104` (ui4 + `origin/claude/loving-pasteur-z7ly65` @e16f004, which contains ui1 @cd0d414 and ui2), integration with `WORKSPACE_PASSKEY_REQUIRED=true`:
+
+| Gate | Result |
+|---|---|
+| `npm run lint` | ok (641 source files) |
+| `npm test` | 462 pass, 0 fail |
+| `npm run db:migrate:local` | ok (no new migration) |
+| `npm run build` | ok, `astro check` 0 errors |
+| Integration: security | 19/19 |
+| Integration: workspace | 15/15 (after ui1's b8dbd23) |
+| Integration: crm, api, finance, files, directory, dashboard, sales-process, business-model | 19, 7, 9, 6, 7, 5, 12, 5: all pass |
+| Integration: HRM P1, P3, P4 (separate scopes) | pass |
+| Integration: HRM P5 | first run: test 4 failed on `SQLITE_BUSY` (the local D1 file locked while the test's wrangler CLI read it; no assertion failed); one re-run: see P5_RERUN |
+| Integration: hrm-journey | not run (round-1 note: known container flake) |
+| Parity screenshots | 20 boards, each under 400 KB |
 
 ## Open items and founder decisions
 
 1. **Email provider.** Sign-in links and notification email need an EmDash email provider. Without one, a person with no passkey signs in through an admin's invite or recovery link.
 2. **Two-admin recovery** (boards) versus one admin with identity confirmation (built).
 3. **Board items without a back end** (FEATURES.md "Not planned"): session list and "sign out other sessions", departments, groups, invitations, reminders, send test, signing keys, agent write confirmation, OAuth MCP.
-4. **ui1 tests** 7–9 in the workspace scope (search, bell, my notifications) failed on my merge of `origin/claude/ui1-shell`; they touch only ui1's files. Reported to the integrator.
+4. **ui1 tests** 7–9 in the workspace scope failed on the first merge; ui1 fixed them in b8dbd23 and the scope now passes 15/15.
+5. **Kit follow-up.** ui4 screens use the kit's headers, tables, sheets, dialogs, fields, toolbar, buttons, badges and quick filters. `workspace-security.css` keeps screen layout only (auth card, steps, policy rows, email preview, timeline, panels). The step-up "dialog" is a page drawn as a dialog, not the kit `Dialog`, so it works as a redirect target.
