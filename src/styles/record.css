@@ -196,7 +196,9 @@
   .rec-hl > div:nth-child(odd) { border-left: 0; padding-left: 0; }
   .rec-path-cols, .rec-fields { grid-template-columns: minmax(0, 1fr); }
   .rec-cv-cols { grid-template-columns: minmax(0, 1fr); }
-  .rec-path { flex-direction: column; }
+  .rec-path { flex-direction: column; flex: 1 1 100%; }
+  .rec-step { flex: none; }
+  .rec-path-row .rec-btn { white-space: normal; height: auto; min-height: 36px; padding: 8px 14px; text-align: left; }
   .rec-step, .rec-step:first-child, .rec-step:last-child { clip-path: none; border-radius: 6px; justify-content: flex-start; height: 36px; }
   .rec-oh { padding: 12px 14px 8px; }
   .rec-hl, .rec-pathbar, .rec-body, .rec-setup-body { padding-left: 14px; padding-right: 14px; }
