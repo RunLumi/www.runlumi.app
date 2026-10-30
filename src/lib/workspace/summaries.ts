@@ -12,6 +12,11 @@ export const moduleSummaries: Record<ModuleKey, [string, string]> = {
   account: ["Your identity, roles and personal settings.", "Danh tính, vai trò và thiết lập cá nhân của bạn."],
 };
 
+/** Tile colour per module (launcher and object icons), from the boards' object palette. */
+export const moduleTone: Record<ModuleKey, string> = {
+  home: "#102A43", hiring: "#1F7A4D", crm: "#0F7B7B", hrm: "#5B4FC4", finance: "#9A5B00", admin: "#5E6677", account: "#006093",
+};
+
 /** Two initials for the account button: the last two words of the name. */
 export function initials(name: string): string {
   const words = name.trim().split(/\s+/).filter(Boolean);

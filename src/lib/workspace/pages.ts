@@ -156,5 +156,6 @@ export async function accountPage(astro: AstroGlobal, lang: Lang) {
   const tokens = user.can("crm.access")
     ? (await DB.prepare("SELECT COUNT(*) AS n FROM crm_api_tokens WHERE user_id = ? AND revoked_at IS NULL AND expires_at > ?").bind(user.id, new Date().toISOString()).first<{ n: number }>())?.n ?? 0
     : null;
-  return { lang, vi: lang === "vi", user, identity, passkeys, membership, tokens };
+  const hasCode = !!await DB.prepare("SELECT 1 AS ok FROM workspace_anti_phishing WHERE user_id = ?").bind(user.id).first<{ ok: number }>().catch(() => null);
+  return { lang, vi: lang === "vi", user, identity, passkeys, membership, tokens, hasCode };
 }
