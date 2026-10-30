@@ -24,6 +24,9 @@ Read this before you start Workspace work, and update it when you learn somethin
 
 ## Lessons
 
+- **Match the board, and prove it with screenshots.** Round 1 (PR #116) shipped new features inside the old page scaffold, and the founder found the interface unchanged in production. A screen is done only when its parity screenshots sit next to its board ([UI-PARITY.md](../redesign/UI-PARITY.md)).
+- **Spec before code.** Round 1 coded behaviour (referrals become Leads, step-up always on) with no feature row or story, and an agent's "needs founder decision" item shipped unconfirmed. Write the feature row and story with acceptance criteria first; ship nothing a handoff marks as awaiting the founder.
+
 - **Don't edit `src/` during a local integration run.** `astro dev` hot-reloads, so a run that overlaps an edit fails on half-written markup. Finish the edit, then run.
 - **Integration selectors.** The integration tests find menus by class (`ws-modules`, `ws-pages`, `ws-gmenu`). If you rename a shell class, update `tests/integration/workspace.integration.test.mjs` in the same commit.
 - **Grouped modules.** In a module with `groups`, a link without a `group` disappears from the menu. The unit test "grouped menus" catches this.
