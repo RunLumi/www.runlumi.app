@@ -1,10 +1,12 @@
 ---
-// My account (R-06): the signed-in person's identity from EmDash, their
-// roles, sign-in passkeys and AI agent connections. Personal settings live
-// here, never in Admin. Everything shown is read from EmDash or D1.
+// Tài khoản của tôi › Hồ sơ (board: AccountProfile, story UI1-S6). The
+// signed-in person's own identity from EmDash, language and region, links to
+// their other account settings, then their roles and AI agent connections.
+// Identity is changed in EmDash, so the fields are read-only and say so.
 import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
-import DataTable from "./ui/DataTable.astro";
-import PageHeader from "./ui/PageHeader.astro";
+import Breadcrumbs from "./ui/Breadcrumbs.astro";
+import FormField from "./ui/FormField.astro";
+import FormGrid from "./ui/FormGrid.astro";
 import Panel from "./ui/Panel.astro";
 import PanelRow from "./ui/PanelRow.astro";
 import { accountModule, localized, switchLocale } from "../../lib/workspace/nav";
@@ -12,38 +14,63 @@ import type { accountPage } from "../../lib/workspace/pages";
 import { modulesFor } from "../../lib/workspace/access";
 import { roleDescriptions, roleLabel } from "../../lib/workspace/roles";
 import { initials, moduleSummaries } from "../../lib/workspace/summaries";
-import { dateTime, shortDate } from "../../lib/workspace/format";
+import { shortDate } from "../../lib/workspace/format";
 
 type Props = Awaited<ReturnType<typeof accountPage>>;
-const { lang, vi, user, identity, passkeys, membership, tokens } = Astro.props;
+const { lang, vi, user, identity, passkeys, membership, tokens, hasCode } = Astro.props;
 const t = (en: string, viText: string) => vi ? viText : en;
 const held = user.admin ? (["admin"] as const) : [...user.roles];
 const opened = modulesFor(user.admin, user.roles);
 const home = localized(accountModule.path, vi);
+const since = user.admin ? null : membership?.created_at ?? null;
+const monthYear = (iso: string) => new Date(iso).toLocaleDateString(vi ? "vi-VN" : "en-GB", { month: vi ? "2-digit" : "short", year: "numeric", timeZone: "Asia/Ho_Chi_Minh" });
+const meta = [identity?.email ?? user.email, held.map((role) => roleLabel(role, vi)).join(", "), user.admin ? "" : since ? t(`member since ${monthYear(since)}`, `thành viên từ ${monthYear(since)}`) : ""].filter(Boolean);
+const keyCount = passkeys?.length ?? null;
+const security = [
+  keyCount === null ? t("passkeys in EmDash", "passkey trong EmDash") : t(`${keyCount} passkey${keyCount === 1 ? "" : "s"}`, `${keyCount} passkey`),
+  hasCode ? t("anti-phishing code set", "đã đặt mã chống lừa đảo") : t("no anti-phishing code yet", "chưa đặt mã chống lừa đảo"),
+  tokens === null ? "" : t(`${tokens} AI agent token${tokens === 1 ? "" : "s"}`, `${tokens} token AI agent`),
+].filter(Boolean).join(" · ");
+const changeHint = t("Changed by a System Super Admin in EmDash.", "Do Siêu quản trị đổi trong EmDash.");
 ---
 <WorkspaceShell title={t("My account", "Tài khoản của tôi")} lang={lang} user={user} module="account" current="profile">
-  <PageHeader vi={vi} title={user.name} crumbs={[{ label: t("My account", "Tài khoản của tôi"), href: home }, { label: t("Profile", "Hồ sơ") }]}>
-    <p slot="lede" class="crm-lede ws-member-id"><span class="ws-avatar" aria-hidden="true">{initials(user.name)}</span><span>{user.email} · {held.map((role) => roleLabel(role, vi)).join(", ")}</span></p>
-  </PageHeader>
+  <section class="ws-page-head ws-profile-head" aria-labelledby="pf-h">
+    <div>
+      <Breadcrumbs vi={vi} items={[{ label: t("My account", "Tài khoản của tôi"), href: home }, { label: t("Profile", "Hồ sơ") }]} />
+      <div class="ws-profile-id">
+        <span class="ws-avatar lg" aria-hidden="true">{initials(user.name)}</span>
+        <div><h1 class="ws-h1" id="pf-h">{identity?.name || user.name}</h1><p class="ws-meta">{meta.join(" · ")}</p></div>
+      </div>
+    </div>
+  </section>
 
-  <PanelRow min="320px">
-    <Panel title={t("Identity", "Danh tính")} note={t("Your name, email and sign-in come from EmDash, the one login for the site and the Workspace.", "Tên, email và đăng nhập lấy từ EmDash, tài khoản đăng nhập duy nhất của website và Workspace.")}>
-      <dl class="ws-kv">
-        <div><dt>{t("Name", "Họ và tên")}</dt><dd>{identity?.name || user.name}</dd></div>
-        <div><dt>Email</dt><dd>{identity?.email ?? user.email}</dd></div>
-        <div><dt>{t("EmDash account created", "Tạo tài khoản EmDash")}</dt><dd>{identity?.created_at ? shortDate(identity.created_at, vi) : "—"}</dd></div>
-        <div><dt>{t("Workspace access since", "Có quyền Workspace từ")}</dt><dd>{user.admin ? t("Always (EmDash admin)", "Luôn có (admin EmDash)") : membership ? shortDate(membership.created_at, vi) : "—"}</dd></div>
-      </dl>
-      <p slot="foot" class="crm-help">{t("To change your name or email, ask a System Super Admin to update your EmDash account.", "Muốn đổi tên hoặc email, hãy nhờ Siêu quản trị hệ thống cập nhật tài khoản EmDash của bạn.")}</p>
+  <PanelRow min="320px" class="ws-row-split">
+    <Panel title={t("Personal details", "Thông tin cá nhân")} note={t("Your name, email and sign-in come from EmDash, the one login for the site and the Workspace.", "Tên, email và đăng nhập lấy từ EmDash, tài khoản đăng nhập duy nhất của website và Workspace.")}>
+      <FormGrid cols={2}>
+        <FormField label={t("Full name", "Họ và tên")} for="pf-name" hint={changeHint}><input id="pf-name" value={identity?.name || user.name} readonly /></FormField>
+        <FormField label={t("Work email", "Email công việc")} for="pf-email" hint={changeHint}><input id="pf-email" type="email" value={identity?.email ?? user.email} readonly /></FormField>
+        <FormField label={t("EmDash account created", "Tạo tài khoản EmDash")} for="pf-created"><input id="pf-created" value={identity?.created_at ? shortDate(identity.created_at, vi) : "—"} readonly /></FormField>
+        <FormField label={t("Workspace access since", "Có quyền Workspace từ")} for="pf-since" hint={user.admin ? undefined : t("Granted by an admin on Admin › Users.", "Do admin cấp ở Quản trị › Người dùng.")}><input id="pf-since" value={user.admin ? t("Always (EmDash admin)", "Luôn có (admin EmDash)") : since ? shortDate(since, vi) : "—"} readonly /></FormField>
+      </FormGrid>
     </Panel>
-    <Panel title={t("Language and time", "Ngôn ngữ và thời gian")} note={t("Every Workspace page has an English and a Vietnamese version.", "Mọi trang Workspace đều có bản tiếng Việt và tiếng Anh.")}>
-      <dl class="ws-kv">
-        <div><dt>{t("This page's language", "Ngôn ngữ của trang này")}</dt><dd>{t("English", "Tiếng Việt")}</dd></div>
-        <div><dt>{t("Time zone", "Múi giờ")}</dt><dd>{t("(GMT+7) Ho Chi Minh City, used for every date in the Workspace", "(GMT+7) TP. Hồ Chí Minh, dùng cho mọi ngày giờ trong Workspace")}</dd></div>
-      </dl>
-      <a slot="foot" class="crm-button secondary small" href={switchLocale(Astro.url)} lang={vi ? "en" : "vi"} hreflang={vi ? "en" : "vi"}>{vi ? "Switch to English" : "Chuyển sang tiếng Việt"}</a>
+    <Panel title={t("Language and region", "Ngôn ngữ và khu vực")}>
+      <FormGrid cols={1}>
+        <FormField label={t("Language", "Ngôn ngữ")} for="pf-lang" hint={t("Every Workspace page has an English and a Vietnamese version.", "Mọi trang Workspace đều có bản tiếng Việt và tiếng Anh.")}><input id="pf-lang" value={t("English", "Tiếng Việt")} readonly /></FormField>
+        <FormField label={t("Time zone", "Múi giờ")} for="pf-tz"><input id="pf-tz" value={t("(GMT+7) Ho Chi Minh City", "(GMT+7) TP. Hồ Chí Minh")} readonly /></FormField>
+        <FormField label={t("Date format", "Định dạng ngày")} for="pf-date"><input id="pf-date" value={vi ? "dd/mm/yyyy" : "d MMM yyyy"} readonly /></FormField>
+        <FormField label={t("Week starts on", "Tuần bắt đầu từ")} for="pf-week"><input id="pf-week" value={t("Monday", "Thứ Hai")} readonly /></FormField>
+      </FormGrid>
+      <a slot="foot" class="ws-btn" href={switchLocale(Astro.url)} lang={vi ? "en" : "vi"} hreflang={vi ? "en" : "vi"}>{vi ? "Switch to English" : "Chuyển sang tiếng Việt"}</a>
     </Panel>
   </PanelRow>
+
+  <Panel title={t("Other account settings", "Thiết lập khác của tài khoản")}>
+    <ul class="ws-cards">
+      <li><a class="ws-card" href={localized("/workspace/account/security", vi)}><b>{t("Security", "Bảo mật")}</b><span>{security}</span></a></li>
+      <li><a class="ws-card" href={localized("/workspace/account/notifications", vi)}><b>{t("Notifications", "Thông báo")}</b><span>{t("What reaches you, on which channel, and why", "Những gì gửi tới bạn, qua kênh nào và vì sao")}</span></a></li>
+      <li><div class="ws-card"><b>{t("Leaving the Workspace", "Rời Workspace")}</b><span>{t("Only an admin can revoke your Workspace access. Nobody changes their own access.", "Chỉ admin thu hồi được quyền Workspace của bạn. Không ai tự đổi quyền của mình.")}</span></div></li>
+    </ul>
+  </Panel>
 
   <PanelRow min="320px">
     <Panel title={t("Your roles", "Vai trò của bạn")} note={t("An admin grants roles. Nobody can change their own access.", "Admin cấp vai trò. Không ai tự đổi được quyền của mình.")}>
@@ -56,27 +83,10 @@ const home = localized(accountModule.path, vi);
     </Panel>
   </PanelRow>
 
-  <Panel title={t("Sign-in passkeys", "Passkey đăng nhập")} note={t("Passkeys are how you sign in. They are stored and managed in EmDash; Lumi never sees the private key.", "Passkey là cách bạn đăng nhập. Passkey được lưu và quản lý trong EmDash; Lumi không bao giờ thấy khóa bí mật.")} flush>
-    {passkeys === null
-      ? <p class="ws-table-empty">{t("Passkey details are not available from this EmDash version.", "Phiên bản EmDash này không cung cấp thông tin passkey.")}</p>
-      : passkeys.length
-        ? <DataTable vi={vi} label={t("Your passkeys", "Passkey của bạn")} minWidth="560px">
-            <thead><tr><th scope="col">{t("Name", "Tên")}</th><th scope="col">{t("Kind", "Loại")}</th><th scope="col">{t("Added", "Thêm lúc")}</th><th scope="col">{t("Last used", "Dùng gần nhất")}</th></tr></thead>
-            <tbody>{passkeys.map((key) => <tr>
-              <td>{key.name || t("Unnamed passkey", "Passkey chưa đặt tên")}</td>
-              <td>{key.device_type === "multiDevice" || key.backed_up ? t("Synced across devices", "Đồng bộ nhiều thiết bị") : t("This device only", "Chỉ một thiết bị")}</td>
-              <td class="nowrap">{key.created_at ? shortDate(key.created_at, vi) : "—"}</td>
-              <td class="nowrap">{key.last_used_at ? dateTime(key.last_used_at, vi) : "—"}</td>
-            </tr>)}</tbody>
-          </DataTable>
-        : <p class="ws-table-empty">{t("You have no passkey yet. You sign in with an email link.", "Bạn chưa có passkey. Bạn đang đăng nhập bằng liên kết gửi qua email.")}</p>}
-    <a slot="foot" class="crm-button secondary small" href={vi ? "/vi/workspace/account/security" : "/workspace/account/security"}>{t("Manage passkeys", "Quản lý passkey")}</a>
-  </Panel>
-
   <Panel title={t("AI agent connections", "Kết nối AI agent")} note={t("You connect your own AI agent with a personal token. It acts with your current permissions, and every change it makes appears in history under your name and the token name.", "Bạn tự kết nối AI agent của mình bằng token cá nhân. Agent chỉ làm được những gì quyền hiện tại của bạn cho phép, và mọi thay đổi agent tạo ra đều ghi trong lịch sử với tên bạn và tên token.")}>
     {tokens === null
       ? <p class="crm-help">{t("Personal tokens currently work with the CRM only, and your roles do not open the CRM.", "Hiện token cá nhân chỉ dùng được với CRM, và vai trò của bạn chưa mở CRM.")}</p>
       : <dl class="ws-kv"><div><dt>{t("Active CRM tokens", "Token CRM đang dùng")}</dt><dd>{tokens}</dd></div></dl>}
-    {tokens !== null && <a slot="foot" class="crm-button secondary small" href={localized("/crm/api", vi)}>{t("Manage tokens and connection steps", "Quản lý token và cách kết nối")}</a>}
+    {tokens !== null && <a slot="foot" class="ws-btn" href={localized("/crm/api", vi)}>{t("Manage tokens and connection steps", "Quản lý token và cách kết nối")}</a>}
   </Panel>
 </WorkspaceShell>

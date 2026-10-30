@@ -124,3 +124,46 @@ Boards live in [docs/redesign/boards/](../redesign/boards/); region names below 
     - *AuditLog / AuditEvent:* header with *Export CSV* (step-up), quick filters, a filter row (time, who, module, kind, outcome), table with Time and Who frozen; the event record with who, how, the changed fields and the request ID.
     - *MembersTeams / MemberDetail / Roles:* members list with *View roles* and *Add member* (sheet), quick filters (all, missing a second passkey, recovery open, has an AI agent), frozen name column; the member record with highlights (roles, modules, passkeys, code), warning when only one passkey, roles and permissions, passkeys, agents, recent activity; the roles matrix grouped by module with *Yes / Own / No*.
   - **Forbidden.** Any of these pages or their POSTs for a role without `users.manage` (403); changing one's own access; saving without step-up. *Test:* security IT "admin security screens…", workspace IT "admin screens".
+
+## Round 2: board parity, workstream ui1 (shell, kit, Overview, account, search, bell)
+
+Brief: [UI-PARITY.md](../redesign/UI-PARITY.md). "Board" names the file in `docs/redesign/boards/`; its regions are listed in the order they must appear. Every screen keeps its `/vi` peer, and its proof is `docs/redesign/parity/<Board>/`. Words come from `nav.ts` and `roles.ts`, never the boards' sample data.
+
+- **UI1-S1 · Global header and app nav (board TopNav, SetupNav).** As any member, every private page shows me the same two bars, so I always know where I am and how to move.
+  - **Accept.**
+    - Row 1 (white, 1px rule, about 52 px): logo mark and "Lumi Workspace" left; the search field centred (up to 560 px); then create (+), help (?), bell, and my initials avatar on the right.
+    - Row 2, the app nav bar (white, about 52 px): the 9-dot launcher button, the app label (module name), then page tabs with a 3 px blue underline on the current page.
+    - Modules with many pages (CRM) show their main pages as tabs and the rest in a "More" menu with labelled groups (R-05). Quản trị, HRM and Tài chính show a side navigation drawn like SetupNav (section title, labelled groups, items with icons, current item tinted).
+    - Create (+) lists only create actions I may take, each linking to an existing create screen. Help lists only guides I may open. The avatar menu shows my name, email, Tài khoản của tôi pages, language switch and sign out.
+    - It all works without client script (links, GET forms, `<details>`); a 320 px screen has no horizontal page scroll.
+  - **Forbidden.** A tab, launcher tile, create action or help link that answers 403 or 404 for me.
+    - *Test:* integration "navigation shows only modules and pages each role may open" (existing, kept); unit "create actions and help links follow permissions" (`tests/workspace-roles.test.ts`).
+- **UI1-S2 · App launcher (board AppLauncher).** As a member, the launcher shows the modules I may open as tiles (icon, name, the pages it holds), with the current one outlined.
+  - **Accept.** Opens from the 9-dot button; a dialog-like panel titled "Ứng dụng" / "Apps" with a three-column tile grid at 1440 px, one column at 390 px. No "recent items" (no source; recorded as a board gap).
+  - **Forbidden.** A tile for a module I may not open. *Test:* the same navigation tests (the launcher is the `ws-modules` nav).
+- **UI1-S3 · Search (board Search).** As a member, I type in the header search and get results grouped by object (Cơ hội, Công ty, Liên hệ, Lead, Người dùng), with a filter list by object type and counts on the left.
+  - **Accept.**
+    - `/workspace/search?q=` and `/vi/workspace/search?q=` answer 200 for anyone with `workspace.access`.
+    - CRM results come from the existing list functions (`listOpportunities`, `listAccounts`, `listContacts`, `listLeads`) with my CRM actor, so the same ownership scopes apply. Workspace members appear only with `users.manage`.
+    - Each group shows at most 5 rows and a "Xem tất cả" link to the module's own list filtered by the same text. Each row links to its record page.
+    - A query shorter than 2 characters shows how to search, not results. Nothing on the page is sample data.
+  - **Forbidden.**
+    - A Sales Executive finding another owner's opportunity, company or contact; HR (no CRM) getting any CRM group; a non-admin getting members.
+    - *Test:* integration "search returns only what each person may list".
+- **UI1-S4 · Bell and notices (board Notifications).** As a member who receives in-app notices (today: HRM service-request notices, `hrm.notifications.read` while HRM is live), the bell shows my unread count and opens my notices.
+  - **Accept.**
+    - The bell appears only when I have a notice source. `/workspace/inbox` (and `/vi`) shows the panel header ("Thông báo", unread count, "Đánh dấu tất cả đã đọc", "Cài đặt thông báo của tôi"), tabs Tất cả / Chưa đọc, then items with icon, title, time, body, "Bạn nhận vì: …" and an unread dot.
+    - Marking read uses the existing HRM function (versioned, audited). Empty states say what will arrive here.
+  - **Forbidden.**
+    - Seeing or marking another person's notice; a person without a notice source getting a bell.
+    - *Test:* integration "notices: the bell and inbox show only my own notices".
+- **UI1-S5 · Tổng quan.** As a member, `/workspace` opens on the kit: a list-view style header (object icon, "Tổng quan", my name and roles, actions), then equal-height module panels whose figures link to their lists (R-04).
+  - **Accept.** No large marketing H1 or lede paragraph; figures are the existing `homePage` figures. **Forbidden.** A panel for a module I may not open. *Test:* integration "navigation shows only modules…" (home cards follow `visibleModules`).
+- **UI1-S6 · Tài khoản của tôi (boards AccountProfile, SetupNotifications).** As a member, I see my profile and what notifications reach me.
+  - **Accept.**
+    - Hồ sơ: header panel with breadcrumbs, large initials avatar, name, "email · roles · thành viên từ …"; a "Thông tin cá nhân" form grid (read-only: identity lives in EmDash, each field says where it is changed); "Ngôn ngữ và khu vực" (language from the URL, time zone Asia/Ho_Chi_Minh, date format dd/mm/yyyy); "Thiết lập khác của tài khoản" cards for Bảo mật (real passkey count, anti-phishing code set or not, active AI agent tokens) and Thông báo; my roles and modules stay on the page.
+    - Thông báo (`/workspace/account/notifications`): header with breadcrumbs and an explanation; the "Kênh nhận theo loại sự kiện" table lists only what really reaches me: HRM service-request notices (in-app) and each enabled notification rule that names me, my role, Super Admins (if I am one) or record owners, with its email state. No toggles, quiet hours, digest or reminders: there is no back end for them (founder decision recorded).
+  - **Forbidden.** Seeing anyone else's profile, rules that do not name me, or editing anything here. *Test:* integration "my account: everyone with access sees only their own identity" (extended to the notifications page).
+- **UI1-S7 · Kit and parity proof.** As a workstream, I build list, record and create screens from shared components that match the boards, and I prove parity with one script.
+  - **Accept.** `src/components/workspace/ui/` has `ListHeader` (object icon, eyebrow, list name with selector, meta line, button group, toolbar slot), `ButtonGroup`, `ListToolbar`, `Sheet` and `Dialog` (open by `:target` or server state, close link, Escape), `RecordHeader` (crumbs, highlights row), `Path`, `RecordTabs`, `RelatedList`, `FormGrid`/`Field`. `node scripts/parity-shots.mjs <Board> --path /workspace/...` writes `board-1440.png`, `app-vi-1440.png`, `app-en-1440.png`, `app-vi-390.png`, each under 400 KB.
+  - **Forbidden.** Copying board HTML or `lumi.css` into the app; placeholders (`{{…}}`, "Dữ liệu minh họa") in app output. *Test:* unit "kit output has no board placeholders" (`tests/workspace-ui.test.ts`), plus `npm run lint`.

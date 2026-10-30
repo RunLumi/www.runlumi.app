@@ -1,0 +1,23 @@
+---
+// The list toolbar under a list-view header (board: Leads): search in this
+// list (a GET form that keeps the other filters), view switch, then icon
+// buttons in the slot. Works without script; Enter submits the search.
+import NavIcon from "../NavIcon.astro";
+import type { IconName } from "../../../lib/workspace/nav";
+
+export interface ViewOption { key: string; label: string; href: string; icon: IconName; current?: boolean }
+interface Props { vi: boolean; q?: string; action?: string; keep?: Record<string, string>; placeholder?: string; views?: ViewOption[]; search?: boolean }
+const { vi, q = "", action, keep = {}, placeholder, views = [], search = true } = Astro.props;
+const searchLabel = vi ? "Tìm trong danh sách" : "Search this list";
+---
+<div class="ws-ltools">
+  {search && <form class="ws-lsearch" role="search" method="get" action={action}>
+    {Object.entries(keep).filter(([, value]) => value !== "").map(([name, value]) => <input type="hidden" name={name} value={value} />)}
+    <label><NavIcon name="search" size={16} /><span class="crm-sr">{searchLabel}</span><input type="search" name="q" value={q} maxlength="120" placeholder={placeholder ?? (vi ? "Tìm trong danh sách này" : "Search this list")} /></label>
+    <button class="crm-sr" type="submit">{vi ? "Tìm" : "Search"}</button>
+  </form>}
+  {views.length > 1 && <div class="ws-bg" role="group" aria-label={vi ? "Kiểu xem" : "View"}>
+    {views.map((view) => <a class:list={["ws-btn", "icon", view.current && "on"]} href={view.href} aria-label={view.label} title={view.label} aria-current={view.current ? "page" : undefined}><NavIcon name={view.icon} size={16} /></a>)}
+  </div>}
+  <slot />
+</div>

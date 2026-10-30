@@ -2,7 +2,7 @@
 
 Status words are defined in [README.md](README.md#rules). Each row links to the evidence; this file does not repeat it.
 
-Snapshot: 2026-10-29, written by workstream 1 of the redesign.
+Snapshot: 2026-10-29, written by workstream 1 of the redesign. Round 2 rows added 2026-10-30 (ui1).
 - Rows marked *In redesign* are being rebuilt on the redesign branches. They are not released until the founder merges PR #116.
 
 ## Shell and Overview
@@ -14,8 +14,25 @@ Snapshot: 2026-10-29, written by workstream 1 of the redesign.
 | Grouped, labelled menus (R-05) for CRM, HRM, Finance and Admin | *In redesign* (rd1) | `tests/workspace-roles.test.ts` ("grouped menus") |
 | Shared components: frozen-column table, breadcrumbs, equal-height panel rows | *In redesign* (rd1) | [docs/workspace/UI.md](../workspace/UI.md) |
 | Overview figures per module, each linking to its list | Live; new design *In redesign* (rd1) | `src/lib/workspace/pages.ts` (`homePage`) |
-| Workspace-wide search | Not planned in this redesign | The TopNav board shows it; no search back end exists ([MEMORY.md](MEMORY.md#open-questions)) |
-| Notification bell in the header | Not planned in this redesign | HRM has in-app notices at `/hrm/notifications`; no cross-module inbox exists |
+| Workspace-wide search | *In redesign* (ui1) | Story UI1-S3. Searches only what the person may already list, through the module scope functions. Board: Search |
+| Notification bell in the header and the notices page | *In redesign* (ui1) | Story UI1-S4. Lists the person's existing in-app notices (HRM service requests). Board: Notifications |
+
+### Round 2: board parity (workstream ui1)
+
+Brief: [UI-PARITY.md](../redesign/UI-PARITY.md). Each screen is done only with its parity folder in `docs/redesign/parity/<Board>/`.
+
+| Screen or part | Board | Status | Story |
+|---|---|---|---|
+| Global header: logo, search, create, help, bell, avatar menu | TopNav | *In redesign* (ui1) | UI1-S1 |
+| App nav bar with launcher, app label and page tabs | TopNav, AppLauncher | *In redesign* (ui1) | UI1-S1, UI1-S2 |
+| Side navigation for Quản trị and modules with grouped menus | SetupNav | *In redesign* (ui1) | UI1-S1 |
+| Shared kit: list-view header, button group, list toolbar, sheet, dialog, record frame (highlights, path, tabs, related list), form grid | Leads, LeadRecord, NewEvent (patterns) | *In redesign* (ui1) | UI1-S7 |
+| Tổng quan (`/workspace`) on the kit | none (kit patterns) | *In redesign* (ui1) | UI1-S5 |
+| Search results (`/workspace/search`) | Search | *In redesign* (ui1) | UI1-S3 |
+| Notices (`/workspace/inbox`) and the bell | Notifications | *In redesign* (ui1) | UI1-S4 |
+| Tài khoản của tôi › Hồ sơ | AccountProfile | *In redesign* (ui1) | UI1-S6 |
+| Tài khoản của tôi › Thông báo (read-only: what reaches you and why) | SetupNotifications | *In redesign* (ui1) | UI1-S6 |
+| `scripts/parity-shots.mjs` | all | *In redesign* (ui1) | UI1-S7 |
 
 ## Tài khoản của tôi (My account)
 
@@ -23,7 +40,7 @@ Snapshot: 2026-10-29, written by workstream 1 of the redesign.
 |---|---|---|
 | Profile from EmDash identity, with roles, modules, passkeys and AI agent tokens | *In redesign* (rd1) | `src/components/workspace/WorkspaceAccount.astro`, integration test "my account" |
 | Mandatory passkey, anti-phishing code, step-up | *In redesign* (rd4) | `claude/rd4-security` handoff |
-| Personal notification settings | *In redesign* (rd4) | `claude/rd4-security` handoff |
+| Personal notification settings | Read-only view *In redesign* (ui1); editable channels, quiet hours, digest and reminders Not planned (no back end; founder decision) | Story UI1-S6 |
 
 ## Quản trị (Admin)
 
