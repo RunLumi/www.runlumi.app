@@ -14,11 +14,11 @@ import OppCommercial from "./OppCommercial.astro";
 import OppFulfillment from "./OppFulfillment.astro";
 import RecordHeader from "../workspace/ui/RecordHeader.astro";
 import ButtonGroup from "../workspace/ui/ButtonGroup.astro";
-import RecordPath, { type PathStep } from "../workspace/record/PathPanel.astro";
+import RecordPath, { type PathStep } from "../workspace/ui/PathPanel.astro";
 import RecordTabs from "../workspace/ui/RecordTabs.astro";
 import RelatedList from "../workspace/ui/RelatedList.astro";
 import Sheet from "../workspace/ui/Sheet.astro";
-import Feed, { type FeedItem } from "../workspace/record/Feed.astro";
+import Feed, { type FeedItem } from "../workspace/ui/Feed.astro";
 import { errorText, formatDate, formatDateTime, label } from "../../lib/crm/i18n";
 import { formatVnd, vnDate } from "../../lib/crm/money";
 import { errorFor, valueFor } from "../../lib/crm/page";
@@ -253,13 +253,13 @@ const moreActions = access.canEdit ? [
               <RelatedList title={vi ? "Việc và lịch hẹn" : "Tasks and appointments"} vi={vi} icon="today" tone="task" count={openTasks.length} href={access.canEdit ? "#sheet-task" : undefined} hrefLabel={vi ? "Thêm" : "Add"}>
                                 <OppTasks {...p} />
               </RelatedList>
-              <div class="rec-wide"><RelatedList title={vi ? "Báo giá, phải thu và thanh toán" : "Quotes, amounts due and payments"} vi={vi} icon="offers" tone="#5B4FC4" count={p.quotes.length}>
+              <RelatedList wide title={vi ? "Báo giá, phải thu và thanh toán" : "Quotes, amounts due and payments"} vi={vi} icon="offers" tone="#5B4FC4" count={p.quotes.length}>
                 <OppCommercial {...p} />
-              </RelatedList></div>
-              <div class="rec-wide"><RelatedList title={vi ? "Bàn giao và thực hiện" : "Handoff and delivery"} vi={vi} icon="fulfillment" tone="#9A5B00">
+              </RelatedList>
+              <RelatedList wide title={vi ? "Bàn giao và thực hiện" : "Handoff and delivery"} vi={vi} icon="fulfillment" tone="#9A5B00">
                 {!kindFor(playbook) && <p class="ws-rl-empty">{vi ? "Playbook này không có bước bàn giao." : "This playbook has no delivery handoff."}</p>}
                 <OppFulfillment {...p} />
-              </RelatedList></div>
+              </RelatedList>
               <RelatedList title={vi ? "Cơ hội liên quan" : "Related opportunities"} vi={vi} icon="pipeline" tone="opportunity" count={related.length} href={access.canEdit ? "#sheet-linked" : undefined} hrefLabel={vi ? "Mở tiếp nối" : "Follow-on"}>
                                 {related.length ? related.map((item) => <div class="ws-rl-row">
                   <a href={`${base}/${item.id}`}>{item.title}</a>

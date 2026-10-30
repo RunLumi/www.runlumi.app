@@ -86,7 +86,7 @@ const canDnc = !contact.do_not_contact || ctx.actor.configure;
           <div><dt>{vi ? "Tạo lúc" : "Created"}</dt><dd>{formatDateTime(contact.created_at, lang)}</dd></div>
         </dl>
       </div> : <div class="rec-body">
-        <div class="rec-wide"><RelatedList title={vi ? "Cơ hội với người này" : "Opportunities with this person"} vi={vi} icon="pipeline" tone="opportunity" count={opportunities.length} href={blocked ? undefined : `${base}/new?contact=${contact.id}`} hrefLabel={vi ? "Tạo" : "New"}>
+        <RelatedList wide title={vi ? "Cơ hội với người này" : "Opportunities with this person"} vi={vi} icon="pipeline" tone="opportunity" count={opportunities.length} href={blocked ? undefined : `${base}/new?contact=${contact.id}`} hrefLabel={vi ? "Tạo" : "New"}>
           {opportunities.length ? <DataTable label={vi ? "Cơ hội với người này" : "Opportunities with this person"} vi={vi} frozen={1} widths={["16rem"]} minWidth="620px" frozenNames={vi ? "Tên cơ hội" : "Name"}>
             <thead><tr><th scope="col">{vi ? "Tên cơ hội" : "Name"}</th><th scope="col">{vi ? "Giai đoạn" : "Stage"}</th><th scope="col">{vi ? "Kết quả" : "Outcome"}</th><th scope="col">{vi ? "Người phụ trách" : "Owner"}</th></tr></thead>
             <tbody>{opportunities.map((opp) => <tr>
@@ -96,7 +96,7 @@ const canDnc = !contact.do_not_contact || ctx.actor.configure;
               <td>{opp.owner_id ? person(opp.owner_id) : (vi ? "Chưa phân công" : "Unassigned")}</td>
             </tr>)}</tbody>
           </DataTable> : <p class="ws-rl-empty">{vi ? "Chưa có cơ hội nào bạn được xem." : "No opportunities you can view."}</p>}
-        </RelatedList></div>
+        </RelatedList>
       </div>}
     </section>
   </div>

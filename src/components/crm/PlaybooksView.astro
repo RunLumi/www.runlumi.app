@@ -1,6 +1,6 @@
 ---
 import CrmShell from "../../layouts/CrmShell.astro";
-import SetupFrame from "../workspace/record/SetupFrame.astro";
+import SetupFrame from "../workspace/ui/SetupFrame.astro";
 import Sheet from "../workspace/ui/Sheet.astro";
 import DataTable from "../workspace/ui/DataTable.astro";
 import "../../styles/record.css";
@@ -37,7 +37,7 @@ const outcomeName: Record<string, [string, string]> = { open: ["Open", "Đang m�
       {shown && shown.kind !== "legacy" && <a class="ws-btn primary" href={`?edit=${shown.playbook_key}`}>{vi ? "Sửa (phiên bản mới)" : "Edit (new version)"}</a>}
     </Fragment>
   </SetupFrame>
-  <div class="rec rec-setup" style="margin-top:12px">
+  <div class="rec ws-setup" style="margin-top:12px">
   <FormNotices state={state} lang={lang} saved={Astro.url.searchParams.get("saved")} />
   {posted && state.errors.definition && <pre class="crm-notice bad" style="white-space:pre-wrap">{state.errors.definition}</pre>}
 

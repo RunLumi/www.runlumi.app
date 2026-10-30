@@ -11,7 +11,7 @@ import ButtonGroup from "../workspace/ui/ButtonGroup.astro";
 import RecordTabs from "../workspace/ui/RecordTabs.astro";
 import RelatedList from "../workspace/ui/RelatedList.astro";
 import Sheet from "../workspace/ui/Sheet.astro";
-import Feed from "../workspace/record/Feed.astro";
+import Feed from "../workspace/ui/Feed.astro";
 import DataTable from "../workspace/ui/DataTable.astro";
 import { formatDate, formatDateTime, label, options } from "../../lib/crm/i18n";
 import { formatVnd } from "../../lib/crm/money";
@@ -101,7 +101,7 @@ const fieldLabels: Record<string, string> = vi
               <div><dt>{vi ? "Sửa lần cuối" : "Last modified"}</dt><dd>{formatDateTime(account.updated_at, lang)}</dd></div>
             </dl>
           </div> : <div class="rec-body">
-            <div class="rec-wide"><RelatedList title={vi ? "Liên hệ" : "Contacts"} vi={vi} icon="contacts" tone="contact" count={contacts.length} id="contacts" href={canEdit ? "#sheet-contact-new" : undefined} hrefLabel={vi ? "Tạo" : "New"}>
+            <RelatedList wide title={vi ? "Liên hệ" : "Contacts"} vi={vi} icon="contacts" tone="contact" count={contacts.length} id="contacts" href={canEdit ? "#sheet-contact-new" : undefined} hrefLabel={vi ? "Tạo" : "New"}>
                             {contacts.length ? <div class="rec-rl-grid" style="gap:0">{contacts.map((contact) => <div class="ws-rl-row" id={`contact-${contact.id}`}>
                 <a href={`${base}/contacts/${contact.id}`}>{contact.name}</a>
                 <div class="rec-rl-f"><span>{vi ? "Vai trò" : "Role"}</span><span>{label(lang, "role", contact.role)}</span></div>
@@ -110,8 +110,8 @@ const fieldLabels: Record<string, string> = vi
                 <div class="rec-rl-f"><span>{vi ? "Quản lý" : "Managed by"}</span><span>{person(contact.owner_id)}</span></div>
                 {(editable.has(contact.id) || !contact.do_not_contact || ctx.actor.manager) && <a class="ws-btn sm" style="align-self:flex-start;margin-top:4px" href={`#sheet-c-${contact.id}`}>{editable.has(contact.id) ? (vi ? "Sửa" : "Edit") : (vi ? "Thao tác" : "Actions")}</a>}
               </div>)}</div> : <p class="ws-rl-empty">{vi ? "Chưa có người liên hệ nào bạn được xem." : "No contacts you can see yet."}</p>}
-            </RelatedList></div>
-            <div class="rec-wide"><RelatedList title={vi ? "Cơ hội" : "Opportunities"} vi={vi} icon="pipeline" tone="opportunity" count={opportunities.length} href={canEdit ? "#sheet-opportunity" : undefined} hrefLabel={vi ? "Tạo" : "New"}>
+            </RelatedList>
+            <RelatedList wide title={vi ? "Cơ hội" : "Opportunities"} vi={vi} icon="pipeline" tone="opportunity" count={opportunities.length} href={canEdit ? "#sheet-opportunity" : undefined} hrefLabel={vi ? "Tạo" : "New"}>
                             {opportunities.length ? <DataTable label={vi ? "Cơ hội của công ty" : "Company opportunities"} vi={vi} frozen={1} widths={["16rem"]} minWidth="760px" frozenNames={vi ? "Tên cơ hội" : "Name"}>
                 <thead><tr><th scope="col">{vi ? "Tên cơ hội" : "Name"}</th><th scope="col">{vi ? "Giai đoạn" : "Stage"}</th><th scope="col" class="num">{vi ? "Giá trị" : "Value"}</th><th scope="col">{vi ? "Bước tiếp theo" : "Next step"}</th><th scope="col">{vi ? "Người phụ trách" : "Owner"}</th><th scope="col">Playbook</th></tr></thead>
                 <tbody>{opportunities.map((opp) => <tr>
@@ -123,7 +123,7 @@ const fieldLabels: Record<string, string> = vi
                   <td>{playbookNames[opp.playbook_id]}</td>
                 </tr>)}</tbody>
               </DataTable> : <p class="ws-rl-empty">{vi ? "Chưa có cơ hội nào bạn được xem. Bạn chỉ thấy cơ hội mình được mở." : "No opportunities you can view yet. You see only the ones you may open."}</p>}
-            </RelatedList></div>
+            </RelatedList>
           </div>}
         </section>
       </div>
@@ -134,7 +134,7 @@ const fieldLabels: Record<string, string> = vi
             {canEdit && <div class="rec-compose"><a class="ws-btn sm" href="#sheet-opportunity">{vi ? "Tạo cơ hội" : "New opportunity"}</a><a class="ws-btn sm" href="#sheet-contact-new">{vi ? "Tạo liên hệ" : "New contact"}</a></div>}
             <p class="rec-feed-h"><span>{vi ? "Sắp tới & quá hạn" : "Upcoming and overdue"}</span></p>
             <Feed items={upcoming} empty={vi ? "Không có bước tiếp theo trên các cơ hội đang mở." : "No next steps on open opportunities."} />
-            {ctx.actor.manager && duplicates.length > 0 && <div class="rec-alert"><span class="rec-feed-ic warn" aria-hidden="true">!</span><div>
+            {ctx.actor.manager && duplicates.length > 0 && <div class="rec-alert"><span class="ws-feed-ic warn" aria-hidden="true">!</span><div>
               <strong>{vi ? `Có thể trùng: ${duplicates.length}` : `Possible duplicates: ${duplicates.length}`}</strong>
               <ul class="rec-cv-dups">{duplicates.map((item) => <li><a href={`${base}/accounts/${item.id}`}>{item.name}</a><span>{item.region}</span></li>)}</ul>
               <p>{vi ? "Gộp bằng cách chuyển từng cơ hội sang doanh nghiệp đúng (trên trang cơ hội)." : "Merge by moving each opportunity to the right business (on the opportunity page)."}</p>

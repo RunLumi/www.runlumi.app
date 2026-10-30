@@ -33,7 +33,7 @@ const scopeBook = (page === "plans" ? selected?.reportingSnapshot?.book : report
 <WorkspaceShell title={title} lang={lang} user={data.user} module="finance" current={page}>
   <div class="finance md-scope rec-module">
     <RecordHeader vi={vi} title={title} crumbs={crumbs} icon={navLink?.icon ?? "finance"} tone="finance" object={`${vi ? "Tài chính" : "Finance"}${navGroup && page !== "overview" ? ` · ${vi ? navGroup.vi : navGroup.en}` : ""} · ${vi ? "Chỉ System Super Admin" : "System Super Admin only"}`}>
-      <div class="rec-setup-body"><p class="rec-info">{tr(vi, copy.description)}</p></div>
+      <div class="ws-setup-body"><p class="ws-info">{tr(vi, copy.description)}</p></div>
       <div slot="actions" class="fn-heading-actions">{reporting && state.book && <><a class="fn-button secondary" href={financeLink(data, "actuals")}>{vi ? "Nhập số thực tế" : "Enter actuals"}</a>
           <form method="post" action="/api/finance/exports">
             <CommandFields intent="report.export" fields={{ report: page, period: data.period, fiscal_year: data.fiscalYear, plan_id: data.selectedPlanId, actual_revision_id: data.selectedActualRevisionId, range: data.range ?? "month", segment_code: segmented ? data.segmentCode ?? "all" : "all", lang }} />

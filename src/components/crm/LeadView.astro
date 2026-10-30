@@ -9,10 +9,10 @@ import Hidden from "./Hidden.astro";
 import RecordHeader from "../workspace/ui/RecordHeader.astro";
 import ButtonGroup from "../workspace/ui/ButtonGroup.astro";
 import RelatedList from "../workspace/ui/RelatedList.astro";
-import RecordPath from "../workspace/record/PathPanel.astro";
+import RecordPath from "../workspace/ui/PathPanel.astro";
 import RecordTabs from "../workspace/ui/RecordTabs.astro";
 import Sheet from "../workspace/ui/Sheet.astro";
-import Feed from "../workspace/record/Feed.astro";
+import Feed from "../workspace/ui/Feed.astro";
 import { formatDate, formatDateTime, label, options } from "../../lib/crm/i18n";
 import { leadAgeHours, overTarget, reasonLabel, statusLabel } from "../../lib/crm/leads";
 import { errorFor, valueFor } from "../../lib/crm/page";
@@ -160,7 +160,7 @@ const dupCount = matches.accounts.length + matches.contacts.length;
         <section class="ws-sheet-panel" aria-labelledby="rel-h">
           <div class="rec-head"><h2 id="rel-h">{vi ? "Liên quan" : "Related"}</h2></div>
           <div class="rec-body">
-            {dupCount > 0 && <div class="rec-alert"><span class="rec-feed-ic warn" aria-hidden="true">!</span><div>
+            {dupCount > 0 && <div class="rec-alert"><span class="ws-feed-ic warn" aria-hidden="true">!</span><div>
               <strong>{vi ? `Phát hiện trùng: ${dupCount} bản ghi có thể trùng` : `Possible duplicates: ${dupCount}`}</strong>
               <ul class="rec-cv-dups">
                 {matches.accounts.map((item) => <li><span>{vi ? "Công ty" : "Company"} “{item.name}”</span><span class="ws-badge warn">{item.reason === "phone" ? (vi ? "Cùng số điện thoại" : "Same phone") : (vi ? "Cùng tên" : "Same name")}</span></li>)}
