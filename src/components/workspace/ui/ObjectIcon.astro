@@ -1,0 +1,16 @@
+---
+// The coloured object square of the list-view and record headers (boards:
+// Leads, LeadRecord). `tone` names an object or passes a CSS colour.
+import NavIcon from "../NavIcon.astro";
+import type { IconName } from "../../../lib/workspace/nav";
+
+export const tones = {
+  lead: "#0F7B7B", opportunity: "#006093", company: "#5B4FC4", contact: "#0F7B7B", event: "#C2410C", task: "#1F7A4D",
+  report: "#102A43", setup: "#5E6677", home: "#9A5B00", person: "#102A43", hiring: "#1F7A4D", hrm: "#5B4FC4", finance: "#9A5B00",
+} as const;
+export type Tone = keyof typeof tones;
+interface Props { icon: IconName; tone?: Tone | string; size?: "md" | "sm" }
+const { icon, tone = "opportunity", size = "md" } = Astro.props;
+const color = (tones as Record<string, string>)[tone] ?? tone;
+---
+<span class:list={["ws-oi", size === "sm" && "sm"]} style={`--ws-tone:${color}`} aria-hidden="true"><NavIcon name={icon} size={size === "sm" ? 15 : 22} /></span>

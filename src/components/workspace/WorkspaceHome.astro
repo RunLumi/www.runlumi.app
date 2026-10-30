@@ -1,9 +1,13 @@
 ---
+// Tổng quan (story UI1-S5). No board of its own: it uses the kit's list-view
+// header (object icon, label, greeting, the create actions the person may
+// take), then equal-height module panels whose figures link to their lists.
 import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
-import PageHeader from "./ui/PageHeader.astro";
+import ButtonGroup from "./ui/ButtonGroup.astro";
+import ListHeader from "./ui/ListHeader.astro";
 import Panel from "./ui/Panel.astro";
 import PanelRow from "./ui/PanelRow.astro";
-import { localized, moduleByKey } from "../../lib/workspace/nav";
+import { localized, moduleByKey, visibleCreateActions } from "../../lib/workspace/nav";
 import type { homePage } from "../../lib/workspace/pages";
 import { roleLabel } from "../../lib/workspace/roles";
 import { moduleSummaries } from "../../lib/workspace/summaries";
@@ -11,22 +15,27 @@ import { moduleSummaries } from "../../lib/workspace/summaries";
 type Props = Awaited<ReturnType<typeof homePage>>;
 const { lang, vi, user, cards } = Astro.props;
 const held = user.admin ? [roleLabel("admin", vi)] : [...user.roles].map((role) => roleLabel(role, vi));
+const creates = visibleCreateActions(user);
+const [first, ...rest] = creates;
 ---
 <WorkspaceShell title={vi ? "Tổng quan" : "Overview"} lang={lang} user={user} module="home">
-  <PageHeader vi={vi} eyebrow={vi ? "Tổng quan" : "Overview"} title={vi ? `Chào ${user.name}.` : `Hello, ${user.name}.`} lede={vi ? "Số liệu dưới đây lấy trực tiếp từ các phân hệ bạn được mở. Bấm vào một số để xem danh sách." : "These figures come straight from the modules you can open. Select a number to see the list."} />
+  <ListHeader vi={vi} icon="overview" tone="home" object={vi ? "Tổng quan" : "Overview"} title={vi ? `Chào ${user.name}` : `Hello, ${user.name}`}
+    meta={`${vi ? "Vai trò" : "Roles"}: ${held.join(" · ")} · ${vi ? "Số liệu lấy trực tiếp từ các phân hệ bạn được mở; bấm một số để xem danh sách." : "Figures come straight from the modules you can open; select a number to see the list."}`}>
+    {first && <ButtonGroup slot="actions" label={vi ? "Tạo mới" : "Create"} more={rest.map((action) => ({ label: `${vi ? "Tạo" : "New"} ${vi ? action.vi : action.en.toLowerCase()}`, href: localized(action.path, vi) }))} moreLabel={vi ? "Tạo mục khác" : "Create something else"}>
+      <a class="ws-btn" href={localized(first.path, vi)}>{vi ? `Tạo ${first.vi}` : `New ${first.en.toLowerCase()}`}</a>
+      <a class="ws-btn" href={localized("/workspace/account", vi)}>{vi ? "Tài khoản của tôi" : "My account"}</a>
+    </ButtonGroup>}
+    {!first && <a slot="actions" class="ws-btn" href={localized("/workspace/account", vi)}>{vi ? "Tài khoản của tôi" : "My account"}</a>}
+  </ListHeader>
   {cards.length > 0
     ? <PanelRow min="280px" label={vi ? "Phân hệ của bạn" : "Your modules"}>
         {cards.map((card) => { const module = moduleByKey(card.module); return <Panel title={vi ? module.vi : module.en} titleHref={localized(module.path, vi)} note={moduleSummaries[card.module][vi ? 1 : 0]} data-module={card.module}>
           <dl class="ws-home-figures">{card.figures.map((figure) => <div><dt>{figure.label[vi ? 1 : 0]}</dt><dd><a href={localized(figure.href, vi)}>{figure.value}</a></dd></div>)}</dl>
-          <a slot="foot" class="crm-button secondary small" href={localized(module.path, vi)}>{vi ? `Mở ${module.vi}` : `Open ${module.en}`}</a>
+          <a slot="foot" class="ws-btn" href={localized(module.path, vi)}>{vi ? `Mở ${module.vi}` : `Open ${module.en}`}</a>
         </Panel>; })}
       </PanelRow>
-    : <p class="crm-empty">{vi ? "Vai trò của bạn chưa mở phân hệ nào có số liệu ở đây." : "Your roles do not open a module with figures here yet."}</p>}
+    : <p class="ws-empty ws-panel"><strong>{vi ? "Chưa có số liệu" : "No figures yet"}</strong>{vi ? "Vai trò của bạn chưa mở phân hệ nào có số liệu ở đây. Admin cấp vai trò ở Quản trị › Người dùng." : "Your roles do not open a module with figures here yet. An admin grants roles in Admin › Users."}</p>}
   {user.admin && user.can("finance.configure") && user.financeEnabled !== true && <Panel title={vi ? "Thiết lập Tài chính" : "Set up Finance"} note={vi ? "Xác nhận phạm vi báo cáo, tiền tệ và kỳ bắt đầu trước khi nhập số liệu." : "Confirm the reporting entity, currency and opening period before entering figures."}>
-    <a class="crm-button secondary" href={localized("/finance/settings", vi)}>{vi ? "Mở thiết lập" : "Open settings"}</a>
+    <a class="ws-btn" href={localized("/finance/settings", vi)}>{vi ? "Mở thiết lập" : "Open settings"}</a>
   </Panel>}
-  <Panel title={vi ? "Vai trò của bạn" : "Your roles"}>
-    <p class="ws-home-roles">{held.join(" · ")}</p>
-    <a slot="foot" class="crm-link" href={localized("/workspace/account", vi)}>{vi ? "Xem quyền chi tiết trong Tài khoản của tôi" : "See what they allow in My account"}</a>
-  </Panel>
 </WorkspaceShell>
