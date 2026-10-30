@@ -6,7 +6,7 @@ Date: 2026-10-30. Brief: [UI-PARITY.md](../UI-PARITY.md). Spec: [FEATURES.md](..
 
 ### Screens done, with their parity folder
 
-Every screen renders inside the round-2 shell and uses ui1's kit (`ListHeader`, `ButtonGroup`, `ListToolbar`, `Sheet`, `Dialog`, `ObjectIcon`, merged from `origin/claude/ui1-shell` @a54e7ce). No page title, lede, separate filter card or inline create form remains on these screens. Parity shots: `docs/redesign/parity/<Board>/` (board 1440, app vi/en 1440, app vi 390; all under 400 KB), signed in as the local dev-bypass System Super Admin on a local Worker with TEST data.
+Every screen renders inside the round-2 shell and uses ui1's kit (`ListHeader`, `ButtonGroup`, `ListToolbar` with its filter pop-over, `Sheet`, `Dialog`, `ObjectIcon`, `NavIcon` glyphs), merged from `origin/claude/ui1-shell` @a54e7ce and @cd0d414. ui2 keeps no kit components of its own. No page title, lede, separate filter card or inline create form remains on these screens. Parity shots: `docs/redesign/parity/<Board>/` (board 1440, app vi/en 1440, app vi 390; all under 400 KB), signed in as the local dev-bypass System Super Admin on a local Worker with TEST data.
 
 | Board | Route | Matches | Differs, and why |
 |---|---|---|---|
@@ -38,12 +38,22 @@ Unchanged except where a story says so:
 
 ### Gates
 
-See the gate results at the end of this file (filled in after the run).
+Run on `claude/ui2-crm-lists` with ui1's kit merged (@cd0d414). Synthetic data, local Worker and D1 only.
+
+| Gate | Result |
+|---|---|
+| `npm run lint` | ok (check-src, 624 files) |
+| `npm test` | 459 pass, 0 fail |
+| `npm run db:migrate:local` | ok (0001–0056 applied; "No migrations to apply" on rerun). This branch adds no migration. |
+| `npm run build` | ok (`astro check` 0 errors, build complete) |
+| `RUNLUMI_INTEGRATION_SCOPE=crm npm run test:integration` | 19 pass, 0 fail on head `57cd035` (adds test 18, Tasks); also 19/19 before the kit merge |
+| `RUNLUMI_INTEGRATION_SCOPE=workspace npm run test:integration` | 15 pass, 0 fail on head `57cd035`. On ui1 @a54e7ce alone it failed 3 of 15 (search, bell, my notifications), reproduced on a clean worktree; ui1's @cd0d414 fixed them. |
+| Other scopes (hrm*, finance, security, directory, api, dashboard, files, sales-process, business-model) | **Not run** on this branch: no file they cover changed except the shell's nav entry. Open. |
+| Phone and overflow | The parity run measured no page-level horizontal overflow at 390 and 1440 px on every screen. 320 px not measured. |
 
 ### Open items
 
 - **CloseDialog parity** depends on ui3's `OpportunityView` (see table).
-- **Kit gaps** reported to the integrator for ui1: NavIcon lacks refresh, filter, left/right, warn and grip glyphs (kept in `src/components/crm/Glyph.astro`), and `ListToolbar` has no filter pop-over (kept in `src/components/crm/ListFilters.astro`). Move both into the kit, then delete the two CRM files.
 - Leads list shows duplicates if the same person is entered twice (lead creation does not refuse duplicate phones); unchanged behaviour, visible in the TEST data.
 - Measured contrast and a JavaScript-off browser pass of the new screens were not run (NFR-04, NFR-08 stay open).
 
