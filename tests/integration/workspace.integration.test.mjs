@@ -126,6 +126,93 @@ test("my account: everyone with access sees only their own identity, in both lan
   assert.match(home.html, /href="\/workspace\/account"/, "the account menu links to My account");
 });
 
+test("search returns only what each person may list (UI1-S3)", async () => {
+  const phone = () => `09${Math.floor(Math.random() * 1e8).toString().padStart(8, "0")}`;
+  const create = async (session, name) => assert.equal((await session.post("/crm/new", { intent: "create", playbook_key: "local-preview", source_channel: "field_visit", account_name: name, contact_role: "owner", contact_name: `${name} Contact`, phone: phone() })).status, 303, `create ${name}`);
+  const mine = `TEST Findme Exec ${run}`, theirs = `TEST Findme Mgr ${run}`;
+  await create(S.exec, mine);
+  await create(S.manager, theirs);
+  const term = encodeURIComponent(`Findme`);
+  const exec = await S.exec.get(`/vi/workspace/search?q=${term}`);
+  assert.equal(exec.status, 200);
+  assert.match(exec.html, new RegExp(mine), "own opportunity, company and contact are found");
+  assert.doesNotMatch(exec.html, new RegExp(theirs), "another owner's records stay hidden");
+  assert.doesNotMatch(exec.html, /href="\/vi\/workspace\/users\//, "no members without users.manage");
+  const manager = await S.manager.get(`/workspace/search?q=${term}`);
+  assert.match(manager.html, new RegExp(mine));
+  assert.match(manager.html, new RegExp(theirs), "the team sees every owner's records");
+  const hr = await S.hr.get(`/workspace/search?q=${term}`);
+  assert.equal(hr.status, 200);
+  assert.doesNotMatch(hr.html, /Findme/, "HR has no CRM results");
+  assert.match(hr.html, /Nothing to search yet/);
+  const admin = await S.admin.get(`/workspace/search?q=${encodeURIComponent(`TEST HR ${run}`)}&type=members`);
+  assert.match(admin.html, new RegExp(`href="/workspace/users/${S.hr.id}"`), "admins find people with access");
+  assert.match((await S.exec.get("/workspace/search?q=a")).html, /Type at least 2 characters/);
+  assert.equal((await S.none.get(`/workspace/search?q=${term}`)).status, 403, "no role, no search");
+});
+
+test("notices: the bell and inbox show only my own notices (UI1-S4)", async () => {
+  const settings = jobs("SELECT enabled, legal_entity, purpose, retention_policy, policy_reference, reviewed_by FROM hrm_settings WHERE id = 1")[0];
+  jobs("UPDATE hrm_settings SET enabled = 1, legal_entity = 'TEST Lumi', purpose = 'TEST notices', retention_policy = 'TEST', policy_reference = 'TEST', reviewed_by = 'test_reviewer' WHERE id = 1");
+  const made = [];
+  try {
+    S.empA = await userSession(S.admin, { email: `test-empa-${run}@example.test`, name: `TEST Employee A ${run}` });
+    S.empB = await userSession(S.admin, { email: `test-empb-${run}@example.test`, name: `TEST Employee B ${run}` });
+    const now = new Date().toISOString();
+    for (const session of [S.empA, S.empB]) {
+      assert.equal((await S.admin.post("/workspace/users", { intent: "grant", email: session.email, roles: ["employee"] })).status, 303);
+      jobs(`INSERT INTO hrm_people (id, user_id, employee_code, legal_name, actor_id, created_at, updated_at) VALUES (${q(`person_${session.id}`)}, ${q(session.id)}, ${q(`TEST-${session.id}`)}, ${q(session.name)}, 'test', ${q(now)}, ${q(now)})`);
+      jobs(`INSERT INTO hrm_employments (id, person_id, legal_entity, status, actor_id, created_at, updated_at) VALUES (${q(`emp_${session.id}`)}, ${q(`person_${session.id}`)}, 'TEST Lumi', 'active', 'test', ${q(now)}, ${q(now)})`);
+    }
+    const request = `hrreq_ui1_${run}`;
+    jobs(`INSERT INTO hrm_service_requests (id, person_id, employment_id, request_type, subject, state, sensitivity, created_by, created_at, updated_by, updated_at) VALUES (${q(request)}, ${q(`person_${S.empA.id}`)}, ${q(`emp_${S.empA.id}`)}, 'employment_confirmation', 'TEST confirmation', 'submitted', 'standard', ${q(S.empA.id)}, ${q(now)}, ${q(S.empA.id)}, ${q(now)})`);
+    jobs(`INSERT INTO hrm_notification_outbox (id, recipient_user_id, request_id, event_key, event_type, href, state, attempts, created_at, updated_at) VALUES (${q(`hroutbox_ui1_${run}`)}, ${q(S.empA.id)}, ${q(request)}, ${q(`ui1:${run}`)}, 'request_updated', ${q(`/hrm/me/requests?request=${request}`)}, 'queued', 0, ${q(now)}, ${q(now)})`);
+    made.push(request);
+    assert.match((await S.empA.get("/workspace")).html, /class="ws-ibtn ws-bell"[^>]*aria-label="Notifications, 1 unread"/, "my bell counts my notice");
+    assert.match((await S.empB.get("/workspace")).html, /class="ws-ibtn ws-bell"[^>]*aria-label="Notifications"/, "B has a bell with nothing unread");
+    assert.doesNotMatch((await S.hr.get("/workspace")).html, /ws-bell/, "no notice source, no bell");
+    const inboxA = await S.empA.get("/vi/workspace/inbox");
+    assert.equal(inboxA.status, 200);
+    assert.match(inboxA.html, /Yêu cầu HR bạn theo dõi có cập nhật/);
+    assert.doesNotMatch((await S.empB.get("/workspace/inbox")).html, /An HR request you follow was updated/, "B never sees A's notice");
+    const note = jobs(`SELECT id, version FROM hrm_notifications WHERE recipient_user_id = ${q(S.empA.id)}`)[0];
+    const denied = await S.empB.post("/workspace/inbox", { intent: "mark_read", id: note.id, version: note.version });
+    assert.equal(denied.status, 303);
+    assert.match(denied.location, /error=/, "B cannot mark A's notice");
+    assert.equal(jobs(`SELECT state FROM hrm_notifications WHERE id = ${q(note.id)}`)[0].state, "unread");
+    const read = await S.empA.post("/workspace/inbox", { intent: "mark_read", id: note.id, version: note.version });
+    assert.match(read.location, /saved=mark_read/);
+    assert.equal(jobs(`SELECT state FROM hrm_notifications WHERE id = ${q(note.id)}`)[0].state, "read");
+    assert.equal((await S.hr.post("/workspace/inbox", { intent: "mark_all" })).status, 403, "no notice source, no write");
+    assert.equal((await S.empA.post("/workspace/inbox", { intent: "mark_read", id: note.id, version: note.version }, { origin: "https://evil.example" })).status, 400, "cross-site posts are refused");
+    assert.equal((await S.none.get("/workspace/inbox")).status, 403);
+  } finally {
+    jobs(`UPDATE hrm_settings SET enabled = ${settings.enabled}, legal_entity = ${q(settings.legal_entity)}, purpose = ${q(settings.purpose)}, retention_policy = ${q(settings.retention_policy)}, policy_reference = ${q(settings.policy_reference)}, reviewed_by = ${settings.reviewed_by === null ? "NULL" : q(settings.reviewed_by)} WHERE id = 1`);
+  }
+});
+
+test("my notifications: only the rules that reach me, read-only (UI1-S6)", async () => {
+  const now = new Date().toISOString();
+  const rule = (id, name, recipients) => jobs(`INSERT INTO workspace_notification_rules (id, name, events, recipients, email, created_by, created_at, updated_by, updated_at) VALUES (${q(id)}, ${q(name)}, '["stage"]', ${q(JSON.stringify(recipients))}, 1, 'test', ${q(now)}, 'test', ${q(now)})`);
+  rule(`rule_exec_${run}`, `TEST Rule for executives ${run}`, { roles: ["sales_executive"] });
+  rule(`rule_mgr_${run}`, `TEST Rule for managers ${run}`, { roles: ["sales_manager"] });
+  try {
+    const exec = await S.exec.get("/vi/workspace/account/notifications");
+    assert.equal(exec.status, 200);
+    assert.match(exec.html, new RegExp(`TEST Rule for executives ${run}`));
+    assert.doesNotMatch(exec.html, new RegExp(`TEST Rule for managers ${run}`), "a rule for another role stays hidden");
+    assert.doesNotMatch(exec.html, /<form/, "nothing on the page saves a preference");
+    const hr = await S.hr.get("/workspace/account/notifications");
+    assert.equal(hr.status, 200);
+    assert.doesNotMatch(hr.html, /TEST Rule for/, "CRM rules never reach HR");
+    assert.match(hr.html, new RegExp(S.hr.email.replace(/[.]/g, "\\.")));
+    assert.doesNotMatch(hr.html, new RegExp(S.exec.email.replace(/[.]/g, "\\.")), "only my own email");
+    assert.equal((await S.none.get("/workspace/account/notifications")).status, 403);
+  } finally {
+    jobs(`DELETE FROM workspace_notification_rules WHERE id IN (${q(`rule_exec_${run}`)}, ${q(`rule_mgr_${run}`)})`);
+  }
+});
+
 test("hiring desk: bilingual pages, real actors in history, confirmed deletes", async () => {
   const created = await S.hr.post("/api/admin/jobs/create", { title: `TEST Role ${run}`, summary: "TEST synthetic role", lang: "vi" });
   assert.equal(created.status, 303);

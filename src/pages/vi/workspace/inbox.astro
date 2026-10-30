@@ -1,0 +1,9 @@
+---
+import WorkspaceInbox from "../../../components/workspace/WorkspaceInbox.astro";
+import { inboxPage } from "../../../lib/workspace/shell-pages";
+
+export const prerender = false;
+const data = await inboxPage(Astro, "vi");
+if (data instanceof Response) return data;
+---
+<WorkspaceInbox {...data} />
