@@ -152,7 +152,8 @@
 .cl-mg { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border-left: 1px solid #e7eaf0; }
 .cl-mg-h { padding: 10px 8px; border-right: 1px solid #e7eaf0; border-bottom: 1px solid #d9dee8; background: #f7f8fa; color: var(--crm-slate); font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
 .cl-mg-h:first-child { border-radius: 8px 0 0 0; }
-.cl-mc { position: relative; display: flex; flex-direction: column; gap: 3px; min-width: 0; min-height: 132px; padding: 6px; border-right: 1px solid #e7eaf0; border-bottom: 1px solid #e7eaf0; }
+/* Month cells grow with tall screens so five weeks fill the view (UI5-S1). */
+.cl-mc { position: relative; display: flex; flex-direction: column; gap: 3px; min-width: 0; min-height: clamp(132px, calc((100vh / var(--ws-z, 1) - 360px) / 5), 220px); padding: 6px; border-right: 1px solid #e7eaf0; border-bottom: 1px solid #e7eaf0; }
 .cl-mc.out { background: #fafaf8; }
 .cl-mc.wknd { background: #fbfbfc; }
 .cl-mc-d { align-self: flex-start; width: 24px; height: 24px; border-radius: 12px; color: #344054; font-size: 13px; font-weight: 500; line-height: 24px; text-align: center; text-decoration: none; }

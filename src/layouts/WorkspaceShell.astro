@@ -16,7 +16,7 @@ import { envFromLocals } from "../lib/ats";
 import { hasNoticeSource, unreadNotices } from "../lib/workspace/inbox";
 import { type ModuleKey, accountModule, appBar, helpLinks, localized, moduleByKey, switchLocale, visibleCreateActions, visibleGroups, visibleLinks, visibleModules } from "../lib/workspace/nav";
 import { type WorkspaceUser, roleLabel } from "../lib/workspace/roles";
-import { initials, moduleSummaries, moduleTone } from "../lib/workspace/summaries";
+import { initials, launcherBlurbs, launcherPages, moduleTone } from "../lib/workspace/summaries";
 
 interface Props { title: string; lang: "en" | "vi"; user: WorkspaceUser; module: ModuleKey; current?: string }
 const { title, lang, user, module, current } = Astro.props;
@@ -49,10 +49,11 @@ if (bell) {
 }
 const bellLabel = vi ? (unread ? `Thông báo, ${unread} chưa đọc` : "Thông báo") : (unread ? `Notifications, ${unread} unread` : "Notifications");
 const searchValue = Astro.url.pathname.replace(/^\/vi(?=\/)/, "") === "/workspace/search" ? (Astro.url.searchParams.get("q") ?? "").slice(0, 120) : "";
-const tileItems = (key: ModuleKey) => {
-  const items = visibleLinks(user, moduleByKey(key));
-  return items.length ? items.map(label).join(" · ") : moduleSummaries[key][vi ? 1 : 0];
-};
+// Launcher (UI5-S2): one equal tile per app; the filter also finds pages,
+// listed apart and only while it has text. Tiles carry their page names as
+// filter terms, so "Lead" keeps the CRM tile.
+const launchPages = launcherPages(user);
+const tileTerms = (key: ModuleKey) => launchPages.filter(({ module: owner }) => owner.key === key).map(({ link }) => label(link)).join(" ");
 ---
 <!doctype html>
 <html lang={lang}>
@@ -106,10 +107,14 @@ const tileItems = (key: ModuleKey) => {
           <div class="ws-launcher-pop" role="group" aria-labelledby="ws-launcher-h">
             <p class="ws-dlg-title" id="ws-launcher-h">{vi ? "Ứng dụng" : "App launcher"}</p>
             <div class="ws-launcher-body">
-              <label class="ws-field-search" data-ws-filter-box hidden><NavIcon name="search" size={16} /><span class="crm-sr">{vi ? "Lọc ứng dụng" : "Filter apps"}</span><input type="search" data-ws-filter="#ws-launcher-list" placeholder={vi ? "Lọc ứng dụng hoặc trang, ví dụ: Lead" : "Filter apps or pages, for example: Leads"} /></label>
+              <label class="ws-field-search" data-ws-filter-box hidden><NavIcon name="search" size={16} /><span class="crm-sr">{vi ? "Lọc ứng dụng" : "Filter apps"}</span><input type="search" data-ws-filter="#ws-launcher-list" data-ws-results="#ws-launcher-results" placeholder={vi ? "Lọc ứng dụng hoặc trang, ví dụ: Lead" : "Filter apps or pages, for example: Leads"} /></label>
+              <section class="ws-lresults" id="ws-launcher-results" aria-labelledby="ws-lresults-h" hidden>
+                <p class="ws-eyebrow" id="ws-lresults-h">{vi ? "Trang" : "Pages"}</p>
+                <ul class="ws-lpages">{launchPages.map(({ module: owner, link }) => <li hidden><a href={localized(link.path, vi)} aria-current={owner.key === module && link.key === current ? "page" : undefined}><NavIcon name={link.icon} size={18} /><span>{label(link)}<small>{label(owner)}</small></span></a></li>)}</ul>
+              </section>
               <p class="ws-eyebrow">{vi ? "Ứng dụng" : "Apps"}</p>
               <nav class="ws-modules" aria-label={vi ? "Phân hệ" : "Modules"}>
-                <ul class="ws-lgrid" id="ws-launcher-list">{available.map((item) => <li><a class="ws-ltile" href={localized(item.path, vi)} aria-current={item.key === module ? "page" : undefined}><span class="ws-oi" style={`--ws-tone:${moduleTone[item.key]}`}><NavIcon name={item.icon} size={20} /></span><span><strong>{label(item)}</strong><span>{tileItems(item.key)}</span></span></a></li>)}</ul>
+                <ul class="ws-lgrid" id="ws-launcher-list">{available.map((item) => <li data-ws-terms={tileTerms(item.key)}><a class="ws-ltile" href={localized(item.path, vi)} aria-current={item.key === module ? "page" : undefined}><span class="ws-oi" style={`--ws-tone:${moduleTone[item.key]}`}><NavIcon name={item.icon} size={20} /></span><span><strong>{label(item)}</strong><span>{launcherBlurbs[item.key][vi ? 1 : 0]}</span></span></a></li>)}</ul>
               </nav>
             </div>
           </div>
@@ -145,8 +150,16 @@ const tileItems = (key: ModuleKey) => {
           if (!(input instanceof HTMLInputElement) || !input.dataset.wsFilter) return;
           const list = document.querySelector(input.dataset.wsFilter);
           const term = input.value.trim().toLocaleLowerCase();
-          list?.querySelectorAll("li").forEach((item) => { item.hidden = term !== "" && !item.textContent.toLocaleLowerCase().includes(term); });
+          const matches = (item) => `${item.textContent} ${item.dataset.wsTerms ?? ""}`.toLocaleLowerCase().includes(term);
+          list?.querySelectorAll("li").forEach((item) => { item.hidden = term !== "" && !matches(item); });
           list?.querySelectorAll(".ws-gmenu-group").forEach((group) => { group.hidden = ![...group.querySelectorAll("li")].some((item) => !item.hidden); });
+          // Matching pages show as their own list, only while the filter has text.
+          const results = input.dataset.wsResults && document.querySelector(input.dataset.wsResults);
+          if (results) {
+            let shown = 0;
+            results.querySelectorAll("li").forEach((item) => { item.hidden = term === "" || !matches(item); if (!item.hidden) shown += 1; });
+            results.hidden = shown === 0;
+          }
         });
         document.addEventListener("keydown", (event) => {
           if (event.key !== "Escape") return;
