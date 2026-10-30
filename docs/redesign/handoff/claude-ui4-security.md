@@ -2,7 +2,7 @@
 
 Brief: [UI-PARITY.md](../UI-PARITY.md). Spec: [FEATURES.md § Round 2, workstream 4](../../governance/FEATURES.md) and [USER-STORIES.md § Round 2 security and admin](../../governance/USER-STORIES.md). Contract: [docs/workspace/security.md](../../workspace/security.md).
 
-Status on 2026-10-30: done. Part A and Part B built, gates green on the merged head (below), merged into `claude/loving-pasteur-z7ly65`. Nothing here is released until the founder merges the draft PR.
+Status on 2026-10-30: done. Part A and Part B built, gates on the merged head below (HRM P5 open: environment timeout), merged into `claude/loving-pasteur-z7ly65`. Nothing here is released until the founder merges the draft PR.
 
 ## Part A: passkey and anti-phishing ready
 
@@ -47,19 +47,29 @@ Shared files changed in their own commits: `src/middleware.ts`, `infra/workspace
 
 ## Gates
 
-Run on `ae7e104` (ui4 + `origin/claude/loving-pasteur-z7ly65` @e16f004, which contains ui1 @cd0d414 and ui2), integration with `WORKSPACE_PASSKEY_REQUIRED=true`:
+Two runs, integration with `WORKSPACE_PASSKEY_REQUIRED=true`.
+
+**Final head `04724a0`** (ui4 + `origin/claude/loving-pasteur-z7ly65` @a782ed1). The integrator asked for a reduced rerun because the merge brings no ui4 change to HRM:
 
 | Gate | Result |
 |---|---|
-| `npm run lint` | ok (641 source files) |
-| `npm test` | 462 pass, 0 fail |
-| `npm run db:migrate:local` | ok (no new migration) |
+| `npm run lint` | ok (646 source files) |
+| `npm test` | 465 pass, 0 fail |
 | `npm run build` | ok, `astro check` 0 errors |
 | Integration: security | 19/19 |
-| Integration: workspace | 15/15 (after ui1's b8dbd23) |
+| Integration: workspace | 15/15 |
+
+**Previous head `0a7aebe`** (ui4 + integration @cf61511), full run:
+
+| Gate | Result |
+|---|---|
+| `npm run db:migrate:local` | ok (no new migration) |
+| `npm run build` | ok |
+| Integration: security, workspace | 19/19, 15/15 |
 | Integration: crm, api, finance, files, directory, dashboard, sales-process, business-model | 19, 7, 9, 6, 7, 5, 12, 5: all pass |
 | Integration: HRM P1, P3, P4 (separate scopes) | pass |
-| Integration: HRM P5 | first run: test 4 failed on `SQLITE_BUSY` (the local D1 file locked while the test's wrangler CLI read it; no assertion failed); one re-run on the same head: pass (1/1) |
+| Integration: HRM P5 | **open.** Test 4 failed without any assertion failing: the recovery drill's restored local Worker did not become ready in 90 s (workerd: "incoming RPC message exceeds size limit"). On the earlier head `ae7e104` the same test failed on `SQLITE_BUSY` and passed on its one re-run. ui4 changes no HRM file. |
+| Integration: HRM on `04724a0` | not run (integrator: only if the merge touches HRM through ui4) |
 | Integration: hrm-journey | not run (round-1 note: known container flake) |
 | Parity screenshots | 20 boards, each under 400 KB |
 
