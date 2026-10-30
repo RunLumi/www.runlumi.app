@@ -1,0 +1,52 @@
+---
+// List-view header for CRM list screens (boards Leads, Main, DealsTable,
+// Accounts, Contacts): object icon, eyebrow, list name with a list selector,
+// the action button group, then the count line with search-in-list and the
+// icon toolbar. The body (table) goes in the default slot, inside the same
+// panel, as the boards draw it. Links, GET forms and <details> only.
+import Icon, { type ListIcon } from "./Icon.astro";
+
+export interface ListChoice { label: string; href: string; current?: boolean }
+interface Props {
+  vi: boolean; icon: ListIcon; tone: string; eyebrow: string; title: string; meta: string;
+  lists?: ListChoice[]; search?: { value: string; hidden?: Record<string, string>; name?: string };
+  /** The panel holds only the header (the body is drawn below it, as on the Kanban boards). */
+  bare?: boolean;
+}
+const { vi, icon, tone, eyebrow, title, meta, lists = [], search, bare = false } = Astro.props;
+const hidden = Object.entries(search?.hidden ?? {}).filter(([, value]) => value);
+---
+<section class:list={["cl-panel cl-lv", { bare }]} aria-labelledby="cl-title">
+  <div class="cl-oh">
+    <div class="cl-oh-id">
+      <span class="cl-oi" style={`background:${tone}`}><Icon name={icon} size={22} /></span>
+      <div class="cl-oh-name">
+        <p class="cl-eyebrow">{eyebrow}</p>
+        <div class="cl-h1-row">
+          <h1 class="cl-h1" id="cl-title">{title}</h1>
+          {lists.length > 1 && <details class="cl-pop cl-lists">
+            <summary class="cl-btn ghost icon sm" aria-label={vi ? "Chọn danh sách" : "Choose a list"}><Icon name="chevron" stroke={2.4} /></summary>
+            <div class="cl-menu" role="group" aria-label={vi ? "Danh sách" : "Lists"}>
+              <p class="cl-menu-h">{vi ? "Danh sách" : "Lists"}</p>
+              {lists.map((item) => <a href={item.href} aria-current={item.current ? "page" : undefined}>{item.label}</a>)}
+            </div>
+          </details>}
+        </div>
+      </div>
+    </div>
+    {Astro.slots.has("actions") && <div class="cl-bg"><slot name="actions" /></div>}
+  </div>
+  <div class="cl-meta">
+    <p role="status">{meta}</p>
+    <div class="cl-tools">
+      {search && <form class="cl-search" method="get" role="search">
+        {hidden.map(([name, value]) => <input type="hidden" name={name} value={value} />)}
+        <Icon name="search" />
+        <label class="crm-sr" for="cl-q">{vi ? "Tìm trong danh sách" : "Search this list"}</label>
+        <input id="cl-q" type="search" name={search.name ?? "q"} value={search.value} maxlength="120" placeholder={vi ? "Tìm trong danh sách này" : "Search this list"} />
+      </form>}
+      <slot name="tools" />
+    </div>
+  </div>
+  <slot />
+</section>

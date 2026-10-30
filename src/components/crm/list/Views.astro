@@ -1,0 +1,14 @@
+---
+// Toolbar view switch (list, table, Kanban): a menu of links.
+import Icon, { type ListIcon } from "./Icon.astro";
+interface Props { vi: boolean; views: { key: string; label: string; href: string; icon: ListIcon; current: boolean }[] }
+const { vi, views } = Astro.props;
+const current = views.find((view) => view.current) ?? views[0];
+---
+<details class="cl-pop cl-views">
+  <summary class="cl-btn" aria-label={vi ? `Cách xem: ${current.label}` : `View: ${current.label}`}><Icon name={current.icon} /><Icon name="chevron" size={14} stroke={2.4} /></summary>
+  <div class="cl-menu" role="group" aria-label={vi ? "Cách xem" : "View"}>
+    <p class="cl-menu-h">{vi ? "Hiển thị dạng" : "Display as"}</p>
+    {views.map((view) => <a href={view.href} aria-current={view.current ? "page" : undefined}><Icon name={view.icon} />{view.label}</a>)}
+  </div>
+</details>
