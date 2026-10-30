@@ -20,7 +20,7 @@ Read this before you start Workspace work, and update it when you learn somethin
 1. **Search.** Should Workspace get a cross-module search? The TopNav board has one, but there is no back end. A search must apply each module's permission and ownership rules, so it is a feature, not a redesign.
 2. **Notification bell.** HRM keeps its own in-app notices. Should a header inbox collect notices from several modules? That depends on rd4's notification rules.
 3. **Avatar photos.** EmDash stores `avatar_id`. Should the account menu show the photo? Initials are used for now.
-4. **EmDash security page.** Can EmDash users below admin (role < 50) open `/_emdash/admin/settings/security` to manage their passkeys? The account page links there; rd4's mandatory passkey work should confirm or replace that link.
+4. **EmDash security page.** Resolved (ui4, 2026-10-30): the Workspace no longer links there. My account › Security renames and removes passkeys through EmDash's per-user `/_emdash/api/auth/passkey/:id`, which needs only a session (any role).
 
 ## Lessons
 
@@ -28,5 +28,6 @@ Read this before you start Workspace work, and update it when you learn somethin
 - **Spec before code.** Round 1 coded behaviour (referrals become Leads, step-up always on) with no feature row or story, and an agent's "needs founder decision" item shipped unconfirmed. Write the feature row and story with acceptance criteria first; ship nothing a handoff marks as awaiting the founder.
 
 - **Don't edit `src/` during a local integration run.** `astro dev` hot-reloads, so a run that overlaps an edit fails on half-written markup. Finish the edit, then run.
+- **Astro frontmatter is not JSX.** A JSX value assigned in the frontmatter (`const x = <span/>`) passes `astro check` but fails at runtime, and a missing `}` in a template can pass `astro check` too. Render the page (or run the compiler) before an integration run.
 - **Integration selectors.** The integration tests find menus by class (`ws-modules`, `ws-pages`, `ws-gmenu`). If you rename a shell class, update `tests/integration/workspace.integration.test.mjs` in the same commit.
 - **Grouped modules.** In a module with `groups`, a link without a `group` disappears from the menu. The unit test "grouped menus" catches this.
