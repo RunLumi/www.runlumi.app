@@ -25,6 +25,16 @@
 //                    use a local Worker you already run (astro dev) and its
 //                    D1 persist directory, instead of starting one
 //   --full           full-page app screenshots (default: the first 1600 px)
+//   --widths <list>  shoot /vi<path> at these widths instead (app-vi-<w>.png,
+//                    e.g. 1920,2560,3840); images wider than 1920 px are
+//                    scaled down to 1920 px so each stays under 400 KB
+//   --out <dir>      write into <dir>/<Board>/ (default docs/redesign/parity)
+//   --no-board       <Board> is only a folder label: no board shot
+//   --check          fail (exit 1) when, at any shot width, the page scrolls
+//                    sideways, the side navigation (.ws-side) is wider than
+//                    its column, or a button group (.ws-bg) runs past its
+//                    container (stories UI5-S1, S3, S5)
+//   --no-shots       with --check: measure only, write no PNGs
 //
 // Without --base the script starts its own local Worker on an isolated,
 // freshly migrated D1 (like scripts/run-integration.mjs) and stops it after.
@@ -40,7 +50,6 @@ import process from "node:process";
 
 const root = process.cwd();
 const boardsDir = join(root, "docs/redesign/boards");
-const outRoot = join(root, "docs/redesign/parity");
 const MAX_BYTES = 400 * 1024;
 
 const args = process.argv.slice(2);
@@ -51,16 +60,22 @@ let base = option("--base");
 let persist = option("--persist");
 const seed = flag("--seed");
 const full = flag("--full");
+const widths = option("--widths")?.split(",").map(Number).filter((width) => width >= 320);
+const out = option("--out");
+const noBoard = flag("--no-board");
+const check = flag("--check");
+const noShots = flag("--no-shots");
 const pairs = args.map((arg) => {
   const at = arg.indexOf("=");
   if (at < 1) throw new Error(`Expected <Board>=<path>, got "${arg}".`);
   return { board: arg.slice(0, at), path: arg.slice(at + 1) };
 });
+const outRoot = resolve(root, out ?? "docs/redesign/parity");
 if (!pairs.length) {
   console.error("Usage: node scripts/parity-shots.mjs <Board>=<path> [...] [--as roles] [--seed] [--base url --persist dir] [--full]");
   process.exit(2);
 }
-for (const { board } of pairs) if (!existsSync(join(boardsDir, `${board}.dc.html`))) throw new Error(`No board docs/redesign/boards/${board}.dc.html`);
+if (!noBoard) for (const { board } of pairs) if (!existsSync(join(boardsDir, `${board}.dc.html`))) throw new Error(`No board docs/redesign/boards/${board}.dc.html`);
 if (base && !/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(base)) throw new Error("--base must be a local Worker (http://127.0.0.1:<port>).");
 if (base && !persist) throw new Error("--base needs --persist <dir> (the Worker's D1 persist directory).");
 
@@ -242,6 +257,24 @@ async function shoot(page, file, fullPage) {
   return (await stat(file)).size;
 }
 
+/** Horizontal overflow on the page, in the side navigation and in button groups. */
+function overflow(page) {
+  return page.evaluate(() => {
+    const found = [];
+    const root = document.documentElement;
+    if (root.scrollWidth > root.clientWidth) found.push(`page scrolls sideways (${root.scrollWidth} > ${root.clientWidth})`);
+    const side = document.querySelector(".ws-side");
+    if (side && side.scrollWidth > side.clientWidth) found.push(`side navigation ${side.scrollWidth} > ${side.clientWidth}`);
+    for (const group of document.querySelectorAll(".ws-bg")) {
+      if (!group.getClientRects().length) continue;
+      const box = group.getBoundingClientRect(), parent = group.parentElement.getBoundingClientRect();
+      if (box.right > parent.right + 0.5 || [...group.children].some((child) => child.getBoundingClientRect().right > parent.right + 0.5)) found.push(`button group "${group.getAttribute("aria-label")}" runs past its container`);
+    }
+    return found;
+  });
+}
+const failures = [];
+
 const browser = await chromium.launch();
 try {
   let cookies = [];
@@ -251,14 +284,19 @@ try {
   }
   for (const { board, path } of pairs) {
     const dir = join(outRoot, board);
-    await mkdir(dir, { recursive: true });
-    const boardPage = await browser.newPage({ viewport: { width: 1440, height: 900 } });
-    await renderBoard(boardPage, board);
-    const sizes = { "board-1440": await shoot(boardPage, join(dir, "board-1440.png"), true) };
-    await boardPage.close();
+    if (!noShots) await mkdir(dir, { recursive: true });
+    const sizes = {};
+    if (!noBoard && !noShots) {
+      const boardPage = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+      await renderBoard(boardPage, board);
+      sizes["board-1440"] = await shoot(boardPage, join(dir, "board-1440.png"), true);
+      await boardPage.close();
+    }
     if (path !== "-") {
-      for (const [name, prefix, width] of [["app-vi-1440", "/vi", 1440], ["app-en-1440", "", 1440], ["app-vi-390", "/vi", 390]]) {
-        const context = await browser.newContext({ viewport: { width, height: width < 600 ? 844 : 900 }, deviceScaleFactor: 1 });
+      const shots = widths?.length ? widths.map((width) => [`app-vi-${width}`, "/vi", width]) : [["app-vi-1440", "/vi", 1440], ["app-en-1440", "", 1440], ["app-vi-390", "/vi", 390]];
+      for (const [name, prefix, width] of shots) {
+        const height = width < 600 ? 844 : Math.round(width * 9 / 16);
+        const context = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: width > 1920 ? 1920 / width : 1 });
         await context.addCookies(cookies);
         const page = await context.newPage();
         const [target, click] = path.split("@");
@@ -267,14 +305,21 @@ try {
         await page.addStyleTag({ content: "astro-dev-toolbar{display:none!important}" });
         if (click) await page.click(click);
         await page.waitForTimeout(150);
-        if (!full) await page.setViewportSize({ width, height: Math.min(1600, await page.evaluate(() => document.documentElement.scrollHeight)) });
+        if (check) for (const problem of await overflow(page)) failures.push(`${board} ${prefix + target} @ ${width}px: ${problem}`);
+        if (noShots) { await context.close(); continue; }
+        if (!full) await page.setViewportSize({ width, height: Math.max(height, Math.min(1600, await page.evaluate(() => document.documentElement.scrollHeight))) });
         sizes[name] = await shoot(page, join(dir, `${name}.png`), full);
         await context.close();
       }
     }
-    console.log(`${board}: ${Object.entries(sizes).map(([name, size]) => `${name} ${Math.round(size / 1024)} KB`).join(", ")}`);
+    if (!noShots) console.log(`${board}: ${Object.entries(sizes).map(([name, size]) => `${name} ${Math.round(size / 1024)} KB`).join(", ")}`);
   }
 } finally {
   await browser.close();
   await stopWorker();
+}
+if (check) {
+  for (const failure of failures) console.error(`overflow: ${failure}`);
+  console.log(failures.length ? `--check: ${failures.length} overflow problem(s)` : "--check: no overflow");
+  if (failures.length) process.exitCode = 1;
 }
