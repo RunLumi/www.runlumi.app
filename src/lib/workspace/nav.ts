@@ -8,7 +8,7 @@ export type ModuleKey = "home" | "hiring" | "crm" | "hrm" | "finance" | "admin" 
 export type IconName =
   | "finance" | "cash_flow" | "balance" | "history"
   | "files" | "hrm" | "profile" | "hrm_people" | "hrm_settings"
-  | "overview" | "hiring" | "crm" | "admin" | "today" | "leads" | "lead_settings" | "calendar" | "pipeline" | "new" | "referrals" | "companies" | "contacts" | "reports"
+  | "overview" | "hiring" | "crm" | "admin" | "today" | "leads" | "lead_settings" | "calendar" | "tasks" | "pipeline" | "new" | "referrals" | "companies" | "contacts" | "reports"
   | "commission" | "model" | "fulfillment" | "assignment" | "playbooks" | "offers" | "process" | "agents" | "roles" | "candidates" | "users" | "menu" | "apps" | "account" | "security";
 export interface NavLink { key: string; en: string; vi: string; path: string; icon: IconName; group?: string; anyOf?: Permission[] }
 export interface NavGroup { key: string; en: string; vi: string }
@@ -39,6 +39,7 @@ export const modules: NavModule[] = [
       { key: "leads", en: "Leads", vi: "Lead", path: "/crm/leads", icon: "leads", group: "sell" },
       { key: "pipeline", en: "Pipeline", vi: "Cơ hội", path: "/crm/pipeline", icon: "pipeline", group: "sell" },
       { key: "calendar", en: "Calendar", vi: "Lịch", path: "/crm/calendar", icon: "calendar", group: "sell" },
+      { key: "tasks", en: "Tasks", vi: "Công việc", path: "/crm/tasks", icon: "tasks", group: "sell" },
       { key: "new", en: "New opportunity", vi: "Tạo cơ hội", path: "/crm/new", icon: "new", group: "sell" },
       { key: "referrals", en: "Referrals", vi: "Giới thiệu khách", path: "/crm/referrals", icon: "referrals", group: "sell", anyOf: ["crm.refer"] },
       { key: "companies", en: "Companies", vi: "Công ty", path: "/crm/accounts", icon: "companies", group: "customers" },
