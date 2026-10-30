@@ -70,7 +70,7 @@ const home = localized(accountModule.path, vi);
             </tr>)}</tbody>
           </DataTable>
         : <p class="ws-table-empty">{t("You have no passkey yet. You sign in with an email link.", "Bạn chưa có passkey. Bạn đang đăng nhập bằng liên kết gửi qua email.")}</p>}
-    <a slot="foot" class="crm-button secondary small" href="/_emdash/admin/settings/security">{t("Add or remove passkeys in EmDash", "Thêm hoặc xóa passkey trong EmDash")}</a>
+    <a slot="foot" class="crm-button secondary small" href={vi ? "/vi/workspace/account/security" : "/workspace/account/security"}>{t("Manage passkeys", "Quản lý passkey")}</a>
   </Panel>
 
   <Panel title={t("AI agent connections", "Kết nối AI agent")} note={t("You connect your own AI agent with a personal token. It acts with your current permissions, and every change it makes appears in history under your name and the token name.", "Bạn tự kết nối AI agent của mình bằng token cá nhân. Agent chỉ làm được những gì quyền hiện tại của bạn cho phép, và mọi thay đổi agent tạo ra đều ghi trong lịch sử với tên bạn và tên token.")}>

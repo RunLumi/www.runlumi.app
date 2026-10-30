@@ -1,11 +1,12 @@
 ---
-// Admin › Security. The fixed R-08 rules, who still lacks a passkey, a second
-// passkey or an anti-phishing code, and passkey recovery windows.
+// Admin › Security (boards OrgSecurity and Recovery, admin side). The R-08
+// rules are fixed in code, so this page shows them with their real values
+// rather than offering settings; what an admin can act on is who still lacks
+// a second passkey or a code, and opening a recovery window after confirming
+// who the person is (never for oneself, reason required, audited).
 import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
-import DataTable from "./ui/DataTable.astro";
-import PageHeader from "./ui/PageHeader.astro";
-import Panel from "./ui/Panel.astro";
-import PanelRow from "./ui/PanelRow.astro";
+import "../../styles/workspace-security.css";
+import Head from "./security/Head.astro";
 import { localized } from "../../lib/workspace/nav";
 import type { SecurityData } from "../../lib/workspace/admin-security-pages";
 import { dateTime } from "../../lib/workspace/format";
@@ -15,59 +16,95 @@ import { roleLabel } from "../../lib/workspace/roles";
 type Props = SecurityData;
 const { lang, vi, user, rows, error, saved, enforced } = Astro.props;
 const t = (en: string, viText: string) => (vi ? viText : en);
+const local = (path: string) => localized(path, vi);
 const active = rows.filter((row) => row.enabled);
-const noPasskey = active.filter((row) => row.passkeys === 0).length, onePasskey = active.filter((row) => row.passkeys === 1).length, noCode = active.filter((row) => !row.codeSet).length;
+const attention = active.filter((row) => row.passkeys < 2 || !row.codeSet);
+const admins = active.filter((row) => row.admin);
+const recovering = active.filter((row) => row.recoveryUntil);
+const recoverId = Astro.url.searchParams.get("recover");
+const target = recoverId && recoverId !== user.id ? active.find((row) => row.user_id === recoverId) : undefined;
+const roles = (row: typeof rows[number]) => row.admin ? roleLabel("admin", vi) : row.roles.map((role) => roleLabel(role, vi)).join(", ") || "—";
 const errors: Record<string, [string, string]> = {
   "user_id:self": ["You cannot open a recovery window for yourself; another admin must.", "Không tự mở khôi phục cho chính mình; admin khác phải làm."],
   "user_id:not_found": ["That person is not an active Workspace account.", "Người này không phải tài khoản Workspace đang hoạt động."],
   "reason:required": ["Write how you confirmed who the person is.", "Ghi rõ bạn đã xác minh danh tính người đó bằng cách nào."],
+  "confirmed:required": ["Confirm that you met or video-called the person.", "Hãy xác nhận bạn đã gặp hoặc gọi video với người đó."],
 };
-const rules: [string, string, string, string][] = [
-  ["Passkey for every member", "Passkey cho mọi thành viên", "Every Workspace session, admins included, verifies an EmDash passkey (up to 12 hours).", "Mọi phiên Workspace, kể cả admin, phải xác thực passkey EmDash (tối đa 12 giờ)."],
-  ["Anti-phishing code", "Mã chống lừa đảo", "Each person sets their own code; every email from this app starts with it.", "Mỗi người tự đặt mã; mọi email ứng dụng này gửi đều bắt đầu bằng mã đó."],
-  ["Step-up for sensitive actions", "Xác thực lại trước thao tác nhạy cảm", "Exports, deletions, access changes, API tokens, webhooks, notification rules and agent settings need a passkey check from the last 5 minutes.", "Xuất dữ liệu, xóa, đổi quyền, API token, Webhook, quy tắc thông báo và cài đặt AI agent cần xác thực passkey trong 5 phút gần nhất."],
-  ["New passkey needs an old one", "Thêm passkey cần passkey cũ", `Adding a passkey needs step-up, except the first one, or inside a ${RECOVERY_WINDOW_HOURS}-hour recovery window another admin opens.`, `Thêm passkey cần xác thực lại, trừ passkey đầu tiên hoặc trong cửa sổ khôi phục ${RECOVERY_WINDOW_HOURS} giờ do admin khác mở.`],
-];
+const fixed = t("Fixed", "Cố định");
+const required = enforced ? t("Required", "Bắt buộc") : t("Not enforced yet", "Chưa bật");
+const stepUpActions = [t("Export data", "Xuất dữ liệu"), t("Delete", "Xóa"), t("Change access", "Đổi vai trò"), t("Create API token", "Tạo API token"), t("Revoke AI agent", "Thu hồi AI agent"), t("Remove passkey", "Xóa passkey"), t("Change anti-phishing code", "Đổi mã chống lừa đảo"), t("Webhooks and notification rules", "Webhook và quy tắc thông báo"), t("Security and agent settings", "Cài đặt bảo mật và AI agent")];
 ---
-<WorkspaceShell title={t("Security", "Bảo mật")} lang={lang} user={user} module="admin" current="security">
-  <PageHeader vi={vi} eyebrow={t("Admin", "Quản trị")} title={t("Security", "Bảo mật")} lede={t("These rules are fixed for everyone; there is no opt-out. Every change below is recorded in the audit log.", "Các quy tắc này cố định với mọi người, không có ngoại lệ. Mọi thay đổi bên dưới được ghi vào nhật ký kiểm toán.")}>
-    <Fragment slot="actions"><a class="crm-button secondary" href={`${localized("/workspace/audit", vi)}?kind=security`}>{t("Security events", "Sự kiện bảo mật")}</a></Fragment>
-  </PageHeader>
-  <div class:list={["crm-notice", enforced ? "good" : "bad"]} role="status">{enforced
-    ? t("Enforcement is on: every Workspace session needs a passkey check and an anti-phishing code.", "Đang bắt buộc: mọi phiên Workspace cần xác thực passkey và mã chống lừa đảo.")
-    : t("Enforcement is off (WORKSPACE_PASSKEY_REQUIRED is not \"true\"). Step-up for sensitive actions still applies. Turn it on once everyone below has a passkey.", "Chưa bắt buộc (WORKSPACE_PASSKEY_REQUIRED chưa là \"true\"). Xác thực lại trước thao tác nhạy cảm vẫn áp dụng. Hãy bật khi mọi người dưới đây đã có passkey.")}</div>
-  {saved === "recovery" && <div class="crm-notice good" role="status">{t("Recovery window opened. The person signs in with an EmDash recovery link and adds a new passkey.", "Đã mở cửa sổ khôi phục. Người đó đăng nhập bằng link khôi phục của EmDash rồi thêm passkey mới.")}</div>}
-  {error && <div class="crm-notice bad" role="alert">{errors[error]?.[vi ? 1 : 0] ?? error}</div>}
-  <PanelRow>
-    <Panel title={t("Needs attention", "Cần xử lý")} tone={noPasskey || noCode ? "warn" : undefined}>
-      <dl class="crm-facts">
-        <div><dt>{t("Without a passkey", "Chưa có passkey")}</dt><dd class="crm-figure">{noPasskey}</dd></div>
-        <div><dt>{t("Only one passkey", "Mới có một passkey")}</dt><dd class="crm-figure">{onePasskey}</dd></div>
-        <div><dt>{t("Without an anti-phishing code", "Chưa đặt mã chống lừa đảo")}</dt><dd class="crm-figure">{noCode}</dd></div>
-      </dl>
-      <p class="crm-help">{t("People without a passkey or code are asked for them the next time they open the Workspace. A second passkey on another device avoids a recovery.", "Người chưa có passkey hoặc mã sẽ được yêu cầu ở lần mở Workspace kế tiếp. Passkey thứ hai trên thiết bị khác giúp không phải khôi phục.")}</p>
-    </Panel>
-    <Panel title={t("Fixed rules", "Quy tắc cố định")}>
-      <dl class="crm-facts">{rules.map(([en, viText, enNote, viNote]) => <div><dt>{vi ? viText : en}</dt><dd>{vi ? viNote : enNote}</dd></div>)}</dl>
-    </Panel>
-  </PanelRow>
-  <Panel title={t("Members", "Thành viên")} flush>
-    <DataTable vi={vi} label={t("Passkeys and codes by member", "Passkey và mã theo thành viên")} frozen={1} widths={["15rem"]} frozenNames={t("Name", "Tên")} minWidth="1000px" meta={t(`${rows.length} people`, `${rows.length} người`)}>
-      <thead><tr><th scope="col">{t("Name", "Tên")}</th><th scope="col">{t("Roles", "Vai trò")}</th><th scope="col" class="num">Passkey</th><th scope="col">{t("Passkey last used", "Passkey dùng gần nhất")}</th><th scope="col">{t("Last Workspace check", "Xác thực Workspace gần nhất")}</th><th scope="col">{t("Anti-phishing code", "Mã chống lừa đảo")}</th><th scope="col">{t("Recovery", "Khôi phục")}</th></tr></thead>
-      <tbody>{rows.map((row) => <tr>
-        <th scope="row">{row.name || row.email}<br /><span class="crm-meta">{row.email}</span></th>
-        <td>{row.admin ? roleLabel("admin", vi) : row.roles.map((role) => roleLabel(role, vi)).join(", ") || "—"}{!row.enabled && <span class="crm-badge red"> {t("No access", "Không có quyền")}</span>}</td>
-        <td class="num"><span class:list={["crm-badge", row.passkeys === 0 ? "red" : row.passkeys === 1 ? "amber" : "green"]}>{row.passkeys}</span></td>
-        <td>{row.passkeyLastUsed ? dateTime(row.passkeyLastUsed, vi) : "—"}</td>
-        <td>{row.lastCheck ? dateTime(row.lastCheck, vi) : t("Never", "Chưa có")}</td>
-        <td>{row.codeSet ? t("Set", "Đã đặt") : <span class="crm-badge amber">{t("Not set", "Chưa đặt")}</span>}</td>
-        <td>{row.recoveryUntil ? `${t("Open until", "Mở đến")} ${dateTime(row.recoveryUntil, vi)}` : row.user_id === user.id ? "—" : <details><summary>{t("Open recovery", "Mở khôi phục")}</summary>
-          <form class="crm-form" method="post"><input type="hidden" name="intent" value="recovery" /><input type="hidden" name="user_id" value={row.user_id} />
-            <div class="crm-field"><label for={`reason-${row.user_id}`}>{t("How you confirmed it is them", "Bạn đã xác minh đúng người bằng cách nào")}</label><input class="crm-input" id={`reason-${row.user_id}`} name="reason" required minlength="5" maxlength="500" /></div>
-            <button class="crm-button small" type="submit">{t(`Allow a new passkey for ${RECOVERY_WINDOW_HOURS} h`, `Cho thêm passkey mới trong ${RECOVERY_WINDOW_HOURS} giờ`)}</button>
-            <p class="crm-help">{t("Then send them an EmDash recovery sign-in link from the EmDash admin. Needs your passkey.", "Sau đó gửi link đăng nhập khôi phục từ trang quản trị EmDash. Cần passkey của bạn.")}</p>
-          </form></details>}</td>
-      </tr>)}</tbody>
-    </DataTable>
-  </Panel>
+<WorkspaceShell title={t("Security policy", "Chính sách bảo mật")} lang={lang} user={user} module="admin" current="security">
+  <div class="s4 s4-stack">
+    <Head vi={vi} crumbs={[{ label: t("Admin", "Quản trị"), href: local("/workspace/users") }]} title={t("Security policy", "Chính sách bảo mật")}
+      desc={t("Applies to every Workspace member. Items marked Fixed are set by Lumi Workspace and cannot be changed here. Every recovery and every security event is written to the audit log.", "Áp dụng cho mọi thành viên Workspace. Mục có nhãn “Cố định” do Lumi Workspace đặt và không đổi được ở đây. Mọi lần khôi phục và sự kiện bảo mật được ghi vào Nhật ký kiểm toán.")}>
+      <Fragment slot="actions"><a class="s4-btn" href={`${local("/workspace/audit")}?kind=security`}>{t("Security events", "Sự kiện bảo mật")}</a></Fragment>
+    </Head>
+    {saved === "recovery" && <p class="crm-notice good" role="status">{t("Recovery window opened. Send the person an EmDash recovery sign-in link (EmDash admin › Users); they then create a new passkey.", "Đã mở cửa sổ khôi phục. Gửi cho người đó link đăng nhập khôi phục của EmDash (EmDash admin › Users); sau đó họ tạo passkey mới.")}</p>}
+    {error && <p class="crm-notice bad" role="alert">{errors[error]?.[vi ? 1 : 0] ?? error}</p>}
+
+    {attention.length > 0 && <section class="s4-panel s4-banner warn" aria-labelledby="att-h">
+      <div class="s4-ph"><h2 id="att-h" style="display:flex;gap:8px;align-items:center"><span class="s4-badge warn dot">{t("Needs attention", "Cần xử lý")}</span>{t(`${attention.length} members without a second passkey or a code`, `${attention.length} thành viên chưa có passkey thứ hai hoặc chưa đặt mã`)}</h2>
+        <p style="flex-basis:100%">{t("Losing the only device with a passkey means a recovery. A second passkey on another device avoids it. People without a passkey or code are asked for them the next time they open the Workspace.", "Mất thiết bị duy nhất có passkey thì phải khôi phục tài khoản. Passkey thứ hai trên thiết bị khác tránh được việc này. Người chưa có passkey hoặc mã sẽ được yêu cầu ở lần mở Workspace kế tiếp.")}</p></div>
+      <div class="s4-tw"><table class="s4-tbl wide" style="--s4-fz:0px">
+        <thead><tr><th scope="col" class="fz last">{t("Member", "Thành viên")}</th><th scope="col">{t("Role", "Vai trò")}</th><th scope="col">Passkey</th><th scope="col">{t("Passkey last used", "Passkey dùng gần nhất")}</th><th scope="col">{t("Last Workspace check", "Xác thực Workspace gần nhất")}</th><th scope="col">{t("Anti-phishing code", "Mã chống lừa đảo")}</th><th scope="col" class="act">{t("Recovery", "Khôi phục")}</th></tr></thead>
+        <tbody>{attention.map((row) => <tr>
+          <td class="fz last"><a href={row.admin ? local("/workspace/users") : local(`/workspace/users/${row.user_id}`)}>{row.name || row.email}</a><span class="sub">{row.email}</span></td>
+          <td>{roles(row)}</td>
+          <td><span class:list={["s4-badge", row.passkeys === 0 ? "bad" : row.passkeys === 1 ? "warn" : "good"]}>{row.passkeys === 0 ? t("None", "Chưa có") : row.passkeys === 1 ? t("1 · no backup", "1 · thiếu dự phòng") : row.passkeys}</span></td>
+          <td>{row.passkeyLastUsed ? dateTime(row.passkeyLastUsed, vi) : "—"}</td>
+          <td>{row.lastCheck ? dateTime(row.lastCheck, vi) : t("Never", "Chưa có")}</td>
+          <td>{row.codeSet ? t("Set", "Đã đặt") : <span class="s4-badge warn">{t("Not set", "Chưa đặt")}</span>}</td>
+          <td class="act">{row.recoveryUntil ? `${t("Open until", "Mở đến")} ${dateTime(row.recoveryUntil, vi)}` : row.user_id === user.id ? "—" : <a class="s4-btn sm" href={`?recover=${encodeURIComponent(row.user_id)}`}>{t("Open recovery", "Mở khôi phục")}</a>}</td>
+        </tr>)}</tbody>
+      </table></div>
+    </section>}
+
+    {admins.length <= 1 && <section class="s4-panel s4-banner" aria-labelledby="adm-h">
+      <div class="s4-ph"><h2 id="adm-h" style="display:flex;gap:8px;align-items:center"><span class="s4-badge bad dot">{t("Needs attention", "Cần xử lý")}</span>{t("Only one System Super Admin", "Tổ chức chỉ có 1 Siêu quản trị hệ thống")}</h2>
+        <p style="flex-basis:100%">{t("Recovery needs an admin other than the person recovering. With one System Super Admin, that admin's own recovery depends on EmDash (a second EmDash admin or the hosting owner). System Super Admins are EmDash role 50, set in EmDash.", "Khôi phục cần một admin khác người được khôi phục. Khi chỉ có 1 Siêu quản trị hệ thống, việc khôi phục cho chính admin đó phụ thuộc EmDash (admin EmDash thứ hai hoặc chủ hạ tầng). Siêu quản trị hệ thống là vai trò 50 của EmDash, đặt trong EmDash.")}</p></div>
+    </section>}
+
+    <section class="s4-panel" aria-labelledby="si-h">
+      <div class="s4-ph"><h2 id="si-h">{t("Sign-in", "Đăng nhập")}</h2></div>
+      <ul class="s4-rows">
+        <li><div><strong>{t("Passkey for every member", "Passkey cho mọi thành viên")} <span class="s4-badge">{fixed}</span></strong><p>{t("Lumi Workspace has no password. Every member, admins included, verifies an EmDash passkey once per session; a passkey sign-in counts, a link sign-in asks once.", "Lumi Workspace không có mật khẩu. Mọi thành viên, kể cả admin, xác thực passkey EmDash mỗi phiên một lần; đăng nhập bằng passkey được tính luôn, đăng nhập bằng link sẽ được hỏi một lần.")}</p></div><div class="val"><span class:list={["s4-badge", enforced ? "info" : "warn"]}>{required}</span></div></li>
+        <li><div><strong>{t("Anti-phishing code", "Mã chống lừa đảo")} <span class="s4-badge">{fixed}</span></strong><p>{t("Each person sets their own code. Every email this app sends them starts with it; an email without the right code is fake.", "Mỗi người tự đặt một mã. Mã hiện trong mọi email ứng dụng gửi tới họ; email không có mã đúng là giả mạo.")}</p></div><div class="val"><span class:list={["s4-badge", enforced ? "info" : "warn"]}>{required}</span></div></li>
+        <li><div><strong>{t("Session length", "Thời lượng phiên")} <span class="s4-badge">{fixed}</span></strong><p>{t("After this, the Workspace asks for a passkey again.", "Sau thời gian này, Workspace hỏi lại passkey.")}</p></div><div class="val"><span class="s4-code">{t("12 hours", "12 giờ")}</span></div></li>
+        <li><div><strong>{t("Adding a passkey", "Thêm passkey")} <span class="s4-badge">{fixed}</span></strong><p>{t(`The first passkey follows the EmDash sign-in. Another one needs a passkey check from the last 5 minutes, or a ${RECOVERY_WINDOW_HOURS}-hour recovery window another admin opened.`, `Passkey đầu tiên đi theo lần đăng nhập EmDash. Passkey tiếp theo cần xác thực passkey trong 5 phút gần nhất, hoặc cửa sổ khôi phục ${RECOVERY_WINDOW_HOURS} giờ do admin khác mở.`)}</p></div><div class="val"><span class:list={["s4-badge", enforced ? "info" : "warn"]}>{required}</span></div></li>
+      </ul>
+      {!enforced && <p class="s4-note"><span>{t("Enforcement is off (WORKSPACE_PASSKEY_REQUIRED is not \"true\"); step-up below still applies.", "Chưa bật bắt buộc (WORKSPACE_PASSKEY_REQUIRED chưa là \"true\"); xác thực lại bên dưới vẫn áp dụng.")}</span></p>}
+    </section>
+
+    <section class="s4-panel" aria-labelledby="su-h">
+      <div class="s4-ph"><h2 id="su-h">{t("Verify again before sensitive actions", "Xác thực lại trước thao tác nhạy cảm")}</h2></div>
+      <ul class="s4-rows">
+        <li><div><strong>{t("Valid after verifying", "Thời gian hiệu lực sau khi xác thực lại")} <span class="s4-badge">{fixed}</span></strong><p>{t("Within this time a member can continue sensitive actions without touching the passkey again.", "Trong khoảng này, thành viên làm tiếp thao tác nhạy cảm mà không phải chạm passkey lần nữa.")}</p></div><div class="val"><span class="s4-code">{t("5 minutes", "5 phút")}</span></div></li>
+        <li><div><strong>{t("Actions that need it", "Thao tác phải xác thực lại")} <span class="s4-badge">{fixed}</span></strong><p>{t("Failed attempts are audited; after 10 in 15 minutes the person waits.", "Lần thử thất bại được ghi lại; sau 10 lần trong 15 phút, người đó phải chờ.")}</p></div><div class="val" style="max-width:420px">{stepUpActions.map((item) => <span class="s4-chip">{item}</span>)}</div></li>
+      </ul>
+    </section>
+
+    <section class="s4-panel" aria-labelledby="rc-h">
+      <div class="s4-ph"><h2 id="rc-h">{t("Account recovery", "Khôi phục tài khoản")}</h2></div>
+      <ul class="s4-rows">
+        <li><div><strong>{t("An admin confirms who it is", "Admin xác nhận đúng người")} <span class="s4-badge">{fixed}</span></strong><p>{t(`Someone who lost every passkey asks an admin. Another admin (never the person) confirms who they are in person or by video, writes how, and opens a ${RECOVERY_WINDOW_HOURS}-hour window that is used once. Then the person signs in with an EmDash recovery link and creates a new passkey. No SMS or emailed codes.`, `Người mất mọi passkey liên hệ admin. Một admin khác (không bao giờ là chính người đó) xác nhận đúng người qua gặp mặt hoặc gọi video, ghi rõ cách xác nhận và mở cửa sổ ${RECOVERY_WINDOW_HOURS} giờ chỉ dùng một lần. Sau đó người đó đăng nhập bằng link khôi phục của EmDash và tạo passkey mới. Không dùng SMS hay mã qua email.`)}</p></div><div class="val"><span class="s4-badge">{t("1 admin and a reason", "1 admin và lý do")}</span></div></li>
+        <li><div><strong>{t("Open recovery windows", "Cửa sổ khôi phục đang mở")}</strong><p>{recovering.length ? recovering.map((row) => `${row.name || row.email} (${t("until", "đến")} ${dateTime(row.recoveryUntil!, vi)})`).join(" · ") : t("None.", "Không có.")}</p></div><div class="val"><span class="s4-code">{recovering.length}</span></div></li>
+      </ul>
+    </section>
+  </div>
+
+  {target && <div class="s4-sheet-wrap s4" style="align-items:center;justify-content:center"><section class="s4-dlg" role="dialog" aria-modal="true" aria-labelledby="rq-h">
+    <form method="post" action={Astro.url.pathname}>
+      <div class="s4-dlg-b">
+        <span class="s4-badge" style="justify-self:start">{t("Admin confirmation", "Admin xác nhận")}</span>
+        <h2 class="s4-title" id="rq-h" style="font-size:20px">{t(`Recovery: ${target.name || target.email}`, `Khôi phục: ${target.name || target.email}`)}</h2>
+        <dl class="s4-facts"><div><dt>Email</dt><dd>{target.email}</dd></div><div><dt>{t("Role", "Vai trò")}</dt><dd>{roles(target)}</dd></div><div><dt>Passkey</dt><dd>{target.passkeys}</dd></div><div><dt>{t("Last Workspace check", "Xác thực Workspace gần nhất")}</dt><dd>{target.lastCheck ? dateTime(target.lastCheck, vi) : t("Never", "Chưa có")}</dd></div></dl>
+        <input type="hidden" name="intent" value="recovery" /><input type="hidden" name="user_id" value={target.user_id} />
+        <label class="s4-check"><input type="checkbox" name="confirmed" value="1" required /><span>{t(`I met or video-called ${target.name || target.email} and confirmed it is them.`, `Tôi đã gặp hoặc gọi video với ${target.name || target.email} và xác nhận đúng người.`)}</span></label>
+        <div class="s4-field"><label for="reason">{t("How you confirmed it", "Bạn đã xác nhận bằng cách nào")}</label><input class="s4-in" id="reason" name="reason" required minlength="5" maxlength="500" /></div>
+        <p class="s4-hint">{t(`Opening it needs your passkey. The decision is written to the audit log. The window lasts ${RECOVERY_WINDOW_HOURS} hours and is used once.`, `Mở khôi phục cần xác thực lại bằng passkey của bạn. Quyết định được ghi vào nhật ký kiểm toán. Cửa sổ có hiệu lực ${RECOVERY_WINDOW_HOURS} giờ và chỉ dùng một lần.`)}</p>
+      </div>
+      <div class="s4-dlg-f"><a class="s4-btn danger" href={Astro.url.pathname}>{t("Cancel", "Hủy")}</a><button class="s4-btn primary" type="submit">{t("Open recovery", "Mở khôi phục")}</button></div>
+    </form>
+  </section></div>}
 </WorkspaceShell>

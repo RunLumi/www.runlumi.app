@@ -64,6 +64,73 @@ export async function stepUpRemaining(session: SessionStore | undefined, userId:
   return fresh(mark, STEP_UP_WINDOW_MS, now) ? Math.ceil((mark!.at + STEP_UP_WINDOW_MS - now) / 1000) : 0;
 }
 
+/** Records a passkey check for this session (used after EmDash itself verified a passkey with user verification). */
+export function markPasskeyCheck(session: SessionStore, userId: string, credentialId: string, now = Date.now()): void {
+  session.set(MARK_KEY, { userId, at: now, credentialId } satisfies PasskeyMark);
+}
+
+const base64url = (value: string): Uint8Array => {
+  const padded = value.replaceAll("-", "+").replaceAll("_", "/") + "===".slice((value.length + 3) % 4);
+  return Uint8Array.from(atob(padded), (char) => char.charCodeAt(0));
+};
+
+/** WebAuthn authenticator data flags: user present (0x01) and user verified (0x04). */
+export function userVerified(authenticatorData: Uint8Array): boolean {
+  return authenticatorData.length >= 37 && (authenticatorData[32] & 0x05) === 0x05;
+}
+
+/** User verification in a sign-in assertion's authenticator data (base64url). False on anything malformed. */
+export function assertionUserVerified(authenticatorData: unknown): boolean {
+  if (typeof authenticatorData !== "string" || authenticatorData.length > 4096) return false;
+  try { return userVerified(base64url(authenticatorData)); } catch { return false; }
+}
+
+/**
+ * Reads authData out of a registration's attestationObject (CBOR map with
+ * text keys) and checks user verification. Only the CBOR needed for that:
+ * unsigned and negative integers, byte and text strings, arrays, maps and
+ * simple values. Anything else, or more than 8 KiB, is treated as not verified.
+ */
+export function attestationUserVerified(attestationObject: unknown): boolean {
+  if (typeof attestationObject !== "string" || attestationObject.length > 8192) return false;
+  let bytes: Uint8Array;
+  try { bytes = base64url(attestationObject); } catch { return false; }
+  let at = 0;
+  const length = (info: number): number => {
+    if (info < 24) return info;
+    const size = info === 24 ? 1 : info === 25 ? 2 : info === 26 ? 4 : 0;
+    if (!size || at + size > bytes.length) throw new Error("cbor");
+    let value = 0;
+    for (let i = 0; i < size; i += 1) value = value * 256 + bytes[at++];
+    return value;
+  };
+  const item = (depth: number): unknown => {
+    if (depth > 8 || at >= bytes.length) throw new Error("cbor");
+    const head = bytes[at++], major = head >> 5, info = head & 31;
+    if (major === 7) return null;
+    const n = length(info);
+    if (major === 0) return n;
+    if (major === 1) return -1 - n;
+    if (major === 2 || major === 3) {
+      if (at + n > bytes.length) throw new Error("cbor");
+      const slice = bytes.slice(at, at + n); at += n;
+      return major === 3 ? new TextDecoder().decode(slice) : slice;
+    }
+    if (major === 4) { for (let i = 0; i < n; i += 1) item(depth + 1); return null; }
+    if (major === 5) {
+      const map = new Map<unknown, unknown>();
+      for (let i = 0; i < n; i += 1) { const key = item(depth + 1); map.set(key, item(depth + 1)); }
+      return map;
+    }
+    throw new Error("cbor");
+  };
+  try {
+    const root = item(0);
+    const authData = root instanceof Map ? root.get("authData") : null;
+    return authData instanceof Uint8Array && userVerified(authData);
+  } catch { return false; }
+}
+
 /** Thrown by server code before a sensitive action when the last passkey check is older than five minutes. */
 export class StepUpRequiredError extends Error {
   constructor() { super("step_up_required"); }
@@ -182,7 +249,7 @@ export async function verifyPasskey(session: SessionStore, credentials: Credenti
   try {
     const verified = await verifyAuthenticationResponse(config, response, credential as never, sessionChallenges(session, userId));
     await credentials.touch(credential.id, verified.newCounter, new Date(now).toISOString());
-    session.set(MARK_KEY, { userId, at: now, credentialId: credential.id } satisfies PasskeyMark);
+    markPasskeyCheck(session, userId, credential.id, now);
     return { ok: true, credentialId: credential.id, credentialName: credential.name };
   } catch (error) {
     session.delete(CHALLENGE_KEY);

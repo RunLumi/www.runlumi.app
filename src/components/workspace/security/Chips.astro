@@ -1,0 +1,9 @@
+---
+// "Lọc nhanh" quick filters: links, so they work without client JavaScript.
+interface Props { vi: boolean; items: { label: string; href: string; on: boolean }[] }
+const { vi, items } = Astro.props;
+---
+<ul class="s4-chips" aria-label={vi ? "Lọc nhanh" : "Quick filters"}>
+  <li>{vi ? "Lọc nhanh" : "Quick filters"}</li>
+  {items.map((item) => <li><a class="s4-chip" href={item.href} aria-current={item.on ? "true" : undefined}>{item.label}</a></li>)}
+</ul>

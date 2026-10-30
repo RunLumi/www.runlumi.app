@@ -1,0 +1,44 @@
+---
+// Recovery board, the person's side. Recovery is never by SMS or an emailed
+// code: an admin confirms who you are, opens a 24-hour window and sends an
+// EmDash sign-in link; you then create a new passkey. Signed in, the steps
+// show your own real state; signed out, the page shows only the steps.
+import WorkspaceAuth from "../../layouts/WorkspaceAuth.astro";
+import Brand from "./security/Brand.astro";
+import type { RecoveryData } from "../../lib/workspace/sign-in-pages";
+
+type Props = RecoveryData;
+const { lang, vi, switchHref, state, email, openedBy, openedAt, until } = Astro.props;
+const t = (en: string, viText: string) => (vi ? viText : en);
+const when = (value: string | null) => value ? new Date(value).toLocaleString(vi ? "vi-VN" : "en-GB", { dateStyle: "short", timeStyle: "short", timeZone: "Asia/Ho_Chi_Minh" }) : "";
+const signedIn = state !== "signed_out" && state !== "not_member";
+const steps: { state: "done" | "wait" | "next"; text: string }[] = [
+  { state: signedIn ? "done" : "next", text: t("Ask a System Super Admin of your organisation in person or by video call.", "Liên hệ trực tiếp hoặc gọi video cho Siêu quản trị hệ thống của tổ chức.") },
+  { state: state === "open" || state === "verified" ? "done" : signedIn ? "wait" : "next", text: state === "open" && openedBy
+    ? t(`${openedBy} confirmed who you are and opened recovery at ${when(openedAt)}.`, `${openedBy} đã xác nhận đúng người và mở khôi phục lúc ${when(openedAt)}.`)
+    : t("The admin confirms who you are and opens a 24-hour recovery window.", "Admin xác nhận đúng người và mở cửa sổ khôi phục 24 giờ.") },
+  { state: signedIn ? "done" : "next", text: t("You sign in with the EmDash link the admin sends (it starts with your anti-phishing code).", "Bạn đăng nhập bằng link EmDash admin gửi (email có mã chống lừa đảo của bạn).") },
+  { state: state === "verified" ? "done" : state === "open" ? "wait" : "next", text: state === "open" && until
+    ? t(`Create a new passkey on this device before ${when(until)}.`, `Tạo passkey mới trên thiết bị này trước ${when(until)}.`)
+    : t("You create a new passkey. The window closes once it is used.", "Bạn tạo passkey mới. Cửa sổ đóng ngay khi đã dùng.") },
+];
+const label = { done: t("Done", "Xong"), wait: t("Now", "Đang chờ"), next: t("Then", "Sau đó") };
+const tone = { done: "good", wait: "warn", next: "" };
+---
+<WorkspaceAuth title={t("Recover your account", "Khôi phục tài khoản")} lang={lang} switchHref={switchHref}>
+  <div class="s4-auth">
+    <section class="s4-card" aria-labelledby="rc-h" data-recovery-state={state}>
+      <Brand href={`${vi ? "/vi" : ""}/workspace/sign-in`} />
+      <span class="s4-badge" style="justify-self:start;align-self:flex-start">{t("For the person recovering", "Người cần khôi phục")}</span>
+      <h1 id="rc-h">{t("Recover your account", "Khôi phục tài khoản")}</h1>
+      {email
+        ? <p>{vi ? <>Bạn mất mọi passkey của <strong>{email}</strong>? Lumi không dùng mã SMS hay mã qua email để thay passkey. Một admin của tổ chức phải xác nhận đây đúng là bạn.</> : <>Lost every passkey for <strong>{email}</strong>? Lumi never replaces a passkey with an SMS or emailed code. An admin of your organisation must confirm it is you.</>}</p>
+        : <p>{t("Lost every passkey? Lumi never replaces a passkey with an SMS or emailed code. An admin of your organisation must confirm it is you.", "Mất mọi passkey? Lumi không dùng mã SMS hay mã qua email để thay passkey. Một admin của tổ chức phải xác nhận đây đúng là bạn.")}</p>}
+      <ol class="s4-status">{steps.map((step) => <li><span class={`s4-badge dot ${tone[step.state]}`}>{label[step.state]}</span><span>{step.text}</span></li>)}</ol>
+      {state === "open" && <p><a class="s4-btn primary block" href={`${vi ? "/vi" : ""}/workspace/verify?reason=session`}>{t("Create a new passkey", "Tạo passkey mới")}</a></p>}
+      {state === "verified" && <p><a class="s4-btn primary block" href={`${vi ? "/vi" : ""}/workspace`}>{t("This session is verified: open the Workspace", "Phiên này đã xác thực: vào Workspace")}</a></p>}
+      {state === "signed_out" && <p><a class="s4-btn block" href={`${vi ? "/vi" : ""}/workspace/sign-in`}>{t("Back to sign-in", "Về trang đăng nhập")}</a></p>}
+      <p class="s4-hint">{t("Signing in again with a recovery link does not sign out other devices; tell your admin if a device was stolen.", "Đăng nhập lại bằng link khôi phục không đăng xuất các thiết bị khác; hãy báo admin nếu thiết bị bị mất cắp.")}</p>
+    </section>
+  </div>
+</WorkspaceAuth>

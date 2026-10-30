@@ -1,0 +1,21 @@
+---
+// The anti-phishing code form, used on step 3 of the first visit and in the change sheet.
+interface Props { vi: boolean; action: string; hasCode: boolean; typed: string; error: string | null; stepUpNeeded: boolean; label: string }
+const { vi, action, hasCode, typed, error, stepUpNeeded, label } = Astro.props;
+const t = (en: string, viText: string) => (vi ? viText : en);
+const errors: Record<string, [string, string]> = {
+  required: ["Enter a code.", "Hãy nhập mã."],
+  length: ["Use 4 to 20 characters.", "Dùng từ 4 đến 20 ký tự."],
+  characters: ["Use only letters, numbers and spaces.", "Chỉ dùng chữ, số và khoảng trắng."],
+  personal: ["Do not use your name or email address.", "Đừng dùng tên hoặc địa chỉ email của bạn."],
+};
+---
+<form class="s4-stack" method="post" action={action} style="gap:14px">
+  <input type="hidden" name="intent" value="code" />
+  <div class="s4-field"><label for="code">{hasCode ? t("New code", "Mã mới") : t("Anti-phishing code", "Mã chống lừa đảo")} <span aria-hidden="true" style="color:var(--s4-red)">*</span></label>
+    <input class="s4-in" id="code" name="code" required minlength="4" maxlength="20" autocomplete="off" spellcheck="false" value={typed} aria-invalid={error ? "true" : undefined} aria-describedby={error ? "code-hint code-err" : "code-hint"} />
+    <p class="s4-hint" id="code-hint">{t("4–20 characters: letters, numbers and spaces. Not a password or anything personal.", "4–20 ký tự: chữ, số, khoảng trắng. Đừng dùng mật khẩu hay thông tin cá nhân.")}</p>
+    {error && <p class="s4-error" id="code-err" role="alert">{errors[error]?.[vi ? 1 : 0] ?? error}</p>}</div>
+  {hasCode && stepUpNeeded && <p class="s4-hint">{t("Changing the code asks for your passkey first.", "Đổi mã cần xác thực passkey trước.")}</p>}
+  <button class="s4-btn primary lg block" type="submit">{label}</button>
+</form>

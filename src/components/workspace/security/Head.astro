@@ -1,0 +1,18 @@
+---
+// Board page header: breadcrumbs, title (with an optional badge), description
+// or meta line, and the action button group on the right.
+interface Props { crumbs: { label: string; href?: string }[]; title: string; vi: boolean; desc?: string }
+const { crumbs, title, vi, desc } = Astro.props;
+---
+<header class="s4-panel"><div class="s4-head">
+  <div>
+    <nav class="s4-crumbs ws-crumbs" aria-label={vi ? "Đường dẫn" : "Breadcrumbs"}><ol>
+      {crumbs.map((crumb, index) => <li>{crumb.href && index < crumbs.length - 1 ? <a href={crumb.href}>{crumb.label}</a> : <span aria-current="page">{crumb.label}</span>}</li>)}
+      <li><span aria-current="page">{title}</span></li>
+    </ol></nav>
+    <h1 class="s4-title">{title}<slot name="badge" /></h1>
+    {desc && <p class="s4-desc">{desc}</p>}
+    <slot name="meta" />
+  </div>
+  <div class="s4-actions"><slot name="actions" /></div>
+</div><slot /></header>

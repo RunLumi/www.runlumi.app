@@ -4,7 +4,7 @@ import { localFetch as fetch } from "./helpers.mjs";
 // sensitive actions. Synthetic TEST data and a synthetic authenticator only.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { BASE, adminSession, content, jobs, q, userSession } from "./helpers.mjs";
+import { BASE, Session, adminSession, content, jobs, q, userSession } from "./helpers.mjs";
 import { syntheticPasskey } from "../support/synthetic-passkey.mjs";
 
 const run = Date.now().toString(36);
@@ -95,7 +95,8 @@ test("the passkey page renders in both locales inside the Workspace shell", asyn
     const page = await S.exec.get(path);
     assert.equal(page.status, 200, path);
     assert.match(page.html, /class="ws-modules"/);
-    assert.match(page.html, /data-passkey="verify"/);
+    // Step-up shows the dialog with the passkey button; an already verified session shows Continue.
+    assert.match(page.html, path.includes("step_up") ? /data-passkey="verify"/ : /href="\/vi\/crm"/);
     assert.match(page.html, path.startsWith("/vi") ? /Xác thực/ : /Verify/);
   }
   const evil = await S.exec.get("/workspace/verify?next=https%3A%2F%2Fevil.example%2F");
@@ -136,7 +137,7 @@ test("R-08 gate: no passkey check, no Workspace (pages redirect, APIs 401); then
   assert.equal((await fresh.rawGet("/admin/jobs")).status, 200);
   const security = await fresh.rawGet("/vi/workspace/account/security");
   assert.equal(security.status, 200);
-  assert.match(security.html, /Mã chống lừa đảo của bạn: Mây Xanh 7/, "the email preview starts with the person's code");
+  assert.match(security.html, /data-code-band[^>]*><span>Mã chống lừa đảo của bạn<\/span><strong>Mây Xanh 7<\/strong>/, "only its owner can show the code");
   assert.equal(jobs(`SELECT COUNT(*) AS n FROM workspace_audit WHERE actor_id = ${q(fresh.id)} AND action = 'anti_phishing_set'`)[0].n, 1);
   assert.doesNotMatch(JSON.stringify(jobs(`SELECT detail FROM workspace_audit WHERE actor_id = ${q(fresh.id)}`)), /Mây Xanh/, "the code is never in the audit log");
   S.gate = fresh;
@@ -148,9 +149,9 @@ test("adding a passkey in EmDash needs an existing one; an admin recovery window
   const blocked = await fetch(`${BASE}/_emdash/api/auth/passkey/register/options`, { method: "POST", headers: emdash(unverified), body: "{}" });
   assert.equal(blocked.status, 403);
   assert.match(await blocked.text(), /STEP_UP_REQUIRED/);
-  assert.equal((await S.admin.post("/workspace/security", { intent: "recovery", user_id: await S.admin.userId(), reason: "self service attempt" })).status, 422, "never for oneself");
-  assert.equal((await S.hr.post("/workspace/security", { intent: "recovery", user_id: S.gate.id, reason: "Confirmed by video call" })).status, 403, "only admins");
-  assert.equal((await S.admin.post("/workspace/security", { intent: "recovery", user_id: S.gate.id, reason: "Confirmed by video call" })).status, 303);
+  assert.equal((await S.admin.post("/workspace/security", { intent: "recovery", user_id: await S.admin.userId(), reason: "self service attempt", confirmed: "1" })).status, 422, "never for oneself");
+  assert.equal((await S.hr.post("/workspace/security", { intent: "recovery", user_id: S.gate.id, reason: "Confirmed by video call", confirmed: "1" })).status, 403, "only admins");
+  assert.equal((await S.admin.post("/workspace/security", { intent: "recovery", user_id: S.gate.id, reason: "Confirmed by video call", confirmed: "1" })).status, 303);
   const opened = await fetch(`${BASE}/_emdash/api/auth/passkey/register/options`, { method: "POST", headers: emdash(unverified), body: "{}" });
   assert.equal(opened.status, 200, "the recovery window lets them start adding a passkey");
   assert.equal(jobs(`SELECT COUNT(*) AS n FROM workspace_audit WHERE action = 'passkey_recovery_opened' AND target_user_id = ${q(S.gate.id)}`)[0].n, 1);
@@ -226,4 +227,171 @@ test("AI agents: admin module levels apply to the next MCP call, and every call 
   const restored = (await mcp({ method: "tools/list" })).result.tools.map((tool) => tool.name);
   assert.ok(restored.includes("search_companies"));
   assert.ok(!restored.includes("create_company"), "a read-only token still sees no write tools");
+});
+
+// ---- Round 2 (ui4): the first visit, later sign-ins, own passkeys and recovery, all through EmDash's own endpoints.
+
+const emdashJson = (session) => ({ cookie: session.header(), origin: BASE, "content-type": "application/json", "x-emdash-request": "1" });
+
+/** EmDash's own passkey registration, as the Workspace enrol page calls it. Returns the verify status. */
+async function enrolThroughEmDash(session, key) {
+  const started = await fetch(`${BASE}/_emdash/api/auth/passkey/register/options`, { method: "POST", headers: emdashJson(session), body: JSON.stringify({ name: "TEST laptop" }) });
+  session.absorb(started);
+  if (started.status !== 200) return started.status;
+  const { data } = await started.json();
+  const done = await fetch(`${BASE}/_emdash/api/auth/passkey/register/verify`, { method: "POST", headers: emdashJson(session), body: JSON.stringify({ credential: key.attest(data.options.challenge) }) });
+  session.absorb(done);
+  return done.status;
+}
+
+/** EmDash's own passkey sign-in from a signed-out browser. */
+async function signInWithPasskey(email, key, flags) {
+  const session = new Session(`signin ${email}`);
+  const started = await fetch(`${BASE}/_emdash/api/auth/passkey/options`, { method: "POST", headers: { origin: BASE, "content-type": "application/json" }, body: JSON.stringify({ email }) });
+  session.absorb(started);
+  const { data } = await started.json();
+  const done = await fetch(`${BASE}/_emdash/api/auth/passkey/verify`, { method: "POST", headers: { cookie: session.header(), origin: BASE, "content-type": "application/json" }, body: JSON.stringify({ credential: key.assert(data.options.challenge, flags === undefined ? {} : { flags }) }) });
+  session.absorb(done);
+  session.status = done.status;
+  return session;
+}
+
+const firstVisit = [
+  ["hr", "/admin/jobs", 10], ["sales_manager", "/crm", 20], ["sales_executive", "/vi/crm", 30], ["partner", "/crm", 40],
+  ["finance", "/crm", 10], ["fulfillment", "/crm", 20], ["employee", "/workspace", 30], ["people_manager", "/vi/workspace", 40],
+  ["hrm_officer", "/workspace", 10], ["hrm_admin", "/hrm", 20], ["payroll_officer", "/workspace", 30],
+];
+
+test("first visit: every role and every EmDash role below admin, with no passkey, enrols through EmDash, sets a code and reaches its module", async () => {
+  S.firstVisit = {};
+  for (const [role, target, emdashRole] of firstVisit) {
+    const email = `test-ui4-${role.replaceAll("_", "-")}-${run}@example.test`;
+    const person = await userSession(S.admin, { email, name: `TEST First ${role} ${run}`, role: emdashRole });
+    assert.equal((await S.admin.post("/workspace/users", { intent: "grant", email, roles: [role] })).status, 303, role);
+    const door = await person.rawGet(target);
+    assert.equal(door.status, 303, `${role}: no passkey check yet`);
+    assert.match(door.location, /^\/(?:vi\/)?workspace\/verify\?reason=session&next=/);
+    const enrol = await person.rawGet(door.location);
+    assert.equal(enrol.status, 200, `${role}: the enrol screen opens`);
+    assert.match(enrol.html, /data-passkey="enrol"/);
+    assert.match(enrol.html, /data-step="passkey"/, `${role}: the three-step header`);
+    person.passkey = syntheticPasskey(`test_cred_ui4_${role}_${run}`);
+    assert.equal(await enrolThroughEmDash(person, person.passkey), 200, `${role}: EmDash lets every role add a first passkey`);
+    const listed = await fetch(`${BASE}/_emdash/api/auth/passkey`, { headers: { cookie: person.header() } });
+    assert.equal(listed.status, 200, `${role}: EmDash lists own passkeys for EmDash role ${emdashRole}`);
+    assert.equal((await listed.json()).data.items.length, 1);
+    const codeStep = await person.rawGet(target);
+    assert.equal(codeStep.status, 303, `${role}: the new passkey counted as this session's check`);
+    assert.match(codeStep.location, /\/workspace\/account\/security\?setup=1&next=/);
+    const codePage = await person.rawGet(codeStep.location);
+    assert.match(codePage.html, /data-step="code"/, `${role}: step 3 of the same header`);
+    const saved = await person.rawPost(codeStep.location, new URLSearchParams({ intent: "code", code: `Sông Hồng ${firstVisit.findIndex(([name]) => name === role) + 1}` }));
+    assert.equal(saved.status, 303);
+    assert.equal(saved.location, target);
+    assert.equal((await person.rawGet(target)).status, 200, `${role} reaches ${target}`);
+    assert.equal(jobs(`SELECT COUNT(*) AS n FROM workspace_audit WHERE actor_id = ${q(person.id)} AND action = 'passkey_added'`)[0].n, 1, `${role}: audited`);
+    S.firstVisit[role] = person;
+  }
+});
+
+test("first visit, denied: no Workspace page or API before the check, no page before the code, no second passkey without proof", async () => {
+  const email = `test-ui4-denied-${run}@example.test`;
+  const person = await userSession(S.admin, { email, name: `TEST Denied ${run}` });
+  assert.equal((await S.admin.post("/workspace/users", { intent: "grant", email, roles: ["sales_executive"] })).status, 303);
+  assert.equal((await person.rawGet("/crm/api")).status, 303);
+  const api = await fetch(`${BASE}/api/workspace/passkey/verify`, { method: "POST", headers: json(person), body: "{}" });
+  assert.notEqual(api.status, 200);
+  person.passkey = syntheticPasskey(`test_cred_ui4_denied_${run}`);
+  assert.equal(await enrolThroughEmDash(person, person.passkey), 200);
+  const noCode = await person.rawGet("/crm");
+  assert.match(noCode.location ?? "", /account\/security\?setup=1/, "no code, no CRM");
+  assert.equal((await person.rawPost("/workspace/account/security?setup=1&next=%2Fcrm", new URLSearchParams({ intent: "code", code: `TEST Denied ${run}` }))).status, 422, "not my own name");
+  // A different browser session of the same account (a stolen cookie, say) cannot add a passkey once one exists.
+  const other = await userSession(S.admin, { email, name: `TEST Denied ${run}` });
+  assert.equal(await enrolThroughEmDash(other, syntheticPasskey(`test_cred_ui4_thief_${run}`)), 403);
+  // Outside the Workspace, a CMS-only account gets no Workspace page at all.
+  const cms = await userSession(S.admin, { email: `test-ui4-cms-${run}@example.test`, name: `TEST CMS ${run}` });
+  assert.equal((await cms.rawGet("/workspace")).status, 403);
+});
+
+test("sign-in: signed-out visitors go to the Workspace sign-in page; a verified passkey sign-in through EmDash is the session check", async () => {
+  const anonymous = new Session("anonymous");
+  const door = await anonymous.rawGet("/vi/crm?view=table");
+  assert.equal(door.status, 303);
+  assert.equal(door.location, "/vi/workspace/sign-in?next=%2Fvi%2Fcrm%3Fview%3Dtable");
+  for (const path of ["/workspace/sign-in?next=%2Fcrm", "/vi/workspace/sign-in", "/workspace/recovery", "/vi/workspace/recovery"]) {
+    const page = await anonymous.rawGet(path);
+    assert.equal(page.status, 200, path);
+    assert.match(page.headers.get("cache-control") ?? "", /no-store/);
+  }
+  assert.equal((await anonymous.rawGet("/api/workspace/audit/export.csv")).status, 401, "APIs stay closed");
+  const exec = S.firstVisit.sales_executive;
+  const signedIn = await signInWithPasskey(exec.email, exec.passkey);
+  assert.equal(signedIn.status, 200, "EmDash signed the person in");
+  assert.equal((await signedIn.rawGet("/crm")).status, 200, "no second passkey prompt");
+  assert.ok(jobs(`SELECT COUNT(*) AS n FROM workspace_audit WHERE actor_id = ${q(exec.id)} AND action = 'passkey_verified' AND detail LIKE '%sign_in%'`)[0].n >= 1);
+  // Denied: an assertion without user verification signs in to EmDash but is not a Workspace check.
+  const presenceOnly = await signInWithPasskey(exec.email, exec.passkey, 0x01);
+  if (presenceOnly.status === 200) {
+    const page = await presenceOnly.rawGet("/crm");
+    assert.equal(page.status, 303);
+    assert.match(page.location, /workspace\/verify\?reason=session/);
+  }
+  // Denied: another person's passkey never signs this person in; EmDash signs in the passkey's own owner.
+  const other = await signInWithPasskey(exec.email, S.firstVisit.partner.passkey);
+  if (other.status === 200) {
+    const me = await (await fetch(`${BASE}/_emdash/api/auth/me`, { headers: { cookie: other.header() } })).json();
+    assert.equal(me.data?.id, S.firstVisit.partner.id, "the session is the passkey owner's, not the typed email's");
+    assert.notEqual(me.data?.id, exec.id);
+  }
+});
+
+test("account security: every role renames and removes its own passkeys in the Workspace; removal needs step-up; never someone else's", async () => {
+  const partner = S.firstVisit.partner;
+  const page = await partner.get("/workspace/account/security");
+  assert.equal(page.status, 200);
+  assert.doesNotMatch(page.html, /_emdash\/admin\/settings\/security/, "no link to the EmDash admin page");
+  assert.match(page.html, /data-passkey-rename/);
+  // A second passkey (needs step-up, which this session has).
+  assert.equal(await partner.verifyPasskey(), 200);
+  const second = syntheticPasskey(`test_cred_ui4_partner2_${run}`);
+  assert.equal(await enrolThroughEmDash(partner, second), 200);
+  const rename = await fetch(`${BASE}/_emdash/api/auth/passkey/${second.id}`, { method: "PATCH", headers: emdashJson(partner), body: JSON.stringify({ name: "TEST phone" }) });
+  assert.equal(rename.status, 200);
+  const foreign = await fetch(`${BASE}/_emdash/api/auth/passkey/${S.firstVisit.hr.passkey.id}`, { method: "PATCH", headers: emdashJson(partner), body: JSON.stringify({ name: "x" }) });
+  assert.equal(foreign.status, 404, "someone else's passkey is not found");
+  // Removal from a session without a fresh check is refused.
+  const fresh = await userSession(S.admin, { email: partner.email, name: `TEST First partner ${run}`, role: 40 });
+  const refused = await fetch(`${BASE}/_emdash/api/auth/passkey/${second.id}`, { method: "DELETE", headers: emdashJson(fresh) });
+  assert.equal(refused.status, 403);
+  assert.match(await refused.text(), /STEP_UP_REQUIRED/);
+  fresh.passkey = partner.passkey;
+  assert.equal(await fresh.verifyPasskey(), 200);
+  assert.equal((await fetch(`${BASE}/_emdash/api/auth/passkey/${S.firstVisit.hr.passkey.id}`, { method: "DELETE", headers: emdashJson(fresh) })).status, 404, "never someone else's");
+  assert.equal((await fetch(`${BASE}/_emdash/api/auth/passkey/${second.id}`, { method: "DELETE", headers: emdashJson(fresh) })).status, 200);
+  assert.equal((await fetch(`${BASE}/_emdash/api/auth/passkey/${partner.passkey.id}`, { method: "DELETE", headers: emdashJson(fresh) })).status, 400, "the last passkey stays");
+  assert.equal(jobs(`SELECT COUNT(*) AS n FROM workspace_audit WHERE actor_id = ${q(partner.id)} AND action = 'passkey_removed'`)[0].n, 1);
+  assert.equal(content(`SELECT COUNT(*) AS n FROM credentials WHERE user_id = ${q(partner.id)}`)[0].n, 1);
+});
+
+test("recovery: someone who lost every passkey gets back in only after an admin opens a window, once", async () => {
+  const hr = S.firstVisit.hr;
+  // The lost device: a recovery sign-in (EmDash link) gives a session with no passkey to touch.
+  const recovering = await userSession(S.admin, { email: hr.email, name: `TEST First hr ${run}`, role: 10 });
+  const door = await recovering.rawGet("/admin/jobs");
+  assert.match(door.location, /verify\?reason=session/);
+  const replacement = syntheticPasskey(`test_cred_ui4_hr_new_${run}`);
+  assert.equal(await enrolThroughEmDash(recovering, replacement), 403, "no window yet");
+  const before = await recovering.rawGet("/workspace/recovery");
+  assert.match(before.html, /data-recovery-state="waiting"/);
+  assert.equal((await S.firstVisit.sales_manager.post("/workspace/security", { intent: "recovery", user_id: hr.id, reason: "Confirmed by video call", confirmed: "1" })).status, 403, "only admins");
+  assert.equal((await S.admin.post("/workspace/security", { intent: "recovery", user_id: hr.id, reason: "Confirmed by video call" })).status, 422, "identity confirmation is required");
+  assert.equal((await S.admin.post("/workspace/security", { intent: "recovery", user_id: hr.id, reason: "Confirmed by video call", confirmed: "1" })).status, 303);
+  const open = await recovering.rawGet("/workspace/recovery");
+  assert.match(open.html, /data-recovery-state="open"/);
+  assert.equal(await enrolThroughEmDash(recovering, replacement), 200, "the window lets them add a new passkey");
+  assert.equal((await recovering.rawGet("/admin/jobs")).status, 200, "and the new passkey is this session's check");
+  const again = await userSession(S.admin, { email: hr.email, name: `TEST First hr ${run}`, role: 10 });
+  assert.equal(await enrolThroughEmDash(again, syntheticPasskey(`test_cred_ui4_hr_third_${run}`)), 403, "the window is used once");
+  assert.equal(jobs(`SELECT COUNT(*) AS n FROM workspace_audit WHERE target_user_id = ${q(hr.id)} AND action = 'passkey_added' AND detail LIKE '%recovery_window%'`)[0].n, 1);
 });

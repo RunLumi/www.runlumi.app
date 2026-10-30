@@ -1,0 +1,16 @@
+---
+// The three first-visit steps from the PasskeyEnrol and AntiPhishing boards.
+interface Props { vi: boolean; current: "passkey" | "code" }
+const { vi, current } = Astro.props;
+const steps = [
+  { key: "email", label: vi ? "Xác minh email" : "Email verified" },
+  { key: "passkey", label: vi ? "Tạo passkey" : "Create a passkey" },
+  { key: "code", label: vi ? "Đặt mã chống lừa đảo" : "Set your anti-phishing code" },
+];
+const at = steps.findIndex((step) => step.key === current);
+---
+<ol class="s4-steps" data-step={current} aria-label={vi ? "Các bước vào Workspace" : "Steps to open the Workspace"}>
+  {steps.map((step, index) => <li class={index < at ? "done" : index === at ? "current" : undefined} aria-current={index === at ? "step" : undefined}>
+    <span class="n" aria-hidden="true">{index < at ? "✓" : index + 1}</span><span>{step.label}</span>{index < at && <span class="crm-sr">{vi ? "(xong)" : "(done)"}</span>}
+  </li>)}
+</ol>
