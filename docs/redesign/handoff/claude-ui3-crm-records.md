@@ -18,15 +18,20 @@ Every folder in `docs/redesign/parity/` has `board-1440.png` (where a board exis
 | Opportunity record | DealRecord | `DealRecord/` | Highlights with stage, payment and delivery badges; button group (Sửa, Tạo báo giá, Đổi người phụ trách, Đóng cơ hội, more); playbook path with a guarded next-stage button; key fields and guidance; Related/Details tabs with related lists (contacts, tasks, quotes and money, delivery, related opportunities, time and cost); Activity column | Quotes, ledger and delivery keep their existing compact disclosures inside their related lists (finance-only actions). Highlights show "next step · due" (the app has no expected close date) |
 | Company record | AccountRecord | `AccountRecord/` | Highlights; Tạo liên hệ / Tạo cơ hội / Sửa / Đổi người quản lý; Related/Details tabs; contacts related list; full-width opportunity table with a frozen name column; side column | Side column lists upcoming next steps from the company's open opportunities: the account has no activity stream of its own. No files or quotes lists (not account-level data here). "Đối tác" is "Công ty" |
 | Contact record | AccountRecord (pattern) | `AccountRecord/contact-*` | Same frame; company in breadcrumbs and highlights; opportunities table | No board |
-| CRM setup | Settings | `Settings/` (playbooks), `Settings/lead-statuses-*` | Icon header with eyebrow "Cấu hình CRM", short title, playbook selector and buttons; info note; stage table (label, API key, system type, milestone, entry requirements, skippable); fields and checklist panels side by side; lead statuses and reasons as two equal panels | The setup menu is the shell's grouped CRM sidebar, not a separate setup nav. No drag reordering, probability or forecast group columns: those settings do not exist. Editing is versioned, so it opens a dialog that saves a new version instead of inline cell edits |
+| CRM setup | Settings | `Settings/` (playbooks), `Settings/lead-statuses-*` | Icon header with eyebrow "Cấu hình CRM", short title, playbook selector and buttons; info note; stage table (label, API key, system type, milestone, entry requirements, skippable); fields and checklist panels side by side; lead statuses and reasons as two equal panels | ui1's shell puts CRM setup pages under the app bar's "Thêm" menu, so there is no left setup nav on CRM setup pages. No drag reordering, probability or forecast group columns: those settings do not exist. Editing is versioned, so it opens a dialog that saves a new version instead of inline cell edits |
 | Offers, commission, fulfillment, assignment, referrals, reports | Settings (pattern) | not shot separately | Same setup frame and panel style | Offer editor is a dialog; other pages keep their sections and disclosures |
 | Tuyển dụng | — | `Hiring/` (list, record, form) | Object header with count line and button group; "Tạo vị trí mới" opens a sheet; the role record shows its content read-only and "Sửa" opens a sheet | Candidate list and record keep their bodies on the new header |
 | HRM | — | `HRM/` (list, record, form) | One object header for every `/hrm/*` page (icon from the menu, eyebrow "HRM · group", breadcrumbs); panels in the board style | Page bodies unchanged: the forms are policy- and audit-heavy, so they were not moved into sheets in this round |
 | Tài chính | — | `Finance/` (list, record, form) | Object header (eyebrow "Tài chính · group · Chỉ System Super Admin", info note, export actions); toolbar and panels below | Page bodies unchanged |
 
-### Shared pieces (my kit; ui1's kit was not on origin while I built)
+### Kit
 
-`src/components/workspace/record/`: `RecordHeader`, `RecordPath`, `RecordTabs`, `RelatedList`, `Sheet`, `Feed`, `SetupFrame`, `ObjectHeader`; styles in `src/styles/record.css` (values from `boards/lumi.css`, nothing copied). Sheets need no script: a link to `#id` opens them (`:target`), the server keeps them open (`data-open`) when it re-renders a form with errors or a conflict, and close links return to the page. Tabs are `?tab=` links. **Open:** when `claude/ui1-shell` pushes its kit, reconcile (adopt ui1's sheet/header or hand these over); the integrator was told on 2026-10-30.
+Built on ui1's kit (`origin/claude/ui1-shell` `a54e7ce`, merged in `f8646ff`; migration `65e2f71`): `RecordHeader`, `ButtonGroup` (with the ▾ menu), `Path`, `RecordTabs`, `RelatedList`, `Sheet`/`Dialog` (forms through `action` and the `foot` slot), `ListHeader`, `DataTable`. My first record kit was removed. Kept in `src/components/workspace/record/`, because ui1's kit has no equivalent (reported to ui1 and the integrator for adoption):
+- `PathPanel` — `ui/Path` inside a panel, with key fields and guidance in two columns below;
+- `Feed` — activity rows (icon, title, time, meta);
+- `SetupFrame` — the Settings-board header on the kit's classes plus the blue info note.
+
+`src/styles/record.css` holds only those, the conversion sections, the result cards and the module panel style. Gaps met in `ui/RelatedList`: no actions slot (header link via `href`/`hrefLabel` instead), no full-width option (wrapped in `.rec-wide`), `empty` works only with `items`.
 
 ### Behaviour
 
@@ -47,7 +52,8 @@ Unchanged: every form keeps its intent, field names, version and request key; ro
 
 ### Open
 
-- `scripts/parity-shots.mjs` (ui1) did not exist; shots were taken with an equivalent Playwright script outside the repo. Re-shoot with it once it lands.
+- Board folders were shot with `scripts/parity-shots.mjs --base … --persist …` on my local Worker. The contact, lead-statuses and Tuyển dụng/HRM/Tài chính shots (no boards, several pages per folder) were taken with an equivalent Playwright script at the same widths, because the script writes one page per board folder.
+- Path labels on long playbooks (10 stages) are clipped at the chevron edges; that is ui1's `Path` styling.
 - HRM and Finance page bodies keep their inline forms; only the frame changed.
 - Keyboard and reduced-motion review: focus rings on new buttons/tabs/sheet close were added; a full focus walk was not recorded.
 - Sheets opened with `:target` do not move focus into the sheet beyond the browser's own fragment focus.
