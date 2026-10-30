@@ -20,7 +20,7 @@ Use these to match the boards ([UI-PARITY.md](../redesign/UI-PARITY.md)). Values
 | Board pattern | Component | Use |
 |---|---|---|
 | Buttons `.btn` | class `ws-btn` (+ `primary`, `ghost`, `neutral`, `sm`, `icon`, `on`, `danger`, `won`, `lost`) | On `<a>` or `<button>`. Height 36 px, blue text, 6 px radius, as drawn. |
-| Button group `.bg` | `ButtonGroup` | `label` names the group; children are `ws-btn`. `more=[{label, href}]` adds the trailing ▾ menu (links to real screens or `#sheet-id`). |
+| Button group `.bg` | `ButtonGroup` | `label` names the group; children are `ws-btn`. `more=[{label, href}]` adds the trailing ▾ menu (links to real screens or `#sheet-id`). The group never runs past its container: buttons wrap. In a panel or rail, pass `collapse=[{label, href}]` (and `sm` for small buttons): those show as buttons from 400 px of container width and move into the ▾ menu below it (UI5-S3). |
 | List-view header `.oh` + `.lv-meta` | `ListHeader` | One white panel per list screen: `icon`, `tone` (`lead`, `opportunity`, `company`, `contact`, `event`, `task`, `report`, `setup`, `home`, `person` or a colour), `object` (eyebrow), `title` (list name), `lists` (the list selector), `meta` (the "9 items · sorted by …" line). Slots: `actions` (a `ButtonGroup`), `tools` (a `ListToolbar`), default (the `DataTable` or board). No page title or lede above it. |
 | List toolbar | `ListToolbar` | GET search in this list (`q`, `keep` for other filters), `views` (table/Kanban/calendar links with icons), the filter pop-over (`filterClear` + fields in `slot="filters"`, `filterActive` count, `filterKeep` hidden fields; one GET form with Apply and Clear), then icon buttons (`ws-btn icon`) in the slot. |
 | Object square `.oi` | `ObjectIcon` | Used by the headers and related lists. |
@@ -29,7 +29,7 @@ Use these to match the boards ([UI-PARITY.md](../redesign/UI-PARITY.md)). Values
 | Record tabs `.rtabs` | `RecordTabs` | Links with `?tab=` (or any URL); the server renders the chosen panel. |
 | Related list `.rl` | `RelatedList` | `title`, `count`, `icon`, `tone`, `href` + `hrefLabel` ("View all" or "New"), header buttons in `slot="actions"`, `items=[{title, href, meta, fields}]` or rows (`ws-rl-row`) in the slot, `empty` (shown when `items` is empty or `count` is 0), `wide` (full row), `slot="foot"`. |
 | Path panel (LeadRecord, DealRecord) | `PathPanel` | `Path` + main action (`slot="action"`) + two columns for key fields and guidance (default slot). |
-| Activity feed | `Feed` | `items=[{title, meta, when, kind: note/task/event/warn}]`, `empty`. |
+| Activity feed | `Feed` | `items=[{title, meta, when, kind: note/task/event/warn}]`, `empty`. `when` follows `meta` on the second line, so titles use the full width. Name stages with `activitySummary(…, stageNames, playbookId)` so stage changes read as playbook labels (UI5-S4). |
 | Setup page (Settings) | `SetupFrame` | Header panel (`icon`, `eyebrow`, `title`, `tone`, `slot="badges"`, `slot="actions"`) with the blue `info` note, then panels. |
 | Sheet / dialog `.dlg` | `Sheet` (right) and `Dialog` (centred) | Create and edit open here, never inline. Give it an `id` and link to `#id`: it opens with no script and no round trip. Pass `open` to re-show it from the server (a form with errors) and `closeHref` back to the page. `action` makes body + foot one POST form (`method`, `enctype` for uploads); buttons go in `slot="foot"`. `wide` = 720 px, `width` any width. Escape and focus come from the shell. |
 | Form grid `.fgrid2` | `FormGrid` + `FormField` | `cols` 1–3 (one on phones). `FormField` has `label`, `for`, `required`, `hint`, `error`, `span`; the control in the slot gets the board's input look. |
@@ -59,6 +59,12 @@ Create actions in the header's + menu come from `createActions` in `nav.ts`. Whe
 ### Parity screenshots
 
 `node scripts/parity-shots.mjs Leads=/crm/leads "LeadRecord=/crm/leads/<id>" --seed` starts an isolated local Worker, signs in (dev-bypass admin, or `--as sales_executive` for a TEST member), adds TEST records with `--seed`, and writes `docs/redesign/parity/<Board>/{board-1440,app-vi-1440,app-en-1440,app-vi-390}.png`. Append `@<css selector>` to a path to click before the shot, and `#id` to open a sheet. Pass `--base http://127.0.0.1:<port> --persist <dir>` to reuse a Worker you already run.
+
+Other widths and the overflow check: `--widths 390,1280,1440,1920,2560,3840` shoots `/vi<path>` at each width as `app-vi-<w>.png` (wider than 1920 px is scaled to 1920 px), `--out <dir>` and `--no-board` write app-only folders (the wide set is in `docs/redesign/parity/wide/`), and `--check` exits 1 when the page scrolls sideways, the side navigation is wider than its 260 px column, or a `ButtonGroup` runs past its container. `--check --no-shots` only measures. Run it on any layout change.
+
+### Wide screens (UI5-S1)
+
+The page, side-nav frame and footer grow to `--ws-max` (2560 px) with `--ws-gut` gutters (24 px, 32 px from 1800 px, 40 px from 2400 px); the header rows line up with them. From 2400 px the body is zoomed by `--ws-z` (1.125; 1.25 from 3200 px). `zoom` also scales `vh`/`vw`, so a viewport-based limit is written `calc(100vh / var(--ws-z, 1) - 136px)`. Grids use `auto-fit`/`auto-fill` with a minimum, never a fixed column count, and sheets and dialogs keep their 560/720 px width.
 
 ## Example (round 1)
 
