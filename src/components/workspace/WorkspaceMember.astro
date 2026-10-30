@@ -8,7 +8,7 @@ import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
 import "../../styles/workspace-security.css";
 import RoleChecks from "./RoleChecks.astro";
 import DataTable from "./ui/DataTable.astro";
-import Head from "./security/Head.astro";
+import RecordHeader from "./ui/RecordHeader.astro";
 import { localized } from "../../lib/workspace/nav";
 import type { memberPage } from "../../lib/workspace/pages";
 import { accessErrors, auditActions, modulesFor } from "../../lib/workspace/access";
@@ -29,28 +29,28 @@ const opened = modulesFor(member.admin, member.roles);
 const editable = !member.admin && !self;
 const roles = member.admin ? roleLabel("admin", vi) : member.roles.map((role: Role) => roleLabel(role, vi)).join(", ") || "—";
 const count = security.passkeys.length;
+const highlights = [
+  { label: t("Roles", "Vai trò"), value: roles },
+  { label: t("Status", "Trạng thái"), value: statusText },
+  { label: "Passkey", value: count === 1 ? t("1 · no backup", "1 · thiếu dự phòng") : String(count), tone: count === 0 ? "bad" as const : count === 1 ? "warn" as const : undefined },
+  { label: t("Anti-phishing code", "Mã chống lừa đảo"), value: security.codeUpdated ? t("Set", "Đã đặt") : t("Not set", "Chưa đặt"), tone: security.codeUpdated ? undefined : "warn" as const },
+  { label: t("Last Workspace check", "Xác thực Workspace gần nhất"), value: security.lastCheck ? dateTime(security.lastCheck, vi) : t("Never", "Chưa có") },
+];
 const kind = (key: typeof security.passkeys[number]) => key.device_type === "multiDevice" || key.backed_up ? t("Synced passkey", "Passkey đồng bộ") : t("This device only", "Chỉ trên thiết bị");
 ---
 <WorkspaceShell title={name} lang={lang} user={user} module="admin" current="users">
   <div class="s4 s4-stack">
-    <Head vi={vi} crumbs={[{ label: t("Admin", "Quản trị"), href: base }, { label: t("Members", "Thành viên"), href: base }]} title={name}>
-      <p slot="meta" class="s4-meta ws-member-id"><span class="s4-avatar" aria-hidden="true" style="width:32px;height:32px;font-size:13px">{initials(name)}</span><span>{member.email}</span> · <span>{member.created_at ? t(`member since ${shortDate(member.created_at, vi)}`, `thành viên từ ${shortDate(member.created_at, vi)}`) : member.admin ? t("EmDash role", "Theo quyền EmDash") : ""}</span></p>
-      <Fragment slot="actions">{editable && <div class="s4-group"><a class="s4-btn" href="#roles">{t("Change roles", "Đổi vai trò")}</a>{member.enabled && <button class="s4-btn danger" type="submit" form="roles-form" name="enabled" value="0">{t("Revoke access", "Thu hồi quyền")}</button>}<a class="s4-btn" href={`${localized("/workspace/audit", vi)}?actor=${encodeURIComponent(member.user_id)}`}>{t("Audit log", "Nhật ký")}</a></div>}</Fragment>
-      <dl class="s4-hl">
-        <div><dt>{t("Roles", "Vai trò")}</dt><dd>{roles}</dd></div>
-        <div><dt>{t("Status", "Trạng thái")}</dt><dd>{statusText}</dd></div>
-        <div><dt>Passkey</dt><dd style={count === 1 ? "color:var(--s4-amber)" : count === 0 ? "color:var(--s4-red)" : undefined}>{count === 1 ? t("1 · no backup", "1 · thiếu dự phòng") : count}</dd></div>
-        <div><dt>{t("Anti-phishing code", "Mã chống lừa đảo")}</dt><dd>{security.codeUpdated ? t("Set", "Đã đặt") : t("Not set", "Chưa đặt")}</dd></div>
-        <div><dt>{t("Last Workspace check", "Xác thực Workspace gần nhất")}</dt><dd>{security.lastCheck ? dateTime(security.lastCheck, vi) : t("Never", "Chưa có")}</dd></div>
-      </dl>
-    </Head>
+    <RecordHeader vi={vi} highlights={highlights} icon="profile" tone="setup" object={t("Admin", "Quản trị")} crumbs={[{ label: t("Admin", "Quản trị"), href: base }, { label: t("Members", "Thành viên"), href: base }, { label: name }]} title={name}>
+      <p slot="sub" class="s4-meta ws-member-id"><span class="s4-avatar" aria-hidden="true" style="width:32px;height:32px;font-size:13px">{initials(name)}</span><span>{member.email}</span> · <span>{member.created_at ? t(`member since ${shortDate(member.created_at, vi)}`, `thành viên từ ${shortDate(member.created_at, vi)}`) : member.admin ? t("EmDash role", "Theo quyền EmDash") : ""}</span></p>
+      <Fragment slot="actions">{editable && <div class="ws-bg" role="group" aria-label={t("Actions", "Thao tác")}><a class="ws-btn" href="#roles">{t("Change roles", "Đổi vai trò")}</a>{member.enabled && <button class="ws-btn danger" type="submit" form="roles-form" name="enabled" value="0">{t("Revoke access", "Thu hồi quyền")}</button>}<a class="ws-btn" href={`${localized("/workspace/audit", vi)}?actor=${encodeURIComponent(member.user_id)}`}>{t("Audit log", "Nhật ký")}</a></div>}</Fragment>
+    </RecordHeader>
     {saved && <p class="crm-notice good" role="status">{t("Saved.", "Đã lưu.")}</p>}
     {error && <p class="crm-notice bad" role="alert">{accessErrors[error]?.[vi ? 1 : 0] ?? error}</p>}
-    {count < 2 && member.enabled && <section class="s4-panel s4-banner warn"><div class="s4-ph"><p><span class="s4-badge warn dot">{t("Needs attention", "Cần xử lý")}</span> {count === 0
+    {count < 2 && member.enabled && <section class="s4-panel s4-banner warn"><div class="s4-ph"><p><span class="ws-badge warn">{t("Needs attention", "Cần xử lý")}</span> {count === 0
       ? t(`${name} has no passkey yet; the Workspace asks for one at the next visit.`, `${name} chưa có passkey; Workspace sẽ yêu cầu ở lần vào kế tiếp.`)
       : t(`${name} has a single passkey. If that device is lost, the account needs a recovery by another admin. Ask them to add a second passkey in My account › Security.`, `${name} chỉ có 1 passkey. Nếu mất máy này, tài khoản phải được admin khác khôi phục. Hãy nhắc họ thêm passkey thứ hai trong Tài khoản của tôi › Bảo mật.`)}</p>
-      {!self && <a class="s4-btn" href={`${localized("/workspace/security", vi)}?recover=${encodeURIComponent(member.user_id)}`}>{t("Open recovery", "Mở khôi phục")}</a>}</div></section>}
-    {member.sellerTermsMissing && <section class="s4-panel s4-banner warn"><div class="s4-ph"><p>{t("This partner earns commission only once their seller terms (full-cycle or referral) are declared.", "Cộng tác viên này chỉ được tính hoa hồng sau khi khai báo loại người bán (bán trọn hoặc giới thiệu).")}</p><a class="s4-btn" href={localized("/crm/commission#terms", vi)}>{t("Declare on Commission", "Khai báo ở trang Hoa hồng")}</a></div></section>}
+      {!self && <a class="ws-btn" href={`${localized("/workspace/security", vi)}?recover=${encodeURIComponent(member.user_id)}`}>{t("Open recovery", "Mở khôi phục")}</a>}</div></section>}
+    {member.sellerTermsMissing && <section class="s4-panel s4-banner warn"><div class="s4-ph"><p>{t("This partner earns commission only once their seller terms (full-cycle or referral) are declared.", "Cộng tác viên này chỉ được tính hoa hồng sau khi khai báo loại người bán (bán trọn hoặc giới thiệu).")}</p><a class="ws-btn" href={localized("/crm/commission#terms", vi)}>{t("Declare on Commission", "Khai báo ở trang Hoa hồng")}</a></div></section>}
 
     <div class="s4-split">
       <section class="s4-panel" aria-labelledby="info-h">
@@ -65,7 +65,7 @@ const kind = (key: typeof security.passkeys[number]) => key.device_type === "mul
       <section class="s4-panel" aria-labelledby="perm-h">
         <div class="s4-ph"><h2 id="perm-h">{t("Roles and permissions", "Vai trò và quyền")}</h2></div>
         <div class="s4-pb"><dl class="s4-facts">
-          <div><dt>{t("Roles", "Vai trò")}</dt><dd>{roles} · <a class="s4-btn link" href={localized("/workspace/roles", vi)}>{t("see what roles allow", "xem quyền của vai trò")}</a></dd></div>
+          <div><dt>{t("Roles", "Vai trò")}</dt><dd>{roles} · <a class="crm-link" href={localized("/workspace/roles", vi)}>{t("see what roles allow", "xem quyền của vai trò")}</a></dd></div>
           <div><dt>{t("Anti-phishing code", "Mã chống lừa đảo")}</dt><dd>{security.codeUpdated ? t(`Set · last changed ${shortDate(security.codeUpdated, vi)}`, `Đã đặt · đổi lần cuối ${shortDate(security.codeUpdated, vi)}`) : t("Not set", "Chưa đặt")}</dd></div>
           <div style="grid-column:1/-1"><dt>{t("Modules this person can open", "Phân hệ được dùng")}</dt><dd>{opened.length && member.enabled ? opened.map((module) => vi ? module.vi : module.en).join(" · ") : t("None while access is revoked.", "Không có, vì quyền đang bị thu hồi.")}</dd></div>
         </dl></div>
@@ -85,7 +85,7 @@ const kind = (key: typeof security.passkeys[number]) => key.device_type === "mul
 
     <div class="s4-split">
       <section class="s4-panel" aria-labelledby="ag-h">
-        <div class="s4-ph"><h2 id="ag-h">{t(`AI agents (${security.tokens.length})`, `AI agent (${security.tokens.length})`)}</h2><a class="s4-btn sm" href={localized("/workspace/agents", vi)}>{t("Agent policy", "Xem chính sách agent")}</a></div>
+        <div class="s4-ph"><h2 id="ag-h">{t(`AI agents (${security.tokens.length})`, `AI agent (${security.tokens.length})`)}</h2><a class="ws-btn sm" href={localized("/workspace/agents", vi)}>{t("Agent policy", "Xem chính sách agent")}</a></div>
         {security.tokens.length
           ? <DataTable vi={vi} label={t("AI agents", "AI agent")} minWidth="420px">
               <thead><tr><th scope="col">Agent</th><th scope="col">{t("Access", "Quyền")}</th><th scope="col">{t("Last call", "Gọi gần nhất")}</th></tr></thead>
@@ -95,9 +95,9 @@ const kind = (key: typeof security.passkeys[number]) => key.device_type === "mul
         <p class="s4-note"><span>{t("Revoke a token on Admin › AI agents (needs your passkey).", "Thu hồi token ở Quản trị › AI agent (cần passkey của bạn).")}</span></p>
       </section>
       <section class="s4-panel" aria-labelledby="act-h">
-        <div class="s4-ph"><h2 id="act-h">{t("Recent activity", "Hoạt động gần đây")}</h2><a class="s4-btn sm" href={`${localized("/workspace/audit", vi)}?actor=${encodeURIComponent(member.user_id)}`}>{t("Open the audit log", "Mở Nhật ký kiểm toán")}</a></div>
+        <div class="s4-ph"><h2 id="act-h">{t("Recent activity", "Hoạt động gần đây")}</h2><a class="ws-btn sm" href={`${localized("/workspace/audit", vi)}?actor=${encodeURIComponent(member.user_id)}`}>{t("Open the audit log", "Mở Nhật ký kiểm toán")}</a></div>
         {security.activity.length
-          ? <ol class="s4-timeline">{security.activity.map((row) => <li><time datetime={row.created_at}>{dateTime(row.created_at, vi)}</time><a class="s4-btn link" href={`${localized("/workspace/audit", vi)}/${encodeURIComponent(row.id)}`}>{actionLabel(row.action, vi)}</a></li>)}</ol>
+          ? <ol class="s4-timeline">{security.activity.map((row) => <li><time datetime={row.created_at}>{dateTime(row.created_at, vi)}</time><a class="crm-link" href={`${localized("/workspace/audit", vi)}/${encodeURIComponent(row.id)}`}>{actionLabel(row.action, vi)}</a></li>)}</ol>
           : <p class="s4-empty">{t("No recorded activity yet.", "Chưa có hoạt động được ghi.")}</p>}
       </section>
     </div>
@@ -110,8 +110,8 @@ const kind = (key: typeof security.passkeys[number]) => key.device_type === "mul
             <input type="hidden" name="intent" value="update" /><input type="hidden" name="user_id" value={member.user_id} />
             <RoleChecks vi={vi} checked={member.roles} disabled={!editable} idPrefix="role" />
           </form></div>
-          {editable && <p class="s4-note"><span class="s4-actions"><button class="s4-btn primary" type="submit" form="roles-form" name="enabled" value="1">{member.enabled ? t("Save roles", "Lưu vai trò") : t("Restore with these roles", "Khôi phục với các vai trò này")}</button>
-            {member.enabled && <button class="s4-btn danger" type="submit" form="roles-form" name="enabled" value="0">{t("Revoke access", "Thu hồi quyền")}</button>}</span>
+          {editable && <p class="s4-note"><span class="s4-actions"><button class="ws-btn primary" type="submit" form="roles-form" name="enabled" value="1">{member.enabled ? t("Save roles", "Lưu vai trò") : t("Restore with these roles", "Khôi phục với các vai trò này")}</button>
+            {member.enabled && <button class="ws-btn danger" type="submit" form="roles-form" name="enabled" value="0">{t("Revoke access", "Thu hồi quyền")}</button>}</span>
             <span>{t("Revoking keeps the roles on record so access can be restored, and ends this person's API tokens.", "Thu hồi vẫn giữ vai trò để có thể khôi phục, và chấm dứt các token API của người này.")}</span></p>}
         </section>}
 

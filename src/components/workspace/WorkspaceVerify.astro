@@ -45,12 +45,12 @@ const title = enrol ? t("Create a passkey", "Tạo passkey") : reason === "sessi
       <section class="s4-card" aria-labelledby="enrol-h">
         <h1 id="enrol-h">{recoveryUntil && passkeys.length ? t("Create a new passkey", "Tạo passkey mới") : t("Create a passkey to continue", "Tạo passkey để tiếp tục")}</h1>
         <p>{t("Every Lumi Workspace account needs a passkey. It stays on your device and opens with Face ID, a fingerprint or your screen lock. Lumi never stores the private key, so a fake email cannot steal it.", "Mọi tài khoản Lumi Workspace phải có passkey. Passkey nằm trên thiết bị của bạn và mở bằng Face ID, vân tay hoặc mã khóa máy. Lumi không lưu khóa bí mật, nên kẻ gian không lấy được bằng email giả.")}</p>
-        {recoveryUntil && passkeys.length > 0 && <p class="s4-badge warn" style="align-self:flex-start">{t(`Recovery open until ${when(recoveryUntil)}`, `Đang mở khôi phục đến ${when(recoveryUntil)}`)}</p>}
+        {recoveryUntil && passkeys.length > 0 && <p class="ws-badge warn" style="align-self:flex-start">{t(`Recovery open until ${when(recoveryUntil)}`, `Đang mở khôi phục đến ${when(recoveryUntil)}`)}</p>}
         <form class="s4-stack" method="post" data-passkey="enrol" data-created="[data-passkey-created]" {...enrolMessages} style="gap:16px">
           <div class="s4-device"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true" style="color:var(--s4-accent)"><rect x="3" y="4" width="18" height="12" rx="2"></rect><path d="M8 20h8M12 16v4"></path></svg>
             <div><strong>{t("This device", "Thiết bị này")}</strong><span data-device>{t("Your browser asks which passkey provider to use.", "Trình duyệt sẽ hỏi lưu passkey ở đâu.")}</span></div></div>
           <div class="s4-field"><label for="passkey_name">{t("Name for this passkey", "Tên passkey")}</label><input class="s4-in" id="passkey_name" name="passkey_name" maxlength="80" autocomplete="off" placeholder={t("e.g. Work laptop", "Ví dụ: Laptop công ty")} /></div>
-          <button class="s4-btn primary lg block" type="submit">{t("Create a passkey on this device", "Tạo passkey trên thiết bị này")}</button>
+          <button class="ws-btn primary s4-lg s4-block" type="submit">{t("Create a passkey on this device", "Tạo passkey trên thiết bị này")}</button>
           <p class="s4-hint">{t("To keep the passkey on your phone instead, choose \"Use a phone or tablet\" in the browser's dialog and scan the QR code.", "Muốn lưu passkey trên điện thoại, chọn \"Dùng điện thoại hoặc máy tính bảng\" trong hộp thoại của trình duyệt rồi quét mã QR.")}</p>
           <p class="s4-live" data-passkey-status role="status" aria-live="polite" hidden></p>
           <noscript><p class="s4-error">{t("Passkeys need JavaScript. Turn it on for runlumi.app and reload.", "Passkey cần JavaScript. Hãy bật cho runlumi.app rồi tải lại trang.")}</p></noscript>
@@ -58,14 +58,14 @@ const title = enrol ? t("Create a passkey", "Tạo passkey") : reason === "sessi
         <p class="s4-hint">{t("You can add passkeys for other devices in My account › Security. Without a passkey the Workspace stays closed.", "Bạn thêm được passkey cho máy khác trong Tài khoản của tôi › Bảo mật. Chưa tạo passkey thì chưa vào được Lumi Workspace.")}</p>
       </section>
       <section class="s4-card" aria-labelledby="created-h" data-passkey-created hidden>
-        <p class="s4-auth-h" id="created-h" style="display:flex;gap:10px;align-items:center;font-size:18px"><span class="s4-badge good" aria-hidden="true">✓</span>{t("Passkey created", "Đã tạo passkey")}</p>
+        <p class="s4-auth-h" id="created-h" style="display:flex;gap:10px;align-items:center;font-size:18px"><span class="ws-badge ok" aria-hidden="true">✓</span>{t("Passkey created", "Đã tạo passkey")}</p>
         <dl class="s4-facts" style="grid-template-columns:1fr"><div><dt>{t("Created at", "Tạo lúc")}</dt><dd data-created-at></dd></div></dl>
         <form class="s4-stack" data-passkey-rename data-id="" data-msg-done={t("Name saved.", "Đã lưu tên.")} data-msg-failed={t("The name was not saved.", "Chưa lưu được tên.")}>
           <div class="s4-field"><label for="created_name">{t("Rename the passkey", "Đổi tên passkey")}</label><input class="s4-in" id="created_name" name="name" maxlength="80" required autocomplete="off" /></div>
-          <div class="s4-actions"><button class="s4-btn sm" type="submit">{t("Save name", "Lưu tên")}</button></div>
+          <div class="s4-actions"><button class="ws-btn sm" type="submit">{t("Save name", "Lưu tên")}</button></div>
           <p class="s4-live" data-passkey-status role="status" aria-live="polite" hidden></p>
         </form>
-        <a class="s4-btn primary block" href={next}>{t("Next: set your anti-phishing code", "Tiếp: đặt mã chống lừa đảo")}</a>
+        <a class="ws-btn primary s4-block" href={next}>{t("Next: set your anti-phishing code", "Tiếp: đặt mã chống lừa đảo")}</a>
       </section>
     </div>
   </div></div>}
@@ -75,14 +75,14 @@ const title = enrol ? t("Create a passkey", "Tạo passkey") : reason === "sessi
       <Brand />
       <h1 id="verify-h">{t("Verify with your passkey", "Xác thực bằng passkey")}</h1>
       {sessionVerified
-        ? <><p>{t("This session is already verified.", "Phiên này đã được xác thực.")}</p><a class="s4-btn primary lg block" href={next}>{t("Continue", "Tiếp tục")}</a></>
+        ? <><p>{t("This session is already verified.", "Phiên này đã được xác thực.")}</p><a class="ws-btn primary s4-lg s4-block" href={next}>{t("Continue", "Tiếp tục")}</a></>
         : <><p>{t("You signed in with a link, so the Workspace asks for one passkey check. It lasts for this session, up to 12 hours.", "Bạn đăng nhập bằng link, nên Workspace cần một lần xác thực passkey. Lần xác thực có hiệu lực trong phiên này, tối đa 12 giờ.")}</p>
           <form class="s4-stack" method="post" data-passkey="verify" data-purpose="session" data-next={next} {...messages} style="gap:12px">
-            <button class="s4-btn primary lg block" type="submit">{t("Verify with passkey", "Xác thực bằng passkey")}</button>
+            <button class="ws-btn primary s4-lg s4-block" type="submit">{t("Verify with passkey", "Xác thực bằng passkey")}</button>
             <p class="s4-live" data-passkey-status role="status" aria-live="polite" hidden></p>
             <noscript><p class="s4-error">{t("Passkeys need JavaScript. Turn it on for runlumi.app and reload.", "Passkey cần JavaScript. Hãy bật cho runlumi.app rồi tải lại trang.")}</p></noscript>
           </form>
-          <p class="s4-center"><a class="s4-btn link" href={local("/workspace/recovery")}>{t("Lost the device with your passkey? Recover your account", "Mất thiết bị có passkey? Khôi phục tài khoản")}</a></p></>}
+          <p class="s4-center"><a class="crm-link" href={local("/workspace/recovery")}>{t("Lost the device with your passkey? Recover your account", "Mất thiết bị có passkey? Khôi phục tài khoản")}</a></p></>}
     </section>
   </div>}
 
@@ -103,10 +103,10 @@ const title = enrol ? t("Create a passkey", "Tạo passkey") : reason === "sessi
         <p class="s4-live" data-passkey-status role="status" aria-live="polite" hidden></p>
       </div>
       <form class="s4-dlg-f" method="post" data-passkey="verify" data-purpose="step_up" data-next={next} {...messages}>
-        <a class="s4-btn" href={next}>{stepUpSeconds > 0 ? t("Continue", "Tiếp tục") : t("Cancel", "Hủy")}</a>
+        <a class="ws-btn" href={next}>{stepUpSeconds > 0 ? t("Continue", "Tiếp tục") : t("Cancel", "Hủy")}</a>
         {passkeys.length > 0
-          ? <button class="s4-btn primary" type="submit">{t("Verify with passkey", "Xác thực bằng passkey")}</button>
-          : <a class="s4-btn primary" href={local("/workspace/account/security")}>{t("Create a passkey", "Tạo passkey")}</a>}
+          ? <button class="ws-btn primary" type="submit">{t("Verify with passkey", "Xác thực bằng passkey")}</button>
+          : <a class="ws-btn primary" href={local("/workspace/account/security")}>{t("Create a passkey", "Tạo passkey")}</a>}
       </form>
       <noscript><p class="s4-error" style="padding:0 24px 16px">{t("Passkeys need JavaScript. Turn it on for runlumi.app and reload.", "Passkey cần JavaScript. Hãy bật cho runlumi.app rồi tải lại trang.")}</p></noscript>
     </section>

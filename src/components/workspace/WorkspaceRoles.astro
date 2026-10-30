@@ -5,7 +5,7 @@
 // "Create role" and "Copy role" are not offered.
 import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
 import "../../styles/workspace-security.css";
-import Head from "./security/Head.astro";
+import RecordHeader from "./ui/RecordHeader.astro";
 import DataTable from "./ui/DataTable.astro";
 import { localized } from "../../lib/workspace/nav";
 import type { rolesPage } from "../../lib/workspace/pages";
@@ -29,10 +29,10 @@ const stepUp = new Set<Permission>(["users.manage", "hiring.export", "hiring.app
 ---
 <WorkspaceShell title={title} lang={lang} user={user} module="admin" current="roles">
   <div class="s4 s4-stack">
-    <Head vi={vi} crumbs={[{ label: t("Admin", "Quản trị"), href: localized("/workspace/users", vi) }]} title={title}
-      desc={t("A person can hold several roles and gets every permission of each. Pages, APIs and queries check permissions, never role names. An AI agent never exceeds the access of the person who connected it. Changing someone's roles needs your passkey.", "Một người có thể giữ nhiều vai trò và có mọi quyền của từng vai trò. Trang, API và truy vấn đều kiểm tra quyền, không kiểm tra tên vai trò. Quyền của AI agent không bao giờ vượt quyền của người kết nối nó. Đổi vai trò của ai đó phải xác thực lại.")}>
-      <Fragment slot="actions"><a class="s4-btn" href={localized("/workspace/users", vi)}>{t("Members", "Thành viên")}</a></Fragment>
-    </Head>
+    <RecordHeader vi={vi} icon="roles" tone="setup" object={t("Admin", "Quản trị")} crumbs={[{ label: t("Admin", "Quản trị"), href: localized("/workspace/users", vi) }, { label: title }]} title={title}>
+      <p slot="sub" class="s4-desc">{t("A person can hold several roles and gets every permission of each. Pages, APIs and queries check permissions, never role names. An AI agent never exceeds the access of the person who connected it. Changing someone's roles needs your passkey.", "Một người có thể giữ nhiều vai trò và có mọi quyền của từng vai trò. Trang, API và truy vấn đều kiểm tra quyền, không kiểm tra tên vai trò. Quyền của AI agent không bao giờ vượt quyền của người kết nối nó. Đổi vai trò của ai đó phải xác thực lại.")}</p>
+      <Fragment slot="actions"><a class="ws-btn" href={localized("/workspace/users", vi)}>{t("Members", "Thành viên")}</a></Fragment>
+    </RecordHeader>
     <section class="s4-panel" aria-labelledby="rl-h">
       <div class="s4-ph"><h2 id="rl-h">{t("Roles", "Vai trò")}</h2></div>
       <DataTable vi={vi} label={t("Roles and what they allow", "Vai trò và phạm vi")} frozen={1} widths={["15rem"]} frozenNames={t("Role", "Vai trò")} minWidth="760px">

@@ -5,8 +5,8 @@
 // record; the CSV export needs step-up.
 import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
 import "../../styles/workspace-security.css";
-import Chips from "./security/Chips.astro";
-import Head from "./security/Head.astro";
+import DataTable from "./ui/DataTable.astro";
+import RecordHeader from "./ui/RecordHeader.astro";
 import { localized } from "../../lib/workspace/nav";
 import { type AuditFilters, actionLabel, auditKindOf, filterQuery, moduleLabels } from "../../lib/workspace/audit-log";
 import type { AuditListData } from "../../lib/workspace/audit-pages";
@@ -23,7 +23,7 @@ const chips: { kind: AuditFilters["kind"]; label: string }[] = [
 ];
 const kinds: Record<string, [string, string]> = { security: ["Security", "Bảo mật"], access: ["Access and settings", "Quyền và cài đặt"], data: ["Data", "Dữ liệu"], agent: ["AI agent", "AI agent"], other: ["Activity", "Hoạt động"] };
 const via: Record<string, [string, string]> = { web: ["Web", "Web"], api: ["API", "API"], mcp: ["AI agent (MCP)", "AI agent (MCP)"], system: ["System", "Hệ thống"] };
-const outcome: Record<string, [string, string, string]> = { success: ["Success", "Thành công", "good"], denied: ["Denied", "Bị từ chối", "bad"], failed: ["Failed", "Lỗi", "warn"] };
+const outcome: Record<string, [string, string, string]> = { success: ["Success", "Thành công", "ok"], denied: ["Denied", "Bị từ chối", "bad"], failed: ["Failed", "Lỗi", "warn"] };
 const label = (pair: [string, string] | undefined, fallback: string) => pair?.[vi ? 1 : 0] ?? fallback;
 const exportQuery = filterQuery(filters, { cursor: "" });
 const exportHref = `/api/workspace/audit/export.csv${exportQuery}${exportQuery ? "&" : "?"}lang=${lang}`;
@@ -39,11 +39,11 @@ const filtered = !!(filters.actor || filters.module || filters.outcome || filter
 ---
 <WorkspaceShell title={t("Audit log", "Nhật ký kiểm toán")} lang={lang} user={user} module="admin" current="audit">
   <div class="s4 s4-stack">
-    <Head vi={vi} crumbs={[{ label: t("Admin", "Quản trị"), href: localized("/workspace/users", vi) }]} title={t("Audit log", "Nhật ký kiểm toán")}
-      desc={t("Append-only: nobody can change or delete an event, including the owner. Only System Super Admins open this page.", "Chỉ ghi thêm: không ai sửa hay xóa được sự kiện, kể cả chủ sở hữu tổ chức. Chỉ Siêu quản trị hệ thống xem được trang này.")}>
-      <Fragment slot="actions"><a class="s4-btn" href={exportHref}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 018 0v4"></path></svg>{t("Export CSV", "Xuất CSV")}</a></Fragment>
+    <RecordHeader vi={vi} icon="history" tone="setup" object={t("Admin", "Quản trị")} crumbs={[{ label: t("Admin", "Quản trị"), href: localized("/workspace/users", vi) }, { label: t("Audit log", "Nhật ký kiểm toán") }]} title={t("Audit log", "Nhật ký kiểm toán")}>
+      <p slot="sub" class="s4-desc">{t("Append-only: nobody can change or delete an event, including the owner. Only System Super Admins open this page.", "Chỉ ghi thêm: không ai sửa hay xóa được sự kiện, kể cả chủ sở hữu tổ chức. Chỉ Siêu quản trị hệ thống xem được trang này.")}</p>
+      <Fragment slot="actions"><a class="ws-btn" href={exportHref}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 018 0v4"></path></svg>{t("Export CSV", "Xuất CSV")}</a></Fragment>
       <div class="s4-pb">
-        <Chips vi={vi} items={chips.map((chip) => ({ label: chip.label, href: `${base}${filterQuery(filters, { kind: chip.kind, cursor: "" })}`, on: filters.kind === chip.kind }))} />
+        <ul class="ws-chips" aria-label={t("Quick filters", "Lọc nhanh")}><li class="s4-qf">{t("Quick filters", "Lọc nhanh")}</li>{(chips.map((chip) => ({ label: chip.label, href: `${base}${filterQuery(filters, { kind: chip.kind, cursor: "" })}`, on: filters.kind === chip.kind }))).map((item) => <li><a href={item.href} aria-current={item.on ? "true" : undefined}>{item.label}</a></li>)}</ul>
         <form class="s4-grid2" method="get" role="search" aria-label={t("Filter events", "Lọc sự kiện")} style="grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));align-items:end">
           {filters.kind && <input type="hidden" name="kind" value={filters.kind} />}
           <div class="s4-field"><label for="a-from">{t("From", "Từ ngày")}</label><input class="s4-in" id="a-from" name="from" type="date" value={filters.from} /></div>
@@ -53,27 +53,27 @@ const filtered = !!(filters.actor || filters.module || filters.outcome || filter
           <div class="s4-field"><label for="a-outcome">{t("Outcome", "Kết quả")}</label><select class="s4-in" id="a-outcome" name="outcome"><option value="">{t("All", "Tất cả")}</option>{Object.entries(outcome).map(([key, names]) => <option value={key} selected={filters.outcome === key}>{names[vi ? 1 : 0]}</option>)}</select></div>
           {finance && <div class="s4-field"><label for="a-source">{t("Source", "Nguồn")}</label><select class="s4-in" id="a-source" name="source"><option value="all">{t("All", "Tất cả")}</option><option value="workspace" selected={filters.source === "workspace"}>Workspace</option><option value="finance" selected={filters.source === "finance"}>{t("Finance", "Tài chính")}</option></select></div>}
           <div class="s4-field"><label for="a-q">{t("Action or name", "Hành động hoặc tên")}</label><input class="s4-in" id="a-q" name="q" type="search" maxlength="80" value={filters.q} /></div>
-          <div class="s4-actions"><button class="s4-btn" type="submit">{t("Apply", "Lọc")}</button>{filtered && <a class="s4-btn link" href={base}>{t("Clear", "Xóa lọc")}</a>}</div>
+          <div class="s4-actions"><button class="ws-btn" type="submit">{t("Apply", "Lọc")}</button>{filtered && <a class="crm-link" href={base}>{t("Clear", "Xóa lọc")}</a>}</div>
         </form>
       </div>
-    </Head>
+    </RecordHeader>
 
     <section class="s4-panel" aria-label={t("Events", "Sự kiện")}>
       <div class="s4-lvbar"><p>{t(`${rows.length}${next ? "+" : ""} events · newest first · select a time to open the event`, `${rows.length}${next ? "+" : ""} sự kiện · mới nhất trước · bấm thời gian để xem chi tiết`)}</p></div>
       {rows.length
-        ? <div class="s4-tw"><table class="s4-tbl wide" style="--s4-fz:150px">
-            <thead><tr><th scope="col" class="fz" style="min-width:150px">{t("Time", "Thời gian")}</th><th scope="col" class="fz2">{t("Who", "Người thực hiện")}</th><th scope="col">{t("Via", "Qua")}</th><th scope="col">Module</th><th scope="col">{t("Kind", "Loại sự kiện")}</th><th scope="col">{t("Action", "Hành động")}</th><th scope="col">{t("Detail", "Chi tiết")}</th><th scope="col">{t("Outcome", "Kết quả")}</th></tr></thead>
+        ? <DataTable vi={vi} label={t("Audit events", "Sự kiện kiểm toán")} frozen={2} minWidth="1100px">
+            <thead><tr><th scope="col">{t("Time", "Thời gian")}</th><th scope="col">{t("Who", "Người thực hiện")}</th><th scope="col">{t("Via", "Qua")}</th><th scope="col">Module</th><th scope="col">{t("Kind", "Loại sự kiện")}</th><th scope="col">{t("Action", "Hành động")}</th><th scope="col">{t("Detail", "Chi tiết")}</th><th scope="col">{t("Outcome", "Kết quả")}</th></tr></thead>
             <tbody>{rows.map((row) => { const [en, viText, tone] = outcome[row.outcome] ?? [row.outcome, row.outcome, ""]; return <tr>
-              <td class="fz" style="min-width:150px"><a href={`${base}/${encodeURIComponent(row.id)}`}>{dateTime(row.created_at, vi)}</a></td>
-              <td class="fz2"><strong>{names[row.actor_id] ?? row.actor_name}</strong></td>
+              <td><a href={`${base}/${encodeURIComponent(row.id)}`}>{dateTime(row.created_at, vi)}</a></td>
+              <td><strong>{names[row.actor_id] ?? row.actor_name}</strong></td>
               <td>{label(via[row.via], row.via)}</td><td>{label(moduleLabels[row.module], row.module)}</td><td>{label(kinds[auditKindOf(row)], "")}</td>
               <td>{actionLabel(row.action, vi)}</td><td>{summary(row) || "—"}</td>
-              <td><span class:list={["s4-badge", tone]}>{vi ? viText : en}</span></td>
+              <td><span class:list={["ws-badge", tone]}>{vi ? viText : en}</span></td>
             </tr>; })}</tbody>
-          </table></div>
+          </DataTable>
         : <p class="s4-empty">{t("No events match these filters.", "Không có sự kiện khớp bộ lọc.")}</p>}
       <p class="s4-note"><span>{t("Time and Who stay in place when you scroll sideways.", "Cột Thời gian và Người thực hiện cố định khi cuộn ngang.")}{!finance && ` ${t("Finance history appears once Finance is set up and on.", "Lịch sử Tài chính hiện khi Tài chính đã thiết lập và bật.")}`}</span>
-        <span class="s4-actions">{filters.cursor && <a class="s4-btn sm" href={`${base}${filterQuery(filters, { cursor: "" })}`}>{t("Newest", "Mới nhất")}</a>}{next && <a class="s4-btn sm" href={`${base}${filterQuery(filters, { cursor: next })}`}>{t("Older events", "Sự kiện cũ hơn")}</a>}</span></p>
+        <span class="s4-actions">{filters.cursor && <a class="ws-btn sm" href={`${base}${filterQuery(filters, { cursor: "" })}`}>{t("Newest", "Mới nhất")}</a>}{next && <a class="ws-btn sm" href={`${base}${filterQuery(filters, { cursor: next })}`}>{t("Older events", "Sự kiện cũ hơn")}</a>}</span></p>
     </section>
   </div>
 </WorkspaceShell>

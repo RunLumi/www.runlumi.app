@@ -5,7 +5,8 @@
 // and Cancel / Allow with passkey. The secret is shown once after creating.
 import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
 import "../../styles/workspace-security.css";
-import Head from "./security/Head.astro";
+import DataTable from "./ui/DataTable.astro";
+import Breadcrumbs from "./ui/Breadcrumbs.astro";
 import { localized } from "../../lib/workspace/nav";
 import type { AgentConnectData } from "../../lib/workspace/agent-connect";
 import { excludedModules } from "../../lib/workspace/agents";
@@ -25,18 +26,18 @@ const excludedNames: Record<string, string> = { hiring: t("Hiring", "Tuyển d�
 ---
 <WorkspaceShell title={t("Connect an AI agent", "Kết nối AI agent")} lang={lang} user={user} module="account" current="security">
   <div class="s4 s4-stack" style="max-width:780px;margin-inline:auto">
-    <nav class="ws-crumbs s4-crumbs" aria-label={t("Breadcrumbs", "Đường dẫn")}><ol><li><a href={localized("/workspace/account", vi)}>{t("My account", "Tài khoản của tôi")}</a></li><li><a href={back}>{t("Security", "Bảo mật")}</a></li><li><span aria-current="page">{t("Connect an AI agent", "Kết nối AI agent")}</span></li></ol></nav>
+    <Breadcrumbs vi={vi} items={[{ label: t("My account", "Tài khoản của tôi"), href: localized("/workspace/account", vi) }, { label: t("Security", "Bảo mật"), href: back }, { label: t("Connect an AI agent", "Kết nối AI agent") }]} />
     {secret
       ? <section class="s4-panel" aria-labelledby="done-h"><div class="s4-pb" style="padding-top:20px">
           <h1 class="s4-title" id="done-h">{t("Agent connected", "Đã kết nối agent")}</h1>
           <p>{t("Copy this token into your agent's MCP settings now. It is shown only once; Lumi keeps only its hash.", "Chép token này vào cài đặt MCP của agent ngay. Token chỉ hiện một lần; Lumi chỉ lưu bản băm.")}</p>
           <p><code class="s4-code" style="display:block;padding:10px;font-size:14px" data-token>{secret}</code></p>
           <dl class="s4-facts"><div><dt>{t("MCP server address", "Địa chỉ MCP server")}</dt><dd><code class="s4-code">https://runlumi.app/api/crm/mcp</code></dd></div><div><dt>{t("Header", "Header")}</dt><dd><code class="s4-code">Authorization: Bearer …</code></dd></div></dl>
-          <p class="s4-actions"><a class="s4-btn primary" href={back}>{t("Back to Security", "Về Bảo mật")}</a></p>
+          <p class="s4-actions"><a class="ws-btn primary" href={back}>{t("Back to Security", "Về Bảo mật")}</a></p>
         </div></section>
       : <form class="s4-stack" method="post">
           <input type="hidden" name="request_key" value={crypto.randomUUID()} />
-          <section class="s4-panel"><div class="s4-head"><div>
+          <section class="s4-panel"><div class="s4-pb" style="padding-top:18px">
             <div style="display:flex;gap:16px;align-items:center"><span class="s4-avatar" aria-hidden="true" style="background:#102A43;border-radius:10px">AI</span><span aria-hidden="true" style="width:28px;height:2px;background:var(--s4-line)"></span><span class="s4-logo" aria-hidden="true" style="width:48px;height:48px;font-size:20px;border-radius:10px">L</span>
               <div><h1 class="s4-title">{t("Let an AI agent use Lumi Workspace for you", "Cho AI agent dùng Lumi Workspace thay bạn")}</h1>
                 <p class="s4-meta">{t(`Signed in as ${user.email}`, `Đăng nhập là ${user.email}`)} · <span class="ws-avatar" aria-hidden="true">{initials(user.name)}</span></p></div></div>
@@ -47,17 +48,17 @@ const excludedNames: Record<string, string> = { hiring: t("Hiring", "Tuyển d�
                 <label><input type="radio" name="scope" value="read" checked={asked === "read"} /><span>{level.read}</span></label><label><input type="radio" name="scope" value="write" checked={asked === "write"} /><span>{level.write}</span></label></fieldset></div>
               <div class="s4-field"><label for="ag-days">{t("Expires after", "Hết hạn sau")}</label><select class="s4-in" id="ag-days" name="days">{lifetimes.map((days) => <option value={days} selected={String(days) === typed.days}>{t(`${days} days`, `${days} ngày`)}</option>)}</select></div>
             </div>
-          </div></div></section>
+          </div></section>
 
           <section class="s4-panel" aria-labelledby="gets-h">
             <div class="s4-ph"><h2 id="gets-h">{t("The agent receives", "Agent sẽ nhận")}</h2><span class="s4-aside">{t("Limited by your organisation's policy", "Giới hạn theo chính sách của tổ chức")}</span></div>
-            <div class="s4-tw"><table class="s4-tbl">
+            <DataTable vi={vi} label={t("The agent receives", "Agent sẽ nhận")}>
               <thead><tr><th scope="col">Module</th><th scope="col">{t("Agent asks", "Agent xin")}</th><th scope="col">{t("Agent gets", "Agent nhận")}</th></tr></thead>
               <tbody>
-                {(["crm", "workspace"] as const).map((module) => { const got = granted(module, module === "workspace" ? "read" : asked); return <tr><td><strong>{moduleNames[module][0]}</strong><span class="sub">{moduleNames[module][1]}</span></td><td>{module === "workspace" ? level.read : level[asked]}</td><td><span class:list={["s4-badge", got === "off" ? "" : "good"]}>{level[got]}</span></td></tr>; })}
-                {excludedModules.map((module) => <tr><td><strong>{excludedNames[module.key] ?? module.key}</strong></td><td>—</td><td><span class="s4-badge">{t("Never", "Không bao giờ")}</span></td></tr>)}
+                {(["crm", "workspace"] as const).map((module) => { const got = granted(module, module === "workspace" ? "read" : asked); return <tr><td><strong>{moduleNames[module][0]}</strong><span class="sub">{moduleNames[module][1]}</span></td><td>{module === "workspace" ? level.read : level[asked]}</td><td><span class:list={["ws-badge", got === "off" ? "" : "ok"]}>{level[got]}</span></td></tr>; })}
+                {excludedModules.map((module) => <tr><td><strong>{excludedNames[module.key] ?? module.key}</strong></td><td>—</td><td><span class="ws-badge">{t("Never", "Không bao giờ")}</span></td></tr>)}
               </tbody>
-            </table></div>
+            </DataTable>
             <p class="s4-note"><span>{t("To give agents more, ask an admin to change the level on Admin › AI agents. An agent cannot ask for more access itself.", "Muốn agent dùng nhiều hơn, hãy nhờ admin đổi mức ở Quản trị › AI agent. Agent không tự xin thêm quyền được.")}</span></p>
           </section>
 
@@ -81,7 +82,7 @@ const excludedNames: Record<string, string> = { hiring: t("Hiring", "Tuyển d�
           </section>
 
           <section class="s4-panel"><div class="s4-ph"><p class="s4-hint" style="margin:0">{t("Connecting needs your passkey and is recorded in the CRM history.", "Kết nối cần passkey của bạn và được ghi vào lịch sử CRM.")}</p>
-            <div class="s4-actions"><a class="s4-btn" href={back}>{t("Cancel", "Từ chối")}</a><button class="s4-btn primary" type="submit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="9" cy="9" r="4"></circle><path d="M13 13l7 7M17 17l2-2M15 19l2-2"></path></svg>{t("Allow with passkey", "Cho phép bằng passkey")}</button></div></div></section>
+            <div class="s4-actions"><a class="ws-btn" href={back}>{t("Cancel", "Từ chối")}</a><button class="ws-btn primary" type="submit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="9" cy="9" r="4"></circle><path d="M13 13l7 7M17 17l2-2M15 19l2-2"></path></svg>{t("Allow with passkey", "Cho phép bằng passkey")}</button></div></div></section>
         </form>}
   </div>
 </WorkspaceShell>

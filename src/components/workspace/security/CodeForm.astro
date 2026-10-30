@@ -17,5 +17,5 @@ const errors: Record<string, [string, string]> = {
     <p class="s4-hint" id="code-hint">{t("4–20 characters: letters, numbers and spaces. Not a password or anything personal.", "4–20 ký tự: chữ, số, khoảng trắng. Đừng dùng mật khẩu hay thông tin cá nhân.")}</p>
     {error && <p class="s4-error" id="code-err" role="alert">{errors[error]?.[vi ? 1 : 0] ?? error}</p>}</div>
   {hasCode && stepUpNeeded && <p class="s4-hint">{t("Changing the code asks for your passkey first.", "Đổi mã cần xác thực passkey trước.")}</p>}
-  <button class="s4-btn primary lg block" type="submit">{label}</button>
+  <button class="ws-btn primary s4-lg s4-block" type="submit">{label}</button>
 </form>

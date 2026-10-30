@@ -6,7 +6,7 @@
 // each other. Reminders before a date and "send test" are not built.
 import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
 import "../../styles/workspace-security.css";
-import Head from "./security/Head.astro";
+import RecordHeader from "./ui/RecordHeader.astro";
 import { localized } from "../../lib/workspace/nav";
 import type { RuleData } from "../../lib/workspace/admin-security-pages";
 import { platformLabels } from "../../lib/workspace/notify/destinations";
@@ -42,13 +42,13 @@ const recipientCount = (has("record_owner", "1") ? 1 : 0) + (has("recipient_admi
 ---
 <WorkspaceShell title={title} lang={lang} user={user} module="admin" current="notifications">
   <div class="s4 s4-stack">
-    <Head vi={vi} crumbs={[{ label: t("Admin", "Quản trị"), href: localized("/workspace/users", vi) }, { label: t("Notification rules", "Quy tắc thông báo"), href: base }]} title={title}>
-      <p slot="meta" class="s4-meta">CRM · <span class:list={["s4-badge dot", enabled ? "good" : ""]}>{enabled ? t("On", "Đang bật") : t("Off", "Đang tắt")}</span>{rule && <> · {t(`version ${rule.version}, last edited ${dateTime(rule.updated_at, vi)} by ${editor}`, `phiên bản ${rule.version}, sửa lần cuối ${dateTime(rule.updated_at, vi)} bởi ${editor}`)}</>}</p>
-      <Fragment slot="actions"><div class="s4-group">
-        {rule && <button class="s4-btn" type="submit" form="rule-form" name="enabled" value={enabled ? "0" : "1"}>{enabled ? t("Turn rule off", "Tắt quy tắc") : t("Turn rule on", "Bật quy tắc")}</button>}
-        <button class="s4-btn primary" type="submit" form="rule-form" name="enabled" value={enabled ? "1" : "0"}>{t("Save rule", "Lưu quy tắc")}</button>
+    <RecordHeader vi={vi} icon="bell" tone="setup" object={t("Admin", "Quản trị")} crumbs={[{ label: t("Admin", "Quản trị"), href: localized("/workspace/users", vi) }, { label: t("Notification rules", "Quy tắc thông báo"), href: base }, { label: title }]} title={title}>
+      <p slot="sub" class="s4-meta">CRM · <span class:list={["ws-badge", enabled ? "ok" : ""]}>{enabled ? t("On", "Đang bật") : t("Off", "Đang tắt")}</span>{rule && <> · {t(`version ${rule.version}, last edited ${dateTime(rule.updated_at, vi)} by ${editor}`, `phiên bản ${rule.version}, sửa lần cuối ${dateTime(rule.updated_at, vi)} bởi ${editor}`)}</>}</p>
+      <Fragment slot="actions"><div class="ws-bg" role="group" aria-label={t("Actions", "Thao tác")}>
+        {rule && <button class="ws-btn" type="submit" form="rule-form" name="enabled" value={enabled ? "0" : "1"}>{enabled ? t("Turn rule off", "Tắt quy tắc") : t("Turn rule on", "Bật quy tắc")}</button>}
+        <button class="ws-btn primary" type="submit" form="rule-form" name="enabled" value={enabled ? "1" : "0"}>{t("Save rule", "Lưu quy tắc")}</button>
       </div></Fragment>
-    </Head>
+    </RecordHeader>
     {saved && <p class="crm-notice good" role="status">{t("Rule saved.", "Đã lưu quy tắc.")}</p>}
     {error && <p class="crm-notice bad" role="alert">{errors[error]?.[vi ? 1 : 0] ?? error}</p>}
     <div class="s4-split side">
@@ -66,7 +66,7 @@ const recipientCount = (has("record_owner", "1") ? 1 : 0) + (has("recipient_admi
           </div>
         </section>
         <section class="s4-panel" aria-labelledby="r2">
-          <div class="s4-ph"><h2 id="r2">{t("2. Conditions", "2. Điều kiện")}</h2><span class="s4-badge info">{t("Match all conditions", "Thỏa mọi điều kiện")}</span></div>
+          <div class="s4-ph"><h2 id="r2">{t("2. Conditions", "2. Điều kiện")}</h2><span class="ws-badge info">{t("Match all conditions", "Thỏa mọi điều kiện")}</span></div>
           <div class="s4-pb">
             <fieldset class="s4-field" style="border:0;padding:0;margin:0"><legend class="s4-label">{t("Playbook (product)", "Playbook (sản phẩm)")}</legend>
               {playbooks.length ? <div class="s4-chips">{playbooks.map((playbook) => <label class="s4-chip"><input type="checkbox" name="playbooks" value={playbook.id} checked={has("playbooks", playbook.id)} /><span>{playbook.name}</span></label>)}</div> : <p class="s4-hint">{t("No playbooks yet.", "Chưa có playbook.")}</p>}
@@ -86,7 +86,7 @@ const recipientCount = (has("record_owner", "1") ? 1 : 0) + (has("recipient_admi
             <li><div><strong>Webhook</strong><p>{t("One message to a shared channel, without anti-phishing codes; the same content as the Lark card (no contact phone numbers or emails).", "Một tin vào kênh chung, không kèm mã chống lừa đảo; nội dung như thẻ Lark (không có số điện thoại hay email liên hệ).")}</p></div>
               <div class="val">{destinations.length
                 ? destinations.map((destination) => <label class="s4-check"><input type="checkbox" name="destinations" value={destination.id} checked={has("destinations", destination.id)} /><span>{platformLabels[destination.platform]} · {destination.name}{destination.status !== "active" && ` (${t("paused", "tạm dừng")})`}</span></label>)
-                : <a class="s4-btn sm" href={`${localized("/workspace/webhooks", vi)}?sheet=new`}>{t("Create Webhook", "Tạo Webhook")}</a>}</div></li>
+                : <a class="ws-btn sm" href={`${localized("/workspace/webhooks", vi)}?sheet=new`}>{t("Create Webhook", "Tạo Webhook")}</a>}</div></li>
           </ul>
         </section>
         <section class="s4-panel" aria-labelledby="r4">

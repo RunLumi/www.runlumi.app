@@ -5,7 +5,8 @@
 // webhooks carry no signing key, so the board's key panel does not apply.
 import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
 import "../../styles/workspace-security.css";
-import Head from "./security/Head.astro";
+import DataTable from "./ui/DataTable.astro";
+import RecordHeader from "./ui/RecordHeader.astro";
 import { localized } from "../../lib/workspace/nav";
 import type { WebhookData } from "../../lib/workspace/admin-security-pages";
 import { PAUSE_AFTER_FAILURES, platformLabels } from "../../lib/workspace/notify/destinations";
@@ -16,23 +17,23 @@ type Props = WebhookData;
 const { lang, vi, user, destination, deliveries, rules, names, saved } = Astro.props;
 const t = (en: string, viText: string) => (vi ? viText : en);
 const base = localized("/workspace/webhooks", vi);
-const statuses: Record<string, [string, string, string]> = { sent: ["Sent", "Đã gửi", "good"], failed: ["Failed", "Lỗi", "bad"], skipped: ["Not sent", "Không gửi", ""], sending: ["Sending", "Đang gửi", "info"] };
+const statuses: Record<string, [string, string, string]> = { sent: ["Sent", "Đã gửi", "ok"], failed: ["Failed", "Lỗi", "bad"], skipped: ["Not sent", "Không gửi", ""], sending: ["Sending", "Đang gửi", "info"] };
 const ruleName = (id: string) => rules.find((rule) => rule.id === id)?.name ?? id;
 const view = Astro.url.searchParams.get("log") === "failed" ? "failed" : "all";
 const log = view === "failed" ? deliveries.filter((row) => row.status === "failed") : deliveries;
 const failing = destination.consecutive_failures > 0;
-const state = destination.status === "paused" ? [t("Paused", "Tạm dừng"), "warn"] : failing ? [t("Failing", "Đang lỗi"), "bad"] : [t("Active", "Hoạt động"), "good"];
+const state = destination.status === "paused" ? [t("Paused", "Tạm dừng"), "warn"] : failing ? [t("Failing", "Đang lỗi"), "bad"] : [t("Active", "Hoạt động"), "ok"];
 const events = [...new Set(rules.flatMap((rule) => rule.events))];
 ---
 <WorkspaceShell title={destination.name} lang={lang} user={user} module="admin" current="webhooks">
   <div class="s4 s4-stack">
-    <Head vi={vi} crumbs={[{ label: t("Admin", "Quản trị"), href: localized("/workspace/users", vi) }, { label: "Webhook", href: base }]} title={`${platformLabels[destination.platform]} · ${destination.name}`}>
-      <p slot="meta" class="s4-meta"><span class={`s4-badge dot ${state[1]}`}>{state[0]}</span> · {t("added", "tạo")} {dateTime(destination.created_at, vi)} {t("by", "bởi")} {names[destination.created_by] ?? destination.created_by}</p>
-      <Fragment slot="actions"><div class="s4-group">
-        <form method="post"><input type="hidden" name="intent" value={destination.status === "active" ? "pause" : "resume"} /><button class="s4-btn" type="submit">{destination.status === "active" ? t("Pause webhook", "Tạm dừng Webhook") : t("Resume webhook", "Tiếp tục Webhook")}</button></form>
-        <form method="post"><input type="hidden" name="intent" value="remove" /><button class="s4-btn danger" type="submit">{t("Remove webhook", "Xóa Webhook")}</button></form>
+    <RecordHeader vi={vi} icon="apps" tone="setup" object={t("Admin", "Quản trị")} crumbs={[{ label: t("Admin", "Quản trị"), href: localized("/workspace/users", vi) }, { label: "Webhook", href: base }, { label: `${platformLabels[destination.platform]} · ${destination.name}` }]} title={`${platformLabels[destination.platform]} · ${destination.name}`}>
+      <p slot="sub" class="s4-meta"><span class={`ws-badge ${state[1]}`}>{state[0]}</span> · {t("added", "tạo")} {dateTime(destination.created_at, vi)} {t("by", "bởi")} {names[destination.created_by] ?? destination.created_by}</p>
+      <Fragment slot="actions"><div class="ws-bg" role="group" aria-label={t("Actions", "Thao tác")}>
+        <form method="post"><input type="hidden" name="intent" value={destination.status === "active" ? "pause" : "resume"} /><button class="ws-btn" type="submit">{destination.status === "active" ? t("Pause webhook", "Tạm dừng Webhook") : t("Resume webhook", "Tiếp tục Webhook")}</button></form>
+        <form method="post"><input type="hidden" name="intent" value="remove" /><button class="ws-btn danger" type="submit">{t("Remove webhook", "Xóa Webhook")}</button></form>
       </div></Fragment>
-    </Head>
+    </RecordHeader>
     {saved && <p class="crm-notice good" role="status">{t("Saved.", "Đã lưu.")}</p>}
     {failing && <section class="s4-panel s4-banner"><div class="s4-ph"><p><strong>{t(`${destination.consecutive_failures} failures in a row.`, `${destination.consecutive_failures} lần lỗi liên tiếp.`)}</strong> {t(`Last result: ${destination.last_result}.`, `Kết quả gần nhất: ${destination.last_result}.`)} {destination.status === "paused"
       ? t(`Paused. Check the address in ${platformLabels[destination.platform]}; to change it, remove this webhook and add it again, then resume.`, `Đã tạm dừng. Kiểm tra địa chỉ trên ${platformLabels[destination.platform]}; muốn đổi, hãy xóa Webhook này rồi thêm lại.`)
@@ -49,7 +50,7 @@ const events = [...new Set(rules.flatMap((rule) => rule.events))];
         <p class="s4-note"><span>{t("The full address is stored encrypted and never shown. To change it, remove this webhook and add it again.", "Địa chỉ đầy đủ được mã hóa và không hiện lại. Muốn đổi, hãy xóa Webhook này rồi thêm lại.")}</span></p>
       </section>
       <section class="s4-panel" aria-labelledby="rl-h">
-        <div class="s4-ph"><h2 id="rl-h">{t(`Rules that send here (${rules.length})`, `Quy tắc gửi tới đây (${rules.length})`)}</h2><a class="s4-btn sm" href={localized("/workspace/notifications", vi)}>{t("Notification rules", "Quy tắc thông báo")}</a></div>
+        <div class="s4-ph"><h2 id="rl-h">{t(`Rules that send here (${rules.length})`, `Quy tắc gửi tới đây (${rules.length})`)}</h2><a class="ws-btn sm" href={localized("/workspace/notifications", vi)}>{t("Notification rules", "Quy tắc thông báo")}</a></div>
         <div class="s4-pb">{rules.length
           ? <><ul class="s4-chips">{rules.map((rule) => <li><a class="s4-chip" href={`${localized("/workspace/notifications", vi)}/${rule.id}`}>{rule.name}</a></li>)}</ul>
               <p class="s4-hint">{t("Events", "Sự kiện")}: {events.map((event) => eventLabel(event, vi)).join(", ")}</p></>
@@ -60,10 +61,10 @@ const events = [...new Set(rules.flatMap((rule) => rule.events))];
       <div class="s4-ph"><h2 id="log-h">{t("Delivery log", "Nhật ký gửi")}</h2>
         <ul class="s4-chips"><li><a class="s4-chip" href="?" aria-current={view === "all" ? "true" : undefined}>{t("All", "Tất cả")}</a></li><li><a class="s4-chip" href="?log=failed" aria-current={view === "failed" ? "true" : undefined}>{t(`Failed (${deliveries.filter((row) => row.status === "failed").length})`, `Lỗi (${deliveries.filter((row) => row.status === "failed").length})`)}</a></li></ul></div>
       {log.length
-        ? <div class="s4-tw"><table class="s4-tbl wide">
-            <thead><tr><th scope="col" class="fz last">{t("Time", "Thời gian")}</th><th scope="col">{t("Rule", "Quy tắc")}</th><th scope="col">{t("Event", "Sự kiện")}</th><th scope="col">{t("Result", "Kết quả")}</th><th scope="col">{t("Response", "Phản hồi")}</th><th scope="col" class="r">{t("Attempts", "Lần thử")}</th><th scope="col">{t("Delivery ID", "Mã gửi")}</th></tr></thead>
-            <tbody>{log.map((row) => { const [en, viText, tone] = statuses[row.status] ?? [row.status, row.status, ""]; return <tr><td class="fz last">{dateTime(row.updated_at, vi)}</td><td>{ruleName(row.rule_id)}</td><td><code class="s4-code">{row.event_id}</code></td><td><span class:list={["s4-badge", tone]}>{vi ? viText : en}</span></td><td>{row.last_error || "—"}</td><td class="r">{row.attempts}</td><td><code class="s4-code">{row.id}</code></td></tr>; })}</tbody>
-          </table></div>
+        ? <DataTable vi={vi} label={t("Delivery log", "Nhật ký gửi")} frozen={1} minWidth="1100px">
+            <thead><tr><th scope="col">{t("Time", "Thời gian")}</th><th scope="col">{t("Rule", "Quy tắc")}</th><th scope="col">{t("Event", "Sự kiện")}</th><th scope="col">{t("Result", "Kết quả")}</th><th scope="col">{t("Response", "Phản hồi")}</th><th scope="col" class="r">{t("Attempts", "Lần thử")}</th><th scope="col">{t("Delivery ID", "Mã gửi")}</th></tr></thead>
+            <tbody>{log.map((row) => { const [en, viText, tone] = statuses[row.status] ?? [row.status, row.status, ""]; return <tr><td>{dateTime(row.updated_at, vi)}</td><td>{ruleName(row.rule_id)}</td><td><code class="s4-code">{row.event_id}</code></td><td><span class:list={["ws-badge", tone]}>{vi ? viText : en}</span></td><td>{row.last_error || "—"}</td><td class="r">{row.attempts}</td><td><code class="s4-code">{row.id}</code></td></tr>; })}</tbody>
+          </DataTable>
         : <p class="s4-empty">{t("Nothing sent yet.", "Chưa gửi lần nào.")}</p>}
       <p class="s4-note"><span>{t("Last 100 deliveries. Message content is not stored, only the outcome.", "100 lượt gửi gần nhất. Không lưu nội dung, chỉ lưu kết quả.")}</span></p>
     </section>

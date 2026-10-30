@@ -4,8 +4,9 @@
 // name frozen. A row opens the rule editor; "Create rule" opens a new one.
 import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
 import "../../styles/workspace-security.css";
-import Chips from "./security/Chips.astro";
-import Head from "./security/Head.astro";
+import DataTable from "./ui/DataTable.astro";
+import RecordHeader from "./ui/RecordHeader.astro";
+import ListToolbar from "./ui/ListToolbar.astro";
 import { localized } from "../../lib/workspace/nav";
 import type { RulesData } from "../../lib/workspace/admin-security-pages";
 import { platformLabels } from "../../lib/workspace/notify/destinations";
@@ -34,28 +35,28 @@ const chip = (key: string, label: string, count: number) => ({ label: `${label} 
 ---
 <WorkspaceShell title={t("Notification rules", "Quy tắc thông báo")} lang={lang} user={user} module="admin" current="notifications">
   <div class="s4 s4-stack">
-    <Head vi={vi} crumbs={[{ label: t("Admin", "Quản trị"), href: localized("/workspace/users", vi) }]} title={t("Notification rules", "Quy tắc thông báo")}
-      desc={t("Each rule says which CRM event, under which conditions, goes by email to which internal people and to which webhooks. People only hear about records they may see. The Lark team group keeps receiving all CRM activity.", "Mỗi quy tắc nói rõ: khi sự kiện CRM nào xảy ra, với điều kiện gì, gửi Email cho người nội bộ nào và tới Webhook nào. Mỗi người chỉ nhận tin về bản ghi họ được xem. Nhóm Lark vẫn nhận mọi hoạt động CRM.")}>
-      <Fragment slot="actions"><div class="s4-group"><a class="s4-btn" href={localized("/workspace/webhooks", vi)}>Webhook</a><a class="s4-btn primary" href={`${base}/new`}>{t("Create rule", "Tạo quy tắc")}</a></div></Fragment>
-      <div class="s4-pb"><Chips vi={vi} items={[chip("", t("All", "Tất cả"), rules.length), chip("on", t("On", "Đang bật"), rules.filter((rule) => rule.enabled).length), chip("errors", t("Delivery errors", "Có lỗi gửi"), rules.filter(failing).length), chip("off", t("Off", "Đang tắt"), rules.filter((rule) => !rule.enabled).length)]} /></div>
-    </Head>
+    <RecordHeader vi={vi} icon="bell" tone="setup" object={t("Admin", "Quản trị")} crumbs={[{ label: t("Admin", "Quản trị"), href: localized("/workspace/users", vi) }, { label: t("Notification rules", "Quy tắc thông báo") }]} title={t("Notification rules", "Quy tắc thông báo")}>
+      <p slot="sub" class="s4-desc">{t("Each rule says which CRM event, under which conditions, goes by email to which internal people and to which webhooks. People only hear about records they may see. The Lark team group keeps receiving all CRM activity.", "Mỗi quy tắc nói rõ: khi sự kiện CRM nào xảy ra, với điều kiện gì, gửi Email cho người nội bộ nào và tới Webhook nào. Mỗi người chỉ nhận tin về bản ghi họ được xem. Nhóm Lark vẫn nhận mọi hoạt động CRM.")}</p>
+      <Fragment slot="actions"><div class="ws-bg" role="group" aria-label={t("Actions", "Thao tác")}><a class="ws-btn" href={localized("/workspace/webhooks", vi)}>Webhook</a><a class="ws-btn primary" href={`${base}/new`}>{t("Create rule", "Tạo quy tắc")}</a></div></Fragment>
+      <div class="s4-pb"><ul class="ws-chips" aria-label={t("Quick filters", "Lọc nhanh")}><li class="s4-qf">{t("Quick filters", "Lọc nhanh")}</li>{([chip("", t("All", "Tất cả"), rules.length), chip("on", t("On", "Đang bật"), rules.filter((rule) => rule.enabled).length), chip("errors", t("Delivery errors", "Có lỗi gửi"), rules.filter(failing).length), chip("off", t("Off", "Đang tắt"), rules.filter((rule) => !rule.enabled).length)]).map((item) => <li><a href={item.href} aria-current={item.on ? "true" : undefined}>{item.label}</a></li>)}</ul></div>
+    </RecordHeader>
     {saved && <p class="crm-notice good" role="status">{t("Saved.", "Đã lưu.")}</p>}
-    {paused.map((item) => <section class="s4-panel s4-banner"><div class="s4-ph"><p><span class="s4-badge bad dot">{t("Delivery error", "Lỗi gửi")}</span> {t(`${platformLabels[item.platform]} · ${item.name} paused after ${item.consecutive_failures} failures in a row (last: ${item.last_result}).`, `${platformLabels[item.platform]} · ${item.name} đã tạm dừng sau ${item.consecutive_failures} lần lỗi liên tiếp (gần nhất: ${item.last_result}).`)}</p><a class="s4-btn" href={`${localized("/workspace/webhooks", vi)}/${item.id}`}>{t("Open webhook", "Mở Webhook")}</a></div></section>)}
+    {paused.map((item) => <section class="s4-panel s4-banner"><div class="s4-ph"><p><span class="ws-badge bad">{t("Delivery error", "Lỗi gửi")}</span> {t(`${platformLabels[item.platform]} · ${item.name} paused after ${item.consecutive_failures} failures in a row (last: ${item.last_result}).`, `${platformLabels[item.platform]} · ${item.name} đã tạm dừng sau ${item.consecutive_failures} lần lỗi liên tiếp (gần nhất: ${item.last_result}).`)}</p><a class="ws-btn" href={`${localized("/workspace/webhooks", vi)}/${item.id}`}>{t("Open webhook", "Mở Webhook")}</a></div></section>)}
     <p class="crm-notice" role="note">{t("Email: no email provider is connected yet, so email deliveries are recorded as not sent. Webhooks deliver now.", "Email: chưa kết nối nhà cung cấp email, nên lượt gửi email được ghi là chưa gửi. Webhook gửi được ngay.")}</p>
     <section class="s4-panel" aria-label={t("Rules", "Quy tắc")}>
       <div class="s4-lvbar"><p>{t(`${shown.length} rules · sorted by name · select a row to edit the rule`, `${shown.length} quy tắc · sắp xếp theo tên · bấm một dòng để sửa quy tắc`)}</p>
-        <form class="s4-search" method="get" role="search">{filter && <input type="hidden" name="filter" value={filter} />}<label class="crm-sr" for="r-q">{t("Search rules", "Tìm quy tắc")}</label><input class="s4-in" id="r-q" name="q" type="search" maxlength="80" value={Astro.url.searchParams.get("q") ?? ""} placeholder={t("Search rules", "Tìm quy tắc")} /><button class="s4-btn" type="submit">{t("Search", "Tìm")}</button></form></div>
+        <ListToolbar vi={vi} q={Astro.url.searchParams.get("q") ?? ""} keep={{ filter }} placeholder={t("Search rules", "Tìm quy tắc")} /></div>
       {shown.length
-        ? <div class="s4-tw"><table class="s4-tbl wide">
-            <thead><tr><th scope="col" class="fz last">{t("Rule", "Tên quy tắc")}</th><th scope="col">Module</th><th scope="col">{t("Trigger events", "Sự kiện kích hoạt")}</th><th scope="col">{t("Conditions", "Điều kiện")}</th><th scope="col">{t("Channels", "Kênh")}</th><th scope="col">{t("Recipients", "Người nhận")}</th><th scope="col">{t("Status", "Trạng thái")}</th><th scope="col">{t("Last sent", "Gửi gần nhất")}</th><th scope="col" class="r">{t("Errors, 7 days", "Lỗi 7 ngày")}</th></tr></thead>
+        ? <DataTable vi={vi} label={t("Notification rules", "Quy tắc thông báo")} frozen={1} minWidth="1100px">
+            <thead><tr><th scope="col">{t("Rule", "Tên quy tắc")}</th><th scope="col">Module</th><th scope="col">{t("Trigger events", "Sự kiện kích hoạt")}</th><th scope="col">{t("Conditions", "Điều kiện")}</th><th scope="col">{t("Channels", "Kênh")}</th><th scope="col">{t("Recipients", "Người nhận")}</th><th scope="col">{t("Status", "Trạng thái")}</th><th scope="col">{t("Last sent", "Gửi gần nhất")}</th><th scope="col" class="r">{t("Errors, 7 days", "Lỗi 7 ngày")}</th></tr></thead>
             <tbody>{[...shown].sort((a, b) => a.name.localeCompare(b.name, "vi")).map((rule) => <tr>
-              <td class="fz last"><a href={`${base}/${rule.id}`}>{rule.name}</a></td><td>CRM</td>
+              <td><a href={`${base}/${rule.id}`}>{rule.name}</a></td><td>CRM</td>
               <td>{rule.events.map((event) => eventLabel(event, vi)).join(", ")}</td><td>{conditions(rule)}</td>
               <td>{[...(rule.email ? ["Email"] : []), ...rule.destinations.map(destinationName)].join(" · ")}</td><td>{recipients(rule)}</td>
-              <td><span class:list={["s4-badge dot", rule.enabled ? "good" : ""]}>{rule.enabled ? t("On", "Đang bật") : t("Off", "Đang tắt")}</span></td>
+              <td><span class:list={["ws-badge", rule.enabled ? "ok" : ""]}>{rule.enabled ? t("On", "Đang bật") : t("Off", "Đang tắt")}</span></td>
               <td>{stats[rule.id]?.last ? dateTime(stats[rule.id].last!, vi) : "—"}</td><td class="r">{stats[rule.id]?.failed7d ?? 0}</td>
             </tr>)}</tbody>
-          </table></div>
+          </DataTable>
         : <p class="s4-empty">{rules.length ? t("No rule matches.", "Không có quy tắc khớp.") : t("No rules yet. Create one to email internal people or post to a webhook when a CRM event happens.", "Chưa có quy tắc nào. Tạo quy tắc để gửi email cho người nội bộ hoặc gửi tới Webhook khi có sự kiện CRM.")}</p>}
       <p class="s4-note"><span>{t("The rule name stays in place when you scroll sideways.", "Cột Tên quy tắc cố định khi cuộn ngang.")}</span><span>{shown.length ? `1–${shown.length} / ${rules.length}` : ""}</span></p>
     </section>

@@ -24,7 +24,7 @@ Astro.response.headers.set("Referrer-Policy", "same-origin");
   <body class="crm s4">
     <a class="crm-skip" href="#main">{vi ? "Đến nội dung chính" : "Skip to content"}</a>
     <main id="main" class="crm-main"><div class="ws-wide">
-      <p class="s4-actions" style="justify-content:flex-end;margin:0"><a class="s4-btn link" href={switchHref} lang={vi ? "en" : "vi"} hreflang={vi ? "en" : "vi"}>{vi ? "English" : "Tiếng Việt"}</a></p>
+      <p class="s4-actions" style="justify-content:flex-end;margin:0"><a class="crm-link" href={switchHref} lang={vi ? "en" : "vi"} hreflang={vi ? "en" : "vi"}>{vi ? "English" : "Tiếng Việt"}</a></p>
       <slot />
     </div></main>
   </body>

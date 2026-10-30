@@ -7,9 +7,12 @@
 // existing code needs step-up too.
 import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
 import "../../styles/workspace-security.css";
+import DataTable from "./ui/DataTable.astro";
 import Brand from "./security/Brand.astro";
 import Steps from "./security/Steps.astro";
 import CodeForm from "./security/CodeForm.astro";
+import Sheet from "./ui/Sheet.astro";
+import RecordHeader from "./ui/RecordHeader.astro";
 import type { AccountSecurityData } from "../../lib/workspace/security-pages";
 import { maskCode } from "../../lib/workspace/anti-phishing";
 import { verifyPath } from "../../lib/workspace/passkey";
@@ -61,36 +64,34 @@ const greeting = vi ? `Chào ${user.name || user.email},` : `Hello ${user.name |
   </div></div>}
 
   {!firstStep && <div class="s4-stack s4-mlist">
-    <header class="s4-panel"><div class="s4-head"><div>
-      <nav class="ws-crumbs s4-crumbs" aria-label={t("Breadcrumbs", "Đường dẫn")}><ol><li><a href={local("/workspace/account")}>{t("My account", "Tài khoản của tôi")}</a></li><li><span aria-current="page">{t("Security", "Bảo mật")}</span></li></ol></nav>
-      <h1 class="s4-title">{t("Security", "Bảo mật")}</h1>
-      <p class="s4-desc">{t("Your organisation requires a passkey and an anti-phishing code for every member. Removing a passkey and changing the code ask for your passkey again.", "Tổ chức của bạn bắt buộc passkey và mã chống lừa đảo cho mọi thành viên. Xóa passkey và đổi mã đều phải xác thực lại bằng passkey.")}</p>
-    </div></div></header>
+    <RecordHeader vi={vi} icon="security" tone="person" object={t("My account", "Tài khoản của tôi")} crumbs={[{ label: t("My account", "Tài khoản của tôi"), href: local("/workspace/account") }, { label: t("Security", "Bảo mật") }]} title={t("Security", "Bảo mật")}>
+      <p slot="sub" class="s4-desc">{t("Your organisation requires a passkey and an anti-phishing code for every member. Removing a passkey and changing the code ask for your passkey again.", "Tổ chức của bạn bắt buộc passkey và mã chống lừa đảo cho mọi thành viên. Xóa passkey và đổi mã đều phải xác thực lại bằng passkey.")}</p>
+    </RecordHeader>
     {saved && <p class="crm-notice good" role="status">{t("Code saved.", "Đã lưu mã.")}</p>}
     {setup && code && <p class="crm-notice good" role="status">{t("All set.", "Đã xong.")} <a class="crm-link" href={next}>{t("Open the Workspace", "Vào Workspace")}</a></p>}
 
     <section class="s4-panel" aria-labelledby="keys-h">
       <div class="s4-ph"><h2 id="keys-h">{t(`Passkeys (${passkeys.length})`, `Passkey (${passkeys.length})`)}</h2>
         {passkeys.length > 0 && stepUpSeconds === 0
-          ? <a class="s4-btn" href={verifyPath(vi, self)}>{t("Add passkey", "Thêm passkey")}</a>
-          : <form method="post" data-passkey="enrol" {...messages} class="s4-actions"><input type="hidden" name="passkey_name" value="" /><button class="s4-btn" type="submit">{t("Add passkey", "Thêm passkey")}</button><span class="s4-live" data-passkey-status role="status" aria-live="polite" hidden></span></form>}
+          ? <a class="ws-btn" href={verifyPath(vi, self)}>{t("Add passkey", "Thêm passkey")}</a>
+          : <form method="post" data-passkey="enrol" {...messages} class="s4-actions"><input type="hidden" name="passkey_name" value="" /><button class="ws-btn" type="submit">{t("Add passkey", "Thêm passkey")}</button><span class="s4-live" data-passkey-status role="status" aria-live="polite" hidden></span></form>}
       </div>
-      <div class="s4-tw"><table class="s4-tbl">
+      <DataTable vi={vi} label={t(`Passkeys (${passkeys.length})`, `Passkey (${passkeys.length})`)}>
         <thead><tr><th scope="col">{t("Name", "Tên")}</th><th scope="col">{t("Type", "Loại")}</th><th scope="col">{t("Created", "Tạo lúc")}</th><th scope="col">{t("Last used", "Dùng gần nhất")}</th><th scope="col" class="act"><span class="crm-sr">{t("Actions", "Thao tác")}</span></th></tr></thead>
         <tbody>{passkeys.map((key) => <tr>
           <td><strong>{key.name || t("Unnamed passkey", "Passkey chưa đặt tên")}</strong>{key.id === session.passkeyId && <span class="sub">{t("used for this session", "dùng cho phiên này")}</span>}</td>
           <td>{kind(key)}</td><td>{when(key.created_at)}</td><td>{when(key.last_used_at)}</td>
           <td class="act"><div class="s4-actions" style="justify-content:flex-end">
-            <details class="s4-reveal"><summary class="s4-btn sm">{t("Rename", "Đổi tên")}</summary>
+            <details class="s4-reveal"><summary class="ws-btn sm">{t("Rename", "Đổi tên")}</summary>
               <form class="s4-actions" data-passkey-rename data-reload data-id={key.id} data-msg-failed={t("Not saved.", "Chưa lưu.")} style="margin-top:6px">
                 <label class="crm-sr" for={`rn-${key.id}`}>{t("New name", "Tên mới")}</label><input class="s4-in" id={`rn-${key.id}`} name="name" maxlength="80" required value={key.name ?? ""} style="width:180px;min-height:32px" />
-                <button class="s4-btn sm primary" type="submit">{t("Save", "Lưu")}</button><span class="s4-live" data-passkey-status role="status" aria-live="polite" hidden></span>
+                <button class="ws-btn sm primary" type="submit">{t("Save", "Lưu")}</button><span class="s4-live" data-passkey-status role="status" aria-live="polite" hidden></span>
               </form></details>
             {passkeys.length > 1 && <form data-passkey-remove data-id={key.id} data-verify={verifyPath(vi, self)} data-msg-failed={t("Not removed.", "Chưa xóa được.")} data-msg-last={t("Your last passkey stays.", "Phải còn ít nhất 1 passkey.")}>
-              <button class="s4-btn sm danger" type="submit">{t("Remove", "Xóa")}</button><span class="s4-live" data-passkey-status role="status" aria-live="polite" hidden></span></form>}
+              <button class="ws-btn sm danger" type="submit">{t("Remove", "Xóa")}</button><span class="s4-live" data-passkey-status role="status" aria-live="polite" hidden></span></form>}
           </div></td>
         </tr>)}</tbody>
-      </table></div>
+      </DataTable>
       {passkeys.length === 0 && <p class="s4-empty">{t("No passkey yet. Add one on this device.", "Chưa có passkey. Hãy thêm trên thiết bị này.")}</p>}
       <p class="s4-note"><span>{t("At least one passkey must remain. Keep a passkey on two devices so losing one does not lock you out.", "Phải còn ít nhất 1 passkey. Nên có passkey trên 2 thiết bị để không bị khóa khi mất máy.")}</span></p>
     </section>
@@ -99,37 +100,36 @@ const greeting = vi ? `Chào ${user.name || user.email},` : `Hello ${user.name |
       <div class="s4-ph"><div><h2 id="ap-h">{t("Anti-phishing code", "Mã chống lừa đảo")}</h2>
         <p class="s4-p" style="font-size:14px;margin-top:4px">{code ? <>{t("Current code", "Mã hiện tại")}: <span class="s4-code">{maskCode(code)}</span> · {t("last changed", "đổi lần cuối")} {day(codeUpdated)}</> : t("Not set yet.", "Chưa đặt.")}</p></div>
         <div class="s4-actions">
-          {code && <details class="s4-reveal"><summary class="s4-btn">{t("Show code", "Hiện mã")}</summary><p class="s4-codeband" data-code-band style="margin-top:8px"><span>{t("Your anti-phishing code", "Mã chống lừa đảo của bạn")}</span><strong>{code}</strong></p></details>}
-          <a class="s4-btn" href={`${self}?sheet=code`}>{code ? t("Change code", "Đổi mã") : t("Set code", "Đặt mã")}</a>
+          {code && <details class="s4-reveal"><summary class="ws-btn">{t("Show code", "Hiện mã")}</summary><p class="s4-codeband" data-code-band style="margin-top:8px"><span>{t("Your anti-phishing code", "Mã chống lừa đảo của bạn")}</span><strong>{code}</strong></p></details>}
+          <a class="ws-btn" href="#code-sheet">{code ? t("Change code", "Đổi mã") : t("Set code", "Đặt mã")}</a>
         </div></div>
     </section>
 
     <section class="s4-panel" aria-labelledby="ses-h">
       <div class="s4-ph"><h2 id="ses-h">{t("This session", "Phiên này")}</h2>
-        <form method="post" action="/_emdash/api/auth/logout?redirect=%2F"><button class="s4-btn danger" type="submit">{t("Sign out", "Đăng xuất")}</button></form></div>
-      <div class="s4-tw"><table class="s4-tbl">
+        <form method="post" action="/_emdash/api/auth/logout?redirect=%2F"><button class="ws-btn danger" type="submit">{t("Sign out", "Đăng xuất")}</button></form></div>
+      <DataTable vi={vi} label={t("This session", "Phiên này")}>
         <thead><tr><th scope="col">{t("Device", "Thiết bị")}</th><th scope="col">{t("Workspace passkey check", "Xác thực passkey Workspace")}</th><th scope="col">{t("Passkey", "Passkey")}</th></tr></thead>
-        <tbody><tr><td><strong>{t("This browser", "Trình duyệt này")}</strong> <span class="s4-badge info">{t("This session", "Phiên này")}</span></td><td>{when(session.verifiedAt)}</td><td>{session.passkey ?? "—"}</td></tr></tbody>
-      </table></div>
+        <tbody><tr><td><strong>{t("This browser", "Trình duyệt này")}</strong> <span class="ws-badge info">{t("This session", "Phiên này")}</span></td><td>{when(session.verifiedAt)}</td><td>{session.passkey ?? "—"}</td></tr></tbody>
+      </DataTable>
       <p class="s4-note"><span>{t("Other sessions are kept by EmDash and are not listed here.", "Các phiên khác do EmDash quản lý và không liệt kê ở đây.")}</span></p>
     </section>
 
     {canTokens && <section class="s4-panel" aria-labelledby="ag-h">
       <div class="s4-ph"><div><h2 id="ag-h">{t(`Connected AI agents (${tokens.length})`, `AI agent đã kết nối (${tokens.length})`)}</h2>
         <p class="s4-p" style="font-size:14px;margin-top:4px">{t("An agent uses your own access, only in the modules your admin allows.", "Agent dùng quyền của bạn, chỉ trong các module admin cho phép.")}</p></div>
-        <a class="s4-btn" href={local("/workspace/account/agents/connect")}>{t("Connect an agent", "Kết nối agent")}</a></div>
-      {tokens.length > 0 && <div class="s4-tw"><table class="s4-tbl">
+        <a class="ws-btn" href={local("/workspace/account/agents/connect")}>{t("Connect an agent", "Kết nối agent")}</a></div>
+      {tokens.length > 0 && <DataTable vi={vi} label={t(`Connected AI agents (${tokens.length})`, `AI agent đã kết nối (${tokens.length})`)}>
         <thead><tr><th scope="col">{t("Agent", "Agent")}</th><th scope="col">{t("Access", "Quyền")}</th><th scope="col">{t("Connected", "Kết nối lúc")}</th><th scope="col">{t("Last call", "Gọi gần nhất")}</th><th scope="col" class="act"><span class="crm-sr">{t("Actions", "Thao tác")}</span></th></tr></thead>
         <tbody>{tokens.map((token) => <tr><td><strong>{token.name}</strong></td><td>{token.scope === "write" ? t("Read and write", "Đọc và ghi") : t("Read", "Đọc")}</td><td>{day(token.created_at)}</td><td>{when(token.last_used_at)}</td>
-          <td class="act"><a class="s4-btn sm danger" href={local("/crm/api")}>{t("Revoke", "Thu hồi")}</a></td></tr>)}</tbody>
-      </table></div>}
+          <td class="act"><a class="ws-btn sm danger" href={local("/crm/api")}>{t("Revoke", "Thu hồi")}</a></td></tr>)}</tbody>
+      </DataTable>}
     </section>}
   </div>}
 
-  {sheet === "code" && <div class="s4-sheet-wrap"><section class="s4-sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-h">
-    <header><h2 id="sheet-h">{code ? t("Change your anti-phishing code", "Đổi mã chống lừa đảo") : t("Set your anti-phishing code", "Đặt mã chống lừa đảo")}</h2><a class="s4-btn sm" href={self}>{t("Close", "Đóng")}</a></header>
-    <div class="body"><CodeForm vi={vi} action={Astro.url.pathname + Astro.url.search} hasCode={!!code} typed={typed} error={error} stepUpNeeded={stepUpSeconds === 0} label={code ? t("Change code", "Đổi mã") : t("Save code", "Lưu mã")} /></div>
-  </section></div>}
+  {!firstStep && <Sheet id="code-sheet" vi={vi} title={code ? t("Change your anti-phishing code", "Đổi mã chống lừa đảo") : t("Set your anti-phishing code", "Đặt mã chống lừa đảo")} open={sheet === "code"} closeHref={self}>
+    <CodeForm vi={vi} action={Astro.url.pathname + Astro.url.search} hasCode={!!code} typed={typed} error={error} stepUpNeeded={stepUpSeconds === 0} label={code ? t("Change code", "Đổi mã") : t("Save code", "Lưu mã")} />
+  </Sheet>}
   </div>
 </WorkspaceShell>
 <script>

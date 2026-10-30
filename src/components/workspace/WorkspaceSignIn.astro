@@ -30,13 +30,13 @@ const messages = {
       <form class="s4-stack" method="post" data-signin data-next={next} {...messages} style="gap:16px">
         <div class="s4-field"><label for="si-email">{t("Work email", "Email công việc")}</label>
           <input class="s4-in" id="si-email" name="email" type="email" required autocomplete="username webauthn" spellcheck="false" inputmode="email" /></div>
-        <button class="s4-btn primary lg block" type="submit" data-signin-passkey>
+        <button class="ws-btn primary s4-lg s4-block" type="submit" data-signin-passkey>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="9" cy="9" r="4"></circle><path d="M13 13l7 7M17 17l2-2M15 19l2-2"></path></svg>{t("Sign in with passkey", "Đăng nhập bằng passkey")}</button>
-        <button class="s4-btn neutral lg block" type="button" data-signin-link>{t("No passkey yet? Email me a sign-in link", "Chưa có passkey? Gửi link đăng nhập qua email")}</button>
+        <button class="ws-btn neutral s4-lg s4-block" type="button" data-signin-link>{t("No passkey yet? Email me a sign-in link", "Chưa có passkey? Gửi link đăng nhập qua email")}</button>
         <p class="s4-live" data-signin-status role="status" aria-live="polite"></p>
         <noscript><p class="s4-error">{t("Passkeys need JavaScript. Turn it on for runlumi.app and reload.", "Passkey cần JavaScript. Hãy bật cho runlumi.app rồi tải lại trang.")}</p></noscript>
       </form>
-      <p class="s4-center"><a class="s4-btn link" href={`${vi ? "/vi" : ""}/workspace/recovery`}>{t("Lost the device with your passkey? Recover your account", "Mất thiết bị có passkey? Khôi phục tài khoản")}</a></p>
+      <p class="s4-center"><a class="crm-link" href={`${vi ? "/vi" : ""}/workspace/recovery`}>{t("Lost the device with your passkey? Recover your account", "Mất thiết bị có passkey? Khôi phục tài khoản")}</a></p>
       <p class="s4-foot"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"></path></svg>
         <span>{vi ? <>Email thật từ Lumi luôn có <strong>mã chống lừa đảo</strong> của bạn ở đầu thư. Email không có mã là giả mạo; đừng bấm link trong đó.</> : <>Real email from Lumi always starts with your <strong>anti-phishing code</strong>. Email without it is fake; do not open its links.</>}</span></p>
     </section>
