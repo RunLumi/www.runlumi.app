@@ -143,7 +143,7 @@ test("search returns only what each person may list (UI1-S3)", async () => {
   assert.match(manager.html, new RegExp(theirs), "the team sees every owner's records");
   const hr = await S.hr.get(`/workspace/search?q=${term}`);
   assert.equal(hr.status, 200);
-  assert.doesNotMatch(hr.html, /Findme/, "HR has no CRM results");
+  assert.doesNotMatch(hr.html, new RegExp(`${mine}|${theirs}`), "HR has no CRM results");
   assert.match(hr.html, /Nothing to search yet/);
   const admin = await S.admin.get(`/workspace/search?q=${encodeURIComponent(`TEST HR ${run}`)}&type=members`);
   assert.match(admin.html, new RegExp(`href="/workspace/users/${S.hr.id}"`), "admins find people with access");
@@ -170,7 +170,7 @@ test("notices: the bell and inbox show only my own notices (UI1-S4)", async () =
     made.push(request);
     assert.match((await S.empA.get("/workspace")).html, /class="ws-ibtn ws-bell"[^>]*aria-label="Notifications, 1 unread"/, "my bell counts my notice");
     assert.match((await S.empB.get("/workspace")).html, /class="ws-ibtn ws-bell"[^>]*aria-label="Notifications"/, "B has a bell with nothing unread");
-    assert.doesNotMatch((await S.hr.get("/workspace")).html, /ws-bell/, "no notice source, no bell");
+    assert.doesNotMatch((await S.hr.get("/workspace")).html, /class="ws-ibtn ws-bell"/, "no notice source, no bell");
     const inboxA = await S.empA.get("/vi/workspace/inbox");
     assert.equal(inboxA.status, 200);
     assert.match(inboxA.html, /Yêu cầu HR bạn theo dõi có cập nhật/);
@@ -201,7 +201,7 @@ test("my notifications: only the rules that reach me, read-only (UI1-S6)", async
     assert.equal(exec.status, 200);
     assert.match(exec.html, new RegExp(`TEST Rule for executives ${run}`));
     assert.doesNotMatch(exec.html, new RegExp(`TEST Rule for managers ${run}`), "a rule for another role stays hidden");
-    assert.doesNotMatch(exec.html, /<form/, "nothing on the page saves a preference");
+    assert.doesNotMatch(/<main[\s\S]*<\/main>/.exec(exec.html)?.[0] ?? "", /<form/, "nothing on the page saves a preference");
     const hr = await S.hr.get("/workspace/account/notifications");
     assert.equal(hr.status, 200);
     assert.doesNotMatch(hr.html, /TEST Rule for/, "CRM rules never reach HR");

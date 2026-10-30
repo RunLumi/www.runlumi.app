@@ -1,27 +1,33 @@
 ---
 // Related list card (boards: DealRecord, AccountRecord, Search): a grey
-// header with the object square, title and count, a "View all" link, then
-// rows. Pass `items` or write rows (class "ws-rl-row") in the slot.
+// header with the object square, title and count, header actions (slot
+// "actions") or a "View all" link, then rows. Pass `items` or write rows
+// (class "ws-rl-row") in the slot. `empty` is shown when `items` is empty,
+// or when `count` is 0 and no rows are passed. `wide` spans the full row of
+// a grid of related lists.
 import ObjectIcon, { type Tone } from "./ObjectIcon.astro";
 import type { IconName } from "../../../lib/workspace/nav";
 
 export interface RelatedItem { title: string; href?: string; meta?: string; fields?: [string, string][] }
-interface Props { title: string; vi: boolean; icon?: IconName; tone?: Tone | string; count?: number; href?: string; hrefLabel?: string; items?: RelatedItem[]; empty?: string; id?: string }
-const { title, vi, icon, tone, count, href, hrefLabel, items, empty } = Astro.props;
+interface Props { title: string; vi: boolean; icon?: IconName; tone?: Tone | string; count?: number; href?: string; hrefLabel?: string; items?: RelatedItem[]; empty?: string; id?: string; wide?: boolean }
+const { title, vi, icon, tone, count, href, hrefLabel, items, empty, wide = false } = Astro.props;
 const id = Astro.props.id ?? `rl-${title.toLowerCase().normalize("NFD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40)}`;
+const emptyText = empty ?? (vi ? "Chưa có mục nào." : "Nothing here yet.");
+const showEmpty = items ? items.length === 0 : count === 0 && !!empty;
 ---
-<section class="ws-rl" aria-labelledby={id}>
+<section class:list={["ws-rl", wide && "wide"]} aria-labelledby={id}>
   <div class="ws-rl-h">
     <h3 class="ws-rl-t" id={id}>{icon && <ObjectIcon icon={icon} tone={tone} size="sm" />}{title}{count !== undefined && <span class="ws-rl-n"> ({count})</span>}</h3>
-    {href && <a href={href}>{hrefLabel ?? (vi ? "Xem tất cả" : "View all")}</a>}
+    {(Astro.slots.has("actions") || href) && <div class="ws-rl-actions"><slot name="actions" />{href && <a href={href}>{hrefLabel ?? (vi ? "Xem tất cả" : "View all")}</a>}</div>}
   </div>
-  {items
-    ? items.length
+  {showEmpty
+    ? <p class="ws-rl-empty">{emptyText}</p>
+    : items
       ? items.map((item) => <div class="ws-rl-row">
           {item.href ? <a class="ws-rl-title" href={item.href}>{item.title}</a> : <strong class="ws-rl-title">{item.title}</strong>}
           {item.meta && <span class="ws-rl-meta">{item.meta}</span>}
           {item.fields && <dl class="ws-rl-f">{item.fields.map(([label, value]) => <div><dt>{label}</dt><dd>{value}</dd></div>)}</dl>}
         </div>)
-      : <p class="ws-rl-empty">{empty ?? (vi ? "Chưa có mục nào." : "Nothing here yet.")}</p>
-    : <slot />}
+      : <slot />}
+  {Astro.slots.has("foot") && <div class="ws-rl-foot"><slot name="foot" /></div>}
 </section>

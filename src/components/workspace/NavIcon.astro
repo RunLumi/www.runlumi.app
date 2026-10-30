@@ -52,6 +52,14 @@ const paths: Record<IconName, string> = {
   help: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17h.01"/>',
   bell: '<path d="M6 16v-5a6 6 0 0 1 12 0v5l2 2H4ZM10 21h4"/>',
   chevron: '<path d="m6 9 6 6 6-6"/>',
+  refresh: '<path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/>',
+  filter: '<path d="M3.5 4.5h17l-6.5 8v6l-4 2v-8Z"/>',
+  left: '<path d="m15 18-6-6 6-6"/>',
+  right: '<path d="m9 18 6-6-6-6"/>',
+  table: '<rect x="3.5" y="4.5" width="17" height="15" rx="1.5"/><path d="M3.5 10h17M3.5 15h17M9 4.5v15"/>',
+  warn: '<path d="M12 3.5 2.5 20h19Z" fill="currentColor" stroke="none"/><path d="M12 10v4.5M12 17.2h.01" stroke="white" stroke-width="2"/>',
+  grip: '<path d="M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01" stroke-width="2.6"/>',
+  tasks: '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="m8 12 2.5 2.5L16 9"/>',
 };
 ---
 <svg class="ws-icon" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" set:html={paths[name]} />
