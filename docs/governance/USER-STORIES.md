@@ -91,6 +91,36 @@ Roles and permissions come from `src/lib/workspace/roles.ts` and [docs/workspace
     - Anyone approving their own submission.
     - *Test:* `tests/integration/hrm.integration.test.mjs`; unit "grouped menus" (an employee sees only *Của tôi*).
 
+## Round 2 records and setup (ui3)
+
+Boards live in [docs/redesign/boards/](../redesign/boards/). Region names below are the boards' own. Behaviour, permissions and ownership are unchanged; these stories change layout only. Sample data and placeholders from the boards never appear. Terms come from the app ("Công ty", not "Đối tác").
+
+- **Story (Sales Executive, Sales Manager).** As the owner of a Lead, I open its record and see who it is, where it stands and what to do next, without scrolling past forms.
+  - **Accept (LeadRecord).**
+    - Highlights panel: object icon, breadcrumbs *CRM › Lead › name*, eyebrow "Lead", the name as H1, and a button group on the right (*Chuyển đổi*, *Sửa*, *Đổi người phụ trách* for the team, overflow for *Không tiếp tục*). Below it a row of highlight fields: job title, company, phone, source, owner.
+    - Path panel: the Lead process statuses of the lead's version as chevrons (done, current, upcoming), a "Mark status complete" button that moves to the next status through the same versioned `lead_status` write, key fields (need, next step, due) and guidance.
+    - Two columns: left has tabs *Hoạt động* (note composer, then the activity feed) and *Chi tiết* (all fields read-only); right is *Liên quan* (duplicate hints, source and consent, referrer).
+    - Edit, assign and disqualify open in a sheet (`?sheet=edit|assign|disqualify`, no client JavaScript required). The page has no long inline form.
+  - **Forbidden.** Another seller's lead (404); finance with no lead access (404); a note on a converted lead (403); assigning without `crm.team`. *Test:* IT 11b.
+- **Story (Lead owner or team).** I convert a Lead in one dialog.
+  - **Accept (LeadConvert).** A modal dialog over the record (`?convert=1`): title *Chuyển Lead thành cơ hội: name · company*; three bordered sections *Công ty*, *Liên hệ*, *Cơ hội*, each with "Tạo mới" and "Chọn … có sẵn" side by side separated by "HOẶC"; duplicate count badges; owner line and a footer with *Hủy* and *Chuyển đổi*. Only companies and contacts in my scope are listed.
+  - **Forbidden.** Converting another owner's lead (404); converting an unassigned lead; a second conversion (redirects to the summary, creates nothing). *Test:* IT 11b.
+- **Story (Lead owner or team).** After converting I see what was created and go on.
+  - **Accept (LeadConverted).** A centred result dialog: check mark, *Đã chuyển Lead thành cơ hội*, then three cards (Company, Contact, Opportunity) each labelled "used existing" or "created", and footer buttons *Về Leads*, *Xem trên Kanban*, *Mở cơ hội*.
+  - **Forbidden.** The summary before conversion (303 to the lead); another seller (404). *Test:* IT 11b.
+- **Story (Sales roles, finance, fulfillment within their scope).** I open an opportunity record and work it.
+  - **Accept (DealRecord).** Highlights (Công ty, expected close, value or "Unknown", owner, playbook) with a button group (*Sửa*, *Tạo báo giá*, *Đổi người phụ trách* for the team, close); the playbook path with key fields and guidance; left tabs *Liên quan* (related lists: contacts, quotes, money, delivery, tasks, linked opportunities) and *Chi tiết*; right column *Hoạt động* (composer and feed). Edits, quotes, payments and closing open in sheets or dialogs.
+  - **Forbidden.** Another owner's opportunity (404); a collaborator confirming payments; a partner seeing money, notes or contacts on a referred deal. *Test:* IT 2, 9, workspace "partners refer…".
+- **Story (Sales roles).** I open a company or contact record.
+  - **Accept (AccountRecord).** Highlights (type, phone, area, owner, open value), button group (*Tạo liên hệ*, *Tạo cơ hội*, *Sửa*); left tabs *Liên quan* (Contacts and Opportunities related lists, full-width opportunity table) and *Chi tiết*; right column *Hoạt động*. Contact records use the same frame with the company in breadcrumbs.
+  - **Forbidden.** Another owner's company or contact (404); editing a contact with stale version (409). *Test:* IT 2, 17.
+- **Story (Admin with `crm.configure`; Finance and Fulfillment for their pages).** I configure the CRM from one setup area.
+  - **Accept (Settings).** A left setup menu in labelled groups (Cơ hội: playbooks, offers; Lead: lead statuses, assignment, referrals; Tiền: commission; Vận hành: fulfillment; Báo cáo: reports), showing only pages I may open. Each page has an icon header with eyebrow *Thiết lập CRM*, a title and a button group; tables full width; new versions open in a sheet; an info note explains that labels are org data and versions never rewrite deals.
+  - **Forbidden.** A Sales Executive saving lead process or playbooks (403); commission estimates to collaborators before approval. *Test:* IT 11b, 13, 14.
+- **Story (HR; HRM roles; System Super Admin).** Tuyển dụng, HRM and Tài chính pages use the same list-view header, record frame and sheets as CRM.
+  - **Accept.** Lists: object icon, title, count line, button group; create opens a sheet. Records: highlights with breadcrumbs. No large marketing H1. Every gate, permission and audit stays.
+  - **Forbidden.** HR reaching CRM; HRM Admin managing users; anyone but Super Admin entering Finance. *Test:* workspace "each role reaches only its modules"; `tests/finance-access-http.test.ts`; HRM P1.
+
 ## Round 2: board parity, workstream ui1 (shell, kit, Overview, account, search, bell)
 
 Brief: [UI-PARITY.md](../redesign/UI-PARITY.md). "Board" names the file in `docs/redesign/boards/`; its regions are listed in the order they must appear. Every screen keeps its `/vi` peer, and its proof is `docs/redesign/parity/<Board>/`. Words come from `nav.ts` and `roles.ts`, never the boards' sample data.

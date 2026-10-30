@@ -104,3 +104,18 @@ Brief: [UI-PARITY.md](../redesign/UI-PARITY.md). Stories: [USER-STORIES.md § CR
 |---|---|---|
 | Plans, actuals, close, statements, imports/exports, audit (System Super Admin only) | Built (gated) | [docs/specs/finance/STATUS.md](../specs/finance/STATUS.md). The owner must set up the book; `FINANCE_LIVE_ENABLED` is required. |
 | New design for all `/finance/*` | *In redesign* (rd2) | `claude/rd2-modules` handoff |
+
+## Round 2, workstream 3 (`claude/ui3-crm-records`): records, CRM setup, Tuyển dụng, HRM, Tài chính
+
+Board parity per [UI-PARITY.md](../redesign/UI-PARITY.md). Stories: [USER-STORIES.md § Round 2 records and setup](USER-STORIES.md#round-2-records-and-setup-ui3). Evidence: `docs/redesign/parity/<Board>/` and the ui3 handoff.
+
+| Feature (screen) | Board | Status | Evidence |
+|---|---|---|---|
+| Lead record: highlights header, button group, status path with guidance, Activity/Details tabs, related column; edit, assign and disqualify in sheets | LeadRecord | *In redesign* (ui3) | IT 11b; `docs/redesign/parity/LeadRecord/` |
+| Lead conversion dialog: Company / Contact / Opportunity sections, each "create new" or "use existing", owner and duplicate hints | LeadConvert | *In redesign* (ui3) | IT 11b; `docs/redesign/parity/LeadConvert/` |
+| Converted summary: three result cards and "Back to Leads / Open opportunity" | LeadConverted | *In redesign* (ui3) | IT 11b; `docs/redesign/parity/LeadConverted/` |
+| Opportunity record: highlights, playbook path with key fields and guidance, Related/Details tabs, related lists (contacts, quotes, tasks, money, delivery), Activity column; edits in sheets | DealRecord | *In redesign* (ui3) | IT 2–9, 15; `docs/redesign/parity/DealRecord/` |
+| Company record: highlights, Related/Details tabs, related lists (contacts, opportunities), Activity column | AccountRecord | *In redesign* (ui3) | IT 6–8, 17; `docs/redesign/parity/AccountRecord/` |
+| Contact record on the same record frame (no board; follows AccountRecord) | AccountRecord (pattern) | *In redesign* (ui3) | IT 17 |
+| CRM setup: grouped setup menu and one page frame for playbooks, lead statuses, offers, commission, fulfillment, assignment, referrals, reports | Settings | *In redesign* (ui3) | IT 11b, 13, 14; `docs/redesign/parity/Settings/` |
+| Tuyển dụng, HRM, Tài chính on the round-2 shell and kit (list-view header, record frame, sheets); no boards | — | *In redesign* (ui3) | `workspace`, `hrm-p1/p3/p4/p5`, `finance` integration scopes; `docs/redesign/parity/{Hiring,HRM,Finance}/` |

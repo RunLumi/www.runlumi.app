@@ -1,6 +1,7 @@
 ---
 import WorkspaceShell from "../../layouts/WorkspaceShell.astro";
-import PageHeader from "../workspace/ui/PageHeader.astro";
+import RecordHeader from "../workspace/ui/RecordHeader.astro";
+import "../../styles/record.css";
 import "../../styles/modules.css";
 import HiringInterviews from "./HiringInterviews.astro";
 import { applicationStatuses } from "../../lib/ats";
@@ -12,9 +13,9 @@ const { lang, vi, user, application, answers, files, notes, events, interviews, 
 const saved = flash.saved === "1" || (!!flash.saved && !["interview", "scorecard"].includes(flash.saved));
 ---
 <WorkspaceShell title={application.full_name} lang={lang} user={user} module="hiring" current="applications">
-  <div class="md-scope">
-  <PageHeader vi={vi} title={application.full_name} crumbs={[{ label: vi ? "Tuyển dụng" : "Hiring", href: deskPath(lang, "/admin/jobs") }, { label: vi ? "Ứng viên" : "Candidates", href: deskPath(lang, "/admin/jobs/applications") }, { label: application.full_name }]}>
-    <p class="crm-lede" slot="lede"><span class:list={["crm-badge", statusTone(application.status)]}>{statusName(application.status, lang)}</span> · {application.job_title} · {vi ? "Nộp" : "Applied"} {deskDate(application.created_at, lang)} · <span class="crm-num">{application.public_id}</span></p>
+  <div class="md-scope rec-module">
+  <RecordHeader icon="candidates" tone="hiring" object={vi ? "Ứng viên" : "Candidate"} vi={vi} title={application.full_name} crumbs={[{ label: vi ? "Tuyển dụng" : "Hiring", href: deskPath(lang, "/admin/jobs") }, { label: vi ? "Ứng viên" : "Candidates", href: deskPath(lang, "/admin/jobs/applications") }, { label: application.full_name }]}>
+    <p class="crm-lede" slot="sub"><span class:list={["crm-badge", statusTone(application.status)]}>{statusName(application.status, lang)}</span> · {application.job_title} · {vi ? "Nộp" : "Applied"} {deskDate(application.created_at, lang)} · <span class="crm-num">{application.public_id}</span></p>
     <div slot="actions" class="crm-actions">
       {user.can("hiring.applications.manage") && <form class="crm-actions" method="post" action={`/api/admin/applications/${application.id}/status`}>
     <input type="hidden" name="lang" value={lang} />
@@ -24,7 +25,7 @@ const saved = flash.saved === "1" || (!!flash.saved && !["interview", "scorecard
   </form>}
       {application.status==="hired"&&user.can("hiring.applications.manage")&&user.can("hrm.records.manage")&&user.hrmEnabled===true&&<a class="crm-button secondary" href={`${vi?"/vi":""}/hrm/transfers/${encodeURIComponent(application.id)}`}>{vi?"Xem trước chuyển sang HRM":"Preview HRM transfer"}</a>}
     </div>
-  </PageHeader>
+  </RecordHeader>
   {saved && <div class="crm-notice good" role="status">{vi ? "Đã lưu." : "Saved."}</div>}
   <div class="crm-grid two">
     <div>

@@ -14,7 +14,7 @@ import { type Account, type Contact, type Opportunity, accountOpportunities } fr
 export interface AccountProps {
   ctx: Ctx; state: FormState; account: Account; contacts: Contact[]; editable: Set<string>; opportunities: Opportunity[]; canEdit: boolean;
   duplicates: Pick<Account, "id" | "name" | "region">[]; playbookNames: Record<string, string>; playbooks: Playbook[];
-  owners: OwnerOption[]; names: Record<string, { name: string; active: boolean }>;
+  owners: OwnerOption[]; names: Record<string, { name: string; active: boolean }>; stageNames: Record<string, string>;
 }
 
 export async function accountRoute(astro: AstroGlobal, lang: Lang): Promise<AccountProps | Response> {
@@ -46,10 +46,13 @@ export async function accountRoute(astro: AstroGlobal, lang: Lang): Promise<Acco
     accountOpportunities(ctx.db, ctx.actor, account.id), canEditAccount(ctx.db, ctx.actor, account.id),
   ]);
   const people = [account.owner_id, ...contacts.map((contact) => contact.owner_id), ...opportunities.map((opp) => opp.owner_id)].filter((id): id is string => !!id);
+  const versions = await allPlaybookVersions(ctx.db);
+  const stageNames: Record<string, string> = {};
+  for (const playbook of versions) for (const stage of playbook.def.stages) stageNames[`${playbook.id}:${stage.id}`] = lang === "vi" ? stage.vi : stage.en;
   return {
-    ctx, state: posted ?? emptyState, account, contacts, editable, opportunities, canEdit,
+    ctx, state: posted ?? emptyState, account, contacts, editable, opportunities, canEdit, stageNames,
     duplicates: ctx.actor.manager ? await possibleDuplicates(ctx.db, account) : [],
-    playbookNames: Object.fromEntries((await allPlaybookVersions(ctx.db)).map((item) => [item.id, lang === "vi" ? item.name_vi : item.name_en])),
+    playbookNames: Object.fromEntries(versions.map((item) => [item.id, lang === "vi" ? item.name_vi : item.name_en])),
     playbooks: canEdit ? await latestPlaybooks(ctx.db, { activeOnly: true }) : [],
     owners: ctx.actor.manager ? await ownerOptions(ctx.db, ctx.contentDb, ctx.actor) : [],
     names: await displayNames(ctx.contentDb, [...new Set(people)]),

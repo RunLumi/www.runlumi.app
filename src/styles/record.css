@@ -1,0 +1,118 @@
+/* Record and setup screens (round 2, ui3) on top of ui1's kit (workspace.css).
+   Only what the kit does not draw: the two-column record body, the path's
+   key-field and guidance columns, read-only field lists, the activity feed,
+   the Lead conversion sections and result cards, the setup info note and the
+   module panel style. Values follow docs/redesign/boards/lumi.css. */
+.rec { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.rec-split { display: flex; flex-wrap: wrap; gap: 12px; align-items: stretch; }
+.rec-main { flex: 999 1 620px; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.rec-side { flex: 1 1 340px; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.rec-main > .ws-sheet-panel:last-child, .rec-side > .ws-sheet-panel:last-child { flex: 1; }
+.rec-sub { margin: 4px 0 0; color: #5E6677; font-size: 13px; }
+.rec-badges { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 0; }
+.rec-unknown { color: #9A5B00; font-weight: 500; }
+
+/* Path panel columns come from ui/PathPanel; these style their contents. */
+.rec-guide { margin: 0; padding-left: 18px; color: #172033; font-size: 14px; line-height: 1.6; }
+.rec-path-note { margin: 0; font-size: 13px; color: #5E6677; }
+
+/* Read-only fields */
+.rec-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 32px; margin: 0; }
+.rec-fields.one { grid-template-columns: minmax(0, 1fr); }
+.rec-fields > div { padding: 9px 0; border-bottom: 1px solid #E7EAF0; min-width: 0; }
+.rec-fields dt { font-size: 13px; line-height: 1.2; color: #5E6677; margin-bottom: 4px; }
+.rec-fields dd { margin: 0; font-size: 14px; font-weight: 500; line-height: 1.35; color: #172033; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; white-space: pre-line; }
+.rec-sec { margin: 0 0 8px; font-size: 15px; font-weight: 600; line-height: 1.2; color: #102A43; }
+.rec-sec + .rec-fields { margin-bottom: 18px; }
+
+/* Panel bodies */
+.rec-body { padding: 16px 20px 20px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.rec-head { padding: 13px 20px 11px; border-bottom: 1px solid #E7EAF0; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.rec-head h2 { margin: 0; font-size: 15px; font-weight: 600; line-height: 1.2; color: #102A43; }
+
+/* Related lists: grid, full-width cards, row fields and embedded sections */
+.rec-rl-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 12px; align-items: stretch; }
+.rec-rl-grid > .ws-rl { display: flex; flex-direction: column; }
+.ws-rl-row > a { color: #006093; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+.rec-rl-f { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 8px; color: #5E6677; font-size: 13px; line-height: 1.4; }
+.rec-rl-f > span:last-child { color: #172033; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.rec-rl-i { width: 24px; height: 24px; border-radius: 5px; color: #fff; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex: none; }
+.ws-rl > .crm-sheet { border: 0; box-shadow: none; border-radius: 0; padding: 12px 14px; margin: 0; font-size: 14px; }
+.ws-rl > .crm-sheet > .crm-h2:first-child { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.ws-rl .crm-h3 { font-size: 15px; margin: 14px 0 6px; }
+.ws-rl .crm-empty, .ws-rl .crm-help, .ws-rl .crm-list { font-size: 13px; }
+.ws-rl .crm-facts dt { font-size: 11px; }
+.ws-rl .crm-facts dd { font-size: 15px; }
+.ws-rl .crm-disclosure > summary { font-size: 14px; }
+.ws-rl > .ws-table { border: 0; border-radius: 0; box-shadow: none; }
+.ws-rl .ws-tbl th, .ws-rl .ws-tbl td { white-space: nowrap; }
+.ws-rl .ws-tbl a { color: #006093; font-weight: 500; }
+.rec .ws-tbl code, .ws-setup .ws-tbl code { white-space: nowrap; font-size: 13px; color: #5E6677; }
+
+/* Activity feed */
+.rec-compose { display: flex; flex-wrap: wrap; gap: 8px; }
+.rec-feed-h { margin: 4px 0 0; padding: 8px 10px; background: #F7F8FA; border-radius: 6px; font-size: 13px; font-weight: 600; color: #102A43; display: flex; justify-content: space-between; }
+.rec-alert { border: 1px solid #F3D9A4; background: #FFFBF0; border-radius: 8px; padding: 12px 14px; display: flex; gap: 10px; }
+.rec-alert p { margin: 0; font-size: 13px; color: #344054; }
+.rec-alert strong { display: block; color: #102A43; font-size: 14px; margin-bottom: 2px; }
+
+/* Forms inside records and sheets use the boards' compact sizes. */
+:is(.rec, .ws-overlay, .rec-module) .crm-field > label, :is(.rec, .ws-overlay, .rec-module) .crm-label { font-size: 13px; font-weight: 500; line-height: 1.2; color: #344054; }
+:is(.rec, .ws-overlay) :is(.crm-input, .crm-select) { height: 40px; min-height: 40px; font-size: 16px; padding: 0 10px; border: 1px solid #C8D0DE; border-radius: 6px; }
+:is(.rec, .ws-overlay) .crm-textarea { font-size: 16px; border: 1px solid #C8D0DE; border-radius: 6px; padding: 8px 10px; }
+.ws-overlay :is(.crm-help, .crm-error) { font-size: 13px; }
+.ws-overlay .crm-form-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); }
+
+/* Lead conversion sections (LeadConvert) */
+.rec-cv { border: 1px solid #D9DEE8; border-radius: 8px; padding: 0; margin: 0; min-width: 0; }
+.rec-cv > legend { float: left; width: 100%; padding: 10px 14px; background: #F7F8FA; border-bottom: 1px solid #E7EAF0; border-radius: 8px 8px 0 0; font-size: 15px; font-weight: 600; color: #102A43; display: flex; justify-content: space-between; align-items: center; gap: 8px; box-sizing: border-box; }
+.rec-cv > legend > span { display: inline-flex; gap: 8px; align-items: center; }
+.rec-cv-cols { clear: both; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 12px; padding: 14px; align-items: start; }
+.rec-cv-or { align-self: center; font-size: 12px; font-weight: 600; letter-spacing: .06em; color: #5E6677; }
+.rec-cv-opt { border: 1px solid #D9DEE8; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.rec-cv-opt:has(input[type="radio"]:checked) { border: 2px solid #006093; background: #F7FBFE; padding: 11px; }
+.rec-cv-opt > label:first-child { font-weight: 600; display: flex; gap: 8px; align-items: center; color: #102A43; }
+.rec-cv-dups { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.rec-cv-dups li { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+
+/* Result cards (LeadConverted) */
+.rec-done { text-align: center; padding: 24px 24px 18px; border-bottom: 1px solid #E7EAF0; }
+.rec-done-ic { width: 48px; height: 48px; border-radius: 24px; background: #E9F7EF; color: #1F7A4D; display: inline-flex; align-items: center; justify-content: center; }
+.rec-done h1 { margin: 10px 0 6px; font-size: 18px; font-weight: 650; line-height: 1.3; color: #102A43; }
+.rec-done p { margin: 0; color: #5E6677; font-size: 14px; }
+.rec-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: 12px; padding: 20px 24px; }
+.rec-card { border: 1px solid #D9DEE8; border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.rec-card.new { border: 2px solid #006093; box-shadow: 0 0 0 3px #E4F3FC; padding: 13px; }
+.rec-card h2 { margin: 0; font-size: 12px; font-weight: 600; line-height: 1.3; letter-spacing: .06em; text-transform: uppercase; color: #5E6677; display: flex; gap: 8px; align-items: center; }
+.rec-card > a { font-size: 17px; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
+.rec-card .rec-rl-f { grid-template-columns: 104px minmax(0, 1fr); }
+.rec-done-f { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; padding: 12px 24px; border-top: 1px solid #E7EAF0; background: #F7F8FA; }
+
+/* Setup pages (Settings board) */
+.ws-setup > .crm-sheet, .ws-setup .crm-grid > .crm-sheet, .ws-setup form > .crm-sheet, .ws-setup .rec-row > .crm-sheet { background: #fff; border: 1px solid #D9DEE8; border-radius: 8px; box-shadow: 0 1px 2px rgba(16, 42, 67, .06); padding: 16px 20px; margin: 0; }
+.ws-setup .crm-sheet + .crm-sheet { margin-top: 0; }
+.ws-setup .crm-h2 { font-size: 16px; font-weight: 600; line-height: 1.3; color: #102A43; margin: 0 0 8px; }
+.ws-setup .crm-h3 { font-size: 15px; }
+.ws-setup :is(.crm-help, .crm-empty, .crm-list, .crm-row-meta) { font-size: 13px; }
+.ws-setup :is(.crm-table, .crm-grid-table) { font-size: 14px; }
+.ws-setup :is(.crm-table, .crm-grid-table) th { background: #F7F8FA; color: #344054; font-size: 12px; font-weight: 600; line-height: 1.2; text-transform: uppercase; letter-spacing: .04em; }
+.ws-setup :is(.crm-input, .crm-select) { min-height: 40px; height: 40px; font-size: 15px; }
+.ws-setup .crm-disclosure > summary { font-size: 14px; }
+.ws-setup .crm-grid { gap: 12px; }
+.ws-setup .crm-filter { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
+.ws-setup form.ws-oh-actions, .ws-oh-actions form { display: flex; gap: 8px; align-items: center; margin: 0; }
+.rec-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 12px; align-items: stretch; }
+
+/* Modules without boards (Tuyển dụng, HRM, Tài chính) */
+.rec-module { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.rec-module :is(section.crm-sheet, .md-section, > .crm-sheet) { background: #fff; border: 1px solid #D9DEE8; border-radius: 8px; box-shadow: 0 1px 2px rgba(16, 42, 67, .06); padding: 16px 20px; }
+.rec-module .crm-sheet + .crm-sheet { margin-top: 12px; }
+.rec-module .crm-h2 { font-size: 16px; font-weight: 600; line-height: 1.3; color: #102A43; }
+.rec-module :is(.crm-help, .crm-empty, .crm-row-meta, .crm-list) { font-size: 13px; }
+.rec-module :is(.crm-input, .crm-select) { min-height: 40px; font-size: 15px; }
+.rec-module .ws-rec .crm-lede { font-size: 13px; color: #5E6677; margin: 4px 0 0; }
+
+@media (max-width: 900px) {
+  .rec-fields, .rec-cv-cols { grid-template-columns: minmax(0, 1fr); }
+  .rec-body { padding-left: 14px; padding-right: 14px; }
+}
