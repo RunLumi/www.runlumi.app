@@ -13,8 +13,7 @@ import ListHeader from "../workspace/ui/ListHeader.astro";
 import ButtonGroup from "../workspace/ui/ButtonGroup.astro";
 import ListToolbar from "../workspace/ui/ListToolbar.astro";
 import Sheet from "../workspace/ui/Sheet.astro";
-import ListFilters from "./ListFilters.astro";
-import Glyph from "./Glyph.astro";
+import NavIcon from "../workspace/NavIcon.astro";
 import { errorText } from "../../lib/crm/i18n";
 import { requirementLabel } from "../../lib/crm/playbook";
 import { initials } from "../../lib/workspace/summaries";
@@ -94,15 +93,14 @@ const zoneLabel = (outcome: "won" | "lost") => {
 
     <ListHeader vi={vi} icon="pipeline" tone="opportunity" object={vi ? "Cơ hội" : "Opportunities"} title={title} meta={meta} lists={lists}>
       <ButtonGroup slot="actions" label={vi ? "Hành động" : "Actions"}><a class="ws-btn" href={`${path({ new: "1" })}#new-opp`}>{vi ? "Tạo" : "New"}</a></ButtonGroup>
-      <ListToolbar slot="tools" vi={vi} q={filters.q} keep={{ playbook: filters.playbook, view: view === "list" ? "" : view, stage: filters.stage, outcome: filters.outcome, channel: filters.channel, offer: filters.offer, cohort: filters.cohort, industry: filters.industry, region: filters.region, owner: filters.owner }} views={[
+      <ListToolbar slot="tools" vi={vi} filterActive={filterCount} filterClear={path({ stage: "", outcome: "", channel: "", offer: "", cohort: "", industry: "", region: "", owner: "", q: "", page: "" })} q={filters.q} keep={{ playbook: filters.playbook, view: view === "list" ? "" : view, stage: filters.stage, outcome: filters.outcome, channel: filters.channel, offer: filters.offer, cohort: filters.cohort, industry: filters.industry, region: filters.region, owner: filters.owner }} views={[
           { key: "table", label: vi ? "Bảng" : "Table", href: path({ view: "table", page: "" }), icon: "model", current: view !== "board" },
           ...(filters.playbook !== "all" ? [{ key: "board", label: "Kanban", href: path({ view: "board", page: "", stage: "" }), icon: "pipeline" as const, current: view === "board" }] : []),
         ]}>
-        <a class="ws-btn icon" href={path({})} aria-label={vi ? "Làm mới" : "Refresh"}><Glyph name="refresh" /></a>
-        <ListFilters vi={vi} active={filterCount} clearHref={path({ stage: "", outcome: "", channel: "", offer: "", cohort: "", industry: "", region: "", owner: "", q: "", page: "" })}>
+        <a class="ws-btn icon" href={path({})} aria-label={vi ? "Làm mới" : "Refresh"}><NavIcon name="refresh" size={16} /></a>
+                <Fragment slot="filters">
           <input type="hidden" name="playbook" value={filters.playbook} />
           {view !== "list" && <input type="hidden" name="view" value={view} />}
-          {filters.q && <input type="hidden" name="q" value={filters.q} />}
           {view !== "board" && playbook && <div class="crm-field"><label for="stage">{vi ? "Giai đoạn" : "Stage"}</label><select class="crm-select" id="stage" name="stage"><option value="">{vi ? "Tất cả" : "Any"}</option>{playbook.def.stages.map((stage) => <option value={stage.id} selected={filters.stage === stage.id}>{vi ? stage.vi : stage.en} ({counts[stage.id] ?? 0})</option>)}</select></div>}
           {view !== "board" && <div class="crm-field"><label for="outcome">{vi ? "Trạng thái" : "Status"}</label><select class="crm-select" id="outcome" name="outcome"><option value="">{vi ? "Tất cả" : "Any"}</option>{options(lang, "outcome").map((item) => <option value={item.value} selected={filters.outcome === item.value}>{item.label}</option>)}</select></div>}
           <div class="crm-field"><label for="channel">{vi ? "Kênh" : "Channel"}</label><select class="crm-select" id="channel" name="channel"><option value="">{vi ? "Tất cả" : "Any"}</option>{options(lang, "channel").map((item) => <option value={item.value} selected={filters.channel === item.value}>{item.label}</option>)}</select></div>
@@ -111,7 +109,7 @@ const zoneLabel = (outcome: "won" | "lost") => {
           <div class="crm-field"><label for="industry">{vi ? "Ngành" : "Industry"}</label><input class="crm-input" id="industry" name="industry" value={filters.industry} maxlength="120" /></div>
           <div class="crm-field"><label for="region">{vi ? "Khu vực" : "Region"}</label><input class="crm-input" id="region" name="region" value={filters.region} maxlength="120" /></div>
           {ctx.actor.manager && <div class="crm-field"><label for="owner">{vi ? "Người phụ trách" : "Owner"}</label><select class="crm-select" id="owner" name="owner"><option value="">{vi ? "Tất cả" : "Anyone"}</option><option value="unassigned" selected={filters.owner === "unassigned"}>{vi ? "Chưa phân công" : "Unassigned"}</option><option value="inactive" selected={filters.owner === "inactive"}>{vi ? "Người phụ trách không hoạt động" : "Inactive owner"}</option>{owners.map((owner) => <option value={owner.id} selected={filters.owner === owner.id}>{owner.label}</option>)}</select></div>}
-        </ListFilters>
+        </Fragment>
       </ListToolbar>
 
       {view !== "board" && <>
@@ -164,9 +162,9 @@ const zoneLabel = (outcome: "won" | "lost") => {
             {cards.map((row) => { const editable = canEdit(row); const inStage = days(row.stage_since); const alert = row.overdue_tasks > 0 ? (vi ? `${row.overdue_tasks} công việc quá hạn` : `${row.overdue_tasks} overdue task(s)`) : row.open_tasks === 0 && !row.next_action_due ? (vi ? "Không có hoạt động sắp tới" : "No upcoming activity") : ""; const danger = row.overdue_tasks > 0; return <article class:list={["cl-kc", { warn: alert && !danger, danger }]} data-card={editable ? row.id : undefined} data-name={`${row.title}`} data-current={row.stage_id}
                 data-zone-won={editable ? `${base}/${row.id}?close=won#close` : undefined} data-zone-lost={editable ? `${base}/${row.id}?close=lost#close` : undefined}>
               <div class="cl-kc-top">
-                {editable ? <span class="cl-grip"><Glyph name="grip" /></span> : <span class="cl-grip" />}
+                {editable ? <span class="cl-grip"><NavIcon name="grip" size={16} /></span> : <span class="cl-grip" />}
                 <a class="cl-kc-title" href={`${base}/${row.id}`}>{row.title}</a>
-                {alert && <span class:list={["cl-kc-alert", { danger }]} title={alert}><Glyph name="warn" /><span class="crm-sr">{alert}</span></span>}
+                {alert && <span class:list={["cl-kc-alert", { danger }]} title={alert}><NavIcon name="warn" size={16} /><span class="crm-sr">{alert}</span></span>}
               </div>
               <dl>
                 <dt>{vi ? "Công ty" : "Company"}</dt><dd>{row.account_name}</dd>

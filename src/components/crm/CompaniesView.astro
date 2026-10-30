@@ -6,8 +6,7 @@ import ListHeader from "../workspace/ui/ListHeader.astro";
 import ButtonGroup from "../workspace/ui/ButtonGroup.astro";
 import ListToolbar from "../workspace/ui/ListToolbar.astro";
 import Sheet from "../workspace/ui/Sheet.astro";
-import ListFilters from "./ListFilters.astro";
-import Glyph from "./Glyph.astro";
+import NavIcon from "../workspace/NavIcon.astro";
 import Field from "./Field.astro";
 import FormNotices from "./FormNotices.astro";
 import Hidden from "./Hidden.astro";
@@ -44,12 +43,12 @@ const closeHref = query({ new: "" });
   <div class="cl-stack">
     <ListHeader vi={vi} icon="companies" tone="company" object={vi ? "Công ty" : "Companies"} title={title} meta={meta} lists={lists}>
       <ButtonGroup slot="actions" label={vi ? "Hành động" : "Actions"}><a class="ws-btn" href={`${query({ new: "1" })}#new-company`}>{vi ? "Tạo" : "New"}</a></ButtonGroup>
-      <ListToolbar slot="tools" vi={vi} q={filters.q} keep={{ owner: filters.owner }}>
-        <a class="ws-btn icon" href={query({})} aria-label={vi ? "Làm mới" : "Refresh"}><Glyph name="refresh" /></a>
-        {actor.manager && <ListFilters vi={vi} active={filters.owner ? 1 : 0} clearHref={query({ owner: "", page: "" })}>
-          {filters.q && <input type="hidden" name="q" value={filters.q} />}
+      <ListToolbar slot="tools" vi={vi} filterActive={filters.owner ? 1 : 0} filterClear={actor.manager ? query({ owner: "", page: "" }) : undefined} q={filters.q} keep={{ owner: filters.owner }}>
+        <a class="ws-btn icon" href={query({})} aria-label={vi ? "Làm mới" : "Refresh"}><NavIcon name="refresh" size={16} /></a>
+                {actor.manager && <Fragment slot="filters">
+
           <div class="crm-field"><label for="owner">{vi ? "Người quản lý" : "Managed by"}</label><select class="crm-select" id="owner" name="owner"><option value="">{vi ? "Tất cả" : "Anyone"}</option><option value="unassigned" selected={filters.owner === "unassigned"}>{vi ? "Chưa có người quản lý" : "Nobody yet"}</option>{owners.map((owner) => <option value={owner.id} selected={filters.owner === owner.id}>{owner.label}</option>)}</select></div>
-        </ListFilters>}
+        </Fragment>}
       </ListToolbar>
       {rows.length ? <div class="cl-tbl-wrap" tabindex="0" role="region" aria-label={vi ? "Bảng công ty, cuộn ngang được" : "Company table, scrolls sideways"}><table class="cl-tbl">
         <thead><tr><th class="fz fzr" scope="col"><span class="crm-sr">#</span></th><th class="fz fzn" scope="col">{vi ? "Tên công ty" : "Company name"}</th><th scope="col">{vi ? "Ngành" : "Industry"}</th><th scope="col">{vi ? "Khu vực" : "Area"}</th><th scope="col">{vi ? "Địa chỉ" : "Address"}</th><th scope="col" class="r">{vi ? "Liên hệ" : "Contacts"}</th><th scope="col" class="r">{vi ? "Cơ hội đang mở" : "Open opportunities"}</th><th scope="col">{vi ? "Người quản lý" : "Managed by"}</th><th scope="col">{vi ? "Hành động" : "Actions"}</th></tr></thead>

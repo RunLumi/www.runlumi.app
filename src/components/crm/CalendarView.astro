@@ -10,7 +10,7 @@ import Hidden from "./Hidden.astro";
 import ListHeader from "../workspace/ui/ListHeader.astro";
 import ButtonGroup from "../workspace/ui/ButtonGroup.astro";
 import Dialog from "../workspace/ui/Dialog.astro";
-import Glyph from "./Glyph.astro";
+import NavIcon from "../workspace/NavIcon.astro";
 import { label, options } from "../../lib/crm/i18n";
 import { errorFor, valueFor } from "../../lib/crm/page";
 import type { CalendarProps } from "../../lib/crm/routes/calendar";
@@ -79,15 +79,15 @@ const legend: { tone: string; label: string }[] = [
     <ListHeader vi={vi} icon="calendar" tone="event" object={vi ? "Lịch" : "Calendar"} title={view === "week" ? weekTitle : monthTitle(range.anchor.slice(0, 7))} meta={vi ? `${shown.length} mục trong kỳ này · giờ Việt Nam` : `${shown.length} items in this period · Vietnam time`}>
       <div slot="actions" class="cl-cal-actions">
         <nav class="ws-bg" aria-label={vi ? "Chuyển kỳ" : "Change period"}>
-          <a class="ws-btn icon" href={view === "week" ? weekHref(range.previous) : monthHref(range.previous)} aria-label={vi ? (view === "week" ? "Tuần trước" : "Tháng trước") : (view === "week" ? "Previous week" : "Previous month")}><Glyph name="left" /></a>
+          <a class="ws-btn icon" href={view === "week" ? weekHref(range.previous) : monthHref(range.previous)} aria-label={vi ? (view === "week" ? "Tuần trước" : "Tháng trước") : (view === "week" ? "Previous week" : "Previous month")}><NavIcon name="left" size={16} /></a>
           <a class="ws-btn" href={view === "week" ? weekHref(today) : monthHref(today.slice(0, 7))}>{vi ? "Hôm nay" : "Today"}</a>
-          <a class="ws-btn icon" href={view === "week" ? weekHref(range.next) : monthHref(range.next)} aria-label={vi ? (view === "week" ? "Tuần sau" : "Tháng sau") : (view === "week" ? "Next week" : "Next month")}><Glyph name="right" /></a>
+          <a class="ws-btn icon" href={view === "week" ? weekHref(range.next) : monthHref(range.next)} aria-label={vi ? (view === "week" ? "Tuần sau" : "Tháng sau") : (view === "week" ? "Next week" : "Next month")}><NavIcon name="right" size={16} /></a>
         </nav>
         <nav class="ws-bg" aria-label={vi ? "Cách xem" : "View"}>
           <a class:list={["ws-btn", { on: view === "week" }]} href={weekHref(view === "week" ? range.anchor : (inMonth(today) ? today : range.anchor))} aria-current={view === "week" ? "page" : undefined}>{vi ? "Tuần" : "Week"}</a>
           <a class:list={["ws-btn", { on: view === "month" }]} href={monthHref(view === "week" ? anchorMonth : range.anchor.slice(0, 7))} aria-current={view === "month" ? "page" : undefined}>{vi ? "Tháng" : "Month"}</a>
         </nav>
-        <a class="ws-btn icon" href={link({})} aria-label={vi ? "Làm mới" : "Refresh"}><Glyph name="refresh" /></a>
+        <a class="ws-btn icon" href={link({})} aria-label={vi ? "Làm mới" : "Refresh"}><NavIcon name="refresh" size={16} /></a>
         {opportunities.length > 0 && <a class="ws-btn primary" href={`${link({ new: "1" })}#new-event`}>{vi ? "Tạo lịch hẹn" : "New event"}</a>}
       </div>
     </ListHeader>
@@ -95,7 +95,7 @@ const legend: { tone: string; label: string }[] = [
     <div class="cl-cal">
       <aside class="cl-panel cl-cal-rail" aria-label={vi ? "Lịch nhỏ và chú thích" : "Mini calendar and legend"}>
         <div>
-          <div class="cl-mini-h"><strong>{monthTitle(anchorMonth)}</strong><nav aria-label={vi ? "Đổi tháng" : "Change month"}><a href={monthHref(mini.previous)} aria-label={vi ? "Tháng trước" : "Previous month"}><Glyph name="left" /></a><a href={monthHref(mini.next)} aria-label={vi ? "Tháng sau" : "Next month"}><Glyph name="right" /></a></nav></div>
+          <div class="cl-mini-h"><strong>{monthTitle(anchorMonth)}</strong><nav aria-label={vi ? "Đổi tháng" : "Change month"}><a href={monthHref(mini.previous)} aria-label={vi ? "Tháng trước" : "Previous month"}><NavIcon name="left" size={16} /></a><a href={monthHref(mini.next)} aria-label={vi ? "Tháng sau" : "Next month"}><NavIcon name="right" size={16} /></a></nav></div>
           <div class="cl-mini">
             {miniNames.map((name) => <b aria-hidden="true">{name}</b>)}
             {mini.days.map((day) => <a href={weekHref(day)} class:list={{ o: day.slice(0, 7) !== anchorMonth, t: day === today, wk: currentWeek.includes(day) && day !== today }} aria-label={fmt(day, { weekday: "long", day: "numeric", month: "long" })}>{Number(day.slice(8))}</a>)}
