@@ -2,6 +2,7 @@
 import type { AstroGlobal } from "astro";
 import { envFromLocals } from "../ats";
 import { vnDate } from "../crm/money";
+import { matchesSearch } from "../search";
 import { RETENTION_STATUSES, retentionCutoff } from "../hiring/interviews";
 import { type AccessFormState, type AccessRow, type AuditEntry, accessRows, auditFor, emptyState, handleAccessPost, namesFor } from "./access";
 import type { WorkspaceUser } from "./roles";
@@ -84,10 +85,9 @@ export async function usersPage(astro: AstroGlobal, lang: Lang): Promise<Respons
   const requested = astro.url.searchParams.get("filter") as UsersFilter | null;
   const filter = requested && filters.includes(requested) ? requested : "all";
   const query = (astro.url.searchParams.get("q") ?? "").trim().slice(0, 100);
-  const needle = query.toLocaleLowerCase("vi");
   const shown = rows.filter((row) => ({
     all: true, backup: row.passkeys !== null && row.passkeys < 2, agents: row.tokens > 0, active: row.enabled && row.active, revoked: !row.enabled || !row.active, admins: row.admin, terms: row.sellerTermsMissing,
-  })[filter]).filter((row) => !needle || `${row.name} ${row.email}`.toLocaleLowerCase("vi").includes(needle));
+  })[filter]).filter((row) => matchesSearch([row.name, row.email], query));
   const audit = await auditFor(DB, undefined, 10);
   const names = await namesFor(CONTENT_DB, audit.map((row) => row.target_user_id));
   return { lang, vi: lang === "vi", user, rows, shown, filter, query, audit, names, state };

@@ -9,6 +9,7 @@ import { listLeads } from "../crm/leads";
 import { type Filters, listOpportunities } from "../crm/records";
 import { HrmError } from "../hrm/fields";
 import { sameOrigin } from "../http";
+import { matchesSearch } from "../search";
 import { hasNoticeSource, listNotices, markNoticeRead, type Notice } from "./inbox";
 import { workspaceMembers } from "./members";
 import { listRules, type Rule } from "./notify/rules";
@@ -41,8 +42,7 @@ export async function search(db: D1Database, contentDb: D1Database, user: Worksp
   const groups: SearchGroup[] = [];
   for (const kind of kinds) {
     if (kind === "members") {
-      const needle = q.toLocaleLowerCase("vi");
-      const rows = (await workspaceMembers(db, contentDb)).filter((row) => `${row.name} ${row.email}`.toLocaleLowerCase("vi").includes(needle));
+      const rows = (await workspaceMembers(db, contentDb)).filter((row) => matchesSearch([row.name, row.email], q));
       groups.push({ kind, total: rows.length, all: `/workspace/users?q=${enc}`, hits: rows.slice(0, limit).map((row) => ({ title: row.name || row.email, href: `/workspace/users/${encodeURIComponent(row.user_id)}`, meta: [row.email, row.enabled ? "" : "revoked"].filter(Boolean) })) });
       continue;
     }

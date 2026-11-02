@@ -13,6 +13,7 @@ import { latestPlaybooks } from "./config";
 import {
   ConflictError, Errors, ForbiddenError, NotFoundError, emailPattern, fail, newId, normalizePhone, nowIso, once, onceGuarded,
 } from "./core";
+import { searchSql } from "../search";
 import { isIsoDate } from "./playbook";
 import { contactRoles, dealForecast, phoneSuppressed, sourceChannels, type SourceChannel } from "./records";
 
@@ -192,7 +193,8 @@ function leadWhere(actor: CrmActor, filters: LeadFilters): { sql: string; args: 
   if (filters.source) add("l.source_channel = ?", filters.source);
   if (actor.manager && filters.owner === "unassigned") parts.push("l.owner_id IS NULL");
   else if (actor.manager && filters.owner) add("l.owner_id = ?", filters.owner);
-  if (filters.q) add("(l.name LIKE ? ESCAPE '\\' OR l.company LIKE ? ESCAPE '\\')", ...Array(2).fill(`%${filters.q.replace(/[\\%_]/g, (match) => `\\${match}`)}%`));
+  const search = searchSql(["l.name", "l.company"], filters.q);
+  if (search) add(search.sql, ...search.args);
   return { sql: parts.join(" AND "), args };
 }
 

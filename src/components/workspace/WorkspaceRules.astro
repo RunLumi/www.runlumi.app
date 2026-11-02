@@ -13,15 +13,16 @@ import { platformLabels } from "../../lib/workspace/notify/destinations";
 import { eventLabel } from "../../lib/workspace/notify/labels";
 import { dateTime } from "../../lib/workspace/format";
 import { roleLabel } from "../../lib/workspace/roles";
+import { matchesSearch } from "../../lib/search";
 
 type Props = RulesData;
 const { lang, vi, user, rules, destinations, stats, saved } = Astro.props;
 const t = (en: string, viText: string) => (vi ? viText : en);
 const base = localized("/workspace/notifications", vi);
 const filter = Astro.url.searchParams.get("filter") ?? "";
-const q = (Astro.url.searchParams.get("q") ?? "").trim().slice(0, 80).toLocaleLowerCase("vi");
+const q = (Astro.url.searchParams.get("q") ?? "").trim().slice(0, 80);
 const failing = (rule: typeof rules[number]) => (stats[rule.id]?.failed7d ?? 0) > 0 || rule.destinations.some((id) => destinations.find((item) => item.id === id)?.status === "paused");
-const shown = rules.filter((rule) => (filter === "on" ? rule.enabled : filter === "off" ? !rule.enabled : filter === "errors" ? failing(rule) : true) && (!q || rule.name.toLocaleLowerCase("vi").includes(q)));
+const shown = rules.filter((rule) => (filter === "on" ? rule.enabled : filter === "off" ? !rule.enabled : filter === "errors" ? failing(rule) : true) && matchesSearch(rule.name, q));
 const destinationName = (id: string) => { const item = destinations.find((destination) => destination.id === id); return item ? `${platformLabels[item.platform]} · ${item.name}` : t("Removed webhook", "Webhook đã gỡ"); };
 const recipients = (rule: typeof rules[number]) => [
   ...(rule.recipients.record_owner ? [t("Record owner", "Người phụ trách")] : []),

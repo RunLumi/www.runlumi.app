@@ -6,6 +6,8 @@
 // Finance books are ready sees them, and export chunks (report data) never
 // appear.
 
+import { searchSql } from "../search";
+
 export const AUDIT_PAGE = 50;
 export const AUDIT_EXPORT_MAX = 5000;
 
@@ -59,7 +61,6 @@ export function filterQuery(filters: AuditFilters, changes: Partial<AuditFilters
   return text ? `?${text}` : "";
 }
 
-const escapeLike = (value: string) => value.replace(/[\\%_]/g, (char) => `\\${char}`);
 const inList = (values: string[]) => values.map(() => "?").join(", ");
 
 function decode(detail: string): Record<string, unknown> {
@@ -88,7 +89,8 @@ function query(filters: AuditFilters, finance: boolean): { sql: string; args: un
   if (filters.actor) { where.push("actor_id = ?"); args.push(filters.actor); }
   if (filters.from) { where.push("created_at >= ?"); args.push(new Date(`${filters.from}T00:00:00+07:00`).toISOString()); }
   if (filters.to) { where.push("created_at <= ?"); args.push(new Date(`${filters.to}T23:59:59.999+07:00`).toISOString()); }
-  if (filters.q) { where.push("(action LIKE ? ESCAPE '\\' OR actor_name LIKE ? ESCAPE '\\')"); args.push(`%${escapeLike(filters.q)}%`, `%${escapeLike(filters.q)}%`); }
+  const search = searchSql(["action", "actor_name"], filters.q);
+  if (search) { where.push(search.sql); args.push(...search.args); }
   if (filters.cursor) {
     const [at, id] = filters.cursor.split("|");
     where.push("(created_at < ? OR (created_at = ? AND id < ?))"); args.push(at, at, id);

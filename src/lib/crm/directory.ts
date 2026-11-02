@@ -7,6 +7,7 @@ import { latestPlaybooks } from "./config";
 import {
   ConflictError, Errors, ForbiddenError, NotFoundError, emailPattern, eventStatement, fail, newId, normalizePhone, nowIso, once, onceGuarded,
 } from "./core";
+import { searchSql } from "../search";
 import { isIsoDate } from "./playbook";
 import { type Account, type Contact, type SourceChannel, contactChannels, contactRoles, dealForecast, parseVersion, phoneSuppressed, sourceChannels } from "./records";
 
@@ -56,7 +57,8 @@ export async function listAccounts(db: D1Database, actor: CrmActor, filters: Dir
   const args: unknown[] = [...scope.args];
   const owner = ownerFilter(actor, filters.owner, "a.owner_id");
   if (owner) { parts.push(owner.sql); args.push(...owner.args); }
-  if (filters.q) { parts.push("(a.name LIKE ? ESCAPE '\\' OR a.industry LIKE ? ESCAPE '\\' OR a.region LIKE ? ESCAPE '\\')"); args.push(...Array(3).fill(like(filters.q))); }
+  const search = searchSql(["a.name", "a.industry", "a.region"], filters.q);
+  if (search) { parts.push(search.sql); args.push(...search.args); }
   const where = parts.join(" AND ");
   const contacts = contactScope(actor, "cc");
   const opportunities = readableScope(actor, "oo");
@@ -80,8 +82,11 @@ export async function listContacts(db: D1Database, actor: CrmActor, filters: Dir
   if (filters.q) {
     const digits = normalizePhone(filters.q);
     const phone = digits.length >= 4 ? " OR c.phone_norm LIKE ? ESCAPE '\\'" : "";
-    parts.push(`(c.name LIKE ? ESCAPE '\\' OR c.email LIKE ? ESCAPE '\\' OR a.name LIKE ? ESCAPE '\\'${phone})`);
-    args.push(...Array(3).fill(like(filters.q)), ...(phone ? [like(digits)] : []));
+    const search = searchSql(["c.name", "c.email", "c.phone", "a.name"], filters.q);
+    if (search) {
+      parts.push(`(${search.sql}${phone})`);
+      args.push(...search.args, ...(phone ? [like(digits)] : []));
+    }
   }
   const where = parts.join(" AND ");
   return paged<ContactRow>(db,

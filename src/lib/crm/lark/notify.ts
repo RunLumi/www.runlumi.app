@@ -78,7 +78,7 @@ export async function eventFacts(db: D1Database, contentDb: D1Database, row: Eve
       const stageName = (id: string) => playbook?.def.stages.find((stage) => stage.id === id)?.vi ?? id;
       if (row.kind === "stage" && typeof body.from === "string") fromStage = stageName(body.from);
       const names = await displayNames(contentDb, [...people, ...(opp.owner_id ? [opp.owner_id] : [])]);
-      const fieldLabels = row.kind === "fields" && playbook ? Object.fromEntries(playbook.def.fields.map((field) => [field.key, field.vi])) : undefined;
+      const fieldLabels = row.kind === "fields" && playbook ? Object.fromEntries([...playbook.def.fields, ...playbook.def.checklist].map((item) => [item.key, item.vi])) : undefined;
       opportunity = {
         id: opp.id, title: opp.title, accountName: opp.account_name, product: playbook?.name_vi ?? opp.playbook_id, stage: stageName(opp.stage_id), outcome: opp.outcome,
         ownerName: opp.owner_id ? names[opp.owner_id]?.name ?? null : null, value: opp.estimated_value_vnd, probability: opp.win_probability, channel: opp.source_channel,

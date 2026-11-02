@@ -5,6 +5,7 @@ import { getPlaybook, latestPlaybooks } from "./config";
 import {
   ConflictError, Errors, ForbiddenError, NotFoundError, ValidationError, emailPattern, eventStatement, fail, newId, normalizePhone, nowIso, once, onceGuarded,
 } from "./core";
+import { searchSql } from "../search";
 import { addDays } from "./money";
 import { type Playbook, type TransitionContext, checkTransition, isIsoDate, parseFieldValue, stageIndex, visibleChecks, visibleFields } from "./playbook";
 
@@ -198,6 +199,11 @@ export async function saveDetails(db: D1Database, actor: CrmActor, opportunity: 
   return result.duplicate;
 }
 
+/** Keys added, changed or removed between two saved value maps. */
+function changedKeys<T>(before: Record<string, T>, after: Record<string, T>): string[] {
+  return [...new Set([...Object.keys(before), ...Object.keys(after)])].filter((key) => (before[key] ?? null) !== (after[key] ?? null) && !(before[key] === undefined && (after[key] as unknown) === false));
+}
+
 export async function saveFields(db: D1Database, actor: CrmActor, opportunity: Opportunity, playbook: Playbook, form: FormData): Promise<void> {
   const version = parseVersion(form);
   const fields = { ...oppFields(opportunity) };
@@ -217,7 +223,7 @@ export async function saveFields(db: D1Database, actor: CrmActor, opportunity: O
   errors.throwIfAny();
   const guard = guardFor(opportunity, version, actor);
   const result = await onceGuarded(db, actor, requestKey(form), "fields", opportunity.id, guard, [
-    eventStatement(db, actor, "fields", { changed: Object.keys(fields).filter((key) => fields[key] !== oppFields(opportunity)[key]) }, { opportunityId: opportunity.id, accountId: opportunity.account_id }, guard),
+    eventStatement(db, actor, "fields", { changed: changedKeys(oppFields(opportunity), fields).concat(changedKeys(oppChecks(opportunity), checks)) }, { opportunityId: opportunity.id, accountId: opportunity.account_id }, guard),
     db.prepare("UPDATE crm_opportunities SET fields = ?, checks = ?, version = version + 1, updated_at = ? WHERE id = ? AND version = ?")
       .bind(JSON.stringify(fields), JSON.stringify(checks), nowIso(), opportunity.id, version),
   ]);
@@ -426,7 +432,8 @@ export function filterSql(actor: CrmActor, filters: Filters, inactiveOwners: rea
   if (filters.region) add("a.region = ? COLLATE NOCASE", filters.region);
   if (filters.offer) add("(o.offer_id IN (SELECT id FROM crm_offers WHERE offer_key = ?) OR EXISTS (SELECT 1 FROM crm_quotes q JOIN crm_offers f ON f.id = q.offer_id WHERE q.opportunity_id = o.id AND f.offer_key = ?))", filters.offer, filters.offer);
   if (["open", "won", "lost", "paused"].includes(filters.outcome)) add("o.outcome = ?", filters.outcome);
-  if (filters.q) add("(o.title LIKE ? ESCAPE '\\' OR a.name LIKE ? ESCAPE '\\')", ...Array(2).fill(`%${filters.q.replace(/[\\%_]/g, (match) => `\\${match}`)}%`));
+  const search = searchSql(["o.title", "a.name"], filters.q);
+  if (search) add(search.sql, ...search.args);
   return { sql: parts.join(" AND "), args };
 }
 

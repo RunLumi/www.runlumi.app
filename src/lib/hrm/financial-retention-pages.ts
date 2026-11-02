@@ -1,4 +1,5 @@
 import type { WorkspaceUser } from "../workspace/roles";
+import { searchSql } from "../search";
 import { HrmError } from "./fields";
 import { localDate, settings } from "./service";
 import { readFinancialControl, type FinancialControlTarget } from "./financial-control";
@@ -18,15 +19,15 @@ export async function financialRetentionPanel(db: D1Database, content: D1Databas
   }
   if (search.length > 100 || /[\u0000-\u001f\u007f]/u.test(search)) throw new HrmError("invalid_field", 400);
   const [page, config] = await Promise.all([listFinancialRetentionPolicies(db, content, user, after), settings(db)]);
-  const pattern = `%${search.replaceAll("\\", "\\\\").replaceAll("%", "\\%").replaceAll("_", "\\_")}%`;
+  const sourceSearch = searchSql(["t.document_key", "t.title_en", "t.title_vi"], search);
   const sources = (await db.prepare(`SELECT v.id,v.version_number,v.source_checksum,f.id AS file_id,t.title_en,t.title_vi
     FROM hrm_legal_template_versions v JOIN hrm_legal_templates t ON t.id=v.template_id JOIN hrm_legal_files f ON f.id=v.source_file_id
     WHERE v.legal_entity=? AND t.document_type='policy' AND v.state IN ('reviewed','active','retired')
     AND v.reviewed_by IS NOT NULL AND v.reviewed_by!=v.created_by AND f.kind='docx_source' AND f.template_id=v.template_id
     AND f.state='reviewed' AND f.reviewed_by IS NOT NULL AND f.reviewed_by!=f.uploaded_by AND f.checksum=v.source_checksum AND f.object_deleted_at IS NULL
-    AND (t.document_key LIKE ? ESCAPE '\\' OR t.title_en LIKE ? ESCAPE '\\' OR t.title_vi LIKE ? ESCAPE '\\')
+    AND ${sourceSearch ? sourceSearch.sql : "1=1"}
     AND NOT EXISTS(SELECT 1 FROM hrm_file_deletion_requests r WHERE r.source_table='hrm_legal_files' AND r.source_file_id=f.id AND r.state IN ('pending_review','approved','deleting','retryable','completed'))
-    ORDER BY t.document_key,v.version_number DESC LIMIT 51`).bind(config.legal_entity, pattern, pattern, pattern)
+    ORDER BY t.document_key,v.version_number DESC LIMIT 51`).bind(config.legal_entity, ...(sourceSearch ? sourceSearch.args : []))
     .all<{ id: string; version_number: number; source_checksum: string; file_id: string; title_en: string; title_vi: string }>()).results;
   const reference=(name:string)=>{const value=url.searchParams.get(name)??"";if(value&&!/^[A-Za-z0-9_-]{1,120}$/.test(value))throw new HrmError("invalid_field",400);return value};
   const caseId=reference("financial_case"),caseAfter=reference("financial_cases_after"),targetAfter=(url.searchParams.get("financial_targets_after")??""),requestAfter=reference("financial_requests_after");
@@ -34,10 +35,10 @@ export async function financialRetentionPanel(db: D1Database, content: D1Databas
   const showRecords=user.hrmEnabled===true&&config.enabled===1;
   if(caseId&&!showRecords)throw new HrmError("hrm_closed",503);
   const caseSearch=(url.searchParams.get("financial_person")??"").trim();if(caseSearch.length>100||/[\u0000-\u001f\u007f]/u.test(caseSearch))throw new HrmError("invalid_field",400);
-  const casePattern=`%${caseSearch.replaceAll("\\","\\\\").replaceAll("%","\\%").replaceAll("_","\\_")}%`;
+  const caseMatch=searchSql(["p.employee_code","p.legal_name"],caseSearch);
   const cases=showRecords?(await db.prepare(`SELECT c.id,p.employee_code,p.legal_name,c.ended_on,c.state FROM hrm_offboarding_cases c JOIN hrm_people p ON p.id=c.person_id
    JOIN hrm_employments e ON e.id=c.employment_id WHERE e.legal_entity=? AND c.id>? AND c.employee_user_id IS NOT ? AND p.user_id IS NOT ?
-   AND (p.employee_code LIKE ? ESCAPE '\\' OR p.legal_name LIKE ? ESCAPE '\\') ORDER BY c.id LIMIT 51`).bind(config.legal_entity,caseAfter,user.id,user.id,casePattern,casePattern)
+   AND ${caseMatch?caseMatch.sql:"1=1"} ORDER BY c.id LIMIT 51`).bind(config.legal_entity,caseAfter,user.id,user.id,...(caseMatch?caseMatch.args:[]))
    .all<{id:string;employee_code:string;legal_name:string;ended_on:string;state:string}>()).results:[];
   const selected=caseId?await db.prepare(`SELECT c.id,c.person_id,c.employment_id,p.employee_code,p.legal_name,c.employee_user_id,p.user_id AS person_user_id
    FROM hrm_offboarding_cases c JOIN hrm_people p ON p.id=c.person_id JOIN hrm_employments e ON e.id=c.employment_id WHERE c.id=? AND e.legal_entity=?`).bind(caseId,config.legal_entity)
@@ -45,8 +46,8 @@ export async function financialRetentionPanel(db: D1Database, content: D1Databas
   if(caseId&&(!selected||selected.employee_user_id===user.id||selected.person_user_id===user.id))throw new HrmError("not_found",404);
   const policySearch=(url.searchParams.get("financial_policy")??"").trim().toUpperCase();
   if(policySearch.length>80||/[\u0000-\u001f\u007f]/u.test(policySearch))throw new HrmError("invalid_field",400);
-  const policyPattern=`%${policySearch.replaceAll("\\","\\\\").replaceAll("%","\\%").replaceAll("_","\\_")}%`;
-  const activePolicies=selected?(await db.prepare("SELECT * FROM hrm_financial_retention_policy_versions WHERE legal_entity=? AND state='active' AND effective_from<=? AND effective_until>=? AND policy_key LIKE ? ESCAPE '\\' ORDER BY policy_key LIMIT 51").bind(config.legal_entity,localDate(),localDate(),policyPattern).all<FinancialRetentionPolicy>()).results:[];
+  const policyMatch=searchSql(["policy_key"],policySearch);
+  const activePolicies=selected?(await db.prepare(`SELECT * FROM hrm_financial_retention_policy_versions WHERE legal_entity=? AND state='active' AND effective_from<=? AND effective_until>=? AND ${policyMatch?policyMatch.sql:"1=1"} ORDER BY policy_key LIMIT 51`).bind(config.legal_entity,localDate(),localDate(),...(policyMatch?policyMatch.args:[])).all<FinancialRetentionPolicy>()).results:[];
   const targetRows=selected?(await db.prepare(`SELECT 'file' AS kind,id FROM hrm_closeout_files WHERE case_id=? AND 'file:'||id>? UNION ALL
    SELECT 'dossier' AS kind,id FROM hrm_closeout_dossiers WHERE case_id=? AND 'dossier:'||id>? ORDER BY kind,id LIMIT 51`).bind(caseId,targetAfter,caseId,targetAfter).all<{kind:"file"|"dossier";id:string}>()).results:[];
   const targets=await Promise.all(targetRows.slice(0,50).map(async item=>{

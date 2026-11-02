@@ -1,5 +1,6 @@
 import type { WorkspaceUser } from "../workspace/roles";
 import { emdashUsers, membersWithRoles } from "../workspace/members";
+import { searchSql } from "../search";
 import { HrmError, type RecordKind, sections } from "./fields";
 
 export interface Settings { enabled: number; legal_entity: string; purpose: string; retention_policy: string; policy_reference: string; reviewed_by: string | null; reviewed_at: string | null; version: number }
@@ -65,9 +66,9 @@ export async function changesFor(db: D1Database, user: WorkspaceUser, person: Pe
 }
 export async function listPeople(db:D1Database,user:WorkspaceUser,query:string,page:number):Promise<Person[]> {
  if(!user.can("hrm.records.manage")&&!user.can("hrm.team.read"))throw new HrmError("forbidden",403);
- const team=!user.can("hrm.records.manage"),search=query,today=localDate();const visibleName=team?"COALESCE(NULLIF(p.preferred_name,''),'Employee')":"p.legal_name";
- const sql=`SELECT p.id,e.id AS employment_id,p.employee_code,p.user_id,${visibleName} AS legal_name,p.preferred_name,p.version AS profile_version,e.work_email,e.work_phone,e.department,e.job_title,e.legal_entity,e.location,e.manager_user_id,e.status,e.started_on,e.ended_on,e.relationship_type,e.version,e.actor_id AS actor_id,e.created_at,e.updated_at FROM hrm_people p JOIN hrm_employments e ON e.person_id=p.id AND e.id=(SELECT e2.id FROM hrm_employments e2 WHERE e2.person_id=p.id ORDER BY CASE WHEN e2.status!='ended' THEN 0 ELSE 1 END,e2.started_on DESC,e2.created_at DESC LIMIT 1) WHERE (instr(lower(${visibleName}),lower(?))>0 OR instr(upper(p.employee_code),upper(?))>0) ${team?"AND e.manager_user_id=? AND e.status!='ended' AND (e.started_on IS NULL OR e.started_on<=?) AND (e.ended_on IS NULL OR e.ended_on>?)":""} ORDER BY ${visibleName},p.id LIMIT 26 OFFSET ?`;
- try{return (await db.prepare(sql).bind(search,search,...(team?[user.id,today,today]:[]),(page-1)*25).all<Person>()).results}
+ const team=!user.can("hrm.records.manage"),today=localDate();const visibleName=team?"COALESCE(NULLIF(p.preferred_name,''),'Employee')":"p.legal_name";const match=searchSql([visibleName,"p.employee_code"],query);
+ const sql=`SELECT p.id,e.id AS employment_id,p.employee_code,p.user_id,${visibleName} AS legal_name,p.preferred_name,p.version AS profile_version,e.work_email,e.work_phone,e.department,e.job_title,e.legal_entity,e.location,e.manager_user_id,e.status,e.started_on,e.ended_on,e.relationship_type,e.version,e.actor_id AS actor_id,e.created_at,e.updated_at FROM hrm_people p JOIN hrm_employments e ON e.person_id=p.id AND e.id=(SELECT e2.id FROM hrm_employments e2 WHERE e2.person_id=p.id ORDER BY CASE WHEN e2.status!='ended' THEN 0 ELSE 1 END,e2.started_on DESC,e2.created_at DESC LIMIT 1) WHERE ${match?match.sql:"1=1"} ${team?"AND e.manager_user_id=? AND e.status!='ended' AND (e.started_on IS NULL OR e.started_on<=?) AND (e.ended_on IS NULL OR e.ended_on>?)":""} ORDER BY ${visibleName},p.id LIMIT 26 OFFSET ?`;
+ try{return (await db.prepare(sql).bind(...(match?match.args:[]),...(team?[user.id,today,today]:[]),(page-1)*25).all<Person>()).results}
  catch(error){if(import.meta.env.DEV&&error instanceof Error)console.error("[hrm] people query failed:",error.message.slice(0,240));throw error}
 }
 export async function audit(db: D1Database,user: WorkspaceUser,action: string,personId: string | null,target: string,detail: Record<string,unknown> = {}): Promise<void> {

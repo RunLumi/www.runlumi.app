@@ -10,7 +10,8 @@ import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from ".
 import {
   createAccount, createContact, createOpportunityFor, listAccounts, listContacts, loadAccount, saveAccount, setDoNotContact, updateContact, visibleContacts,
 } from "../directory";
-import { type Account, type Contact, type Filters, type Opportunity, accountOpportunities, addNote, contactRoles, listOpportunities, loadOpportunity, moveStage, oppFields, recentEvents, requireEdit, saveDetails, saveFields, sourceChannels } from "../records";
+import { type CheckDef, type FieldDef, type PlaybookDef, parseFieldValue, visibleChecks, visibleFields } from "../playbook";
+import { type Account, type Contact, type Filters, type Opportunity, accountOpportunities, addNote, contactRoles, listOpportunities, loadOpportunity, moveStage, oppChecks, oppFields, recentEvents, requireEdit, saveDetails, saveFields, sourceChannels } from "../records";
 import { type ApiIdentity, requireWrite } from "./tokens";
 
 export interface ToolContext { db: D1Database; contentDb: D1Database; identity: ApiIdentity; requestKey: string }
@@ -43,6 +44,40 @@ function form(values: Record<string, string | undefined>, requestKey: string): F
   for (const [key, value] of Object.entries(values)) if (value !== undefined) data.set(key, value);
   data.set("request_key", requestKey);
   return data;
+}
+
+function objectArg(args: Args, key: string): Args {
+  const value = args[key];
+  if (value === undefined || value === null) return {};
+  if (typeof value !== "object" || Array.isArray(value)) throw new ValidationError({ [key]: "invalid" });
+  return { ...(value as Args) };
+}
+
+/** true/false, also as the strings an agent may send ("true", "yes", "1"). */
+function booleanArg(value: unknown): boolean | null {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value === 1 ? true : value === 0 ? false : null;
+  if (typeof value !== "string") return null;
+  const text = value.trim().toLowerCase();
+  if (["true", "yes", "1", "checked", "done"].includes(text)) return true;
+  if (["false", "no", "0", "unchecked", ""].includes(text)) return false;
+  return null;
+}
+
+/** What a field accepts, as an error code an agent can act on. */
+function expectedValue(field: FieldDef): string {
+  if (field.type === "select") return `expected_one_of:${(field.options ?? []).map((option) => option.value).join("|")}`;
+  if (field.type === "yes_no") return "expected_one_of:yes|no|unknown";
+  const expected: Record<string, string> = { text: "text_max_300", long_text: "text_max_4000", number: "number", money: "whole_number", minutes: "whole_number", date: "date_YYYY-MM-DD", url: "http_or_https_url" };
+  return `expected_${expected[field.type] ?? field.type}`;
+}
+
+function checkItem(item: CheckDef) {
+  return { key: item.key, label: item.en, label_vi: item.vi, stage: item.stage, type: "checklist" };
+}
+
+function checkValues(def: PlaybookDef, checks: Record<string, boolean>): Record<string, boolean> {
+  return Object.fromEntries(def.checklist.map((item) => [item.key, checks[item.key] === true]));
 }
 
 function pageArg(args: Args): number {
@@ -110,10 +145,12 @@ async function opportunityDetail(ctx: ToolContext, opportunityId: string) {
     ...opportunity(opp), can_edit: access.canEdit, owner_name: opp.owner_id ? names[opp.owner_id]?.name ?? null : null,
     contact: contacts.find((item) => item.id === opp.primary_contact_id) ? contact(contacts.find((item) => item.id === opp.primary_contact_id)!) : null,
     fields: access.canEdit ? oppFields(opp) : {},
+    checks: access.canEdit && playbook ? checkValues(playbook.def, oppChecks(opp)) : {},
     playbook: playbook ? {
       key: playbook.playbook_key, name: playbook.name_en,
       stages: playbook.def.stages.map((stage) => ({ id: stage.id, name: stage.en, name_vi: stage.vi, outcome: stage.outcome, requires: stage.requires ?? [], skippable: !!stage.skippable })),
       fields: playbook.def.fields.map((item) => ({ key: item.key, label: item.en, type: item.type, stage: item.stage, options: item.options?.map((option) => option.value) })),
+      checklist: playbook.def.checklist.map(checkItem),
     } : null,
     // Notes and history belong to whoever works the deal, not to read-only viewers.
     recent_activity: access.canEdit ? (await recentEvents(ctx.db, opp.id)).filter((event) => ACTIVITY_KINDS.has(event.kind)).slice(0, 15).map((event) => ({ kind: event.kind, by: event.actor_name, at: event.created_at, detail: safeJson(event.body) })) : [],
@@ -145,7 +182,7 @@ export const tools: Tool[] = [
   },
   {
     name: "list_playbooks", title: "List sales playbooks", write: false,
-    description: "Active sales playbooks with their stages (and what each stage requires) and discovery fields. Use the keys when creating or updating opportunities.",
+    description: "Active sales playbooks with their stages (and what each stage requires), discovery fields and checklist items. A stage requirement is a field key, a checklist key or a built-in (primary_contact, next_step, accepted_quote). Use the keys when creating or updating opportunities.",
     inputSchema: schema({}),
     run: async ({ db }) => ({
       source_channels: sourceChannels, contact_roles: contactRoles,
@@ -153,12 +190,13 @@ export const tools: Tool[] = [
         key: item.playbook_key, version: item.version, name: item.name_en, name_vi: item.name_vi, kind: item.kind,
         stages: item.def.stages.map((stage) => ({ id: stage.id, name: stage.en, outcome: stage.outcome, requires: stage.requires ?? [], skippable: !!stage.skippable })),
         fields: item.def.fields.map((field) => ({ key: field.key, label: field.en, type: field.type, stage: field.stage, options: field.options?.map((option) => option.value) })),
+        checklist: item.def.checklist.map(checkItem),
       })),
     }),
   },
   {
     name: "search_companies", title: "Search companies", write: false,
-    description: "Companies you may see (team-wide roles see all). Search by name, industry or area.",
+    description: "Companies you may see (team-wide roles see all). Search by name, industry or area; every word must match, in any order, ignoring letter case.",
     inputSchema: schema({ q: text("Search text", 120), owner: text("Team-wide roles only: a user ID, or 'unassigned'", 128), page }),
     run: async ({ db, identity }, args) => {
       const list = await listAccounts(db, identity.actor, { q: str(args, "q").slice(0, 120), owner: str(args, "owner").slice(0, 128) }, pageArg(args));
@@ -207,7 +245,7 @@ export const tools: Tool[] = [
   },
   {
     name: "search_contacts", title: "Search contacts", write: false,
-    description: "Contacts you may see: those you manage, those at companies you manage and those on your opportunities (team-wide roles see all). Search by name, phone, email or company.",
+    description: "Contacts you may see: those you manage, those at companies you manage and those on your opportunities (team-wide roles see all). Search by name, phone, email or company; every word must match, in any order, ignoring letter case.",
     inputSchema: schema({ q: text("Search text", 120), owner: text("Team-wide roles only: a user ID, or 'unassigned'", 128), page }),
     run: async ({ db, identity }, args) => {
       const list = await listContacts(db, identity.actor, { q: str(args, "q").slice(0, 120), owner: str(args, "owner").slice(0, 128) }, pageArg(args));
@@ -312,28 +350,64 @@ export const tools: Tool[] = [
     },
   },
   {
-    name: "update_opportunity_fields", title: "Record discovery fields", write: true,
-    description: "Sets playbook discovery fields (keys from get_opportunity or list_playbooks) that are visible at the current stage. An empty string clears a field. Record what the customer said; never guess.",
-    inputSchema: schema({ opportunity_id: id("Opportunity ID"), fields: { type: "object", additionalProperties: { type: "string" }, description: "{ field_key: value }" }, version }, ["opportunity_id", "fields"]),
+    name: "update_opportunity_fields", title: "Record discovery fields and checklist", write: true,
+    description: "Sets playbook discovery fields and ticks checklist items (keys from get_opportunity or list_playbooks) that are visible at the current stage. Only the keys you pass change. An empty string clears a field; select fields take one of their option values, yes_no fields take yes, no or unknown. Checklist items take true or false — tick one only when the work was actually done. Record what the customer said; never guess.",
+    inputSchema: schema({
+      opportunity_id: id("Opportunity ID"),
+      fields: { type: "object", additionalProperties: { type: "string" }, description: "{ field_key: value }" },
+      checks: { type: "object", additionalProperties: { type: "boolean" }, description: "{ checklist_key: true | false }, e.g. { presence_checked: true }" },
+      version,
+    }, ["opportunity_id"]),
     run: async (ctx, args) => {
       requireWrite(ctx.identity);
       const access = await loadOpportunity(ctx.db, ctx.identity.actor, str(args, "opportunity_id"));
       const opp = requireEdit(access);
       const playbook = await getPlaybook(ctx.db, opp.playbook_id);
       if (!playbook) throw new NotFoundError();
-      const fields = args.fields && typeof args.fields === "object" && !Array.isArray(args.fields) ? args.fields as Args : null;
-      if (!fields) throw new ValidationError({ fields: "invalid" });
-      const unknown = Object.keys(fields).filter((key) => !playbook.def.fields.some((field) => field.key === key));
-      if (unknown.length) throw new ValidationError(Object.fromEntries(unknown.map((key) => [`field.${key}`, "invalid"])));
+      const fields = objectArg(args, "fields");
+      const checks = objectArg(args, "checks");
+      // A checklist key sent under `fields` (as agents tend to do) is treated as a tick.
+      for (const key of Object.keys(fields)) {
+        if (playbook.def.checklist.some((check) => check.key === key) && !Object.hasOwn(checks, key)) { checks[key] = fields[key]; delete fields[key]; }
+      }
+      if (!Object.keys(fields).length && !Object.keys(checks).length) throw new ValidationError({ fields: "required" });
+      const errors: Record<string, string> = {};
+      const visibleFieldDefs = visibleFields(playbook.def, opp.stage_id);
+      const fieldValues: Record<string, string> = {};
+      for (const key of Object.keys(fields)) {
+        const def = playbook.def.fields.find((field) => field.key === key);
+        const raw = def?.type === "yes_no" && typeof fields[key] === "boolean" ? (fields[key] ? "yes" : "no") : fields[key];
+        if (!def) errors[`field.${key}`] = "unknown_key";
+        else if (!visibleFieldDefs.some((field) => field.key === key)) errors[`field.${key}`] = "not_available_at_this_stage";
+        else if (typeof raw !== "string" && !(typeof raw === "number" && Number.isFinite(raw))) errors[`field.${key}`] = "expected_string";
+        else if (parseFieldValue(def, String(raw)) === null) errors[`field.${key}`] = expectedValue(def);
+        else fieldValues[key] = String(raw);
+      }
+      const visible = visibleChecks(playbook.def, opp.stage_id);
+      const ticks: Record<string, boolean> = {};
+      for (const key of Object.keys(checks)) {
+        const value = booleanArg(checks[key]);
+        if (!playbook.def.checklist.some((check) => check.key === key)) errors[`check.${key}`] = "unknown_key";
+        else if (!visible.some((check) => check.key === key)) errors[`check.${key}`] = "not_available_at_this_stage";
+        else if (value === null) errors[`check.${key}`] = "expected_true_or_false";
+        else ticks[key] = value;
+      }
+      if (Object.keys(errors).length) throw new ValidationError(errors);
       const values: Record<string, string> = { version: versionArg(args, opp.version) };
-      for (const key of Object.keys(fields)) values[`field.${key}`] = str(fields, key);
+      for (const [key, value] of Object.entries(fieldValues)) values[`field.${key}`] = value;
+      if (Object.keys(ticks).length) {
+        // The form replaces every visible tick, so keep the ones not being changed.
+        const current = oppChecks(opp);
+        values.checks_present = "1";
+        for (const check of visible) if (ticks[check.key] ?? current[check.key] === true) values[`check.${check.key}`] = "1";
+      }
       await saveFields(ctx.db, ctx.identity.actor, opp, playbook, form(values, ctx.requestKey));
       return opportunityDetail(ctx, opp.id);
     },
   },
   {
     name: "move_stage", title: "Move to another stage", write: true,
-    description: "Moves an opportunity you own to another stage of its playbook. The stage's requirements must be met (error lists what is missing); lost, paused and skipped stages need a reason.",
+    description: "Moves an opportunity you own to another stage of its playbook. The stage's requirements must be met first: set fields and tick checklist items with update_opportunity_fields (the error lists what is missing, e.g. missing:presence_checked). Lost, paused and skipped stages need a reason.",
     inputSchema: schema({ opportunity_id: id("Opportunity ID"), to_stage: text("Stage ID", 40), reason: text("Reason (required for lost, paused or skipped stages)", 1000), version }, ["opportunity_id", "to_stage"]),
     run: async (ctx, args) => {
       requireWrite(ctx.identity);

@@ -12,6 +12,7 @@ import { localized } from "../../lib/workspace/nav";
 import type { AgentsData } from "../../lib/workspace/admin-security-pages";
 import { agentModules, excludedModules, moduleLimits } from "../../lib/workspace/agents";
 import { dateTime } from "../../lib/workspace/format";
+import { matchesSearch } from "../../lib/search";
 
 type Props = AgentsData;
 const { lang, vi, user, policy, tokens, names, calls7d, error, saved } = Astro.props;
@@ -25,8 +26,8 @@ const levels = [["off", t("Off", "Tắt")], ["read", t("Read", "Đọc")], ["wri
 const rank = { off: 0, read: 1, write: 2 };
 const now = new Date().toISOString();
 const live = tokens.filter((token) => !token.revoked_at && token.expires_at > now);
-const q = (Astro.url.searchParams.get("q") ?? "").trim().slice(0, 80).toLocaleLowerCase("vi");
-const shown = tokens.filter((token) => !q || `${names[token.user_id] ?? ""} ${token.name}`.toLocaleLowerCase("vi").includes(q));
+const q = (Astro.url.searchParams.get("q") ?? "").trim().slice(0, 80);
+const shown = tokens.filter((token) => matchesSearch([names[token.user_id] ?? "", token.name], q));
 const state = (token: typeof tokens[number]) => token.revoked_at ? [t("Revoked", "Đã thu hồi"), ""] : token.expires_at < now ? [t("Expired", "Hết hạn"), ""] : [t("Active", "Đang dùng"), "ok"];
 const denied7d = Object.values(calls7d).reduce((sum, row) => sum + (row.denied ?? 0), 0);
 ---

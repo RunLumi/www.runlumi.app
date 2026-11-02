@@ -61,7 +61,7 @@ Send `Authorization: Bearer <token>`. Request bodies are JSON (`Content-Type: ap
 | `POST /opportunities` | `create_opportunity` (201) |
 | `GET /opportunities/{id}` | `get_opportunity` |
 | `PATCH /opportunities/{id}` | `update_opportunity` |
-| `PATCH /opportunities/{id}/fields` | `update_opportunity_fields` (`{ "fields": { key: value } }`) |
+| `PATCH /opportunities/{id}/fields` | `update_opportunity_fields` (`{ "fields": { key: value }, "checks": { key: true } }`) |
 | `POST /opportunities/{id}/stage` | `move_stage` |
 | `POST /opportunities/{id}/notes` | `add_note` (201) |
 
@@ -77,8 +77,12 @@ Send `Authorization: Bearer <token>`. Request bodies are JSON (`Content-Type: ap
 - `403` — the role does not allow it, or the token is read-only (`read_only_token`).
 - `404` — not found, or not visible to you.
 - `409` — stale version.
-- `422` — validation. `fields` holds codes such as `invalid`, `required`, `suppressed`, `do_not_contact`, or `missing:<requirements>` for a stage move.
+- `422` — validation. `fields` holds codes such as `invalid`, `required`, `suppressed`, `do_not_contact`, `unknown_key`, `not_available_at_this_stage`, `expected_one_of:a|b`, `expected_true_or_false`, or `missing:<requirements>` for a stage move.
 - `429` — rate limited.
+
+**Stage requirements.** A stage's `requires` lists field keys, checklist keys and built-ins (`primary_contact`, `next_step`, `accepted_quote`). `get_opportunity` and `list_playbooks` return the `checklist`, and `get_opportunity` returns the current `checks`. Tick a checklist item with `update_opportunity_fields` and `checks`, for example `{ "checks": { "presence_checked": true } }`, only when the work was done. A checklist key sent under `fields` is treated as a tick. Fields and checks can be set only once their stage is visible.
+
+**Search.** `q` matches when every word appears in the record, in any order, ignoring letter case — Vietnamese capitals included (`VÂN SPA` finds “Vân Spa”).
 
 Search text in a `GET` query string can appear in request logs. Search by phone number or email through MCP, which sends the text in the body.
 

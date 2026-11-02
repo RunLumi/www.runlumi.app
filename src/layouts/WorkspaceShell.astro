@@ -164,8 +164,11 @@ const tileTerms = (key: ModuleKey) => launchPages.filter(({ module: owner }) => 
           const input = event.target;
           if (!(input instanceof HTMLInputElement) || !input.dataset.wsFilter) return;
           const list = document.querySelector(input.dataset.wsFilter);
-          const term = input.value.trim().toLocaleLowerCase();
-          const matches = (item) => `${item.textContent} ${item.dataset.wsTerms ?? ""}`.toLocaleLowerCase().includes(term);
+          // Same rule as server search: every word, any order, ignoring case.
+          const fold = (value) => value.normalize("NFC").toLocaleLowerCase("vi");
+          const term = input.value.trim();
+          const words = fold(term).split(/\s+/u).filter(Boolean);
+          const matches = (item) => { const text = fold(`${item.textContent} ${item.dataset.wsTerms ?? ""}`); return words.every((word) => text.includes(word)); };
           list?.querySelectorAll("li").forEach((item) => { item.hidden = term !== "" && !matches(item); });
           list?.querySelectorAll(".ws-gmenu-group").forEach((group) => { group.hidden = ![...group.querySelectorAll("li")].some((item) => !item.hidden); });
           // Matching pages show as their own list, only while the filter has text.

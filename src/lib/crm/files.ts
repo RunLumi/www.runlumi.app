@@ -1,6 +1,7 @@
 import type { WorkspaceUser } from "../workspace/roles";
 import { permissionsFor } from "../workspace/roles";
 import { workspaceMembers } from "../workspace/members";
+import { searchSql } from "../search";
 import { ConflictError, NotFoundError, fail, text } from "./core";
 
 export { MAX_UPLOAD } from './file-upload-limits';
@@ -43,12 +44,13 @@ export async function readFile(db: D1Database, user: WorkspaceUser, id: string):
 export async function fileChildren(db: D1Database, user: WorkspaceUser, parent: string | null, page = 1, query = ''): Promise<{ rows: FileItem[]; more: boolean }> {
   if (!user.can('crm.access')) return { rows: [], more: false };
   // Filter before LIMIT so inaccessible rows never affect pagination or leak names.
+  const search = searchSql(['t.name'], query);
   const rows = (await db.prepare(`${tree} WHERE ${parent ? 't.parent_id = ?' : "(t.parent_id IS NULL OR (t.visibility <> 'inherit' AND t.owner_id <> ?))"}
     AND (t.owner_id = ? OR p.visibility = 'internet' OR (p.visibility = 'team' AND ? = 1)
       OR (p.visibility = 'people' AND EXISTS (SELECT 1 FROM json_each(p.recipients) WHERE value = ?)))
-    AND instr(lower(t.name), lower(?)) > 0
+    AND ${search ? search.sql : '1 = 1'}
     ORDER BY t.kind DESC, t.name COLLATE NOCASE, t.id LIMIT 51 OFFSET ?`)
-    .bind(parent ?? user.id, user.id, user.can('crm.files.team') ? 1 : 0, user.id, query, (page - 1) * 50).all<FileItem>()).results;
+    .bind(parent ?? user.id, user.id, user.can('crm.files.team') ? 1 : 0, user.id, ...(search ? search.args : []), (page - 1) * 50).all<FileItem>()).results;
   return { rows: rows.slice(0, 50), more: rows.length > 50 };
 }
 
