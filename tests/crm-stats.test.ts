@@ -13,7 +13,7 @@ import { ForbiddenError, ValidationError } from "../src/lib/crm/core.ts";
 import { createAccount, loadAccount, saveAccount } from "../src/lib/crm/directory.ts";
 import { convertLead, createLead, loadLead } from "../src/lib/crm/leads.ts";
 import { loadOpportunity, moveStage, quickCreate, saveFields } from "../src/lib/crm/records.ts";
-import { areaGaps, areaOptions, buckets, emptySet, fillAreas, loadBreakdown, loadSetStats, rate, readStatsQuery, statsSearch } from "../src/lib/crm/stats.ts";
+import { areaGaps, areaOptions, buckets, emptySet, fillAreas, loadBreakdown, loadSetStats, rate, readStatsQuery, statsSearch, usedAreas } from "../src/lib/crm/stats.ts";
 import { makeUser } from "../src/lib/workspace/roles.ts";
 import { moduleByKey, visibleLinks } from "../src/lib/workspace/nav.ts";
 
@@ -126,6 +126,21 @@ test("stats: up to five sets compare areas inside the viewer's own scope; the fu
   assert.equal((await loadBreakdown(db, manager, forSeller, emptySet, "area", ids)).level, "city");
   assert.ok((await areaOptions(db, execA)).industries.includes("Spa"));
   assert.ok(!(await areaOptions(db, execA)).industries.includes("Nail"), "industries come only from records the person can see");
+});
+
+test("area filters list only the provinces and wards the viewer's own records use, with counts", async () => {
+  const { db, content } = setup();
+  await deal(db, content, execA, { account_name: "TEST A1", city: HCM, ward: "Phường Khánh Hội" });
+  await deal(db, content, execA, { account_name: "TEST A2", city: HCM, ward: "Phường Khánh Hội" });
+  await deal(db, content, execA, { account_name: "TEST A3", city: HCM });
+  await deal(db, content, execB, { account_name: "TEST B1", city: "Hà Nội", ward: "Phường Ba Đình" });
+  await createLead(db, content, execA, form({ name: "TEST L", company: "TEST L Co", city: HCM, ward: "Phường Vĩnh Hội", phone: phone(), source_channel: "field_visit" }));
+  const mine = await usedAreas(db, execA, "opportunities");
+  assert.deepEqual(mine, [{ city: HCM, n: 3, wards: [{ name: "Phường Khánh Hội", n: 2 }] }], "only my deals; a record without a ward counts for its province only");
+  assert.deepEqual((await usedAreas(db, manager, "opportunities")).map((item) => [item.city, item.n]), [["Thành phố Hà Nội", 1], [HCM, 3]], "sorted by name");
+  assert.deepEqual(await usedAreas(db, execA, "leads"), [{ city: HCM, n: 1, wards: [{ name: "Phường Vĩnh Hội", n: 1 }] }]);
+  assert.deepEqual((await usedAreas(db, execA, "all"))[0].wards.map((item) => item.name), ["Phường Khánh Hội", "Phường Vĩnh Hội"], "Reports combine leads and companies");
+  assert.deepEqual(await usedAreas(db, execB, "leads"), [], "nobody else's lead areas leak");
 });
 
 test("stats query: at most five sets, a bounded period, and URLs that round-trip", () => {

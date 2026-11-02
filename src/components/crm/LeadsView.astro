@@ -74,7 +74,7 @@ const newHref = `${base}/leads${query({ new: "1" })}#new-lead`;
           {view === "board" && <input type="hidden" name="view" value="board" />}
           {view === "list" && <input type="hidden" name="state" value={filters.state} />}
           {view === "list" && <div class="crm-field"><label for="lstatus">{vi ? "Trạng thái Lead" : "Lead status"}</label><select class="crm-select" id="lstatus" name="status"><option value="">{vi ? "Tất cả" : "Any"}</option>{columns.map((item) => <option value={item.id} selected={filters.status === item.id}>{vi ? item.vi : item.en}</option>)}</select></div>}
-          <AreaFields vi={vi} filter id="lf-area" city={filters.city} ward={filters.ward} />
+          <AreaFields vi={vi} filter used={Astro.props.areas} id="lf-area" city={filters.city} ward={filters.ward} />
           <div class="crm-field"><label for="lsource">{vi ? "Nguồn Lead" : "Lead source"}</label><select class="crm-select" id="lsource" name="source"><option value="">{vi ? "Tất cả" : "Any"}</option>{options(lang, "channel").map((item) => <option value={item.value} selected={filters.source === item.value}>{item.label}</option>)}</select></div>
           {ctx.actor.manager && <div class="crm-field"><label for="lowner">{vi ? "Người phụ trách" : "Owner"}</label><select class="crm-select" id="lowner" name="owner"><option value="">{vi ? "Tất cả" : "Anyone"}</option><option value="unassigned" selected={filters.owner === "unassigned"}>{vi ? "Chờ phân công" : "Waiting for assignment"}</option>{owners.map((owner) => <option value={owner.id} selected={filters.owner === owner.id}>{owner.label}</option>)}</select></div>}
         </Fragment>

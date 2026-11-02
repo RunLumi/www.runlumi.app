@@ -1,4 +1,5 @@
 import type { AstroGlobal } from "astro";
+import { type UsedArea, usedAreas } from "../stats";
 import { type OwnerOption, displayNames, inactiveOwnerIds, ownerOptions } from "../access";
 import { type Offer, getPlaybook, latestOffers, latestPlaybooks } from "../config";
 import { NotFoundError } from "../core";
@@ -14,6 +15,8 @@ export interface PipelineProps {
   ctx: Ctx; state: FormState; view: PipelineView; filters: Filters; playbooks: Playbook[]; offers: Offer[]; rows: Opportunity[]; total: number; page: number; pages: number;
   board: BoardOpportunity[]; counts: Record<string, number>; owners: OwnerOption[]; ownerNames: Record<string, { name: string; active: boolean }>; cohorts: string[];
   failedId: string; customers: PickableContact[];
+  /** Provinces and wards of these opportunities' companies, for the area filter. */
+  areas: UsedArea[];
 }
 
 export async function pipelineRoute(astro: AstroGlobal, lang: Lang): Promise<PipelineProps | Response> {
@@ -51,7 +54,7 @@ export async function pipelineRoute(astro: AstroGlobal, lang: Lang): Promise<Pip
   const owners = ctx.actor.manager ? await ownerOptions(ctx.db, ctx.contentDb, ctx.actor) : [];
   const ownerNames = await displayNames(ctx.contentDb, [...list.rows, ...board].map((row) => row.owner_id ?? "").filter(Boolean));
   const cohorts = (await ctx.db.prepare("SELECT cohort_key FROM crm_cohorts ORDER BY starts_on DESC LIMIT 50").all<{ cohort_key: string }>()).results.map((row) => row.cohort_key);
-  return { ctx, state: posted ?? emptyState, view, filters, playbooks, offers: await latestOffers(ctx.db), ...list, board, counts, owners, ownerNames, cohorts, failedId: posted?.values.opportunity_id ?? "",
+  return { ctx, state: posted ?? emptyState, view, filters, playbooks, offers: await latestOffers(ctx.db), areas: await usedAreas(ctx.db, ctx.actor, "opportunities"), ...list, board, counts, owners, ownerNames, cohorts, failedId: posted?.values.opportunity_id ?? "",
     customers: astro.url.searchParams.get("new") === "1" || posted?.intent === "create" ? await pickableContacts(ctx.db, ctx.actor) : [] };
 }
 

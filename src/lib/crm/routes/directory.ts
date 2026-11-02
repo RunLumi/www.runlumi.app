@@ -1,4 +1,5 @@
 import type { AstroGlobal } from "astro";
+import { type UsedArea, usedAreas } from "../stats";
 import { type OwnerOption, displayNames, ownerOptions } from "../access";
 import {
   type AccountRow, type ContactRow, type DirectoryFilters, createAccount, createContactFor, editableAccounts, listAccounts, listContacts, readDirectoryFilters,
@@ -10,6 +11,8 @@ import type { Account } from "../records";
 interface DirectoryBase {
   ctx: Ctx; state: FormState; filters: DirectoryFilters; total: number; page: number; pages: number;
   owners: OwnerOption[]; names: Record<string, { name: string; active: boolean }>;
+  /** Provinces and wards the listed records use, for the area filter. */
+  areas: UsedArea[];
 }
 export interface CompaniesProps extends DirectoryBase { rows: AccountRow[] }
 export interface ContactsProps extends DirectoryBase { rows: ContactRow[]; accounts: Pick<Account, "id" | "name" | "region">[] }
@@ -24,7 +27,7 @@ export async function companiesRoute(astro: AstroGlobal, lang: Lang): Promise<Co
   const filters = readDirectoryFilters(astro.url);
   const list = await listAccounts(ctx.db, ctx.actor, filters, page(astro.url));
   return {
-    ctx, state: posted ?? emptyState, filters, ...list,
+    ctx, state: posted ?? emptyState, filters, ...list, areas: await usedAreas(ctx.db, ctx.actor, "accounts"),
     owners: ctx.actor.manager ? await ownerOptions(ctx.db, ctx.contentDb, ctx.actor) : [],
     names: await displayNames(ctx.contentDb, list.rows.map((row) => row.owner_id).filter((id): id is string => !!id)),
   };
@@ -43,7 +46,7 @@ export async function contactsRoute(astro: AstroGlobal, lang: Lang): Promise<Con
   const filters = readDirectoryFilters(astro.url);
   const list = await listContacts(ctx.db, ctx.actor, filters, page(astro.url));
   return {
-    ctx, state: posted ?? emptyState, filters, ...list, accounts: await editableAccounts(ctx.db, ctx.actor),
+    ctx, state: posted ?? emptyState, filters, ...list, accounts: await editableAccounts(ctx.db, ctx.actor), areas: await usedAreas(ctx.db, ctx.actor, "contacts"),
     owners: ctx.actor.manager ? await ownerOptions(ctx.db, ctx.contentDb, ctx.actor) : [],
     names: await displayNames(ctx.contentDb, list.rows.map((row) => row.owner_id).filter((id): id is string => !!id)),
   };

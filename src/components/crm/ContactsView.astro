@@ -48,7 +48,7 @@ const closeHref = query({ new: "", account: "" });
       <ListToolbar slot="tools" vi={vi} filterActive={[filters.owner, filters.city, filters.ward].filter(Boolean).length} filterClear={query({ owner: "", city: "", ward: "", page: "" })} q={filters.q} keep={{ owner: filters.owner, city: filters.city ?? "", ward: filters.ward ?? "" }}>
         <a class="ws-btn icon" href={query({})} aria-label={vi ? "Làm mới" : "Refresh"}><NavIcon name="refresh" size={16} /></a>
                 <Fragment slot="filters">
-          <AreaFields vi={vi} filter id="f-area" city={filters.city} ward={filters.ward} />
+          <AreaFields vi={vi} filter used={Astro.props.areas} id="f-area" city={filters.city} ward={filters.ward} />
           {actor.manager && <>
           <div class="crm-field"><label for="owner">{vi ? "Người quản lý" : "Managed by"}</label><select class="crm-select" id="owner" name="owner"><option value="">{vi ? "Tất cả" : "Anyone"}</option><option value="unassigned" selected={filters.owner === "unassigned"}>{vi ? "Chưa có người quản lý" : "Nobody yet"}</option>{owners.map((owner) => <option value={owner.id} selected={filters.owner === owner.id}>{owner.label}</option>)}</select></div></>}
         </Fragment>

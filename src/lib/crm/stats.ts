@@ -8,7 +8,7 @@ import { foldText, sameTextSql } from "../search";
 import { auditStatement } from "../workspace/members";
 import { areaFilter, parseArea } from "./area";
 import { ForbiddenError } from "./core";
-import { type CrmActor, accountScope, opportunityScope } from "./access";
+import { type CrmActor, accountScope, contactScope, opportunityScope } from "./access";
 import { leadScope } from "./leads";
 import { vnDate } from "./money";
 import type { PlaybookDef } from "./playbook";
@@ -271,4 +271,37 @@ export async function fillAreas(db: D1Database, actor: CrmActor, { page = 200, m
   }
   await auditStatement(db, actor, "crm_area_backfill", actor.id, result, now, { module: "crm" }).run();
   return result;
+}
+
+// ------------------------------------------------------------ area filters
+
+export interface UsedWard { name: string; n: number }
+export interface UsedArea { city: string; n: number; wards: UsedWard[] }
+export type AreaSource = "leads" | "accounts" | "contacts" | "opportunities" | "all";
+
+/**
+ * The provinces and wards that the person's own records use, with counts, for
+ * the area filters (owner decision 2026-11-02: filter on the CRM's data, not
+ * on the whole official list). Always inside the viewer's scope.
+ */
+export async function usedAreas(db: D1Database, actor: CrmActor, source: AreaSource): Promise<UsedArea[]> {
+  const queries: { sql: string; args: unknown[] }[] = [];
+  const add = (from: string, scope: { sql: string; args: unknown[] }, area: string) =>
+    queries.push({ sql: `SELECT ${area}.city AS city, ${area}.ward AS ward, COUNT(*) AS n FROM ${from} WHERE ${scope.sql} AND ${area}.city != '' GROUP BY ${area}.city, ${area}.ward`, args: scope.args });
+  if (source === "leads" || source === "all") add("crm_lead_records l", leadScope(actor, "l"), "l");
+  if (source === "accounts" || source === "all") add("crm_accounts a", accountScope(actor, "a"), "a");
+  if (source === "contacts") add("crm_contacts c JOIN crm_accounts a ON a.id = c.account_id", contactScope(actor, "c"), "a");
+  if (source === "opportunities") add("crm_opportunities o JOIN crm_accounts a ON a.id = o.account_id", opportunityScope(actor, "o"), "a");
+  const rows = (await Promise.all(queries.map((query) => db.prepare(query.sql).bind(...query.args).all<{ city: string; ward: string; n: number }>()))).flatMap((result) => result.results);
+  const cities = new Map<string, { n: number; wards: Map<string, number> }>();
+  for (const row of rows) {
+    const city = cities.get(row.city) ?? { n: 0, wards: new Map<string, number>() };
+    city.n += row.n;
+    if (row.ward) city.wards.set(row.ward, (city.wards.get(row.ward) ?? 0) + row.n);
+    cities.set(row.city, city);
+  }
+  const byName = (a: string, b: string) => a.localeCompare(b, "vi");
+  return [...cities.entries()].sort(([a], [b]) => byName(a, b)).map(([city, value]) => ({
+    city, n: value.n, wards: [...value.wards.entries()].sort(([a], [b]) => byName(a, b)).map(([name, n]) => ({ name, n })),
+  }));
 }

@@ -10,7 +10,7 @@ import { type Filters, filterSql, readFilters } from "../records";
 import { type CohortReport, type CohortRow, loadCohort } from "../reports";
 import {
   type AreaGaps, type AreaOptions, type Breakdown, type BreakdownLevel, type SetStats, type StatsQuery, type StatsSet,
-  areaGaps, areaOptions, fillAreas, loadBreakdown, loadSetStats, readStatsQuery, statsSearch,
+  type UsedArea, areaGaps, areaOptions, fillAreas, loadBreakdown, loadSetStats, readStatsQuery, statsSearch, usedAreas,
 } from "../stats";
 
 /** Stats on the Reports page (docs/crm/STATS.md): only for crm.stats, in the viewer's own scope. */
@@ -19,6 +19,8 @@ export interface ReportStats {
   results: { set: StatsSet; stats: SetStats }[];
   breakdowns: { level: BreakdownLevel; rows: Breakdown[] }[];
   options: AreaOptions;
+  /** Provinces and wards used by the leads and companies the person can see. */
+  areas: UsedArea[];
 }
 
 export interface PipelineSummary { playbook: Playbook; stages: Record<string, number>; outcomes: Record<string, number>; knownValue: number; unknownValue: number }
@@ -30,6 +32,8 @@ export interface ReportsProps {
   dashboard: Dashboard; dashboardPlaybooks: Playbook[]; owners: OwnerOption[]; names: Record<string, { name: string; active: boolean }>;
   /** Present for people with crm.stats; it replaces the per-playbook summaries and leads-by-source table. */
   stats: ReportStats | null;
+  /** Without stats: areas of the opportunities the person can see, for the earlier filters. */
+  areas: UsedArea[];
   gaps: AreaGaps | null; filled: { accounts: number; leads: number; unreadable: number } | null; error: string;
 }
 
@@ -81,6 +85,7 @@ export async function reportsRoute(astro: AstroGlobal, lang: Lang): Promise<Repo
   astro.response.headers.set("Cache-Control", "private, no-store");
   return {
     stats: canStats ? await loadReportStats(ctx, query, statsPlaybooks) : null,
+    areas: canStats ? [] : await usedAreas(ctx.db, ctx.actor, "opportunities"),
     gaps: ctx.actor.configure ? await areaGaps(ctx.db) : null,
     filled: filledParam ? { accounts: Number(filledParam[1]), leads: Number(filledParam[2]), unreadable: Number(filledParam[3]) } : null, error,
     ctx, filters, summaries, offers: await latestOffers(ctx.db), cohorts, cohort, pending, leads: canStats ? [] : await leadReport(ctx.db, ctx.actor),
@@ -97,11 +102,12 @@ async function loadReportStats(ctx: Ctx, query: StatsQuery, playbooks: Playbook[
   const results = [];
   for (const set of query.sets) results.push({ set, stats: await loadSetStats(ctx.db, ctx.actor, query, set, playbook?.def ?? null, ids) });
   const focus = query.sets[query.focus];
-  const [area, industry, source, options] = await Promise.all([
+  const [area, industry, source, options, areas] = await Promise.all([
     loadBreakdown(ctx.db, ctx.actor, query, focus, "area", ids),
     loadBreakdown(ctx.db, ctx.actor, query, focus, "industry", ids),
     loadBreakdown(ctx.db, ctx.actor, query, focus, "source", ids),
     areaOptions(ctx.db, ctx.actor),
+    usedAreas(ctx.db, ctx.actor, "all"),
   ]);
-  return { query, playbooks, playbook, results, breakdowns: [area, industry, source], options };
+  return { query, playbooks, playbook, results, breakdowns: [area, industry, source], options, areas };
 }

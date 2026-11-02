@@ -1,4 +1,5 @@
 import type { AstroGlobal } from "astro";
+import { type UsedArea, usedAreas } from "../stats";
 import { type OwnerOption, displayNames, ownerOptions } from "../access";
 import { latestPlaybooks } from "../config";
 import { editableAccounts } from "../directory";
@@ -15,6 +16,8 @@ export type LeadView = "list" | "board";
 export interface LeadsProps {
   ctx: Ctx; state: FormState; view: LeadView; filters: LeadFilters; rows: Lead[]; total: number; page: number; pages: number;
   process: LeadProcess; processes: Map<string, LeadProcess>; owners: OwnerOption[]; ownerNames: Record<string, { name: string; active: boolean }>; playbooks: Playbook[];
+  /** Provinces and wards these leads use, for the area filter. */
+  areas: UsedArea[];
 }
 
 /** Statuses and reasons come from the lead process version each lead was created with. */
@@ -45,7 +48,7 @@ export async function leadsRoute(astro: AstroGlobal, lang: Lang): Promise<LeadsP
   if (view === "board") list.total = list.rows.length;
   const { current, map } = await processMap(ctx.db);
   return {
-    ctx, state: posted ?? emptyState, view, filters, ...list, process: current, processes: map,
+    ctx, state: posted ?? emptyState, view, filters, ...list, process: current, processes: map, areas: await usedAreas(ctx.db, ctx.actor, "leads"),
     owners: ctx.actor.manager ? await ownerOptions(ctx.db, ctx.contentDb, ctx.actor) : [],
     ownerNames: await displayNames(ctx.contentDb, list.rows.map((row) => row.owner_id ?? "").filter(Boolean)),
     playbooks: (await latestPlaybooks(ctx.db, { activeOnly: true })).filter((item) => item.kind !== "legacy" && item.kind !== "renewal"),

@@ -109,7 +109,7 @@ const zoneLabel = (outcome: "won" | "lost") => {
           <div class="crm-field"><label for="offer">{vi ? "Gói" : "Offer"}</label><select class="crm-select" id="offer" name="offer"><option value="">{vi ? "Tất cả" : "Any"}</option>{offers.map((offer) => <option value={offer.offer_key} selected={filters.offer === offer.offer_key}>{vi ? offer.name_vi : offer.name_en}</option>)}</select></div>
           <div class="crm-field"><label for="cohort">Cohort</label><select class="crm-select" id="cohort" name="cohort"><option value="">{vi ? "Tất cả" : "Any"}</option>{cohorts.map((key) => <option value={key} selected={filters.cohort === key}>{key}</option>)}</select></div>
           <div class="crm-field"><label for="industry">{vi ? "Ngành" : "Industry"}</label><input class="crm-input" id="industry" name="industry" value={filters.industry} maxlength="120" /></div>
-          <AreaFields vi={vi} filter id="pf-area" city={filters.city} ward={filters.ward} />
+          <AreaFields vi={vi} filter used={Astro.props.areas} id="pf-area" city={filters.city} ward={filters.ward} />
           {ctx.actor.manager && <div class="crm-field"><label for="owner">{vi ? "Người phụ trách" : "Owner"}</label><select class="crm-select" id="owner" name="owner"><option value="">{vi ? "Tất cả" : "Anyone"}</option><option value="unassigned" selected={filters.owner === "unassigned"}>{vi ? "Chưa phân công" : "Unassigned"}</option><option value="inactive" selected={filters.owner === "inactive"}>{vi ? "Người phụ trách không hoạt động" : "Inactive owner"}</option>{owners.map((owner) => <option value={owner.id} selected={filters.owner === owner.id}>{owner.label}</option>)}</select></div>}
         </Fragment>
       </ListToolbar>

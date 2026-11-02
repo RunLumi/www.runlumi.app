@@ -96,7 +96,7 @@ const metrics: { key: string; name: string; help?: string; value: (stats: typeof
       {query.sets.map((set, index) => <fieldset class="st-set">
         <legend><i class={`st-key s${index + 1}`} aria-hidden="true"></i>{n > 1 ? t(`Filter set ${index + 1}`, `Bộ lọc ${index + 1}`) : t("Filters", "Bộ lọc")}</legend>
         <div class="st-set-grid">
-          <AreaFields vi={vi} filter id={`s${index}-area`} cityName={`s${index}_city`} wardName={`s${index}_ward`} city={set.city} ward={set.ward} />
+          <AreaFields vi={vi} filter used={stats.areas} id={`s${index}-area`} cityName={`s${index}_city`} wardName={`s${index}_ward`} city={set.city} ward={set.ward} />
           <div class="crm-field"><label for={`s${index}-industry`}>{t("Industry", "Ngành / loại tiệm")}</label>
             <select class="crm-select" id={`s${index}-industry`} name={`s${index}_industry`}><option value="">{t("All", "Tất cả")}</option>{options.industries.map((value) => <option selected={value === set.industry}>{value}</option>)}</select></div>
           <div class="crm-field"><label for={`s${index}-source`}>{t("Source", "Nguồn")}</label>

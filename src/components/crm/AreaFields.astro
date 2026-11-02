@@ -1,36 +1,51 @@
 ---
-// Province/city and ward pickers on the official list after the 2025 merger
-// (two tiers, no district). The ward list follows the chosen province: it is
-// rendered for the current province, and a small script reloads it when the
+// Province/city and ward pickers (post-merger map, two tiers, no district).
+// Forms offer the whole official list so input stays standard. Filters
+// (`used`) offer only the provinces and wards the CRM's own records use, with
+// counts (owner decision 2026-11-02). The ward list follows the province: it
+// is rendered for the current one, and a small script refills it when the
 // province changes (without script, choose the province and apply first).
 import { provinceByName, provinces } from "../../lib/crm/area";
+import type { UsedArea } from "../../lib/crm/stats";
 
 interface Props {
   vi: boolean; id: string; city?: string; ward?: string; cityName?: string; wardName?: string;
   /** Filters show "All"; forms show "Not recorded". */
   filter?: boolean; cityError?: string; wardError?: string; help?: boolean;
+  /** Filters: the areas used by the records this list can show. */
+  used?: UsedArea[];
 }
-const { vi, id, city = "", ward = "", cityName = "city", wardName = "ward", filter = false, cityError, wardError, help = false } = Astro.props;
+const { vi, id, city = "", ward = "", cityName = "city", wardName = "ward", filter = false, cityError, wardError, help = false, used } = Astro.props;
 const province = provinceByName(city);
-const wards = (province?.wards ?? []).map((item) => item.fullName).sort((a, b) => a.localeCompare(b, "vi"));
+const shortName = (fullName: string) => provinceByName(fullName)?.name ?? fullName;
+const fromData = filter && used !== undefined;
+// Filter options: what the data uses, plus the current choice so it stays visible.
+const cityOptions = fromData
+  ? [...used!.map((item) => ({ value: item.city, label: `${shortName(item.city)} (${item.n})` })), ...(city && !used!.some((item) => item.city === city) ? [{ value: city, label: `${shortName(city)} (0)` }] : [])]
+  : [...provinces].sort((a, b) => a.name.localeCompare(b.name, "vi")).map((item) => ({ value: item.fullName, label: item.name }));
+const usedWards = fromData ? (used!.find((item) => item.city === city)?.wards ?? []) : [];
+const wards = fromData
+  ? [...usedWards.map((item) => ({ value: item.name, label: `${item.name} (${item.n})` })), ...(ward && !usedWards.some((item) => item.name === ward) ? [{ value: ward, label: `${ward} (0)` }] : [])]
+  : (province?.wards ?? []).map((item) => item.fullName).sort((a, b) => a.localeCompare(b, "vi")).map((name) => ({ value: name, label: name }));
+const usedMap = fromData ? JSON.stringify(Object.fromEntries(used!.map((item) => [item.city, item.wards.map((entry) => [entry.name, entry.n])]))) : undefined;
+const noData = fromData && !cityOptions.length;
 const none = filter ? (vi ? "Tất cả" : "All") : (vi ? "Chưa ghi" : "Not recorded");
 const pickFirst = vi ? "Chọn tỉnh/thành trước" : "Choose the province first";
-const sorted = [...provinces].sort((a, b) => a.name.localeCompare(b.name, "vi"));
 const errorText = (code?: string) => code === "required" ? (vi ? "Chọn tỉnh/thành trước." : "Choose the province first.") : code ? (vi ? "Không có trong danh mục sau sáp nhập. Chọn từ danh sách." : "Not on the post-merger list. Pick from the list.") : "";
 ---
 <div class="crm-field">
   <label class="crm-label" for={`${id}-city`}>{vi ? "Tỉnh / thành phố" : "Province / city"}</label>
-  <select class="crm-select" id={`${id}-city`} name={cityName} data-area-city={`${id}-ward`} aria-invalid={cityError ? "true" : undefined}>
-    <option value="">{none}</option>
-    {sorted.map((item) => <option value={item.fullName} data-code={item.code} selected={item.fullName === city}>{item.name}</option>)}
+  <select class="crm-select" id={`${id}-city`} name={cityName} data-area-city={`${id}-ward`} data-area-used={usedMap} aria-invalid={cityError ? "true" : undefined} disabled={noData}>
+    <option value="">{noData ? (vi ? "Chưa có dữ liệu khu vực" : "No area data yet") : none}</option>
+    {cityOptions.map((item) => <option value={item.value} data-code={fromData ? undefined : provinceByName(item.value)?.code} selected={item.value === city}>{item.label}</option>)}
   </select>
   {cityError && <p class="crm-error">{errorText(cityError)}</p>}
 </div>
 <div class="crm-field">
   <label class="crm-label" for={`${id}-ward`}>{vi ? "Phường / xã / đặc khu" : "Ward / commune"}</label>
-  <select class="crm-select" id={`${id}-ward`} name={wardName} data-none={none} data-pick-first={pickFirst} aria-invalid={wardError ? "true" : undefined}>
-    <option value="">{province ? none : pickFirst}</option>
-    {wards.map((name) => <option selected={name === ward}>{name}</option>)}
+  <select class="crm-select" id={`${id}-ward`} name={wardName} data-none={none} data-pick-first={pickFirst} aria-invalid={wardError ? "true" : undefined} disabled={noData}>
+    <option value="">{noData ? (vi ? "Chưa có dữ liệu khu vực" : "No area data yet") : city ? none : pickFirst}</option>
+    {wards.map((item) => <option value={item.value} selected={item.value === ward}>{item.label}</option>)}
   </select>
   {wardError && <p class="crm-error">{errorText(wardError)}</p>}
   {help && <p class="crm-help">{vi ? "Theo địa giới sau sáp nhập (1/7/2025). Để trống: tự đọc từ địa chỉ nếu có tên phường và tỉnh mới." : "Post-merger units (1 July 2025). Left blank, they are read from the address when it names a current ward and province."}</p>}
@@ -41,8 +56,16 @@ const errorText = (code?: string) => code === "required" ? (vi ? "Chọn tỉnh/
     if (!(city instanceof HTMLSelectElement) || !city.dataset.areaCity) return;
     const ward = document.getElementById(city.dataset.areaCity);
     if (!(ward instanceof HTMLSelectElement)) return;
-    const code = city.selectedOptions[0]?.dataset.code;
     const reset = (text: string) => { ward.replaceChildren(new Option(text, "")); };
+    if (!city.value) { reset(ward.dataset.pickFirst ?? ""); return; }
+    // Filters: the wards this list's records use, already on the page.
+    if (city.dataset.areaUsed) {
+      const used: Record<string, [string, number][]> = JSON.parse(city.dataset.areaUsed);
+      reset(ward.dataset.none ?? "");
+      for (const [name, count] of used[city.value] ?? []) ward.add(new Option(`${name} (${count})`, name));
+      return;
+    }
+    const code = city.selectedOptions[0]?.dataset.code;
     if (!code) { reset(ward.dataset.pickFirst ?? ""); return; }
     reset("…");
     try {

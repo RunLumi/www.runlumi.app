@@ -85,6 +85,10 @@ existing data is moved once.
   addresses” on the Reports page (blank records only, same rules).
 - Filters: Leads, Pipeline, Companies, Contacts and Reports all filter by
   province and ward (a contact or opportunity uses its company's area). The
+  options are only the provinces and wards the CRM's own records use, with
+  counts, inside the viewer's scope (Leads: leads; Companies: companies;
+  Contacts and Pipeline: their companies; Reports: leads and companies). Forms
+  still offer the whole official list. Migration 0059 indexes (city, ward). The
   CRM API/MCP `create_company` and `update_company` take `city` and `ward`.
 
 ## Filters
