@@ -642,7 +642,10 @@ test("17. contact record, company breadcrumbs, Today leads and the lead report r
   assert.equal(lead.status, 303);
   assert.match((await S.a.get("/crm")).html, new RegExp(`TEST Today Lead ${run}`));
   assert.doesNotMatch((await S.c.get("/crm")).html, new RegExp(`TEST Today Lead ${run}`));
-  assert.match((await S.a.get("/vi/crm/reports")).html, /Lead theo nguồn/);
+  // Sellers get the stats on Reports; leads by source is now the "by source" breakdown.
+  const reports = (await S.a.get("/vi/crm/reports")).html;
+  assert.match(reports, /Bộ lọc báo cáo/);
+  assert.match(reports, /Theo nguồn/);
 });
 
 test("18. tasks list: own open tasks only; create and complete go through the opportunity's checks", async () => {

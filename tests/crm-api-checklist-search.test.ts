@@ -9,7 +9,7 @@ import { ValidationError } from "../src/lib/crm/core.ts";
 import { type ToolContext, findTool } from "../src/lib/crm/api/tools.ts";
 import { listAccounts, listContacts } from "../src/lib/crm/directory.ts";
 import { listOpportunities } from "../src/lib/crm/records.ts";
-import { matchesSearch, searchSql, searchTerms } from "../src/lib/search.ts";
+import { caseForms, matchesSearch, sameTextSql, searchSql, searchTerms } from "../src/lib/search.ts";
 
 const seller: CrmActor = { id: "exec_a", name: "TEST A (API: agent)", email: "a@example.test", manager: false, configure: false, finance: false, fulfillment: false, refer: true, reportPayments: true };
 let counter = 0;
@@ -97,4 +97,12 @@ test("search helpers: words are folded, deduplicated and capped; in-memory match
   assert.equal(matchesSearch(["Nguyễn Thị Ánh", "anh@example.test"], "ÁNH nguyễn"), true);
   assert.equal(matchesSearch("Webhook Lark", "lark slack"), false);
   assert.equal(matchesSearch("anything", ""), true);
+});
+
+test("search SQL stays shallow: D1 rejects expression trees deeper than 100", () => {
+  const depth = (sql: string) => { let deepest = 0, open = 0; for (const char of sql) { if (char === "(") deepest = Math.max(deepest, ++open); else if (char === ")") open -= 1; } return deepest; };
+  const clause = searchSql(["a.name", "a.industry", "a.region", "a.address", "a.notes"], "một hai ba bốn năm sáu bảy tám");
+  assert.ok(clause && depth(clause.sql) < 12, `nesting ${clause && depth(clause.sql)}`);
+  assert.ok(depth(sameTextSql("a.city", "TP. Hồ Chí Minh").sql) < 5);
+  assert.deepEqual(caseForms("đại").filter((form) => form === form.normalize("NFC")), ["đại", "ĐẠi", "Đại"], "lower, UPPER (only ASCII lowered by SQL) and Title case");
 });

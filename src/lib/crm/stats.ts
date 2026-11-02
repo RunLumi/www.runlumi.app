@@ -4,7 +4,7 @@
 // own), so comparing sets never reveals records the person cannot open.
 // Lead area/industry come from the lead; opportunity area/industry from its
 // company. Unknown stays unknown: a rate with no denominator is null.
-import { foldSql, foldText } from "../search";
+import { foldText, sameTextSql } from "../search";
 import { auditStatement } from "../workspace/members";
 import { completeArea } from "./area";
 import { ForbiddenError } from "./core";
@@ -55,7 +55,8 @@ export function readStatsQuery(url: URL, actor: Pick<CrmActor, "manager">, playb
   const playbook = playbookKeys.includes(get("playbook", 60)) ? get("playbook", 60) : playbookKeys[0] ?? "";
   const focus = Math.min(count - 1, Math.max(0, Number.parseInt(get("focus", 1), 10) || 0));
   const trend = (["leads", "opportunities", "won"] as const).find((item) => item === get("trend", 20)) ?? "leads";
-  const keep = Object.fromEntries(keptParams.map((key) => [key, get(key, 128)]).filter(([, value]) => value));
+  // Only team-wide roles may pick a seller; never echo one back to anyone else.
+  const keep = Object.fromEntries(keptParams.filter((key) => key !== "owner" || actor.manager).map((key) => [key, get(key, 128)]).filter(([, value]) => value));
   return { from, to, playbook, sets, focus, trend, keep };
 }
 
@@ -85,7 +86,7 @@ interface Where { sql: string; args: unknown[] }
 function setWhere(set: StatsSet, area: string, row: string): Where {
   const parts: string[] = [];
   const args: unknown[] = [];
-  const same = (column: string, value: string) => { parts.push(`${foldSql(column)} = ?`); args.push(foldText(value)); };
+  const same = (column: string, value: string) => { const clause = sameTextSql(column, value); parts.push(clause.sql); args.push(...clause.args); };
   const ward = splitWard(set.ward);
   if (set.city || ward.city) same(`${area}.city`, set.city || ward.city);
   if (set.district || ward.district) same(`${area}.district`, set.district || ward.district);
