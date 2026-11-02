@@ -17,6 +17,7 @@ import { hasNoticeSource, unreadNotices } from "../lib/workspace/inbox";
 import { type ModuleKey, accountModule, appBar, helpLinks, localized, moduleByKey, switchLocale, visibleCreateActions, visibleGroups, visibleLinks, visibleModules } from "../lib/workspace/nav";
 import { type WorkspaceUser, roleLabel } from "../lib/workspace/roles";
 import { initials, launcherBlurbs, launcherPages, moduleTone } from "../lib/workspace/summaries";
+import { APP_VERSION } from "../lib/version";
 
 interface Props { title: string; lang: "en" | "vi"; user: WorkspaceUser; module: ModuleKey; current?: string }
 const { title, lang, user, module, current } = Astro.props;
@@ -140,7 +141,7 @@ const tileTerms = (key: ModuleKey) => launchPages.filter(({ module: owner }) => 
           <main id="main" class="ws-main ws-content"><slot /></main>
         </div>
       : <main id="main" class="ws-main ws-page"><slot /></main>}
-    <footer class="ws-foot"><span>Lumi Workspace · {vi ? "Nội bộ, chỉ người được cấp quyền" : "Internal, permitted users only"}</span><span>© 2026 Cloudjet Solutions Pte. Ltd.</span></footer>
+    <footer class="ws-foot"><span>Lumi Workspace · {vi ? "Nội bộ, chỉ người được cấp quyền" : "Internal, permitted users only"}</span><span>© 2026 Cloudjet Solutions Pte. Ltd. · <span translate="no">{APP_VERSION}</span></span></footer>
     <script is:inline>
       // Progressive extras: Escape closes an open pop-over or sheet, and the
       // launcher/side filters narrow their lists. Everything works without it.

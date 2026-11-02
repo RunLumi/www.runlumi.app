@@ -5,6 +5,7 @@
 import "../styles/crm.css";
 import "../styles/workspace.css";
 import "../styles/workspace-security.css";
+import { APP_VERSION } from "../lib/version";
 
 interface Props { title: string; lang: "en" | "vi"; switchHref: string }
 const { title, lang, switchHref } = Astro.props;
@@ -28,5 +29,6 @@ Astro.response.headers.set("Referrer-Policy", "same-origin");
       <p class="s4-actions" style="justify-content:flex-end;margin:0"><a class="crm-link" href={switchHref} lang={vi ? "en" : "vi"} hreflang={vi ? "en" : "vi"}>{vi ? "English" : "Tiếng Việt"}</a></p>
       <slot />
     </div></main>
+    <footer class="ws-foot"><span>Lumi Workspace</span><span translate="no">{APP_VERSION}</span></footer>
   </body>
 </html>

@@ -3,6 +3,7 @@ import cloudflare from "@astrojs/cloudflare";
 import react from "@astrojs/react";
 import emdash from "emdash/astro";
 import { d1, r2 } from "@emdash-cms/cloudflare";
+import { appVersion } from "./scripts/app-version.mjs";
 
 export default defineConfig({
   site: "https://runlumi.app",
@@ -26,5 +27,6 @@ export default defineConfig({
     // default keeps Wrangler's normal .wrangler/state persistence.
     persistState: process.env.LUMI_PERSIST_TO ? { path: process.env.LUMI_PERSIST_TO } : true
   }),
-  trailingSlash: "never"
+  trailingSlash: "never",
+  vite: { define: { __APP_VERSION__: JSON.stringify(appVersion()) } }
 });
