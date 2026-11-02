@@ -21,6 +21,7 @@ import { errorFor, valueFor } from "../../lib/crm/page";
 import type { AccountProps } from "../../lib/crm/routes/account";
 import "../../styles/crm-sales.css";
 import "../../styles/record.css";
+import { areaLabel } from "../../lib/crm/area";
 
 type Props = AccountProps;
 const { ctx, state, account, contacts, editable, opportunities, canEdit, duplicates, playbookNames, playbooks, owners, names, stageNames, events } = Astro.props;
@@ -62,6 +63,11 @@ const fieldLabels: Record<string, string> = vi
           <Field name="region" id="a-reg" label={vi ? "Khu vực" : "Area"} lang={lang} value={v("account", "region", account.region)} maxlength={120} />
         </div>
         <Field name="address" id="a-addr" label={vi ? "Địa chỉ" : "Address"} lang={lang} value={v("account", "address", account.address)} maxlength={300} />
+        <div class="crm-form-grid">
+          <Field name="ward" id="a-ward" label={vi ? "Phường / Xã" : "Ward"} lang={lang} value={v("account", "ward", account.ward)} maxlength={80} placeholder="Phường 13" help={vi ? "Để trống: tự điền từ địa chỉ nếu đọc được." : "Leave blank to fill from the address when it can be read."} />
+          <Field name="district" id="a-district" label={vi ? "Quận / Khu vực" : "District / area"} lang={lang} value={v("account", "district", account.district)} maxlength={80} placeholder="Quận 4" />
+          <Field name="city" id="a-city" label={vi ? "Tỉnh / Thành phố" : "City / province"} lang={lang} value={v("account", "city", account.city)} maxlength={80} placeholder="TP. Hồ Chí Minh" />
+        </div>
         <Field name="notes" id="a-notes" type="textarea" label={vi ? "Ghi chú" : "Notes"} lang={lang} value={v("account", "notes", account.notes)} maxlength={3000} />
       <Fragment slot="foot"><a class="ws-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class="ws-btn primary" type="submit">{vi ? "Lưu" : "Save"}</button></Fragment>
   </Sheet>}
@@ -99,6 +105,7 @@ const fieldLabels: Record<string, string> = vi
               <div><dt>{vi ? "Ngành" : "Industry"}</dt><dd>{account.industry || "—"}</dd></div>
               <div><dt>{vi ? "Khu vực" : "Area"}</dt><dd>{account.region || "—"}</dd></div>
               <div><dt>{vi ? "Địa chỉ" : "Address"}</dt><dd>{account.address || "—"}</dd></div>
+              <div><dt>{vi ? "Phường, quận, thành phố" : "Ward, district, city"}</dt><dd>{areaLabel(account) || "—"}</dd></div>
               <div><dt>{vi ? "Người quản lý" : "Managed by"}</dt><dd>{person(account.owner_id)}</dd></div>
               <div><dt>{vi ? "Không liên hệ" : "Do not contact"}</dt><dd>{account.do_not_contact ? (vi ? "Có" : "Yes") : (vi ? "Không" : "No")}</dd></div>
             </dl>

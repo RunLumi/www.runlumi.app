@@ -20,6 +20,7 @@ import { errorFor, valueFor } from "../../lib/crm/page";
 import type { LeadProps } from "../../lib/crm/routes/leads";
 import "../../styles/crm-sales.css";
 import "../../styles/record.css";
+import { areaLabel } from "../../lib/crm/area";
 
 type Props = LeadProps;
 const { ctx, state, lead, canEdit, process, owners, names, events, playbooks, matches, convert, contactsFor, convertAccount, companies } = Astro.props;
@@ -145,6 +146,7 @@ const dupCount = matches.accounts.length + matches.contacts.length;
               <div><dt>Email</dt><dd>{lead.email || "—"}</dd></div>
               <div><dt>{vi ? "Ngành" : "Industry"}</dt><dd>{lead.industry || "—"}</dd></div>
               <div><dt>{vi ? "Khu vực" : "Area"}</dt><dd>{lead.region || "—"}</dd></div>
+              <div><dt>{vi ? "Phường, quận, thành phố" : "Ward, district, city"}</dt><dd>{areaLabel(lead) || "—"}</dd></div>
               <div><dt>{vi ? "Nhu cầu, theo lời họ" : "Need, in their words"}</dt><dd>{lead.need || "—"}</dd></div>
             </dl>
             <h3 class="rec-sec">{vi ? "Thông tin hệ thống" : "System information"}</h3>
@@ -200,6 +202,9 @@ const dupCount = matches.accounts.length + matches.contacts.length;
           <Field name="email" id="ld-email" type="email" label="Email" lang={lang} value={v("lead_save", "email", lead.email)} error={e("lead_save", "email")} maxlength={254} />
           <Field name="industry" id="ld-industry" label={vi ? "Ngành" : "Industry"} lang={lang} value={v("lead_save", "industry", lead.industry)} maxlength={120} />
           <Field name="region" id="ld-region" label={vi ? "Khu vực" : "Area"} lang={lang} value={v("lead_save", "region", lead.region)} maxlength={120} />
+          <Field name="ward" id="ld-ward" label={vi ? "Phường / Xã" : "Ward"} lang={lang} value={v("lead_save", "ward", lead.ward)} maxlength={80} placeholder="Phường 13" help={vi ? "Để trống: tự điền từ địa chỉ nếu đọc được." : "Leave blank to fill from the address when it can be read."} />
+          <Field name="district" id="ld-district" label={vi ? "Quận / Khu vực" : "District / area"} lang={lang} value={v("lead_save", "district", lead.district)} maxlength={80} placeholder="Quận 4" />
+          <Field name="city" id="ld-city" label={vi ? "Tỉnh / Thành phố" : "City / province"} lang={lang} value={v("lead_save", "city", lead.city)} maxlength={80} placeholder="TP. Hồ Chí Minh" />
           <Field name="playbook_key" id="ld-pb" type="select" label={vi ? "Nhu cầu thuộc playbook" : "Playbook"} lang={lang} value={v("lead_save", "playbook_key", lead.playbook_key)} error={e("lead_save", "playbook_key")} options={[{ value: "", label: vi ? "Chưa rõ" : "Not known yet" }, ...playbooks.filter((item) => item.kind !== "renewal").map((item) => ({ value: item.playbook_key, label: vi ? item.name_vi : item.name_en }))]} />
           <Field name="next_action" id="ld-next" label={vi ? "Bước tiếp theo" : "Next step"} lang={lang} value={v("lead_save", "next_action", lead.next_action)} maxlength={500} />
           <Field name="next_action_due" id="ld-due" type="date" label={vi ? "Hạn bước tiếp theo" : "Next step due"} lang={lang} value={v("lead_save", "next_action_due", lead.next_action_due)} error={e("lead_save", "next_action_due")} />

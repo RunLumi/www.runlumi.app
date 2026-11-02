@@ -82,6 +82,8 @@ Send `Authorization: Bearer <token>`. Request bodies are JSON (`Content-Type: ap
 
 **Stage requirements.** A stage's `requires` lists field keys, checklist keys and built-ins (`primary_contact`, `next_step`, `accepted_quote`). `get_opportunity` and `list_playbooks` return the `checklist`, and `get_opportunity` returns the current `checks`. Tick a checklist item with `update_opportunity_fields` and `checks`, for example `{ "checks": { "presence_checked": true } }`, only when the work was done. A checklist key sent under `fields` is treated as a tick. Fields and checks can be set only once their stage is visible.
 
+**Area.** Companies carry `ward`, `district` and `city` (for example `Phường 13`, `Quận 4`, `TP. Hồ Chí Minh`). `create_company` and `update_company` accept them; values are normalised, and blank ones are read from the address only where a part is marked (Phường/P., Quận/Q., a known city).
+
 **Search.** `q` matches when every word appears in the record, in any order, ignoring letter case — Vietnamese capitals included (`VÂN SPA` finds “Vân Spa”).
 
 Search text in a `GET` query string can appear in request logs. Search by phone number or email through MCP, which sends the text in the body.

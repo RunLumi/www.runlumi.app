@@ -74,6 +74,9 @@ const closeHref = query({ new: "" });
         <Field name="industry" label={vi ? "Ngành" : "Industry"} lang={lang} value={v("industry")} maxlength={120} />
         <Field name="region" label={vi ? "Khu vực" : "Area"} lang={lang} value={v("region")} maxlength={120} />
         <Field name="address" wide label={vi ? "Địa chỉ" : "Address"} lang={lang} value={v("address")} maxlength={300} />
+        <Field name="ward" label={vi ? "Phường / Xã" : "Ward"} lang={lang} value={v("ward")} maxlength={80} placeholder="Phường 13" help={vi ? "Để trống: tự điền từ địa chỉ nếu đọc được." : "Leave blank to fill from the address when it can be read."} />
+        <Field name="district" label={vi ? "Quận / Khu vực" : "District / area"} lang={lang} value={v("district")} maxlength={80} placeholder="Quận 4" />
+        <Field name="city" label={vi ? "Tỉnh / Thành phố" : "City / province"} lang={lang} value={v("city")} maxlength={80} placeholder="TP. Hồ Chí Minh" />
         {actor.manager && <Field name="owner_id" type="select" label={fieldLabels.owner_id} lang={lang} value={v("owner_id", actor.id)} error={e("owner_id")} options={owners.map((owner) => ({ value: owner.id, label: owner.label }))} />}
       </div>
       <p class="cl-sheet-sec" style="margin-top:18px">{vi ? "Người liên hệ đầu tiên (không bắt buộc)" : "First contact (optional)"}</p>

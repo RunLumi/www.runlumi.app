@@ -57,6 +57,7 @@ Remaining gaps, not built:
 | `crm.access` | ✓ |  |  |  |  |  |  | ✓ | ✓ | ✓ | ✓ | ✓ |
 | `crm.refer` | ✓ |  |  |  |  |  |  | ✓ | ✓ | ✓ |  |  |
 | `crm.payments.report` | ✓ |  |  |  |  |  |  | ✓ | ✓ |  |  |  |
+| `crm.stats` | ✓ |  |  |  |  |  |  | ✓ | ✓ |  |  |  |
 | `crm.team` | ✓ |  |  |  |  |  |  | ✓ |  |  |  |  |
 | `crm.configure` | ✓ |  |  |  |  |  |  |  |  |  |  |  |
 | `crm.finance` | ✓ |  |  |  |  |  |  |  |  |  | ✓ |  |

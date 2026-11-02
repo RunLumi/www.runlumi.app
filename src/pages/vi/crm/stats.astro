@@ -1,0 +1,9 @@
+---
+import StatsView from "../../../components/crm/StatsView.astro";
+import { statsRoute } from "../../../lib/crm/routes/stats";
+
+export const prerender = false;
+const result = await statsRoute(Astro, "vi");
+if (result instanceof Response) return result;
+---
+<StatsView {...result} />

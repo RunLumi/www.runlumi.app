@@ -8,6 +8,7 @@ import {
   ConflictError, Errors, ForbiddenError, NotFoundError, emailPattern, eventStatement, fail, newId, normalizePhone, nowIso, once, onceGuarded,
 } from "./core";
 import { searchSql } from "../search";
+import { readArea } from "./area";
 import { isIsoDate } from "./playbook";
 import { type Account, type Contact, type SourceChannel, contactChannels, contactRoles, dealForecast, parseVersion, phoneSuppressed, sourceChannels } from "./records";
 
@@ -171,6 +172,7 @@ export async function createAccount(db: D1Database, contentDb: D1Database, actor
   const industry = errors.text(form, "industry", 120);
   const region = errors.text(form, "region", 120);
   const address = errors.text(form, "address", 300);
+  const area = readArea(errors, form, address, region);
   const notes = errors.text(form, "notes", 3000);
   const withContact = !!field(form, "contact_name") || !!field(form, "contact_phone") || !!field(form, "contact_email");
   const contact = withContact ? contactInput(form, errors, "contact_") : null;
@@ -181,8 +183,8 @@ export async function createAccount(db: D1Database, contentDb: D1Database, actor
   const id = newId("acc");
   const contactId = newId("con");
   const result = await once(db, actor, requestKey(form), "account_create", id, [
-    db.prepare("INSERT INTO crm_accounts (id, name, industry, region, address, notes, phone_norm, owner_id, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
-      .bind(id, name, industry, region, address, notes, contact?.phoneNorm ?? "", owner, actor.id, now, now),
+    db.prepare("INSERT INTO crm_accounts (id, name, industry, region, address, ward, district, city, notes, phone_norm, owner_id, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+      .bind(id, name, industry, region, address, area.ward, area.district, area.city, notes, contact?.phoneNorm ?? "", owner, actor.id, now, now),
     eventStatement(db, actor, "account_created", { owner_id: owner }, { accountId: id }),
     ...(contact ? [insertContact(db, contactId, id, contact, owner, actor, now), eventStatement(db, actor, "contact_added", { contact_id: contactId, role: contact.role, owner_id: owner }, { accountId: id })] : []),
   ]);
@@ -265,13 +267,14 @@ export async function saveAccount(db: D1Database, actor: CrmActor, account: Acco
   const industry = errors.text(form, "industry", 120);
   const region = errors.text(form, "region", 120);
   const address = errors.text(form, "address", 300);
+  const area = readArea(errors, form, address, region);
   const notes = errors.text(form, "notes", 3000);
   errors.throwIfAny();
   const guard = { sql: "EXISTS (SELECT 1 FROM crm_accounts WHERE id = ? AND version = ?)", args: [account.id, version] };
   const result = await onceGuarded(db, actor, requestKey(form), "account", account.id, guard, [
-    eventStatement(db, actor, "account_updated", { from: { name: account.name, industry: account.industry, region: account.region }, to: { name, industry, region } }, { accountId: account.id }, guard),
-    db.prepare("UPDATE crm_accounts SET name = ?, industry = ?, region = ?, address = ?, notes = ?, version = version + 1, updated_at = ? WHERE id = ? AND version = ?")
-      .bind(name, industry, region, address, notes, nowIso(), account.id, version),
+    eventStatement(db, actor, "account_updated", { from: { name: account.name, industry: account.industry, region: account.region, ward: account.ward, district: account.district, city: account.city }, to: { name, industry, region, ...area } }, { accountId: account.id }, guard),
+    db.prepare("UPDATE crm_accounts SET name = ?, industry = ?, region = ?, address = ?, ward = ?, district = ?, city = ?, notes = ?, version = version + 1, updated_at = ? WHERE id = ? AND version = ?")
+      .bind(name, industry, region, address, area.ward, area.district, area.city, notes, nowIso(), account.id, version),
   ]);
   if (!result.changed) throw new ConflictError();
 }

@@ -6,6 +6,7 @@ import {
   ConflictError, Errors, ForbiddenError, NotFoundError, ValidationError, emailPattern, eventStatement, fail, newId, normalizePhone, nowIso, once, onceGuarded,
 } from "./core";
 import { searchSql } from "../search";
+import { readArea } from "./area";
 import { addDays } from "./money";
 import { type Playbook, type TransitionContext, checkTransition, isIsoDate, parseFieldValue, stageIndex, visibleChecks, visibleFields } from "./playbook";
 
@@ -27,7 +28,7 @@ export interface Opportunity {
   account_name: string; industry: string; region: string; account_dnc: number;
 }
 export interface Account {
-  id: string; name: string; industry: string; region: string; address: string; phone_norm: string; do_not_contact: number;
+  id: string; name: string; industry: string; region: string; address: string; ward: string; district: string; city: string; phone_norm: string; do_not_contact: number;
   dnc_reason: string; notes: string; owner_id: string | null; version: number; created_at: string; updated_at: string;
 }
 export interface Contact {
@@ -125,6 +126,7 @@ export async function quickCreate(db: D1Database, contentDb: D1Database, actor: 
     title: errors.text(form, "title", 160),
   };
   const forecast = dealForecast(errors, form);
+  const area = readArea(errors, form, input.region);
   if (input.email && !emailPattern.test(input.email)) errors.add("email", "invalid");
   const phoneNorm = normalizePhone(input.phone);
   if (input.phone && (phoneNorm.length < 8 || phoneNorm.length > 15)) errors.add("phone", "invalid");
@@ -152,8 +154,8 @@ export async function quickCreate(db: D1Database, contentDb: D1Database, actor: 
   const id = newId("opp");
   const firstStage = playbook!.def.stages[0].id;
   const statements = [
-    db.prepare("INSERT INTO crm_accounts (id, name, industry, region, phone_norm, owner_id, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
-      .bind(accountId, input.account_name, input.industry, input.region, phoneNorm, owner, actor.id, now, now),
+    db.prepare("INSERT INTO crm_accounts (id, name, industry, region, ward, district, city, phone_norm, owner_id, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+      .bind(accountId, input.account_name, input.industry, input.region, area.ward, area.district, area.city, phoneNorm, owner, actor.id, now, now),
     db.prepare("INSERT INTO crm_contacts (id, account_id, name, role, email, phone, phone_norm, owner_id, created_by, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
       .bind(contactId, accountId, input.contact_name, input.contact_role, input.email, input.phone, phoneNorm, owner, actor.id, now, now),
     db.prepare(`INSERT INTO crm_opportunities (id, account_id, primary_contact_id, title, playbook_id, stage_id, outcome, owner_id, seller_id, created_by, source_channel, source_detail, referrer, relation, estimated_value_vnd, win_probability, fields, next_action, next_action_due, created_at, updated_at)

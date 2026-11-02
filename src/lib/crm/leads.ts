@@ -14,6 +14,7 @@ import {
   ConflictError, Errors, ForbiddenError, NotFoundError, emailPattern, fail, newId, normalizePhone, nowIso, once, onceGuarded,
 } from "./core";
 import { searchSql } from "../search";
+import { completeArea, readArea } from "./area";
 import { isIsoDate } from "./playbook";
 import { contactRoles, dealForecast, phoneSuppressed, sourceChannels, type SourceChannel } from "./records";
 
@@ -26,7 +27,7 @@ export interface LeadProcess { id: string; version: number; def: LeadProcessDef;
 
 export type LeadState = "open" | "converted" | "disqualified";
 export interface Lead {
-  id: string; state: LeadState; status_id: string; process_id: string; name: string; job_title: string; company: string; industry: string; region: string;
+  id: string; state: LeadState; status_id: string; process_id: string; name: string; job_title: string; company: string; industry: string; region: string; ward: string; district: string; city: string;
   phone: string; phone_norm: string; email: string; need: string; playbook_key: string; source_channel: SourceChannel; source_detail: string;
   referrer_id: string | null; owner_id: string | null; consent_status: "unknown" | "granted" | "refused" | "withdrawn"; consent_evidence: string; suppressed: number;
   next_action: string; next_action_due: string | null; disqualify_reason_id: string; disqualify_note: string;
@@ -239,7 +240,7 @@ export async function leadEvents(db: D1Database, leadId: string): Promise<{ id: 
 // ---------------------------------------------------------------- create
 
 interface LeadInput {
-  name: string; job_title: string; company: string; industry: string; region: string; phone: string; phoneNorm: string; email: string; need: string;
+  name: string; job_title: string; company: string; industry: string; region: string; ward: string; district: string; city: string; phone: string; phoneNorm: string; email: string; need: string;
   playbook_key: string; next_action: string; next_action_due: string;
 }
 
@@ -249,7 +250,9 @@ function leadInput(form: FormData, errors: Errors): LeadInput {
     industry: errors.text(form, "industry", 120), region: errors.text(form, "region", 120), phone: errors.text(form, "phone", 40), phoneNorm: "",
     email: errors.text(form, "email", 254), need: errors.text(form, "need", 1500), playbook_key: errors.text(form, "playbook_key", 60),
     next_action: errors.text(form, "next_action", 500), next_action_due: errors.text(form, "next_action_due", 10),
+    ward: "", district: "", city: "",
   };
+  Object.assign(input, readArea(errors, form, input.region));
   input.phoneNorm = normalizePhone(input.phone);
   if (input.phone && (input.phoneNorm.length < 8 || input.phoneNorm.length > 15)) errors.add("phone", "invalid");
   if (input.email && !emailPattern.test(input.email)) errors.add("email", "invalid");
@@ -285,9 +288,9 @@ export async function createLead(db: D1Database, contentDb: D1Database, actor: C
   const id = newId("lead");
   const now = nowIso();
   await once(db, actor, requestKey(form), "lead_create", id, [
-    db.prepare(`INSERT INTO crm_lead_records (id, state, status_id, process_id, name, job_title, company, industry, region, phone, phone_norm, email, need, playbook_key, source_channel, source_detail, owner_id, next_action, next_action_due, created_by, created_at, updated_at)
-      VALUES (?, 'open', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-      .bind(id, process.def.statuses[0].id, process.id, input.name, input.job_title, input.company, input.industry, input.region, input.phone, input.phoneNorm, input.email, input.need,
+    db.prepare(`INSERT INTO crm_lead_records (id, state, status_id, process_id, name, job_title, company, industry, region, ward, district, city, phone, phone_norm, email, need, playbook_key, source_channel, source_detail, owner_id, next_action, next_action_due, created_by, created_at, updated_at)
+      VALUES (?, 'open', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+      .bind(id, process.def.statuses[0].id, process.id, input.name, input.job_title, input.company, input.industry, input.region, input.ward, input.district, input.city, input.phone, input.phoneNorm, input.email, input.need,
         input.playbook_key, source, sourceDetail, owner, input.next_action, input.next_action_due || null, actor.id, now, now),
     leadEvent(db, actor, "lead_created", { source_channel: source, owner_id: owner }, id, null),
   ]);
@@ -300,10 +303,11 @@ export async function referralLeadStatements(db: D1Database, actor: CrmActor, id
 }): Promise<D1PreparedStatement[]> {
   const process = await currentLeadProcess(db);
   const now = nowIso();
+  const area = completeArea({}, input.region);
   return [
-    db.prepare(`INSERT INTO crm_lead_records (id, state, status_id, process_id, name, company, industry, region, phone, phone_norm, email, need, playbook_key, source_channel, source_detail, referrer_id, owner_id, consent_status, consent_evidence, next_action, created_by, created_at, updated_at)
-      VALUES (?, 'open', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'referral', ?, ?, NULL, 'granted', ?, ?, ?, ?, ?)`)
-      .bind(id, process.def.statuses[0].id, process.id, input.contactName, input.business, input.industry, input.region, input.phone, input.phoneNorm, input.email, input.need, input.playbookKey,
+    db.prepare(`INSERT INTO crm_lead_records (id, state, status_id, process_id, name, company, industry, region, ward, district, city, phone, phone_norm, email, need, playbook_key, source_channel, source_detail, referrer_id, owner_id, consent_status, consent_evidence, next_action, created_by, created_at, updated_at)
+      VALUES (?, 'open', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'referral', ?, ?, NULL, 'granted', ?, ?, ?, ?, ?)`)
+      .bind(id, process.def.statuses[0].id, process.id, input.contactName, input.business, input.industry, input.region, area.ward, area.district, area.city, input.phone, input.phoneNorm, input.email, input.need, input.playbookKey,
         `Referred by ${actor.name}`, actor.id, input.evidence, "Contact the referred business.", actor.id, now, now),
     leadEvent(db, actor, "lead_referred", { referrer_id: actor.id, playbook_key: input.playbookKey }, id, null),
   ];
@@ -320,14 +324,14 @@ export async function saveLead(db: D1Database, actor: CrmActor, access: LeadAcce
   errors.throwIfAny();
   if (input.phoneNorm && input.phoneNorm !== lead.phone_norm && await phoneSuppressed(db, input.phoneNorm)) fail("phone", "suppressed");
   const guard = guardFor(lead, version, actor);
-  const changed = (["name", "job_title", "company", "industry", "region", "phone", "email", "need", "playbook_key", "next_action"] as const)
+  const changed = (["name", "job_title", "company", "industry", "region", "ward", "district", "city", "phone", "email", "need", "playbook_key", "next_action"] as const)
     .filter((key) => lead[key] !== input[key]).concat(lead.next_action_due !== (input.next_action_due || null) ? ["next_action_due"] as never[] : []);
   const result = await onceGuarded(db, actor, requestKey(form), "lead_save", lead.id, guard, [
     // Only which fields changed is recorded: contact details stay out of the activity feed.
     leadEvent(db, actor, "lead_updated", { changed }, lead.id, null, guard),
-    db.prepare(`UPDATE crm_lead_records SET name = ?, job_title = ?, company = ?, industry = ?, region = ?, phone = ?, phone_norm = ?, email = ?, need = ?, playbook_key = ?, next_action = ?, next_action_due = ?,
+    db.prepare(`UPDATE crm_lead_records SET name = ?, job_title = ?, company = ?, industry = ?, region = ?, ward = ?, district = ?, city = ?, phone = ?, phone_norm = ?, email = ?, need = ?, playbook_key = ?, next_action = ?, next_action_due = ?,
       version = version + 1, updated_at = ? WHERE id = ? AND version = ? AND state = 'open'`)
-      .bind(input.name, input.job_title, input.company, input.industry, input.region, input.phone, input.phoneNorm, input.email, input.need, input.playbook_key, input.next_action,
+      .bind(input.name, input.job_title, input.company, input.industry, input.region, input.ward, input.district, input.city, input.phone, input.phoneNorm, input.email, input.need, input.playbook_key, input.next_action,
         input.next_action_due || null, nowIso(), lead.id, version),
   ]);
   if (!result.changed) throw new ConflictError();
@@ -523,8 +527,8 @@ export async function convertLead(db: D1Database, actor: CrmActor, access: LeadA
   const consentEvidence = lead.consent_evidence || (lead.consent_status === "granted" ? `Recorded on lead ${lead.id}` : "");
   const statements: D1PreparedStatement[] = [];
   if (!reusedAccount) {
-    statements.push(db.prepare(`INSERT INTO crm_accounts (id, name, industry, region, phone_norm, owner_id, created_by, created_at, updated_at) SELECT ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE ${guard.sql}`)
-      .bind(accountId, accountName || lead.company, lead.industry, lead.region, lead.phone_norm, owner, actor.id, now, now, ...guard.args));
+    statements.push(db.prepare(`INSERT INTO crm_accounts (id, name, industry, region, ward, district, city, phone_norm, owner_id, created_by, created_at, updated_at) SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE ${guard.sql}`)
+      .bind(accountId, accountName || lead.company, lead.industry, lead.region, lead.ward, lead.district, lead.city, lead.phone_norm, owner, actor.id, now, now, ...guard.args));
   }
   if (!reusedContact) {
     statements.push(db.prepare(`INSERT INTO crm_contacts (id, account_id, name, role, email, phone, phone_norm, contact_basis, consent_status, consent_evidence, owner_id, created_by, created_at, updated_at)

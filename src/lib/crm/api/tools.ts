@@ -106,10 +106,16 @@ const contactProperties: Record<string, JsonSchema> = {
   consent_evidence: text("Where and when consent was given", 500),
 };
 
+const areaProperties: Record<string, JsonSchema> = {
+  ward: text("Ward (Phường/Xã), e.g. Phường 13. Blank: read from the address when marked", 80),
+  district: text("District or familiar area (Quận/Huyện), e.g. Quận 4", 80),
+  city: text("City or province, e.g. TP. Hồ Chí Minh", 80),
+};
+
 // ---- result shapes -----------------------------------------------------------
 
 function company(row: Account) {
-  return { id: row.id, name: row.name, industry: row.industry, region: row.region, address: row.address, notes: row.notes, owner_id: row.owner_id, do_not_contact: !!row.do_not_contact, version: row.version, created_at: row.created_at, updated_at: row.updated_at };
+  return { id: row.id, name: row.name, industry: row.industry, region: row.region, address: row.address, ward: row.ward, district: row.district, city: row.city, notes: row.notes, owner_id: row.owner_id, do_not_contact: !!row.do_not_contact, version: row.version, created_at: row.created_at, updated_at: row.updated_at };
 }
 
 function contact(row: Contact) {
@@ -219,13 +225,13 @@ export const tools: Tool[] = [
     name: "create_company", title: "Create a company", write: true,
     description: "Creates a company, optionally with its first contact. You manage what you create; team-wide roles may set owner_id.",
     inputSchema: schema({
-      name: text("Company name", 160), industry: text("Industry", 120), region: text("Area / region", 120), address: text("Address", 300), notes: text("Notes", 3000),
+      name: text("Company name", 160), industry: text("Industry", 120), region: text("Area / region", 120), address: text("Address", 300), ...areaProperties, notes: text("Notes", 3000),
       owner_id: text("Team-wide roles only: who manages it", 128), contact: schema(contactProperties, ["name"]),
     }, ["name"]),
     run: async (ctx, args) => {
       requireWrite(ctx.identity);
       const first = (args.contact && typeof args.contact === "object" ? args.contact : {}) as Args;
-      const values: Record<string, string> = { name: str(args, "name"), industry: str(args, "industry"), region: str(args, "region"), address: str(args, "address"), notes: str(args, "notes"), owner_id: str(args, "owner_id") };
+      const values: Record<string, string> = { name: str(args, "name"), industry: str(args, "industry"), region: str(args, "region"), address: str(args, "address"), ward: str(args, "ward"), district: str(args, "district"), city: str(args, "city"), notes: str(args, "notes"), owner_id: str(args, "owner_id") };
       for (const key of Object.keys(contactProperties)) values[`contact_${key}`] = str(first, key);
       const id = await createAccount(ctx.db, ctx.contentDb, ctx.identity.actor, form(values, ctx.requestKey));
       return company(await loadAccount(ctx.db, ctx.identity.actor, id));
@@ -234,12 +240,12 @@ export const tools: Tool[] = [
   {
     name: "update_company", title: "Update a company", write: true,
     description: "Changes a company's name, industry, area, address or notes. Only the fields you pass change.",
-    inputSchema: schema({ company_id: id("Company ID"), name: text("Name", 160), industry: text("Industry", 120), region: text("Area", 120), address: text("Address", 300), notes: text("Notes", 3000), version }, ["company_id"]),
+    inputSchema: schema({ company_id: id("Company ID"), name: text("Name", 160), industry: text("Industry", 120), region: text("Area", 120), address: text("Address", 300), ...areaProperties, notes: text("Notes", 3000), version }, ["company_id"]),
     run: async (ctx, args) => {
       requireWrite(ctx.identity);
       const account = await loadAccount(ctx.db, ctx.identity.actor, str(args, "company_id"));
       const pick = (key: keyof Account & string) => has(args, key) ? str(args, key) : String(account[key] ?? "");
-      await saveAccount(ctx.db, ctx.identity.actor, account, form({ name: pick("name"), industry: pick("industry"), region: pick("region"), address: pick("address"), notes: pick("notes"), version: versionArg(args, account.version) }, ctx.requestKey));
+      await saveAccount(ctx.db, ctx.identity.actor, account, form({ name: pick("name"), industry: pick("industry"), region: pick("region"), address: pick("address"), ward: pick("ward"), district: pick("district"), city: pick("city"), notes: pick("notes"), version: versionArg(args, account.version) }, ctx.requestKey));
       return company(await loadAccount(ctx.db, ctx.identity.actor, account.id));
     },
   },

@@ -8,7 +8,7 @@ export type ModuleKey = "home" | "hiring" | "crm" | "hrm" | "finance" | "admin" 
 export type IconName =
   | "finance" | "cash_flow" | "balance" | "history"
   | "files" | "hrm" | "profile" | "hrm_people" | "hrm_settings"
-  | "overview" | "hiring" | "crm" | "admin" | "today" | "leads" | "lead_settings" | "calendar" | "pipeline" | "new" | "referrals" | "companies" | "contacts" | "reports"
+  | "overview" | "hiring" | "crm" | "admin" | "today" | "leads" | "lead_settings" | "calendar" | "pipeline" | "new" | "referrals" | "companies" | "contacts" | "reports" | "stats"
   | "commission" | "model" | "fulfillment" | "assignment" | "playbooks" | "offers" | "process" | "agents" | "roles" | "candidates" | "users" | "menu" | "apps" | "account" | "security"
   | "search" | "plus" | "help" | "bell" | "chevron"
   | "refresh" | "filter" | "left" | "right" | "table" | "warn" | "grip" | "tasks";
@@ -53,6 +53,7 @@ export const modules: NavModule[] = [
       { key: "companies", tab: true, en: "Companies", vi: "Công ty", path: "/crm/accounts", icon: "companies", group: "customers" },
       { key: "contacts", tab: true, en: "Contacts", vi: "Liên hệ", path: "/crm/contacts", icon: "contacts", group: "customers" },
       { key: "reports", tab: true, en: "Reports", vi: "Báo cáo", path: "/crm/reports", icon: "reports", group: "results" },
+      { key: "stats", en: "Stats", vi: "Thống kê", path: "/crm/stats", icon: "stats", group: "results", anyOf: ["crm.stats"] },
       { key: "commission", en: "Commission", vi: "Hoa hồng", path: "/crm/commission", icon: "commission", group: "results" },
       { key: "model", en: "Business model", vi: "Mô hình kinh doanh", path: "/crm/model", icon: "model", group: "results", anyOf: ["crm.team"] },
       { key: "fulfillment", en: "Fulfillment", vi: "Bàn giao", path: "/crm/fulfillment", icon: "fulfillment", group: "operations", anyOf: ["crm.fulfillment", "crm.team"] },

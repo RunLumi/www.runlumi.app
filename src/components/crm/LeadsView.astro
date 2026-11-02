@@ -164,6 +164,9 @@ const newHref = `${base}/leads${query({ new: "1" })}#new-lead`;
         <Field name="email" type="email" label="Email" lang={lang} value={v("email")} error={e("email")} maxlength={254} />
         <Field name="industry" label={vi ? "Ngành" : "Industry"} lang={lang} value={v("industry")} maxlength={120} />
         <Field name="region" label={vi ? "Khu vực" : "Area"} lang={lang} value={v("region")} maxlength={120} />
+        <Field name="ward" label={vi ? "Phường / Xã" : "Ward"} lang={lang} value={v("ward")} maxlength={80} placeholder="Phường 13" help={vi ? "Để trống: tự điền từ địa chỉ nếu đọc được." : "Leave blank to fill from the address when it can be read."} />
+        <Field name="district" label={vi ? "Quận / Khu vực" : "District / area"} lang={lang} value={v("district")} maxlength={80} placeholder="Quận 4" />
+        <Field name="city" label={vi ? "Tỉnh / Thành phố" : "City / province"} lang={lang} value={v("city")} maxlength={80} placeholder="TP. Hồ Chí Minh" />
         <Field name="source_channel" type="select" label={fieldLabels.source_channel} lang={lang} value={v("source_channel", "field_visit")} error={e("source_channel")} options={manualSources} />
         <Field name="source_detail" label={vi ? "Chi tiết nguồn" : "Source detail"} lang={lang} value={v("source_detail")} maxlength={300} />
         <Field name="playbook_key" type="select" label={fieldLabels.playbook_key} lang={lang} value={v("playbook_key")} error={e("playbook_key")} options={[{ value: "", label: vi ? "Chưa rõ" : "Not known yet" }, ...playbooks.map((item) => ({ value: item.playbook_key, label: vi ? item.name_vi : item.name_en }))]} />

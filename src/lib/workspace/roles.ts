@@ -24,7 +24,7 @@ export const permissions = [
   "workspace.access",
   "users.manage",
   "hiring.access", "hiring.jobs.manage", "hiring.applications.manage", "hiring.applications.delete", "hiring.export",
-  "crm.access", "crm.files.team", "crm.team", "crm.configure", "crm.finance", "crm.fulfillment", "crm.refer", "crm.payments.report",
+  "crm.access", "crm.files.team", "crm.team", "crm.configure", "crm.finance", "crm.fulfillment", "crm.refer", "crm.payments.report", "crm.stats",
 ] as const;
 export type Permission = typeof permissions[number];
 
@@ -36,8 +36,8 @@ export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
   hrm_admin: ["workspace.access", "hrm.access", "hrm.profile.self", "hrm.team.read", "hrm.records.manage", "hrm.identity.read", "hrm.bank.read", "hrm.tax.read", "hrm.files.review", "hrm.audit.read", "hrm.configure", "hrm.legal.self", "hrm.legal.manage", "hrm.legal.review", "hrm.legal.activate", "hrm.coi.self", "hrm.coi.review", "hrm.onboarding.self", "hrm.onboarding.tasks", "hrm.onboarding.manage", "hrm.offboarding.tasks", "hrm.offboarding.manage", "hrm.retention.manage", "hrm.retention.review", "hrm.retention.activate", "hrm.legalhold.manage", "hrm.time.self", "hrm.time.manage", "hrm.time.review", "hrm.time.configure", "hrm.leave.self", "hrm.leave.manage", "hrm.leave.review", "hrm.leave.configure", "hrm.payroll.read", "hrm.payroll.configure", "hrm.payroll.prepare", "hrm.payroll.review", "hrm.payroll.approve", "hrm.payroll.publish", "hrm.payroll.payment.confirm", "hrm.payroll.dispute.manage", "hrm.compensation.read", "hrm.compensation.manage", "hrm.compensation.review", "hrm.services.manage", "hrm.notifications.read", "hrm.assets.manage", "hrm.assets.approve", "hrm.assets.reminders.manage", "hrm.assets.reminders.approve", "hrm.benefits.manage", "hrm.benefits.approve", "hrm.training.manage", "hrm.training.approve", "hrm.training.reminders.manage", "hrm.training.reminders.approve", "hrm.reports.read", "hrm.reports.export", "hrm.reports.manage", "hrm.reports.policy.approve", "hrm.reports.holds.manage", "hrm.reports.holds.release", "hrm.reports.holds.read", "hrm.performance.manage", "hrm.performance.review", "hrm.performance.approve"],
   payroll_officer: ["workspace.access", "hrm.access", "hrm.payroll.read", "hrm.payroll.prepare", "hrm.payroll.dispute.manage", "hrm.compensation.read", "hrm.notifications.read"],
   hr: ["workspace.access", "hiring.access", "hiring.jobs.manage", "hiring.applications.manage", "hiring.applications.delete", "hiring.export"],
-  sales_manager: ["workspace.access", "crm.access", "crm.files.team", "crm.team", "crm.refer", "crm.payments.report"],
-  sales_executive: ["workspace.access", "crm.files.team", "crm.access", "crm.refer", "crm.payments.report"],
+  sales_manager: ["workspace.access", "crm.access", "crm.files.team", "crm.team", "crm.refer", "crm.payments.report", "crm.stats"],
+  sales_executive: ["workspace.access", "crm.files.team", "crm.access", "crm.refer", "crm.payments.report", "crm.stats"],
   // Freelance partners sell their own deals or refer businesses to the team.
   // Customers pay Lumi directly, so partners never report payments.
   partner: ["workspace.access", "crm.access", "crm.refer"],
