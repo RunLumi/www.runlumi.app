@@ -65,14 +65,38 @@ export function findWard(province: Province, text: string): Ward | null {
   return named.length === 1 ? named[0] : null;
 }
 
+// Pre-merger urban districts (quận) and HCMC rural districts (huyện), each in
+// exactly one centrally run city; written with their marker they identify the
+// province. Pre-2025 district lists of those cities, compiled here (not part
+// of the GSO unit list).
+const FORMER_DISTRICTS: Record<string, string> = Object.fromEntries([
+  ...["thu duc", "binh thanh", "go vap", "phu nhuan", "tan binh", "tan phu", "binh tan", "cu chi", "hoc mon", "binh chanh", "nha be", "can gio"].map((name) => [name, "79"]),
+  ...["ba dinh", "hoan kiem", "hai ba trung", "dong da", "tay ho", "cau giay", "thanh xuan", "hoang mai", "long bien", "bac tu liem", "nam tu liem", "ha dong"].map((name) => [name, "01"]),
+  ...["hai chau", "thanh khe", "son tra", "ngu hanh son", "lien chieu", "cam le"].map((name) => [name, "48"]),
+  ...["hong bang", "ngo quyen", "le chan", "hai an", "kien an", "do son", "duong kinh"].map((name) => [name, "31"]),
+  ...["ninh kieu", "binh thuy", "cai rang", "o mon", "thot not"].map((name) => [name, "92"]),
+]);
+
+/** The province a marked pre-merger district names: "Quận 4", "Q.4", "Quận Bình Thạnh", "Huyện Củ Chi", "TP Thủ Đức". */
+function provinceOfFormerDistrict(text: string): Province | null {
+  const key = areaKey(text);
+  // Numbered urban districts (Quận 1–12) existed only in Ho Chi Minh City.
+  if (/^(?:quan|q)\s*(?:[1-9]|1[0-2])$/.test(key)) return provinces.find((item) => item.code === "79") ?? null;
+  const named = /^(?:quan|q|huyen|h|thanh pho|tp)\s+(.+)$/.exec(key);
+  const code = named ? FORMER_DISTRICTS[named[1]] : undefined;
+  return code ? provinces.find((item) => item.code === code) ?? null : null;
+}
+
 /**
- * Reads a province and a ward from free text such as an address. Only parts
- * that name a current province, and a ward of that province written with its
- * "Phường"/"Xã"/"Đặc khu" marker, count; anything else stays blank.
+ * Reads a province and a ward from free text such as an address. The province
+ * comes from a part naming a current or pre-merger province, or else from a
+ * marked pre-merger district; the ward only from a part written with its
+ * "Phường"/"Xã"/"Đặc khu" marker that names a current ward of that province.
+ * Anything else stays blank (pre-merger numbered wards are never guessed).
  */
 export function parseArea(...texts: string[]): Area {
   const parts = texts.flatMap((text) => (text ?? "").split(/[,;\n]+/)).map((part) => part.trim()).filter(Boolean);
-  const province = [...parts].reverse().map(findProvince).find(Boolean) ?? null;
+  const province = [...parts].reverse().map(findProvince).find(Boolean) ?? parts.map(provinceOfFormerDistrict).find(Boolean) ?? null;
   if (!province) return { ward: "", district: "", city: "" };
   const ward = parts.filter((part) => /^(?:phường|p\.|xã|x\.|đặc khu)\s*\S/iu.test(part.normalize("NFC"))).map((part) => findWard(province, part)).find(Boolean) ?? null;
   return { ward: ward?.fullName ?? "", district: "", city: province.fullName };

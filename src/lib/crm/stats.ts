@@ -230,7 +230,7 @@ export interface AreaGaps { accounts: number; leads: number }
 /** Companies and open/closed leads with no area yet but some text to read it from. */
 export async function areaGaps(db: D1Database): Promise<AreaGaps> {
   const row = await db.prepare(`SELECT
-      (SELECT COUNT(*) FROM crm_accounts WHERE ward = '' AND city = '' AND (address != '' OR region != '')) AS accounts,
+      (SELECT COUNT(*) FROM crm_accounts WHERE ward = '' AND city = '' AND (address != '' OR region != '' OR (SELECT json_extract(o.fields, '$.location') FROM crm_opportunities o WHERE o.account_id = crm_accounts.id AND COALESCE(json_extract(o.fields, '$.location'), '') != '' ORDER BY o.updated_at DESC LIMIT 1) IS NOT NULL)) AS accounts,
       (SELECT COUNT(*) FROM crm_lead_records WHERE ward = '' AND city = '' AND region != '') AS leads`).first<AreaGaps>();
   return { accounts: row?.accounts ?? 0, leads: row?.leads ?? 0 };
 }
@@ -241,25 +241,44 @@ export async function areaGaps(db: D1Database): Promise<AreaGaps> {
  * be read stay blank. Each changed record gets a new version, and one audit
  * row records how many were filled.
  */
-export async function fillAreas(db: D1Database, actor: CrmActor, { page = 200, max = 2000 } = {}): Promise<{ accounts: number; leads: number; unreadable: number }> {
+export async function fillAreas(db: D1Database, actor: CrmActor, options: { page?: number; max?: number } = {}): Promise<{ accounts: number; leads: number; unreadable: number }> {
   if (!actor.configure) throw new ForbiddenError();
+  return readAreasFromText(db, actor, "crm_area_backfill", options);
+}
+
+export const AREA_IMPORT_ACTION = "crm_area_text_import";
+
+/**
+ * One-off after the post-merger move (owner decision 2026-11-02): fills blank
+ * province/ward on existing records from their area, address and deal
+ * "location" text, once. Runs on the scheduled pass; the audit row marks it
+ * done. Safe to repeat: it only fills blank records at their read version.
+ */
+export async function importAreasOnce(db: D1Database): Promise<boolean> {
+  if (await db.prepare("SELECT 1 FROM workspace_audit WHERE action = ? LIMIT 1").bind(AREA_IMPORT_ACTION).first()) return false;
+  await readAreasFromText(db, { id: "system:crm-area-import", name: "CRM area import (one-off)" }, AREA_IMPORT_ACTION, { max: 20_000 });
+  return true;
+}
+
+async function readAreasFromText(db: D1Database, actor: { id: string; name: string }, action: string, { page = 200, max = 2000 } = {}): Promise<{ accounts: number; leads: number; unreadable: number }> {
   const now = new Date().toISOString();
   const result = { accounts: 0, leads: 0, unreadable: 0 };
   const tables = [
-    { table: "crm_accounts", key: "accounts" as const, text: "address, region", extra: "(address != '' OR region != '')" },
-    { table: "crm_lead_records", key: "leads" as const, text: "'' AS address, region", extra: "region != ''" },
+    // A company's deals may record its area in the playbook's "location" field.
+    { table: "crm_accounts", key: "accounts" as const, text: "address, region, COALESCE((SELECT json_extract(o.fields, '$.location') FROM crm_opportunities o WHERE o.account_id = crm_accounts.id AND COALESCE(json_extract(o.fields, '$.location'), '') != '' ORDER BY o.updated_at DESC LIMIT 1), '') AS location", extra: "(address != '' OR region != '' OR (SELECT json_extract(o.fields, '$.location') FROM crm_opportunities o WHERE o.account_id = crm_accounts.id AND COALESCE(json_extract(o.fields, '$.location'), '') != '' ORDER BY o.updated_at DESC LIMIT 1) IS NOT NULL)" },
+    { table: "crm_lead_records", key: "leads" as const, text: "'' AS address, region, '' AS location", extra: "region != ''" },
   ];
   for (const { table, key, text, extra } of tables) {
     // A cursor, so records that cannot be read never block the next page.
     for (let after = "", seen = 0; seen < max;) {
       const rows = (await db.prepare(`SELECT id, ${text}, version FROM ${table} WHERE ward = '' AND city = '' AND ${extra} AND id > ? ORDER BY id LIMIT ?`)
-        .bind(after, page).all<{ id: string; address: string; region: string; version: number }>()).results;
+        .bind(after, page).all<{ id: string; address: string; region: string; location: string; version: number }>()).results;
       if (!rows.length) break;
       seen += rows.length;
       after = rows[rows.length - 1].id;
       const statements: D1PreparedStatement[] = [];
       for (const row of rows) {
-        const area = parseArea(row.address, row.region);
+        const area = parseArea(row.address, row.region, row.location);
         if (!area.ward && !area.city) { result.unreadable += 1; continue; }
         result[key] += 1;
         statements.push(db.prepare(`UPDATE ${table} SET ward = ?, district = '', city = ?, version = version + 1, updated_at = ? WHERE id = ? AND version = ? AND ward = '' AND city = ''`)
@@ -269,7 +288,7 @@ export async function fillAreas(db: D1Database, actor: CrmActor, { page = 200, m
       if (rows.length < page) break;
     }
   }
-  await auditStatement(db, actor, "crm_area_backfill", actor.id, result, now, { module: "crm" }).run();
+  await auditStatement(db, actor, action, actor.id, result, now, { module: "crm", via: action === AREA_IMPORT_ACTION ? "system" : "web" }).run();
   return result;
 }
 

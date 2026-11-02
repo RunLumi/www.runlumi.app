@@ -33,23 +33,28 @@ const none = filter ? (vi ? "Tất cả" : "All") : (vi ? "Chưa ghi" : "Not rec
 const pickFirst = vi ? "Chọn tỉnh/thành trước" : "Choose the province first";
 const errorText = (code?: string) => code === "required" ? (vi ? "Chọn tỉnh/thành trước." : "Choose the province first.") : code ? (vi ? "Không có trong danh mục sau sáp nhập. Chọn từ danh sách." : "Not on the post-merger list. Pick from the list.") : "";
 ---
+{noData ? <div class="crm-field st-area-empty">
+  <span class="crm-label">{vi ? "Tỉnh/thành, phường/xã" : "Province, ward"}</span>
+  <p class="crm-help">{vi ? "Chưa có hồ sơ nào ghi tỉnh/thành và phường/xã. Nhập trên Lead hoặc Công ty để lọc theo khu vực." : "No record has a province or ward yet. Add them on leads or companies to filter by area."}</p>
+</div> : <>
 <div class="crm-field">
   <label class="crm-label" for={`${id}-city`}>{vi ? "Tỉnh / thành phố" : "Province / city"}</label>
-  <select class="crm-select" id={`${id}-city`} name={cityName} data-area-city={`${id}-ward`} data-area-used={usedMap} aria-invalid={cityError ? "true" : undefined} disabled={noData}>
-    <option value="">{noData ? (vi ? "Chưa có dữ liệu khu vực" : "No area data yet") : none}</option>
+  <select class="crm-select" id={`${id}-city`} name={cityName} data-area-city={`${id}-ward`} data-area-used={usedMap} aria-invalid={cityError ? "true" : undefined}>
+    <option value="">{none}</option>
     {cityOptions.map((item) => <option value={item.value} data-code={fromData ? undefined : provinceByName(item.value)?.code} selected={item.value === city}>{item.label}</option>)}
   </select>
   {cityError && <p class="crm-error">{errorText(cityError)}</p>}
 </div>
 <div class="crm-field">
   <label class="crm-label" for={`${id}-ward`}>{vi ? "Phường / xã / đặc khu" : "Ward / commune"}</label>
-  <select class="crm-select" id={`${id}-ward`} name={wardName} data-none={none} data-pick-first={pickFirst} aria-invalid={wardError ? "true" : undefined} disabled={noData}>
-    <option value="">{noData ? (vi ? "Chưa có dữ liệu khu vực" : "No area data yet") : city ? none : pickFirst}</option>
+  <select class="crm-select" id={`${id}-ward`} name={wardName} data-none={none} data-pick-first={pickFirst} aria-invalid={wardError ? "true" : undefined}>
+    <option value="">{city ? none : pickFirst}</option>
     {wards.map((item) => <option value={item.value} selected={item.value === ward}>{item.label}</option>)}
   </select>
   {wardError && <p class="crm-error">{errorText(wardError)}</p>}
   {help && <p class="crm-help">{vi ? "Theo địa giới sau sáp nhập (1/7/2025). Để trống: tự đọc từ địa chỉ nếu có tên phường và tỉnh mới." : "Post-merger units (1 July 2025). Left blank, they are read from the address when it names a current ward and province."}</p>}
 </div>
+</>}
 <script>
   document.addEventListener("change", async (event) => {
     const city = event.target;

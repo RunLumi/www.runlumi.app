@@ -1,5 +1,6 @@
 // Worker entry: Astro serves requests; scheduled handlers run only their
-// explicitly assigned CRM/Lark, notification-rule or HRM reminder/report jobs.
+// explicitly assigned CRM/Lark, notification-rule, one-off CRM area import or
+// HRM reminder/report jobs.
 import { cleanupUploads } from "./lib/crm/direct-uploads";
 import server from "@astrojs/cloudflare/entrypoints/server";
 import { RETRY_CRON, isLarkCron, runScheduled } from "./lib/crm/lark/notify";
@@ -8,6 +9,7 @@ import { runHrmTrainingReminderSweep } from "./lib/hrm/training-reminders";
 import { runHrmReportScheduleSweep } from "./lib/hrm/report-snapshots";
 import { restoreMaintenanceEnabled } from "./lib/workspace/restore-maintenance";
 import { runNotificationRules } from "./lib/workspace/notify/dispatch";
+import { importAreasOnce } from "./lib/crm/stats";
 
 export default {
   fetch: server.fetch,
@@ -23,6 +25,10 @@ export default {
       // Notification rules (Slack/Discord/Teams webhooks, internal email) ride the ten-minute pass.
       if(controller.cron===RETRY_CRON)ctx.waitUntil(runNotificationRules(env).catch((error: unknown) => {
         console.error("workspace_notifications_failed", error instanceof Error ? error.name : "unknown"); // !# policy: console
+      }));
+      // One-off: read province/ward from older records' area and address text (no-op once done).
+      if(controller.cron===RETRY_CRON)ctx.waitUntil(importAreasOnce(env.DB).catch((error: unknown) => {
+        console.error("crm_area_import_failed", error instanceof Error ? error.name : "unknown"); // !# policy: console
       }));
     }
     if(controller.cron===HRM_ASSET_REMINDER_CRON){
