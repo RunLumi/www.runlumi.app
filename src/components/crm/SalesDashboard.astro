@@ -13,8 +13,11 @@ import type { Playbook } from "../../lib/crm/playbook";
 interface Props {
   lang: Lang; vi: boolean; manager: boolean; dashboard: Dashboard; owners: OwnerOption[]; playbooks: Playbook[];
   names: Record<string, { name: string; active: boolean }>; selfName: string;
+  /** Other filters on the page to carry through this form (Reports stats). */
+  keep?: Record<string, string>;
 }
-const { vi, manager, dashboard, owners, playbooks, names, selfName } = Astro.props;
+const { vi, manager, dashboard, owners, playbooks, names, selfName, keep = {} } = Astro.props;
+const kept = Object.keys(keep).length ? `&${new URLSearchParams(keep)}` : "";
 const { open, closed, winRate, breakdown, months, filters } = dashboard;
 const product = playbooks.find((item) => item.playbook_key === filters.playbook);
 const ownerName = (id: string) => id ? names[id]?.name ?? (vi ? "Tài khoản không hoạt động" : "Inactive account") : (vi ? "Chưa phân công" : "Unassigned");
@@ -49,11 +52,12 @@ const coverage = (part: number, whole: number) => vi ? `${part}/${whole} cơ h�
       <p class="crm-meta">{scopeLabel}{product ? ` · ${vi ? product.name_vi : product.name_en}` : (vi ? " · mọi sản phẩm" : " · all products")}</p>
     </div>
     <form class="dash-filters" method="get" action="#dashboard" aria-label={vi ? "Lọc dashboard" : "Filter the dashboard"}>
+      {Object.entries(keep).map(([key, value]) => <input type="hidden" name={key} value={value} />)}
       {manager && <div class="crm-field"><label for="dash-owner">{vi ? "Nhân viên" : "Seller"}</label>
         <select class="crm-select" id="dash-owner" name="owner"><option value="">{vi ? "Toàn công ty" : "Whole company"}</option>{owners.map((owner) => <option value={owner.id} selected={filters.owner === owner.id}>{owner.label}</option>)}</select></div>}
       <div class="crm-field"><label for="dash-product">{vi ? "Sản phẩm (quy trình bán)" : "Product (playbook)"}</label>
         <select class="crm-select" id="dash-product" name="product"><option value="">{vi ? "Mọi sản phẩm" : "All products"}</option>{playbooks.map((item) => <option value={item.playbook_key} selected={filters.playbook === item.playbook_key}>{vi ? item.name_vi : item.name_en}</option>)}</select></div>
-      <div class="crm-actions"><button class="crm-button secondary small" type="submit">{vi ? "Xem" : "Apply"}</button>{(filters.owner || filters.playbook) && <a class="crm-link" href="?#dashboard">{vi ? "Bỏ lọc" : "Clear"}</a>}</div>
+      <div class="crm-actions"><button class="crm-button secondary small" type="submit">{vi ? "Xem" : "Apply"}</button>{(filters.owner || filters.playbook) && <a class="crm-link" href={`?${kept.slice(1)}#dashboard`}>{vi ? "Bỏ lọc" : "Clear"}</a>}</div>
     </form>
   </div>
 
@@ -99,7 +103,7 @@ const coverage = (part: number, whole: number) => vi ? `${part}/${whole} cơ h�
     {ownerRows.length ? <div class="crm-table-wrap"><table class="crm-table dash-table">
       <thead><tr><th scope="col">{vi ? "Nhân viên" : "Seller"}</th><th scope="col">{vi ? "Cơ hội" : "Deals"}</th><th scope="col">{vi ? "Giá trị HĐ mong đợi" : "Expected value"}</th><th scope="col">{vi ? "Dự báo" : "Forecast"}</th><th scope="col"><span class="crm-sr">{vi ? "Biểu đồ" : "Chart"}</span></th></tr></thead>
       <tbody>{ownerRows.map((row) => <tr>
-        <th scope="row">{row.key ? <a class="crm-link" href={`?owner=${encodeURIComponent(row.key)}${filters.playbook ? `&product=${encodeURIComponent(filters.playbook)}` : ""}#dashboard`}>{ownerName(row.key)}</a> : ownerName(row.key)}</th>
+        <th scope="row">{row.key ? <a class="crm-link" href={`?owner=${encodeURIComponent(row.key)}${filters.playbook ? `&product=${encodeURIComponent(filters.playbook)}` : ""}${kept}#dashboard`}>{ownerName(row.key)}</a> : ownerName(row.key)}</th>
         <td class="crm-num">{row.deals}</td>
         <td class="crm-num" title={formatVnd(row.value, vi)}>{known(row.value, row.valued)}{row.valued < row.deals && <span class="crm-meta"> ({coverage(row.valued, row.deals)})</span>}</td>
         <td class="crm-num" title={formatVnd(Math.round(row.forecast), vi)}>{known(row.forecast, row.forecastable)}</td>

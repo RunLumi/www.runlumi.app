@@ -2,6 +2,9 @@
 import CrmShell from "../../layouts/CrmShell.astro";
 import SetupFrame from "../workspace/ui/SetupFrame.astro";
 import SalesDashboard from "./SalesDashboard.astro";
+import ReportStats from "./ReportStats.astro";
+import { statsSearch } from "../../lib/crm/stats";
+import "../../styles/crm-stats.css";
 import "../../styles/record.css";
 import "../../styles/crm-sales.css";
 import { formatDate, label, options } from "../../lib/crm/i18n";
@@ -9,8 +12,11 @@ import { formatVnd } from "../../lib/crm/money";
 import type { ReportsProps } from "../../lib/crm/routes/reports";
 
 type Props = ReportsProps;
-const { ctx, filters, summaries, offers, cohorts, cohort, pending, dashboard, dashboardPlaybooks, owners, names } = Astro.props;
+const { ctx, filters, summaries, offers, cohorts, cohort, pending, dashboard, dashboardPlaybooks, owners, names, stats, gaps, filled, error } = Astro.props;
 const { lang, vi, base } = ctx;
+const statsSelf = `${base}/reports${stats ? statsSearch(stats.query) : ""}`;
+// The sales overview keeps the stats filters when it is filtered, and the other way round.
+const dashKeep = stats ? Object.fromEntries([...new URLSearchParams(statsSearch(stats.query))].filter(([key]) => !["owner", "product", "cohort_report"].includes(key))) : {};
 const r = cohort?.report;
 const pct = (value: number | null) => value === null ? (vi ? "Chưa đủ dữ liệu" : "Not enough data") : `${value.toFixed(1)}`;
 const money = (value: number | null) => value === null ? (vi ? "Chưa đủ dữ liệu" : "Not enough data") : formatVnd(value, vi);
@@ -26,8 +32,12 @@ const gateLabels: Record<string, [string, string]> = {
   <SetupFrame vi={vi} icon="reports" eyebrow={vi ? "Kết quả" : "Results"} title={vi ? "Báo cáo" : "Reports"} info={vi ? "Mỗi quy trình bán được báo cáo riêng. Tỷ lệ luôn kèm mẫu số; thiếu dữ liệu hiển thị là chưa đủ dữ liệu, không phải 0." : "Each playbook is reported on its own. Rates show their denominator; missing data shows as not enough data, never zero."}>
     
 
-  <SalesDashboard lang={lang} vi={vi} manager={ctx.actor.manager} dashboard={dashboard} owners={owners} playbooks={dashboardPlaybooks} names={names} selfName={ctx.actor.name} />
+  {error && <p class="crm-notice bad" role="alert">{vi ? "Chưa thực hiện được thao tác. Hãy thử lại." : "That action could not be completed. Try again."}</p>}
+  {stats && <ReportStats ctx={ctx} stats={stats} owners={owners} />}
 
+  <SalesDashboard keep={dashKeep} lang={lang} vi={vi} manager={ctx.actor.manager} dashboard={dashboard} owners={owners} playbooks={dashboardPlaybooks} names={names} selfName={ctx.actor.name} />
+
+  {!stats && <>
   <form class="crm-sheet crm-filter" method="get" aria-label={vi ? "Bộ lọc báo cáo" : "Report filters"}>
     <div class="crm-field"><label for="r-channel">{vi ? "Kênh" : "Channel"}</label><select class="crm-select" id="r-channel" name="channel"><option value="">{vi ? "Tất cả" : "Any"}</option>{options(lang, "channel").map((item) => <option value={item.value} selected={filters.channel === item.value}>{item.label}</option>)}</select></div>
     <div class="crm-field"><label for="r-offer">{vi ? "Gói" : "Offer"}</label><select class="crm-select" id="r-offer" name="offer"><option value="">{vi ? "Tất cả" : "Any"}</option>{offers.map((offer) => <option value={offer.offer_key} selected={filters.offer === offer.offer_key}>{vi ? offer.name_vi : offer.name_en}</option>)}</select></div>
@@ -58,6 +68,7 @@ const gateLabels: Record<string, [string, string]> = {
       <tbody>{Astro.props.leads.map((row) => { const decided = row.converted + row.disqualified; return <tr><th scope="row">{label(lang, "channel", row.source_channel)}</th><td class="num">{row.open}</td><td class="num">{row.converted}</td><td class="num">{row.disqualified}</td><td class="num">{decided ? `${Math.round((row.converted / decided) * 100)}% (${row.converted}/${decided})` : (vi ? "Chưa đủ dữ liệu" : "Not enough data")}</td></tr>; })}</tbody>
     </table></div> : <p class="crm-empty">{vi ? "Chưa có Lead." : "No leads yet."}</p>}
   </section>
+  </>}
 
   {(ctx.actor.manager || ctx.actor.finance) && <section class="crm-sheet" id="cohort" style="margin-top:18px" aria-labelledby="cohort-h">
     <h2 class="crm-h2" id="cohort-h">{vi ? "Cohort Lumi Local và kinh tế bán hàng" : "Lumi Local cohort and sales economics"}</h2>
@@ -112,6 +123,16 @@ const gateLabels: Record<string, [string, string]> = {
   {ctx.actor.finance && <section class="crm-sheet" id="pending" style="margin-top:18px" aria-labelledby="pending-h">
     <h2 class="crm-h2" id="pending-h">{vi ? "Thanh toán chờ xác nhận" : "Payments awaiting confirmation"}<span class="crm-count">{pending.length}</span></h2>
     {pending.length ? <ul class="crm-list">{pending.map((item) => <li class="crm-row"><a class="crm-row-title" href={`${base}/${item.opportunity_id}#commercial`}>{item.title}</a><span class="crm-row-side crm-num">{formatVnd(item.amount_vnd, vi)}</span><span class="crm-row-meta"><span>{formatDate(item.occurred_on, lang)}</span><span>{item.evidence}</span></span></li>)}</ul> : <p class="crm-empty">{vi ? "Không có." : "None."}</p>}
+  </section>}
+  {gaps && <section class="crm-sheet st-sec" id="areas" aria-labelledby="st-areas-h">
+    <h2 class="crm-h2" id="st-areas-h">{vi ? "Hồ sơ cũ chưa có khu vực" : "Areas missing on older records"}</h2>
+    {filled && <p class="crm-notice good" role="status">{vi ? `Đã điền ${filled.accounts} công ty và ${filled.leads} Lead. ${filled.unreadable} hồ sơ không đọc được nên để trống.` : `Filled ${filled.accounts} companies and ${filled.leads} leads. ${filled.unreadable} could not be read and stay blank.`}</p>}
+    <p>{vi ? `${gaps.accounts} công ty và ${gaps.leads} Lead có địa chỉ hoặc khu vực nhưng chưa có phường, quận, thành phố.` : `${gaps.accounts} companies and ${gaps.leads} leads have an address or area but no ward, district or city yet.`}</p>
+    {gaps.accounts + gaps.leads > 0 && <form method="post" action={statsSelf}>
+      <input type="hidden" name="intent" value="fill_areas" /><input type="hidden" name="request_key" value={crypto.randomUUID()} />
+      <button class="crm-button secondary" type="submit">{vi ? "Điền khu vực từ địa chỉ" : "Fill areas from addresses"}</button>
+    </form>}
+    <p class="crm-help">{vi ? "Chỉ đọc phần có ghi rõ Phường/P., Quận/Q., Huyện hoặc tên thành phố; không đoán, và chỉ điền vào ô đang trống." : "Only parts marked Phường/P., Quận/Q., Huyện or a known city are read; nothing is guessed, and only blank fields change."}</p>
   </section>}
   </SetupFrame>
 </CrmShell>

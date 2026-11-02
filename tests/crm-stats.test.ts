@@ -148,12 +148,14 @@ test("filling areas: admins only, blank fields only, unreadable stays blank, aud
 });
 
 test("stats permission: sellers and managers, never partners, finance or fulfillment", () => {
-  const crm = moduleByKey("crm");
-  const sees = (roles: Parameters<typeof makeUser>[2]) => visibleLinks(makeUser({ id: "u", name: "TEST", email: "u@example.test" }, false, roles), crm).some((link) => link.key === "stats");
-  assert.equal(sees(["sales_executive"]), true);
-  assert.equal(sees(["sales_manager"]), true);
-  assert.equal(sees(["partner"]), false);
-  assert.equal(sees(["finance"]), false);
-  assert.equal(sees(["fulfillment"]), false);
+  const can = (roles: Parameters<typeof makeUser>[2]) => makeUser({ id: "u", name: "TEST", email: "u@example.test" }, false, roles).can("crm.stats");
+  assert.equal(can(["sales_executive"]), true);
+  assert.equal(can(["sales_manager"]), true);
+  assert.equal(can(["partner"]), false);
+  assert.equal(can(["finance"]), false);
+  assert.equal(can(["fulfillment"]), false);
   assert.equal(makeUser({ id: "a", name: "TEST", email: "a@example.test" }, true, []).can("crm.stats"), true);
+  // Stats live on the Reports page, which every CRM member already has; there is no separate nav entry.
+  assert.ok(!moduleByKey("crm").links.some((link) => link.key === "stats"));
+  assert.ok(visibleLinks(makeUser({ id: "p", name: "TEST", email: "p@example.test" }, false, ["partner"]), moduleByKey("crm")).some((link) => link.key === "reports"));
 });

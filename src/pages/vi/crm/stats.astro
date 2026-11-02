@@ -1,9 +1,5 @@
 ---
-import StatsView from "../../../components/crm/StatsView.astro";
-import { statsRoute } from "../../../lib/crm/routes/stats";
-
+// Stats now live on the Reports page; keep old links working.
 export const prerender = false;
-const result = await statsRoute(Astro, "vi");
-if (result instanceof Response) return result;
+return Astro.redirect(`/vi/crm/reports${Astro.url.search}`, 301);
 ---
-<StatsView {...result} />

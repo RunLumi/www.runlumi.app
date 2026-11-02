@@ -1,12 +1,29 @@
-# CRM stats (`/crm/stats`, `/vi/crm/stats`)
+# CRM stats on the Reports page (`/crm/reports`, `/vi/crm/reports`)
 
 Owner decisions 2026-11-02: build in two steps; add ward/district/city fields;
-access follows CRM permissions.
+access follows CRM permissions; stats are part of Reports, not a separate
+page (`/crm/stats` redirects there).
+
+## Page layout
+
+1. Stats by filter (people with `crm.stats`): period, playbook and up to five
+   compared filter sets; overview, funnel, open pipeline by stage, trend, and a
+   breakdown by area, industry and source.
+2. Sales overview (expected value, forecast, win rate, by seller) as before.
+3. Without `crm.stats` (Partner, Finance, Fulfillment) the earlier sections stay
+   instead of block 1: report filters, opportunities by stage per playbook and
+   leads by source, all in the person's own scope.
+4. Cohort economics (team or finance) and payments awaiting confirmation
+   (finance), unchanged.
+5. Areas missing on older records (CRM admins).
+
+The stats form and the sales overview form carry each other's filters, so
+filtering one never resets the other.
 
 ## Who sees what
 
 - Permission `crm.stats`: Sales Manager, Sales Executive, and Admin (all
-  permissions). Partners, Finance and Fulfillment have no stats page.
+  permissions). Partners, Finance and Fulfillment keep the earlier Reports sections instead.
 - Every query uses the viewer's own scope: team-wide roles (`crm.team`) see
   everyone's leads and deals; others only what they own. Filter options
   (cities, districts, wards, industries) come from records the viewer can see.
@@ -28,14 +45,14 @@ access follows CRM permissions.
 | Measure | Definition |
 |---|---|
 | New leads | Leads created in the period |
-| Converted / disqualified | Of those leads, by state now |
+| Converted / disqualified | Of those leads, by state now; the converted % counts decided leads only (converted + disqualified), so open leads are not failures |
 | New opportunities | Opportunities of the chosen playbook created in the period |
 | Won / lost | Of those opportunities, by outcome now |
 | Won value | Sum of known values only; shown with coverage, never counting unknown as 0 |
 | Funnel | Share of those opportunities that reached each open stage (stage history plus the current stage); skippable stages count only deals that went through them |
 | Open pipeline | Opportunities open today, any creation date, by current stage |
 | Trend | New leads, new opportunities or wins per day (per week from 63 days) |
-| Breakdown | For one set: by the area level below its own area filter, and by industry |
+| Breakdown | For one set: by the area level below its own area filter, by industry and by source (replaces the old leads-by-source table) |
 
 A rate with nothing to divide by shows "—", not 0%.
 
@@ -50,7 +67,7 @@ A rate with nothing to divide by shows "—", not 0%.
   Xã, a known city); unmarked text is never guessed. Numbered districts imply
   TP. Hồ Chí Minh.
 - Older records: a CRM admin (`crm.configure`) can run “Fill areas from
-  addresses” on the stats page. It changes only fully blank records, bumps
+  addresses” on the Reports page. It changes only fully blank records, bumps
   their version and writes one `crm_area_backfill` audit row.
 - The CRM API/MCP `create_company` and `update_company` accept and return
   `ward`, `district`, `city`.

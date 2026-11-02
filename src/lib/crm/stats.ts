@@ -1,4 +1,4 @@
-// CRM stats (/crm/stats): leads, the opportunity funnel, the open pipeline and
+// CRM stats on the Reports page (/crm/reports): leads, the opportunity funnel, the open pipeline and
 // daily activity, for up to five filter sets side by side. Every query runs
 // inside the viewer's own scope (team-wide roles: everyone; others: what they
 // own), so comparing sets never reveals records the person cannot open.
@@ -20,7 +20,12 @@ export const DAILY_LIMIT_DAYS = 62;
 const ROW_CAP = 20_000;
 
 export interface StatsSet { label: string; city: string; district: string; ward: string; industry: string; source: string; owner: string }
-export interface StatsQuery { from: string; to: string; playbook: string; sets: StatsSet[]; focus: number; trend: "leads" | "opportunities" | "won" }
+export interface StatsQuery {
+  from: string; to: string; playbook: string; sets: StatsSet[]; focus: number; trend: "leads" | "opportunities" | "won";
+  /** Other filters on the same Reports page (sales overview, cohort), carried through stats links. */
+  keep: Record<string, string>;
+}
+const keptParams = ["owner", "product", "cohort_report"] as const;
 export const emptySet: StatsSet = { label: "", city: "", district: "", ward: "", industry: "", source: "", owner: "" };
 const setKeys = ["label", "city", "district", "ward", "industry", "source", "owner"] as const;
 
@@ -50,7 +55,8 @@ export function readStatsQuery(url: URL, actor: Pick<CrmActor, "manager">, playb
   const playbook = playbookKeys.includes(get("playbook", 60)) ? get("playbook", 60) : playbookKeys[0] ?? "";
   const focus = Math.min(count - 1, Math.max(0, Number.parseInt(get("focus", 1), 10) || 0));
   const trend = (["leads", "opportunities", "won"] as const).find((item) => item === get("trend", 20)) ?? "leads";
-  return { from, to, playbook, sets, focus, trend };
+  const keep = Object.fromEntries(keptParams.map((key) => [key, get(key, 128)]).filter(([, value]) => value));
+  return { from, to, playbook, sets, focus, trend, keep };
 }
 
 /** Query string for a stats URL (only non-empty values). */
@@ -63,6 +69,7 @@ export function statsSearch(query: StatsQuery, change: Partial<Omit<StatsQuery, 
   next.sets.forEach((set, index) => { for (const key of setKeys) if (set[key]) params.set(`s${index}_${key}`, set[key]); });
   if (next.focus) params.set("focus", String(next.focus));
   if (next.trend !== "leads") params.set("trend", next.trend);
+  for (const [key, value] of Object.entries(next.keep)) params.set(key, value);
   return `?${params}`;
 }
 
@@ -99,7 +106,7 @@ export interface SetStats {
   capped: boolean;
 }
 
-export interface Breakdown { key: string; leads: number; converted: number; opportunities: number; won: number }
+export interface Breakdown { key: string; leads: number; converted: number; disqualified: number; opportunities: number; won: number }
 
 export const rate = (part: number, whole: number): number | null => whole > 0 ? Math.round((part / whole) * 1000) / 10 : null;
 
@@ -178,9 +185,11 @@ export async function loadSetStats(db: D1Database, actor: CrmActor, query: Stats
 }
 
 /** Leads and deals of one set grouped by area (the level below the set's own area filter) or by industry. */
-export async function loadBreakdown(db: D1Database, actor: CrmActor, query: StatsQuery, set: StatsSet, by: "area" | "industry", playbookIds: string[]): Promise<{ level: "city" | "district" | "ward" | "industry"; rows: Breakdown[] }> {
+export type BreakdownLevel = "city" | "district" | "ward" | "industry" | "source_channel";
+export async function loadBreakdown(db: D1Database, actor: CrmActor, query: StatsQuery, set: StatsSet, by: "area" | "industry" | "source", playbookIds: string[]): Promise<{ level: BreakdownLevel; rows: Breakdown[] }> {
   const ward = splitWard(set.ward);
-  const level = by === "industry" ? "industry" : ward.ward || set.district || ward.district ? "ward" : set.city || ward.city ? "district" : "city";
+  const level: BreakdownLevel = by === "industry" ? "industry" : by === "source" ? "source_channel" : ward.ward || set.district || ward.district ? "ward" : set.city || ward.city ? "district" : "city";
+  const accountColumn = level === "source_channel" ? "o.source_channel" : `a.${level}`;
   const start = vnStart(query.from);
   const end = vnStart(addDays(query.to, 1));
   const lead = leadScope(actor, "l");
@@ -189,16 +198,16 @@ export async function loadBreakdown(db: D1Database, actor: CrmActor, query: Stat
   const oppSet = setWhere(set, "a", "o");
   const inPlaybook = playbookIds.length ? `o.playbook_id IN (${playbookIds.map(() => "?").join(", ")})` : "0 = 1";
   const [leads, opps] = await Promise.all([
-    db.prepare(`SELECT l.${level} AS key, COUNT(*) AS leads, SUM(l.state = 'converted') AS converted FROM crm_lead_records l
+    db.prepare(`SELECT l.${level} AS key, COUNT(*) AS leads, SUM(l.state = 'converted') AS converted, SUM(l.state = 'disqualified') AS disqualified FROM crm_lead_records l
       WHERE ${lead.sql} AND ${leadSet.sql} AND l.created_at >= ? AND l.created_at < ? GROUP BY l.${level}`)
-      .bind(...lead.args, ...leadSet.args, start, end).all<{ key: string; leads: number; converted: number }>(),
-    db.prepare(`SELECT a.${level} AS key, COUNT(*) AS opportunities, SUM(o.outcome = 'won') AS won FROM crm_opportunities o JOIN crm_accounts a ON a.id = o.account_id
-      WHERE ${opp.sql} AND ${oppSet.sql} AND ${inPlaybook} AND o.created_at >= ? AND o.created_at < ? GROUP BY a.${level}`)
+      .bind(...lead.args, ...leadSet.args, start, end).all<{ key: string; leads: number; converted: number; disqualified: number }>(),
+    db.prepare(`SELECT ${accountColumn} AS key, COUNT(*) AS opportunities, SUM(o.outcome = 'won') AS won FROM crm_opportunities o JOIN crm_accounts a ON a.id = o.account_id
+      WHERE ${opp.sql} AND ${oppSet.sql} AND ${inPlaybook} AND o.created_at >= ? AND o.created_at < ? GROUP BY ${accountColumn}`)
       .bind(...opp.args, ...oppSet.args, ...playbookIds, start, end).all<{ key: string; opportunities: number; won: number }>(),
   ]);
   const merged = new Map<string, Breakdown>();
-  const entry = (key: string) => { const name = key ?? ""; if (!merged.has(name)) merged.set(name, { key: name, leads: 0, converted: 0, opportunities: 0, won: 0 }); return merged.get(name)!; };
-  for (const row of leads.results) { const item = entry(row.key); item.leads += row.leads; item.converted += row.converted ?? 0; }
+  const entry = (key: string) => { const name = key ?? ""; if (!merged.has(name)) merged.set(name, { key: name, leads: 0, converted: 0, disqualified: 0, opportunities: 0, won: 0 }); return merged.get(name)!; };
+  for (const row of leads.results) { const item = entry(row.key); item.leads += row.leads; item.converted += row.converted ?? 0; item.disqualified += row.disqualified ?? 0; }
   for (const row of opps.results) { const item = entry(row.key); item.opportunities += row.opportunities; item.won += row.won ?? 0; }
   const rows = [...merged.values()].sort((a, b) => (b.leads + b.opportunities) - (a.leads + a.opportunities) || a.key.localeCompare(b.key, "vi"));
   return { level, rows: rows.slice(0, 50) };

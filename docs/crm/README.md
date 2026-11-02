@@ -6,7 +6,7 @@ It is not an ERP, an accounting system, a bulk-messaging tool, or a CRM for Lumi
 
 - User guide (Vietnamese): [HUONG-DAN.md](HUONG-DAN.md)
 - Commission analysis and policy (Vietnamese): [COMMISSION.md](COMMISSION.md)
-- Stats page, area fields and filter comparison: [STATS.md](STATS.md)
+- Reports stats, area fields and filter comparison: [STATS.md](STATS.md)
 - Release, migration and recovery: [RUNBOOK.md](RUNBOOK.md)
 
 ## 1. Starting point and defects fixed

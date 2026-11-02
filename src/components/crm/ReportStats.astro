@@ -1,22 +1,23 @@
 ---
-// CRM stats: up to five filter sets compared side by side. Server-rendered
+// Stats on the CRM Reports page: up to five filter sets compared side by side. Server-rendered
 // HTML/CSS and one SVG line layer, no client script. Each set keeps its
 // colour slot (validated categorical palette, docs/crm/STATS.md); colour
 // never stands alone: every set is named in a legend and every chart has a
 // table view. Rates with nothing to divide by show "—", never 0%.
-import CrmShell from "../../layouts/CrmShell.astro";
-import PageHeader from "../workspace/ui/PageHeader.astro";
 import { label } from "../../lib/crm/i18n";
 import { formatVnd } from "../../lib/crm/money";
 import { MAX_SETS, type StatsSet, rate, splitWard, statsSearch } from "../../lib/crm/stats";
 import { sourceChannels } from "../../lib/crm/records";
-import type { StatsProps } from "../../lib/crm/routes/stats";
+import type { Ctx } from "../../lib/crm/page";
+import type { ReportStats } from "../../lib/crm/routes/reports";
 import "../../styles/crm-stats.css";
 
-const { ctx, query, playbooks, playbook, results, breakdown, options, owners, gaps, filled, error } = Astro.props as StatsProps;
+interface Props { ctx: Ctx; stats: ReportStats; owners: { id: string; label: string }[] }
+const { ctx, stats, owners } = Astro.props;
+const { query, playbooks, playbook, results, breakdowns, options } = stats;
 const { vi, lang, base, actor } = ctx;
 const t = (en: string, viText: string) => (vi ? viText : en);
-const self = `${base}/stats`;
+const self = `${base}/reports`;
 const n = query.sets.length;
 const num = (value: number) => new Intl.NumberFormat(vi ? "vi-VN" : "en-US").format(value);
 const pct = (value: number | null) => value === null ? "—" : `${new Intl.NumberFormat(vi ? "vi-VN" : "en-US", { maximumFractionDigits: 1 }).format(value)}%`;
@@ -59,10 +60,12 @@ const biggestDrop = results.map(({ stats }) => {
   return worst > 0 ? at : "";
 });
 const pipelineMax = Math.max(1, ...results.flatMap(({ stats }) => stats.pipeline.map((step) => step.count)));
-const levelName = { city: t("City / province", "Tỉnh / thành phố"), district: t("District / area", "Quận / khu vực"), ward: t("Ward", "Phường / xã"), industry: t("Industry", "Ngành") };
+const levelName = { city: t("City / province", "Tỉnh / thành phố"), district: t("District / area", "Quận / khu vực"), ward: t("Ward", "Phường / xã"), industry: t("Industry", "Ngành"), source_channel: t("Source", "Nguồn") };
+// Conversion counts decided leads only (converted or disqualified): open leads are not failures.
+const decided = (converted: number, disqualified: number) => rate(converted, converted + disqualified);
 const metrics: { key: string; name: string; help?: string; value: (stats: typeof results[number]["stats"]) => string }[] = [
   { key: "leads", name: t("New leads", "Lead mới"), value: (s) => num(s.leads) },
-  { key: "converted", name: t("Leads converted", "Lead đã chuyển cơ hội"), value: (s) => `${num(s.converted)} (${pct(rate(s.converted, s.leads))})` },
+  { key: "converted", name: t("Leads converted", "Lead đã chuyển cơ hội"), help: t("% of decided leads (converted or disqualified).", "% trên Lead đã có quyết định (chuyển đổi hoặc không tiếp tục)."), value: (s) => `${num(s.converted)} (${pct(decided(s.converted, s.disqualified))})` },
   { key: "disqualified", name: t("Leads disqualified", "Lead không tiếp tục"), value: (s) => num(s.disqualified) },
   { key: "opportunities", name: t("New opportunities", "Cơ hội mới"), value: (s) => num(s.opportunities) },
   { key: "won", name: t("Won (of those)", "Thắng (trong số đó)"), value: (s) => `${num(s.won)} (${pct(rate(s.won, s.opportunities))})` },
@@ -71,14 +74,12 @@ const metrics: { key: string; name: string; help?: string; value: (stats: typeof
   { key: "open", name: t("Open pipeline now", "Cơ hội đang mở hiện tại"), value: (s) => num(s.openPipeline) },
 ];
 ---
-<CrmShell title={t("Stats", "Thống kê")} lang={lang} actor={actor} current="stats">
-  <PageHeader title={t("Sales stats", "Thống kê bán hàng")} vi={vi} eyebrow="CRM"
-    lede={t(`${periodLabel}. Compare up to ${MAX_SETS} filter sets by area, industry, source and owner.`, `${periodLabel}. So sánh tối đa ${MAX_SETS} bộ lọc theo khu vực, ngành, nguồn và người phụ trách.`)} />
-
-  {error && <p class="crm-notice bad" role="alert">{t("That action could not be completed. Try again.", "Chưa thực hiện được thao tác. Hãy thử lại.")}</p>}
-
+<div class="st-root" id="stats">
   <form class="crm-sheet st-form" method="get" action={self} aria-labelledby="st-filters-h">
-    <h2 class="crm-h2" id="st-filters-h">{t("Period and filters", "Thời gian và bộ lọc")}</h2>
+    <div>
+      <h2 class="crm-h2" id="st-filters-h">{t("Stats by filter", "Thống kê theo bộ lọc")}</h2>
+      <p class="crm-meta">{periodLabel}. {t(`Compare up to ${MAX_SETS} filter sets by area, industry, source and owner.`, `So sánh tối đa ${MAX_SETS} bộ lọc theo khu vực, ngành, nguồn và người phụ trách.`)}</p>
+    </div>
     <div class="st-global">
       <div class="crm-field"><label for="st-from">{t("From", "Từ ngày")}</label><input class="crm-input" type="date" id="st-from" name="from" value={query.from} max={query.to} required /></div>
       <div class="crm-field"><label for="st-to">{t("To", "Đến ngày")}</label><input class="crm-input" type="date" id="st-to" name="to" value={query.to} required /></div>
@@ -107,6 +108,7 @@ const metrics: { key: string; name: string; help?: string; value: (stats: typeof
       </fieldset>)}
     </div>
     <input type="hidden" name="trend" value={query.trend} />
+    {Object.entries(query.keep).map(([key, value]) => <input type="hidden" name={key} value={value} />)}
     <div class="crm-actions">
       <button class="crm-button" type="submit" name="n" value={n}>{t("Apply", "Áp dụng")}</button>
       {n < MAX_SETS && <button class="crm-button secondary" type="submit" name="n" value={n + 1}>{t(`Add a set to compare (${n}/${MAX_SETS})`, `Thêm bộ lọc để so sánh (${n}/${MAX_SETS})`)}</button>}
@@ -147,7 +149,7 @@ const metrics: { key: string; name: string; help?: string; value: (stats: typeof
       <figcaption id="st-pipe-h"><strong>{t("Open pipeline now, by stage", "Cơ hội đang mở theo giai đoạn")}</strong></figcaption>
       {results.some(({ stats }) => stats.openPipeline) ? <ol class="st-funnel">
         {(results[0]?.stats.pipeline ?? []).map((step, at) => <li>
-          <span class="st-step">{stageName(step.id)}</span>
+          <a class="st-step crm-link" href={`${base}/pipeline?playbook=${encodeURIComponent(query.playbook)}&stage=${encodeURIComponent(step.id)}`}>{stageName(step.id)}</a>
           <ul class="st-bars">{results.map(({ stats }, index) => { const count = stats.pipeline[at]?.count ?? 0; return <li title={`${names[index]} · ${stageName(step.id)}: ${num(count)}`}>
             <span class="st-track"><span class={`st-fill s${index + 1}`} style={`inline-size:${count ? Math.max(1.5, (count / pipelineMax) * 100) : 0}%`}></span></span>
             <span class="st-num">{num(count)}</span>
@@ -186,26 +188,16 @@ const metrics: { key: string; name: string; help?: string; value: (stats: typeof
       {n > 1 && <nav class="st-switch" aria-label={t("Which set to break down", "Phân rã bộ lọc nào")}>{names.map((name, index) => <a class="crm-link" href={`${self}${statsSearch(query, { focus: index })}#st-break-h`} aria-current={index === query.focus ? "true" : undefined}><i class={`st-key s${index + 1}`} aria-hidden="true"></i> {t(`Set ${index + 1}`, `Bộ lọc ${index + 1}`)}</a>)}</nav>}
     </div>
     <div class="st-grid">
-      {[breakdown.area, breakdown.industry].map((table) => <div class="crm-table-wrap"><table class="crm-table">
+      {breakdowns.map((table) => <div class="crm-table-wrap"><table class="crm-table">
         <caption class="st-caption">{t("By ", "Theo ")}{levelName[table.level].toLocaleLowerCase(vi ? "vi" : "en")}</caption>
         <thead><tr><th scope="col">{levelName[table.level]}</th><th scope="col" class="crm-num">Lead</th><th scope="col" class="crm-num">{t("Converted", "Đã chuyển")}</th><th scope="col" class="crm-num">{t("Opportunities", "Cơ hội")}</th><th scope="col" class="crm-num">{t("Won", "Thắng")}</th></tr></thead>
-        <tbody>{table.rows.length ? table.rows.map((row) => <tr><th scope="row">{row.key || <span class="crm-meta">{t("Not recorded", "Chưa ghi")}</span>}</th><td class="crm-num">{num(row.leads)}</td><td class="crm-num">{num(row.converted)} <span class="crm-meta">{pct(rate(row.converted, row.leads))}</span></td><td class="crm-num">{num(row.opportunities)}</td><td class="crm-num">{num(row.won)} <span class="crm-meta">{pct(rate(row.won, row.opportunities))}</span></td></tr>)
+        <tbody>{table.rows.length ? table.rows.map((row) => <tr><th scope="row">{row.key ? (table.level === "source_channel" ? label(lang, "channel", row.key) : row.key) : <span class="crm-meta">{t("Not recorded", "Chưa ghi")}</span>}</th><td class="crm-num">{num(row.leads)}</td><td class="crm-num">{num(row.converted)} <span class="crm-meta">{pct(decided(row.converted, row.disqualified))}</span></td><td class="crm-num">{num(row.opportunities)}</td><td class="crm-num">{num(row.won)} <span class="crm-meta">{pct(rate(row.won, row.opportunities))}</span></td></tr>)
           : <tr><td colspan="5" class="crm-meta">{t("Nothing in this period.", "Không có dữ liệu trong kỳ.")}</td></tr>}</tbody>
       </table></div>)}
     </div>
-    <p class="crm-help">{t("Small groups move a lot with one record; read differences between small groups with care.", "Nhóm nhỏ thay đổi nhiều chỉ vì một hồ sơ; cẩn trọng khi so sánh các nhóm ít dữ liệu.")}</p>
+    <p class="crm-help">{t("Converted % counts decided leads only. Small groups move a lot with one record; read differences between small groups with care.", "% đã chuyển chỉ tính trên Lead đã có quyết định. Nhóm nhỏ thay đổi nhiều chỉ vì một hồ sơ; cẩn trọng khi so sánh các nhóm ít dữ liệu.")}</p>
   </section>
 
-  {gaps && <section class="crm-sheet st-sec" id="areas" aria-labelledby="st-areas-h">
-    <h2 class="crm-h2" id="st-areas-h">{t("Areas missing on older records", "Hồ sơ cũ chưa có khu vực")}</h2>
-    {filled && <p class="crm-notice good" role="status">{t(`Filled ${filled.accounts} companies and ${filled.leads} leads. ${filled.unreadable} could not be read and stay blank.`, `Đã điền ${filled.accounts} công ty và ${filled.leads} Lead. ${filled.unreadable} hồ sơ không đọc được nên để trống.`)}</p>}
-    <p>{t(`${gaps.accounts} companies and ${gaps.leads} leads have an address or area but no ward, district or city yet.`, `${gaps.accounts} công ty và ${gaps.leads} Lead có địa chỉ hoặc khu vực nhưng chưa có phường, quận, thành phố.`)}</p>
-    {gaps.accounts + gaps.leads > 0 && <form method="post" action={`${self}${statsSearch(query)}`}>
-      <input type="hidden" name="intent" value="fill_areas" /><input type="hidden" name="request_key" value={crypto.randomUUID()} />
-      <button class="crm-button secondary" type="submit">{t("Fill areas from addresses", "Điền khu vực từ địa chỉ")}</button>
-    </form>}
-    <p class="crm-help">{t("Only parts marked Phường/P., Quận/Q., Huyện or a known city are read; nothing is guessed, and only blank fields change.", "Chỉ đọc phần có ghi rõ Phường/P., Quận/Q., Huyện hoặc tên thành phố; không đoán, và chỉ điền vào ô đang trống.")}</p>
-  </section>}
 
   <p class="crm-help st-foot">{t("Outreach messages (Zalo/Facebook sends, replies, schedule) are not in the CRM yet and will be added when the outreach machine reports them.", "Số liệu tin nhắn outreach (tin Zalo/Facebook đã gửi, trả lời, lịch gửi) chưa có trong CRM; sẽ bổ sung khi máy outreach gửi số liệu về.")}</p>
-</CrmShell>
+</div>

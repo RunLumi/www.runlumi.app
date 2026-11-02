@@ -56,3 +56,7 @@
 .st-foot { margin-top: 18px; }
 @media (max-width: 520px) { .st-bars li { grid-template-columns: minmax(0, 1fr); gap: 2px; } .st-trend { block-size: 150px; } .st-trend svg { block-size: 130px; } }
 @media (forced-colors: active) { .st-key, .st-fill { forced-color-adjust: none; border: 1px solid CanvasText; } .st-line { stroke: CanvasText; } }
+/* Inside Reports (.ws-setup) shared table styles upper-case every th: row
+   names and set names are data, so keep their case and body size. */
+.st-root :is(.crm-table, .crm-grid-table) tbody th { background: transparent; color: var(--crm-ink); font-size: 15px; font-weight: 600; text-transform: none; letter-spacing: normal; }
+.st-root .st-compare thead th + th { text-transform: none; letter-spacing: normal; }
