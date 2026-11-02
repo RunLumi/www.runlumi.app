@@ -12,8 +12,8 @@ import type { Ctx } from "../../lib/crm/page";
 import type { ReportStats } from "../../lib/crm/routes/reports";
 import "../../styles/crm-stats.css";
 
-interface Props { ctx: Ctx; stats: ReportStats; owners: { id: string; label: string }[] }
-const { ctx, stats, owners } = Astro.props;
+interface Props { ctx: Ctx; stats: ReportStats; owners: { id: string; label: string }[]; /** Params that fields in the "page" slot already submit. */ pageFields?: string[] }
+const { ctx, stats, owners, pageFields = [] } = Astro.props;
 const { query, playbooks, playbook, results, breakdowns, options } = stats;
 const { vi, lang, base, actor } = ctx;
 const t = (en: string, viText: string) => (vi ? viText : en);
@@ -77,7 +77,7 @@ const metrics: { key: string; name: string; help?: string; value: (stats: typeof
 <div class="st-root" id="stats">
   <form class="crm-sheet st-form" method="get" action={self} aria-labelledby="st-filters-h">
     <div>
-      <h2 class="crm-h2" id="st-filters-h">{t("Stats by filter", "Thống kê theo bộ lọc")}</h2>
+      <h2 class="crm-h2" id="st-filters-h">{t("Report filters", "Bộ lọc báo cáo")}</h2>
       <p class="crm-meta">{periodLabel}. {t(`Compare up to ${MAX_SETS} filter sets by area, industry, source and owner.`, `So sánh tối đa ${MAX_SETS} bộ lọc theo khu vực, ngành, nguồn và người phụ trách.`)}</p>
     </div>
     <div class="st-global">
@@ -86,6 +86,7 @@ const metrics: { key: string; name: string; help?: string; value: (stats: typeof
       <div class="crm-field"><label for="st-playbook">{t("Sales process (for the funnel)", "Quy trình bán (cho phễu)")}</label>
         <select class="crm-select" id="st-playbook" name="playbook">{playbooks.map((item) => <option value={item.playbook_key} selected={item.playbook_key === query.playbook}>{vi ? item.name_vi : item.name_en}</option>)}</select></div>
     </div>
+    <slot name="page" />
     <div class="st-sets">
       {query.sets.map((set, index) => <fieldset class="st-set">
         <legend><i class={`st-key s${index + 1}`} aria-hidden="true"></i>{n > 1 ? t(`Filter set ${index + 1}`, `Bộ lọc ${index + 1}`) : t("Filters", "Bộ lọc")}</legend>
@@ -108,7 +109,7 @@ const metrics: { key: string; name: string; help?: string; value: (stats: typeof
       </fieldset>)}
     </div>
     <input type="hidden" name="trend" value={query.trend} />
-    {Object.entries(query.keep).map(([key, value]) => <input type="hidden" name={key} value={value} />)}
+    {Object.entries(query.keep).filter(([key]) => !pageFields.includes(key)).map(([key, value]) => <input type="hidden" name={key} value={value} />)}
     <div class="crm-actions">
       <button class="crm-button" type="submit" name="n" value={n}>{t("Apply", "Áp dụng")}</button>
       {n < MAX_SETS && <button class="crm-button secondary" type="submit" name="n" value={n + 1}>{t(`Add a set to compare (${n}/${MAX_SETS})`, `Thêm bộ lọc để so sánh (${n}/${MAX_SETS})`)}</button>}

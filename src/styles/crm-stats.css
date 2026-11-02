@@ -60,3 +60,5 @@
    names and set names are data, so keep their case and body size. */
 .st-root :is(.crm-table, .crm-grid-table) tbody th { background: transparent; color: var(--crm-ink); font-size: 15px; font-weight: 600; text-transform: none; letter-spacing: normal; }
 .st-root .st-compare thead th + th { text-transform: none; letter-spacing: normal; }
+/* Sales overview and cohort filters inside the page's single filter form. */
+.st-page { flex: 1 1 100%; grid-column: 1 / -1; }

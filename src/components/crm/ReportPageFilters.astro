@@ -1,0 +1,24 @@
+---
+// Filters of the other Reports sections (sales overview, cohort), shown in
+// the one filter form at the top of the page.
+import type { OwnerOption } from "../../lib/crm/access";
+import type { Playbook } from "../../lib/crm/playbook";
+import type { CohortRow } from "../../lib/crm/reports";
+
+interface Props {
+  vi: boolean; manager: boolean; owners: OwnerOption[]; playbooks: Playbook[]; owner: string; product: string;
+  cohorts: CohortRow[] | null; cohortKey: string;
+}
+const { vi, manager, owners, playbooks, owner, product, cohorts, cohortKey } = Astro.props;
+---
+<fieldset class="st-set st-page">
+  <legend>{vi ? "Tổng quan bán hàng" : "Sales overview"}{cohorts?.length ? (vi ? " và cohort" : " and cohort") : ""}</legend>
+  <div class="st-set-grid">
+    {manager && <div class="crm-field"><label for="rp-owner">{vi ? "Nhân viên" : "Seller"}</label>
+      <select class="crm-select" id="rp-owner" name="owner"><option value="">{vi ? "Toàn công ty" : "Whole company"}</option>{owners.map((item) => <option value={item.id} selected={owner === item.id}>{item.label}</option>)}</select></div>}
+    <div class="crm-field"><label for="rp-product">{vi ? "Sản phẩm (quy trình bán)" : "Product (playbook)"}</label>
+      <select class="crm-select" id="rp-product" name="product"><option value="">{vi ? "Mọi sản phẩm" : "All products"}</option>{playbooks.map((item) => <option value={item.playbook_key} selected={product === item.playbook_key}>{vi ? item.name_vi : item.name_en}</option>)}</select></div>
+    {cohorts?.length ? <div class="crm-field"><label for="rp-cohort">Cohort</label>
+      <select class="crm-select" id="rp-cohort" name="cohort_report">{cohorts.map((item) => <option value={item.cohort_key} selected={cohortKey === item.cohort_key}>{item.name}</option>)}</select></div> : null}
+  </div>
+</fieldset>

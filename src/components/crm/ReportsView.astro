@@ -3,6 +3,7 @@ import CrmShell from "../../layouts/CrmShell.astro";
 import SetupFrame from "../workspace/ui/SetupFrame.astro";
 import SalesDashboard from "./SalesDashboard.astro";
 import ReportStats from "./ReportStats.astro";
+import ReportPageFilters from "./ReportPageFilters.astro";
 import { statsSearch } from "../../lib/crm/stats";
 import "../../styles/crm-stats.css";
 import "../../styles/record.css";
@@ -18,6 +19,10 @@ const statsSelf = `${base}/reports${stats ? statsSearch(stats.query) : ""}`;
 // The sales overview keeps the stats filters when it is filtered, and the other way round.
 const dashKeep = stats ? Object.fromEntries([...new URLSearchParams(statsSearch(stats.query))].filter(([key]) => !["owner", "product", "cohort_report"].includes(key))) : {};
 const r = cohort?.report;
+// One filter form at the top: stats, sales overview and cohort filters together.
+const showCohort = ctx.actor.manager || ctx.actor.finance;
+const pageFields = [...(ctx.actor.manager ? ["owner"] : []), "product", ...(showCohort && cohorts.length ? ["cohort_report"] : [])];
+const pageFilterProps = { vi, manager: ctx.actor.manager, owners, playbooks: dashboardPlaybooks, owner: dashboard.filters.owner, product: dashboard.filters.playbook, cohorts: showCohort ? cohorts : null, cohortKey: cohort?.cohort.cohort_key ?? "" };
 const pct = (value: number | null) => value === null ? (vi ? "Chưa đủ dữ liệu" : "Not enough data") : `${value.toFixed(1)}`;
 const money = (value: number | null) => value === null ? (vi ? "Chưa đủ dữ liệu" : "Not enough data") : formatVnd(value, vi);
 const minutes = (value: number | null) => value === null ? (vi ? "Chưa đủ dữ liệu" : "Not enough data") : `${Math.round(value * 10) / 10} ${vi ? "phút" : "min"}`;
@@ -33,10 +38,7 @@ const gateLabels: Record<string, [string, string]> = {
     
 
   {error && <p class="crm-notice bad" role="alert">{vi ? "Chưa thực hiện được thao tác. Hãy thử lại." : "That action could not be completed. Try again."}</p>}
-  {stats && <ReportStats ctx={ctx} stats={stats} owners={owners} />}
-
-  <SalesDashboard keep={dashKeep} lang={lang} vi={vi} manager={ctx.actor.manager} dashboard={dashboard} owners={owners} playbooks={dashboardPlaybooks} names={names} selfName={ctx.actor.name} />
-
+  {stats && <ReportStats ctx={ctx} stats={stats} owners={owners} pageFields={pageFields}><ReportPageFilters slot="page" {...pageFilterProps} /></ReportStats>}
   {!stats && <>
   <form class="crm-sheet crm-filter" method="get" aria-label={vi ? "Bộ lọc báo cáo" : "Report filters"}>
     <div class="crm-field"><label for="r-channel">{vi ? "Kênh" : "Channel"}</label><select class="crm-select" id="r-channel" name="channel"><option value="">{vi ? "Tất cả" : "Any"}</option>{options(lang, "channel").map((item) => <option value={item.value} selected={filters.channel === item.value}>{item.label}</option>)}</select></div>
@@ -45,8 +47,14 @@ const gateLabels: Record<string, [string, string]> = {
     <div class="crm-field"><label for="r-industry">{vi ? "Ngành" : "Industry"}</label><input class="crm-input" id="r-industry" name="industry" value={filters.industry} maxlength="120" /></div>
     <div class="crm-field"><label for="r-region">{vi ? "Khu vực" : "Region"}</label><input class="crm-input" id="r-region" name="region" value={filters.region} maxlength="120" /></div>
     {ctx.actor.manager && <div class="crm-field"><label for="r-owner">{vi ? "Mã người phụ trách" : "Owner ID"}</label><input class="crm-input" id="r-owner" name="owner" value={filters.owner} maxlength="120" /></div>}
+    <ReportPageFilters {...pageFilterProps} />
     <div class="crm-actions"><button class="crm-button secondary" type="submit">{vi ? "Áp dụng" : "Apply"}</button><a class="crm-link" href={`${base}/reports`}>{vi ? "Xóa lọc" : "Clear"}</a></div>
   </form>
+  </>}
+
+  <SalesDashboard filtersAbove keep={dashKeep} lang={lang} vi={vi} manager={ctx.actor.manager} dashboard={dashboard} owners={owners} playbooks={dashboardPlaybooks} names={names} selfName={ctx.actor.name} />
+
+  {!stats && <>
 
   <div class="crm-grid cols wide" style="margin-top:18px">{summaries.map((summary) => { const max = Math.max(1, ...Object.values(summary.stages)); return <section class="crm-sheet" aria-labelledby={`pb-${summary.playbook.playbook_key}`}>
     <h2 class="crm-h2" id={`pb-${summary.playbook.playbook_key}`}>{vi ? summary.playbook.name_vi : summary.playbook.name_en}</h2>
@@ -73,7 +81,6 @@ const gateLabels: Record<string, [string, string]> = {
   {(ctx.actor.manager || ctx.actor.finance) && <section class="crm-sheet" id="cohort" style="margin-top:18px" aria-labelledby="cohort-h">
     <h2 class="crm-h2" id="cohort-h">{vi ? "Cohort Lumi Local và kinh tế bán hàng" : "Lumi Local cohort and sales economics"}</h2>
     {cohorts.length === 0 ? <p class="crm-empty">{vi ? "Chưa có cohort. Admin tạo cohort trong trang Quản trị." : "No cohort yet. Admins create cohorts in Admin."}</p> : <>
-      <form method="get" class="crm-actions" action="#cohort"><label class="crm-label" for="cohort_report">Cohort</label><select class="crm-select" style="width:auto" id="cohort_report" name="cohort_report">{cohorts.map((item) => <option value={item.cohort_key} selected={cohort?.cohort.cohort_key === item.cohort_key}>{item.name}</option>)}</select><button class="crm-button small secondary" type="submit">{vi ? "Xem" : "View"}</button></form>
       {cohort && r && <>
         <p class="crm-help">{vi ? "Cửa sổ quan sát" : "Observation window"}: {formatDate(r.window.starts_on, lang)} → {formatDate(r.window.ends_on, lang)} · {vi ? "mẫu" : "sample"} {r.sample}/{r.target} {vi ? "doanh nghiệp" : "businesses"}{r.complete ? "" : (vi ? " (chưa đủ cỡ mẫu)" : " (sample incomplete)")} · {vi ? "còn" : ""} {r.window.open_credit_windows} {vi ? "khách Trust Kit đang trong cửa sổ credit — chưa kết luận nâng cấp thất bại." : "Trust Kit buyers still inside the credit window — upgrade outcome not final."}</p>
         <dl class="crm-facts" style="margin-top:12px">

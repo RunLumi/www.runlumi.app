@@ -15,8 +15,10 @@ interface Props {
   names: Record<string, { name: string; active: boolean }>; selfName: string;
   /** Other filters on the page to carry through this form (Reports stats). */
   keep?: Record<string, string>;
+  /** The page's own filter form already has seller and product. */
+  filtersAbove?: boolean;
 }
-const { vi, manager, dashboard, owners, playbooks, names, selfName, keep = {} } = Astro.props;
+const { vi, manager, dashboard, owners, playbooks, names, selfName, keep = {}, filtersAbove = false } = Astro.props;
 const kept = Object.keys(keep).length ? `&${new URLSearchParams(keep)}` : "";
 const { open, closed, winRate, breakdown, months, filters } = dashboard;
 const product = playbooks.find((item) => item.playbook_key === filters.playbook);
@@ -51,14 +53,14 @@ const coverage = (part: number, whole: number) => vi ? `${part}/${whole} cơ h�
       <h2 class="crm-h2" id="dash-h">{vi ? "Tổng quan bán hàng" : "Sales overview"}</h2>
       <p class="crm-meta">{scopeLabel}{product ? ` · ${vi ? product.name_vi : product.name_en}` : (vi ? " · mọi sản phẩm" : " · all products")}</p>
     </div>
-    <form class="dash-filters" method="get" action="#dashboard" aria-label={vi ? "Lọc dashboard" : "Filter the dashboard"}>
+    {!filtersAbove && <form class="dash-filters" method="get" action="#dashboard" aria-label={vi ? "Lọc dashboard" : "Filter the dashboard"}>
       {Object.entries(keep).map(([key, value]) => <input type="hidden" name={key} value={value} />)}
       {manager && <div class="crm-field"><label for="dash-owner">{vi ? "Nhân viên" : "Seller"}</label>
         <select class="crm-select" id="dash-owner" name="owner"><option value="">{vi ? "Toàn công ty" : "Whole company"}</option>{owners.map((owner) => <option value={owner.id} selected={filters.owner === owner.id}>{owner.label}</option>)}</select></div>}
       <div class="crm-field"><label for="dash-product">{vi ? "Sản phẩm (quy trình bán)" : "Product (playbook)"}</label>
         <select class="crm-select" id="dash-product" name="product"><option value="">{vi ? "Mọi sản phẩm" : "All products"}</option>{playbooks.map((item) => <option value={item.playbook_key} selected={filters.playbook === item.playbook_key}>{vi ? item.name_vi : item.name_en}</option>)}</select></div>
       <div class="crm-actions"><button class="crm-button secondary small" type="submit">{vi ? "Xem" : "Apply"}</button>{(filters.owner || filters.playbook) && <a class="crm-link" href={`?${kept.slice(1)}#dashboard`}>{vi ? "Bỏ lọc" : "Clear"}</a>}</div>
-    </form>
+    </form>}
   </div>
 
   <dl class="dash-kpis">

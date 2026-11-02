@@ -17,8 +17,9 @@ page (`/crm/stats` redirects there).
    (finance), unchanged.
 5. Areas missing on older records (CRM admins).
 
-The stats form and the sales overview form carry each other's filters, so
-filtering one never resets the other.
+All filters of the page sit in one form at the top: period, playbook and the
+compared sets; seller and product for the sales overview; and the cohort for
+team or finance. The sections below show figures only.
 
 ## Who sees what
 
