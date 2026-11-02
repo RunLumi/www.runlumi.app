@@ -4,6 +4,8 @@ import SetupFrame from "../workspace/ui/SetupFrame.astro";
 import SalesDashboard from "./SalesDashboard.astro";
 import ReportStats from "./ReportStats.astro";
 import ReportPageFilters from "./ReportPageFilters.astro";
+import FilterPopover from "./FilterPopover.astro";
+import AreaFields from "./AreaFields.astro";
 import { statsSearch } from "../../lib/crm/stats";
 import "../../styles/crm-stats.css";
 import "../../styles/record.css";
@@ -40,16 +42,18 @@ const gateLabels: Record<string, [string, string]> = {
   {error && <p class="crm-notice bad" role="alert">{vi ? "Chưa thực hiện được thao tác. Hãy thử lại." : "That action could not be completed. Try again."}</p>}
   {stats && <ReportStats ctx={ctx} stats={stats} owners={owners} pageFields={pageFields}><ReportPageFilters slot="page" {...pageFilterProps} /></ReportStats>}
   {!stats && <>
-  <form class="crm-sheet crm-filter" method="get" aria-label={vi ? "Bộ lọc báo cáo" : "Report filters"}>
+  <FilterPopover vi={vi} id="r-filters" title={vi ? "Báo cáo" : "Reports"} summary={vi ? "Số liệu trong phạm vi của bạn" : "Figures within your own scope"} active={[filters.channel, filters.offer, filters.cohort, filters.industry, filters.city, filters.ward, dashboard.filters.playbook].filter(Boolean).length}>
+  <form class="crm-filter" method="get" aria-label={vi ? "Bộ lọc báo cáo" : "Report filters"}>
     <div class="crm-field"><label for="r-channel">{vi ? "Kênh" : "Channel"}</label><select class="crm-select" id="r-channel" name="channel"><option value="">{vi ? "Tất cả" : "Any"}</option>{options(lang, "channel").map((item) => <option value={item.value} selected={filters.channel === item.value}>{item.label}</option>)}</select></div>
     <div class="crm-field"><label for="r-offer">{vi ? "Gói" : "Offer"}</label><select class="crm-select" id="r-offer" name="offer"><option value="">{vi ? "Tất cả" : "Any"}</option>{offers.map((offer) => <option value={offer.offer_key} selected={filters.offer === offer.offer_key}>{vi ? offer.name_vi : offer.name_en}</option>)}</select></div>
     <div class="crm-field"><label for="r-cohort">Cohort</label><select class="crm-select" id="r-cohort" name="cohort"><option value="">{vi ? "Tất cả" : "Any"}</option>{cohorts.map((item) => <option value={item.cohort_key} selected={filters.cohort === item.cohort_key}>{item.name}</option>)}</select></div>
     <div class="crm-field"><label for="r-industry">{vi ? "Ngành" : "Industry"}</label><input class="crm-input" id="r-industry" name="industry" value={filters.industry} maxlength="120" /></div>
-    <div class="crm-field"><label for="r-region">{vi ? "Khu vực" : "Region"}</label><input class="crm-input" id="r-region" name="region" value={filters.region} maxlength="120" /></div>
+    <AreaFields vi={vi} filter id="r-area" city={filters.city} ward={filters.ward} />
     {ctx.actor.manager && <div class="crm-field"><label for="r-owner">{vi ? "Mã người phụ trách" : "Owner ID"}</label><input class="crm-input" id="r-owner" name="owner" value={filters.owner} maxlength="120" /></div>}
     <ReportPageFilters {...pageFilterProps} />
     <div class="crm-actions"><button class="crm-button secondary" type="submit">{vi ? "Áp dụng" : "Apply"}</button><a class="crm-link" href={`${base}/reports`}>{vi ? "Xóa lọc" : "Clear"}</a></div>
   </form>
+  </FilterPopover>
   </>}
 
   <SalesDashboard filtersAbove keep={dashKeep} lang={lang} vi={vi} manager={ctx.actor.manager} dashboard={dashboard} owners={owners} playbooks={dashboardPlaybooks} names={names} selfName={ctx.actor.name} />

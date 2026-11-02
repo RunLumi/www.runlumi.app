@@ -143,7 +143,8 @@ test("do-not-contact blocks lead creation and conversion; disqualify and reopen 
   const gone = await loadLead(db, execA, id);
   assert.deepEqual([gone.lead.state, gone.canEdit], ["disqualified", false]);
   await assert.rejects(reopenLead(db, execA, gone, process, form({ version: gone.lead.version, reopen_reason: "TEST" })), ValidationError, "a suppressed number cannot be reopened");
-  const kinds = (raw.prepare("SELECT kind FROM crm_events WHERE lead_id = ? ORDER BY created_at").all(id) as { kind: string }[]).map((row) => row.kind);
+  // Same-millisecond events need the insertion order as a tie-breaker.
+  const kinds = (raw.prepare("SELECT kind FROM crm_events WHERE lead_id = ? ORDER BY created_at, rowid").all(id) as { kind: string }[]).map((row) => row.kind);
   assert.deepEqual(kinds, ["lead_created", "lead_disqualified"]);
 });
 

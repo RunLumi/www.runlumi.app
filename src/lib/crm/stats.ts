@@ -6,7 +6,7 @@
 // company. Unknown stays unknown: a rate with no denominator is null.
 import { foldText, sameTextSql } from "../search";
 import { auditStatement } from "../workspace/members";
-import { completeArea } from "./area";
+import { areaFilter, parseArea } from "./area";
 import { ForbiddenError } from "./core";
 import { type CrmActor, accountScope, opportunityScope } from "./access";
 import { leadScope } from "./leads";
@@ -19,15 +19,15 @@ export const MAX_DAYS = 366;
 export const DAILY_LIMIT_DAYS = 62;
 const ROW_CAP = 20_000;
 
-export interface StatsSet { label: string; city: string; district: string; ward: string; industry: string; source: string; owner: string }
+export interface StatsSet { label: string; city: string; ward: string; industry: string; source: string; owner: string }
 export interface StatsQuery {
   from: string; to: string; playbook: string; sets: StatsSet[]; focus: number; trend: "leads" | "opportunities" | "won";
   /** Other filters on the same Reports page (sales overview, cohort), carried through stats links. */
   keep: Record<string, string>;
 }
 const keptParams = ["owner", "product", "cohort_report"] as const;
-export const emptySet: StatsSet = { label: "", city: "", district: "", ward: "", industry: "", source: "", owner: "" };
-const setKeys = ["label", "city", "district", "ward", "industry", "source", "owner"] as const;
+export const emptySet: StatsSet = { label: "", city: "", ward: "", industry: "", source: "", owner: "" };
+const setKeys = ["label", "city", "ward", "industry", "source", "owner"] as const;
 
 const isoDay = /^\d{4}-\d{2}-\d{2}$/;
 const addDays = (day: string, days: number) => new Date(Date.parse(`${day}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
@@ -47,7 +47,9 @@ export function readStatsQuery(url: URL, actor: Pick<CrmActor, "manager">, playb
   const sets: StatsSet[] = [];
   for (let index = 0; index < count; index += 1) {
     const set = { ...emptySet };
-    for (const key of setKeys) set[key] = get(`s${index}_${key}`, key === "ward" ? 200 : 80);
+    for (const key of setKeys) set[key] = get(`s${index}_${key}`, 80);
+    // Only names on the official list (after the 2025 merger) filter anything.
+    Object.assign(set, areaFilter(set.city, set.ward));
     if (!(sourceChannels as readonly string[]).includes(set.source)) set.source = "";
     if (!actor.manager) set.owner = "";
     sets.push(set);
@@ -74,23 +76,16 @@ export function statsSearch(query: StatsQuery, change: Partial<Omit<StatsQuery, 
   return `?${params}`;
 }
 
-/** Ward options carry their district and city ("Phường 13|Quận 4|TP. Hồ Chí Minh") so a ward is never matched in the wrong district. */
-export function splitWard(value: string): { ward: string; district: string; city: string } {
-  const [ward = "", district = "", city = ""] = value.split("|");
-  return { ward, district, city };
-}
-
 interface Where { sql: string; args: unknown[] }
 
-/** Filters of one set on a table alias holding city/district/ward/industry plus owner/source columns. */
+/** Filters of one set on a table alias holding city/ward/industry plus owner/source columns. */
 function setWhere(set: StatsSet, area: string, row: string): Where {
   const parts: string[] = [];
   const args: unknown[] = [];
   const same = (column: string, value: string) => { const clause = sameTextSql(column, value); parts.push(clause.sql); args.push(...clause.args); };
-  const ward = splitWard(set.ward);
-  if (set.city || ward.city) same(`${area}.city`, set.city || ward.city);
-  if (set.district || ward.district) same(`${area}.district`, set.district || ward.district);
-  if (ward.ward) same(`${area}.ward`, ward.ward);
+  // Area values are official names, so they compare exactly.
+  if (set.city) { parts.push(`${area}.city = ?`); args.push(set.city); }
+  if (set.ward) { parts.push(`${area}.ward = ?`); args.push(set.ward); }
   if (set.industry) same(`${area}.industry`, set.industry);
   if (set.source) { parts.push(`${row}.source_channel = ?`); args.push(set.source); }
   if (set.owner === "unassigned") parts.push(`${row}.owner_id IS NULL`);
@@ -186,10 +181,9 @@ export async function loadSetStats(db: D1Database, actor: CrmActor, query: Stats
 }
 
 /** Leads and deals of one set grouped by area (the level below the set's own area filter) or by industry. */
-export type BreakdownLevel = "city" | "district" | "ward" | "industry" | "source_channel";
+export type BreakdownLevel = "city" | "ward" | "industry" | "source_channel";
 export async function loadBreakdown(db: D1Database, actor: CrmActor, query: StatsQuery, set: StatsSet, by: "area" | "industry" | "source", playbookIds: string[]): Promise<{ level: BreakdownLevel; rows: Breakdown[] }> {
-  const ward = splitWard(set.ward);
-  const level: BreakdownLevel = by === "industry" ? "industry" : by === "source" ? "source_channel" : ward.ward || set.district || ward.district ? "ward" : set.city || ward.city ? "district" : "city";
+  const level: BreakdownLevel = by === "industry" ? "industry" : by === "source" ? "source_channel" : set.city ? "ward" : "city";
   const accountColumn = level === "source_channel" ? "o.source_channel" : `a.${level}`;
   const start = vnStart(query.from);
   const end = vnStart(addDays(query.to, 1));
@@ -214,29 +208,19 @@ export async function loadBreakdown(db: D1Database, actor: CrmActor, query: Stat
   return { level, rows: rows.slice(0, 50) };
 }
 
-export interface AreaOptions { cities: string[]; districts: { value: string; city: string }[]; wards: { value: string; label: string }[]; industries: string[] }
+export interface AreaOptions { industries: string[] }
 
-/** Distinct area and industry values among the leads and companies the person can see. */
+/** Industries among the leads and companies the person can see (areas come from the official list). */
 export async function areaOptions(db: D1Database, actor: CrmActor): Promise<AreaOptions> {
   const lead = leadScope(actor, "l");
   const accounts = accountScope(actor, "a");
-  const rows = (await db.prepare(`SELECT city, district, ward, industry FROM (
-      SELECT l.city, l.district, l.ward, l.industry FROM crm_lead_records l WHERE ${lead.sql}
-      UNION SELECT a.city, a.district, a.ward, a.industry FROM crm_accounts a WHERE ${accounts.sql}) LIMIT 5000`)
-    .bind(...lead.args, ...accounts.args).all<{ city: string; district: string; ward: string; industry: string }>()).results;
-  const sort = (values: Iterable<string>) => [...new Set(values)].filter(Boolean).sort((a, b) => a.localeCompare(b, "vi", { numeric: true }));
-  const industryNames = new Map<string, string>();
-  for (const row of rows) if (row.industry && !industryNames.has(foldText(row.industry))) industryNames.set(foldText(row.industry), row.industry);
-  const districts = new Map<string, { value: string; city: string }>();
-  for (const row of rows) if (row.district) districts.set(`${row.district}|${row.city}`, { value: row.district, city: row.city });
-  const wards = new Map<string, { value: string; label: string }>();
-  for (const row of rows) if (row.ward) wards.set(`${row.ward}|${row.district}|${row.city}`, { value: `${row.ward}|${row.district}|${row.city}`, label: [row.ward, row.district, row.city].filter(Boolean).join(" · ") });
-  return {
-    cities: sort(rows.map((row) => row.city)),
-    districts: [...districts.values()].sort((a, b) => a.value.localeCompare(b.value, "vi", { numeric: true })),
-    wards: [...wards.values()].sort((a, b) => a.label.localeCompare(b.label, "vi", { numeric: true })),
-    industries: sort(industryNames.values()),
-  };
+  const rows = (await db.prepare(`SELECT industry FROM (
+      SELECT l.industry FROM crm_lead_records l WHERE ${lead.sql} AND l.industry != ''
+      UNION SELECT a.industry FROM crm_accounts a WHERE ${accounts.sql} AND a.industry != '') LIMIT 2000`)
+    .bind(...lead.args, ...accounts.args).all<{ industry: string }>()).results;
+  const names = new Map<string, string>();
+  for (const row of rows) if (!names.has(foldText(row.industry))) names.set(foldText(row.industry), row.industry);
+  return { industries: [...names.values()].sort((a, b) => a.localeCompare(b, "vi")) };
 }
 
 // ------------------------------------------------------------ area backfill
@@ -246,13 +230,13 @@ export interface AreaGaps { accounts: number; leads: number }
 /** Companies and open/closed leads with no area yet but some text to read it from. */
 export async function areaGaps(db: D1Database): Promise<AreaGaps> {
   const row = await db.prepare(`SELECT
-      (SELECT COUNT(*) FROM crm_accounts WHERE ward = '' AND district = '' AND city = '' AND (address != '' OR region != '')) AS accounts,
-      (SELECT COUNT(*) FROM crm_lead_records WHERE ward = '' AND district = '' AND city = '' AND region != '') AS leads`).first<AreaGaps>();
+      (SELECT COUNT(*) FROM crm_accounts WHERE ward = '' AND city = '' AND (address != '' OR region != '')) AS accounts,
+      (SELECT COUNT(*) FROM crm_lead_records WHERE ward = '' AND city = '' AND region != '') AS leads`).first<AreaGaps>();
   return { accounts: row?.accounts ?? 0, leads: row?.leads ?? 0 };
 }
 
 /**
- * CRM admins only: fills blank ward/district/city from the address or area
+ * CRM admins only: fills blank ward/city from the address or area
  * text where a part is explicitly marked (see area.ts). Records that cannot
  * be read stay blank. Each changed record gets a new version, and one audit
  * row records how many were filled.
@@ -268,18 +252,18 @@ export async function fillAreas(db: D1Database, actor: CrmActor, { page = 200, m
   for (const { table, key, text, extra } of tables) {
     // A cursor, so records that cannot be read never block the next page.
     for (let after = "", seen = 0; seen < max;) {
-      const rows = (await db.prepare(`SELECT id, ${text}, version FROM ${table} WHERE ward = '' AND district = '' AND city = '' AND ${extra} AND id > ? ORDER BY id LIMIT ?`)
+      const rows = (await db.prepare(`SELECT id, ${text}, version FROM ${table} WHERE ward = '' AND city = '' AND ${extra} AND id > ? ORDER BY id LIMIT ?`)
         .bind(after, page).all<{ id: string; address: string; region: string; version: number }>()).results;
       if (!rows.length) break;
       seen += rows.length;
       after = rows[rows.length - 1].id;
       const statements: D1PreparedStatement[] = [];
       for (const row of rows) {
-        const area = completeArea({}, row.address, row.region);
-        if (!area.ward && !area.district && !area.city) { result.unreadable += 1; continue; }
+        const area = parseArea(row.address, row.region);
+        if (!area.ward && !area.city) { result.unreadable += 1; continue; }
         result[key] += 1;
-        statements.push(db.prepare(`UPDATE ${table} SET ward = ?, district = ?, city = ?, version = version + 1, updated_at = ? WHERE id = ? AND version = ? AND ward = '' AND district = '' AND city = ''`)
-          .bind(area.ward, area.district, area.city, now, row.id, row.version));
+        statements.push(db.prepare(`UPDATE ${table} SET ward = ?, district = '', city = ?, version = version + 1, updated_at = ? WHERE id = ? AND version = ? AND ward = '' AND city = ''`)
+          .bind(area.ward, area.city, now, row.id, row.version));
       }
       if (statements.length) await db.batch(statements);
       if (rows.length < page) break;

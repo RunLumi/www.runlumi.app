@@ -14,7 +14,7 @@ import {
   ConflictError, Errors, ForbiddenError, NotFoundError, emailPattern, fail, newId, normalizePhone, nowIso, once, onceGuarded,
 } from "./core";
 import { searchSql } from "../search";
-import { completeArea, readArea } from "./area";
+import { areaFilter, parseArea, readArea } from "./area";
 import { isIsoDate } from "./playbook";
 import { contactRoles, dealForecast, phoneSuppressed, sourceChannels, type SourceChannel } from "./records";
 
@@ -174,14 +174,14 @@ function requireOpen(access: LeadAccess): Lead {
 
 // ---------------------------------------------------------------- lists
 
-export interface LeadFilters { state: string; status: string; owner: string; source: string; q: string }
-export const leadFilterKeys = ["state", "status", "owner", "source", "q"] as const;
+export interface LeadFilters { state: string; status: string; owner: string; source: string; q: string; city?: string; ward?: string }
+export const leadFilterKeys = ["state", "status", "owner", "source", "q", "city", "ward"] as const;
 
 export function readLeadFilters(url: URL): LeadFilters {
   const get = (key: string) => (url.searchParams.get(key) ?? "").trim().slice(0, 120);
   const filters = Object.fromEntries(leadFilterKeys.map((key) => [key, get(key)])) as unknown as LeadFilters;
   if (!["open", "converted", "disqualified", "all"].includes(filters.state)) filters.state = "open";
-  return filters;
+  return { ...filters, ...areaFilter(filters.city ?? "", filters.ward ?? "") };
 }
 
 function leadWhere(actor: CrmActor, filters: LeadFilters): { sql: string; args: unknown[] } {
@@ -196,6 +196,8 @@ function leadWhere(actor: CrmActor, filters: LeadFilters): { sql: string; args: 
   else if (actor.manager && filters.owner) add("l.owner_id = ?", filters.owner);
   const search = searchSql(["l.name", "l.company"], filters.q);
   if (search) add(search.sql, ...search.args);
+  if (filters.city) add("l.city = ?", filters.city);
+  if (filters.ward) add("l.ward = ?", filters.ward);
   return { sql: parts.join(" AND "), args };
 }
 
@@ -303,7 +305,7 @@ export async function referralLeadStatements(db: D1Database, actor: CrmActor, id
 }): Promise<D1PreparedStatement[]> {
   const process = await currentLeadProcess(db);
   const now = nowIso();
-  const area = completeArea({}, input.region);
+  const area = parseArea(input.region);
   return [
     db.prepare(`INSERT INTO crm_lead_records (id, state, status_id, process_id, name, company, industry, region, ward, district, city, phone, phone_norm, email, need, playbook_key, source_channel, source_detail, referrer_id, owner_id, consent_status, consent_evidence, next_action, created_by, created_at, updated_at)
       VALUES (?, 'open', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'referral', ?, ?, NULL, 'granted', ?, ?, ?, ?, ?)`)

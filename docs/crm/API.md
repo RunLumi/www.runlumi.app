@@ -82,7 +82,7 @@ Send `Authorization: Bearer <token>`. Request bodies are JSON (`Content-Type: ap
 
 **Stage requirements.** A stage's `requires` lists field keys, checklist keys and built-ins (`primary_contact`, `next_step`, `accepted_quote`). `get_opportunity` and `list_playbooks` return the `checklist`, and `get_opportunity` returns the current `checks`. Tick a checklist item with `update_opportunity_fields` and `checks`, for example `{ "checks": { "presence_checked": true } }`, only when the work was done. A checklist key sent under `fields` is treated as a tick. Fields and checks can be set only once their stage is visible.
 
-**Area.** Companies carry `ward`, `district` and `city` (for example `Phường 13`, `Quận 4`, `TP. Hồ Chí Minh`). `create_company` and `update_company` accept them; values are normalised, and blank ones are read from the address only where a part is marked (Phường/P., Quận/Q., a known city).
+**Area.** Companies carry `city` and `ward` on Vietnam's map after the 2025 merger (34 provinces/cities and their wards, communes and special zones; no district tier), for example `Thành phố Hồ Chí Minh` and `Phường Khánh Hội`. `create_company` and `update_company` accept them; values must be on the official list (case, accents and the Phường/Tỉnh prefix do not matter; pre-merger province names map to their new province), otherwise the call fails with `invalid`. Blank values are read from the address only when it names a current ward and province.
 
 **Search.** `q` matches when every word appears in the record, in any order, ignoring letter case — Vietnamese capitals included (`VÂN SPA` finds “Vân Spa”).
 

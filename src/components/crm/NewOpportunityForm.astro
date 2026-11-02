@@ -3,6 +3,7 @@
 // supplies the POST form and its buttons. Pick an existing contact, or a new
 // company and contact. Same "create" intent as before.
 import Field from "./Field.astro";
+import AreaFields from "./AreaFields.astro";
 import FormNotices from "./FormNotices.astro";
 import { errorText, label, options } from "../../lib/crm/i18n";
 import { errorFor, requestKey, valueFor, type Ctx, type FormState } from "../../lib/crm/page";
@@ -56,9 +57,7 @@ const fieldLabels: Record<string, string> = vi
         <Field name="account_name" label={`${fieldLabels.account_name} (${vi ? "khách mới" : "new customer"})`} lang={lang} value={v("account_name")} error={e("account_name")} maxlength={160} autocomplete="organization" />
         <Field name="industry" label={vi ? "Ngành" : "Industry"} lang={lang} value={v("industry")} error={e("industry")} maxlength={120} />
         <Field name="region" label={vi ? "Khu vực" : "Area / region"} lang={lang} value={v("region")} error={e("region")} maxlength={120} />
-        <Field name="ward" label={vi ? "Phường / Xã" : "Ward"} lang={lang} value={v("ward")} maxlength={80} placeholder="Phường 13" help={vi ? "Để trống: tự điền từ địa chỉ nếu đọc được." : "Leave blank to fill from the address when it can be read."} />
-        <Field name="district" label={vi ? "Quận / Khu vực" : "District / area"} lang={lang} value={v("district")} maxlength={80} placeholder="Quận 4" />
-        <Field name="city" label={vi ? "Tỉnh / Thành phố" : "City / province"} lang={lang} value={v("city")} maxlength={80} placeholder="TP. Hồ Chí Minh" />
+        <AreaFields vi={vi} id="no-area" city={String(v("city") ?? "")} ward={String(v("ward") ?? "")} cityError={e("city")} wardError={e("ward")} help />
         <Field name="contact_name" label={`${fieldLabels.contact_name} (${vi ? "khách mới" : "new customer"})`} lang={lang} value={v("contact_name")} error={e("contact_name")} maxlength={160} autocomplete="off" />
         <Field name="contact_role" type="select" label={vi ? "Vai trò" : "Role"} lang={lang} value={v("contact_role", "owner")} error={e("contact_role")} options={options(lang, "role")} />
         <Field name="phone" type="tel" label={fieldLabels.phone} lang={lang} value={v("phone")} error={e("phone")} maxlength={40} inputmode="tel" autocomplete="off" />

@@ -62,3 +62,14 @@
 .st-root .st-compare thead th + th { text-transform: none; letter-spacing: normal; }
 /* Sales overview and cohort filters inside the page's single filter form. */
 .st-page { flex: 1 1 100%; grid-column: 1 / -1; }
+/* Reports: filters behind one button, in a panel over the page. */
+.st-bar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 10px 18px; }
+.st-bar-text { min-width: 0; flex: 1 1 320px; }
+.st-bar-text .crm-h2 { margin: 0; }
+.st-pop { position: relative; }
+.st-pop > summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; }
+.st-pop > summary::-webkit-details-marker { display: none; }
+.st-pop-panel { position: absolute; z-index: 30; inset-inline-end: 0; inset-block-start: calc(100% + 8px); inline-size: min(1080px, calc(100vw - 48px)); max-block-size: min(78vh, 900px); overflow: auto; padding: 16px; background: var(--crm-sheet); border: 1px solid var(--crm-line); border-radius: var(--crm-radius); box-shadow: 0 12px 32px -12px rgb(16 42 67 / 28%); }
+.st-pop-panel > form { margin: 0; border: 0; box-shadow: none; padding: 0; }
+@media (max-width: 700px) { .st-pop { position: static; } .st-pop-panel { position: fixed; inset: 72px 8px 8px; inline-size: auto; max-block-size: none; } }
+@media (forced-colors: active) { .st-pop-panel { border: 1px solid CanvasText; } }

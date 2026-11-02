@@ -1,0 +1,20 @@
+---
+// A page's filters behind one button: a summary line stays visible, the form
+// opens in a panel (a <details>, so it works without script). Used on Reports.
+import NavIcon from "../workspace/NavIcon.astro";
+
+interface Props { vi: boolean; id: string; title: string; summary: string; active: number; open?: boolean }
+const { vi, id, title, summary, active, open = false } = Astro.props;
+const name = vi ? `Bộ lọc${active ? ` (${active} đang dùng)` : ""}` : `Filters${active ? ` (${active} in use)` : ""}`;
+---
+<section class="crm-sheet st-bar" aria-labelledby={`${id}-h`}>
+  <div class="st-bar-text">
+    <h2 class="crm-h2" id={`${id}-h`}>{title}</h2>
+    <p class="crm-meta">{summary}</p>
+    <slot name="after" />
+  </div>
+  <details class="st-pop" open={open}>
+    <summary class:list={["ws-btn", active > 0 && "on"]}><NavIcon name="filter" size={16} /> {name}</summary>
+    <div class="st-pop-panel"><slot /></div>
+  </details>
+</section>

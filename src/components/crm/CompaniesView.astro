@@ -8,6 +8,7 @@ import ListToolbar from "../workspace/ui/ListToolbar.astro";
 import Sheet from "../workspace/ui/Sheet.astro";
 import NavIcon from "../workspace/NavIcon.astro";
 import Field from "./Field.astro";
+import AreaFields from "./AreaFields.astro";
 import FormNotices from "./FormNotices.astro";
 import Hidden from "./Hidden.astro";
 import { options } from "../../lib/crm/i18n";
@@ -43,12 +44,13 @@ const closeHref = query({ new: "" });
   <div class="cl-stack">
     <ListHeader vi={vi} icon="companies" tone="company" object={vi ? "Công ty" : "Companies"} title={title} meta={meta} lists={lists}>
       <ButtonGroup slot="actions" label={vi ? "Hành động" : "Actions"}><a class="ws-btn" href={`${query({ new: "1" })}#new-company`}>{vi ? "Tạo" : "New"}</a></ButtonGroup>
-      <ListToolbar slot="tools" vi={vi} filterActive={filters.owner ? 1 : 0} filterClear={actor.manager ? query({ owner: "", page: "" }) : undefined} q={filters.q} keep={{ owner: filters.owner }}>
+      <ListToolbar slot="tools" vi={vi} filterActive={[filters.owner, filters.city, filters.ward].filter(Boolean).length} filterClear={query({ owner: "", city: "", ward: "", page: "" })} q={filters.q} keep={{ owner: filters.owner, city: filters.city ?? "", ward: filters.ward ?? "" }}>
         <a class="ws-btn icon" href={query({})} aria-label={vi ? "Làm mới" : "Refresh"}><NavIcon name="refresh" size={16} /></a>
-                {actor.manager && <Fragment slot="filters">
-
-          <div class="crm-field"><label for="owner">{vi ? "Người quản lý" : "Managed by"}</label><select class="crm-select" id="owner" name="owner"><option value="">{vi ? "Tất cả" : "Anyone"}</option><option value="unassigned" selected={filters.owner === "unassigned"}>{vi ? "Chưa có người quản lý" : "Nobody yet"}</option>{owners.map((owner) => <option value={owner.id} selected={filters.owner === owner.id}>{owner.label}</option>)}</select></div>
-        </Fragment>}
+                <Fragment slot="filters">
+          <AreaFields vi={vi} filter id="f-area" city={filters.city} ward={filters.ward} />
+          {actor.manager && <>
+          <div class="crm-field"><label for="owner">{vi ? "Người quản lý" : "Managed by"}</label><select class="crm-select" id="owner" name="owner"><option value="">{vi ? "Tất cả" : "Anyone"}</option><option value="unassigned" selected={filters.owner === "unassigned"}>{vi ? "Chưa có người quản lý" : "Nobody yet"}</option>{owners.map((owner) => <option value={owner.id} selected={filters.owner === owner.id}>{owner.label}</option>)}</select></div></>}
+        </Fragment>
       </ListToolbar>
       {rows.length ? <div class="cl-tbl-wrap" tabindex="0" role="region" aria-label={vi ? "Bảng công ty, cuộn ngang được" : "Company table, scrolls sideways"}><table class="cl-tbl">
         <thead><tr><th class="fz fzr" scope="col"><span class="crm-sr">#</span></th><th class="fz fzn" scope="col">{vi ? "Tên công ty" : "Company name"}</th><th scope="col">{vi ? "Ngành" : "Industry"}</th><th scope="col">{vi ? "Khu vực" : "Area"}</th><th scope="col">{vi ? "Địa chỉ" : "Address"}</th><th scope="col" class="r">{vi ? "Liên hệ" : "Contacts"}</th><th scope="col" class="r">{vi ? "Cơ hội đang mở" : "Open opportunities"}</th><th scope="col">{vi ? "Người quản lý" : "Managed by"}</th><th scope="col">{vi ? "Hành động" : "Actions"}</th></tr></thead>
@@ -74,9 +76,7 @@ const closeHref = query({ new: "" });
         <Field name="industry" label={vi ? "Ngành" : "Industry"} lang={lang} value={v("industry")} maxlength={120} />
         <Field name="region" label={vi ? "Khu vực" : "Area"} lang={lang} value={v("region")} maxlength={120} />
         <Field name="address" wide label={vi ? "Địa chỉ" : "Address"} lang={lang} value={v("address")} maxlength={300} />
-        <Field name="ward" label={vi ? "Phường / Xã" : "Ward"} lang={lang} value={v("ward")} maxlength={80} placeholder="Phường 13" help={vi ? "Để trống: tự điền từ địa chỉ nếu đọc được." : "Leave blank to fill from the address when it can be read."} />
-        <Field name="district" label={vi ? "Quận / Khu vực" : "District / area"} lang={lang} value={v("district")} maxlength={80} placeholder="Quận 4" />
-        <Field name="city" label={vi ? "Tỉnh / Thành phố" : "City / province"} lang={lang} value={v("city")} maxlength={80} placeholder="TP. Hồ Chí Minh" />
+        <AreaFields vi={vi} id="ac-area" city={String(v("city") ?? "")} ward={String(v("ward") ?? "")} cityError={e("city")} wardError={e("ward")} help />
         {actor.manager && <Field name="owner_id" type="select" label={fieldLabels.owner_id} lang={lang} value={v("owner_id", actor.id)} error={e("owner_id")} options={owners.map((owner) => ({ value: owner.id, label: owner.label }))} />}
       </div>
       <p class="cl-sheet-sec" style="margin-top:18px">{vi ? "Người liên hệ đầu tiên (không bắt buộc)" : "First contact (optional)"}</p>

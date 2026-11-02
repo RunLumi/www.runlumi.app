@@ -4,6 +4,7 @@
 // column with upcoming next steps. Edits open in sheets; no client script.
 import CrmShell from "../../layouts/CrmShell.astro";
 import Field from "./Field.astro";
+import AreaFields from "./AreaFields.astro";
 import FormNotices from "./FormNotices.astro";
 import Hidden from "./Hidden.astro";
 import RecordHeader from "../workspace/ui/RecordHeader.astro";
@@ -64,9 +65,7 @@ const fieldLabels: Record<string, string> = vi
         </div>
         <Field name="address" id="a-addr" label={vi ? "Địa chỉ" : "Address"} lang={lang} value={v("account", "address", account.address)} maxlength={300} />
         <div class="crm-form-grid">
-          <Field name="ward" id="a-ward" label={vi ? "Phường / Xã" : "Ward"} lang={lang} value={v("account", "ward", account.ward)} maxlength={80} placeholder="Phường 13" help={vi ? "Để trống: tự điền từ địa chỉ nếu đọc được." : "Leave blank to fill from the address when it can be read."} />
-          <Field name="district" id="a-district" label={vi ? "Quận / Khu vực" : "District / area"} lang={lang} value={v("account", "district", account.district)} maxlength={80} placeholder="Quận 4" />
-          <Field name="city" id="a-city" label={vi ? "Tỉnh / Thành phố" : "City / province"} lang={lang} value={v("account", "city", account.city)} maxlength={80} placeholder="TP. Hồ Chí Minh" />
+          <AreaFields vi={vi} id="a-area" city={String(v("account", "city", account.city) ?? "")} ward={String(v("account", "ward", account.ward) ?? "")} cityError={e("account", "city")} wardError={e("account", "ward")} help />
         </div>
         <Field name="notes" id="a-notes" type="textarea" label={vi ? "Ghi chú" : "Notes"} lang={lang} value={v("account", "notes", account.notes)} maxlength={3000} />
       <Fragment slot="foot"><a class="ws-btn" href={here}>{vi ? "Hủy" : "Cancel"}</a><button class="ws-btn primary" type="submit">{vi ? "Lưu" : "Save"}</button></Fragment>

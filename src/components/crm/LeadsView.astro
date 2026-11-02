@@ -3,6 +3,7 @@
 // docs/governance/USER-STORIES.md § CRM list screens (Leads, LeadsKanban).
 import CrmShell from "../../layouts/CrmShell.astro";
 import Field from "./Field.astro";
+import AreaFields from "./AreaFields.astro";
 import FormNotices from "./FormNotices.astro";
 import Hidden from "./Hidden.astro";
 import ListHeader from "../workspace/ui/ListHeader.astro";
@@ -48,7 +49,7 @@ const lists = (["open", "converted", "disqualified", "all"] as const).map((key) 
   href: `${base}/leads${query({ view: "list", state: key, status: "", page: "" })}`.replace(/\?$/, ""), current: listState === key,
 }));
 const title = lists.find((item) => item.current)?.label ?? lists[0].label;
-const filterCount = [filters.status, filters.source, filters.owner].filter(Boolean).length;
+const filterCount = [filters.status, filters.source, filters.owner, filters.city, filters.ward].filter(Boolean).length;
 const statusName = columns.find((item) => item.id === filters.status);
 const meta = [
   vi ? `${total} mục` : `${total} ${total === 1 ? "item" : "items"}`,
@@ -64,7 +65,7 @@ const newHref = `${base}/leads${query({ new: "1" })}#new-lead`;
     <FormNotices state={state} lang={lang} saved={Astro.url.searchParams.get("saved")} intents={["lead_status"]} />
     <ListHeader vi={vi} icon="leads" tone="lead" object="Lead" title={title} meta={meta} lists={lists}>
       <ButtonGroup slot="actions" label={vi ? "Hành động" : "Actions"} more={ctx.actor.configure ? [{ label: vi ? "Trạng thái Lead" : "Lead statuses", href: `${base}/admin/leads` }] : []}><a class="ws-btn" href={newHref}>{vi ? "Tạo" : "New"}</a>{ctx.actor.manager && <a class="ws-btn" href={`${base}/admin#leads`}>{vi ? "Đổi người phụ trách" : "Change owner"}</a>}</ButtonGroup>
-      <ListToolbar slot="tools" vi={vi} filterActive={filterCount} filterClear={view === "board" ? `${base}/leads?view=board` : `${base}/leads`} q={filters.q} keep={{ view: view === "board" ? "board" : "", state: view === "list" && filters.state !== "open" ? filters.state : "", status: filters.status, source: filters.source, owner: filters.owner }} views={[
+      <ListToolbar slot="tools" vi={vi} filterActive={filterCount} filterClear={view === "board" ? `${base}/leads?view=board` : `${base}/leads`} q={filters.q} keep={{ view: view === "board" ? "board" : "", state: view === "list" && filters.state !== "open" ? filters.state : "", status: filters.status, source: filters.source, owner: filters.owner, city: filters.city ?? "", ward: filters.ward ?? "" }} views={[
           { key: "list", label: vi ? "Bảng" : "Table", href: `${base}/leads${query({ view: "list", page: "" })}`.replace(/\?$/, ""), icon: "model", current: view === "list" },
           { key: "board", label: "Kanban", href: `${base}/leads${query({ view: "board", state: "open", page: "" })}`, icon: "pipeline", current: view === "board" },
         ]}>
@@ -73,6 +74,7 @@ const newHref = `${base}/leads${query({ new: "1" })}#new-lead`;
           {view === "board" && <input type="hidden" name="view" value="board" />}
           {view === "list" && <input type="hidden" name="state" value={filters.state} />}
           {view === "list" && <div class="crm-field"><label for="lstatus">{vi ? "Trạng thái Lead" : "Lead status"}</label><select class="crm-select" id="lstatus" name="status"><option value="">{vi ? "Tất cả" : "Any"}</option>{columns.map((item) => <option value={item.id} selected={filters.status === item.id}>{vi ? item.vi : item.en}</option>)}</select></div>}
+          <AreaFields vi={vi} filter id="lf-area" city={filters.city} ward={filters.ward} />
           <div class="crm-field"><label for="lsource">{vi ? "Nguồn Lead" : "Lead source"}</label><select class="crm-select" id="lsource" name="source"><option value="">{vi ? "Tất cả" : "Any"}</option>{options(lang, "channel").map((item) => <option value={item.value} selected={filters.source === item.value}>{item.label}</option>)}</select></div>
           {ctx.actor.manager && <div class="crm-field"><label for="lowner">{vi ? "Người phụ trách" : "Owner"}</label><select class="crm-select" id="lowner" name="owner"><option value="">{vi ? "Tất cả" : "Anyone"}</option><option value="unassigned" selected={filters.owner === "unassigned"}>{vi ? "Chờ phân công" : "Waiting for assignment"}</option>{owners.map((owner) => <option value={owner.id} selected={filters.owner === owner.id}>{owner.label}</option>)}</select></div>}
         </Fragment>
@@ -164,9 +166,7 @@ const newHref = `${base}/leads${query({ new: "1" })}#new-lead`;
         <Field name="email" type="email" label="Email" lang={lang} value={v("email")} error={e("email")} maxlength={254} />
         <Field name="industry" label={vi ? "Ngành" : "Industry"} lang={lang} value={v("industry")} maxlength={120} />
         <Field name="region" label={vi ? "Khu vực" : "Area"} lang={lang} value={v("region")} maxlength={120} />
-        <Field name="ward" label={vi ? "Phường / Xã" : "Ward"} lang={lang} value={v("ward")} maxlength={80} placeholder="Phường 13" help={vi ? "Để trống: tự điền từ địa chỉ nếu đọc được." : "Leave blank to fill from the address when it can be read."} />
-        <Field name="district" label={vi ? "Quận / Khu vực" : "District / area"} lang={lang} value={v("district")} maxlength={80} placeholder="Quận 4" />
-        <Field name="city" label={vi ? "Tỉnh / Thành phố" : "City / province"} lang={lang} value={v("city")} maxlength={80} placeholder="TP. Hồ Chí Minh" />
+        <AreaFields vi={vi} id="lc-area" city={String(v("city") ?? "")} ward={String(v("ward") ?? "")} cityError={e("city")} wardError={e("ward")} help />
         <Field name="source_channel" type="select" label={fieldLabels.source_channel} lang={lang} value={v("source_channel", "field_visit")} error={e("source_channel")} options={manualSources} />
         <Field name="source_detail" label={vi ? "Chi tiết nguồn" : "Source detail"} lang={lang} value={v("source_detail")} maxlength={300} />
         <Field name="playbook_key" type="select" label={fieldLabels.playbook_key} lang={lang} value={v("playbook_key")} error={e("playbook_key")} options={[{ value: "", label: vi ? "Chưa rõ" : "Not known yet" }, ...playbooks.map((item) => ({ value: item.playbook_key, label: vi ? item.name_vi : item.name_en }))]} />

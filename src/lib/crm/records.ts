@@ -6,7 +6,7 @@ import {
   ConflictError, Errors, ForbiddenError, NotFoundError, ValidationError, emailPattern, eventStatement, fail, newId, normalizePhone, nowIso, once, onceGuarded,
 } from "./core";
 import { searchSql } from "../search";
-import { readArea } from "./area";
+import { areaFilter, readArea } from "./area";
 import { addDays } from "./money";
 import { type Playbook, type TransitionContext, checkTransition, isIsoDate, parseFieldValue, stageIndex, visibleChecks, visibleFields } from "./playbook";
 
@@ -406,12 +406,14 @@ export async function moveToAccount(db: D1Database, actor: CrmActor, opportunity
   if (!result.changed) throw new ConflictError();
 }
 
-export interface Filters { playbook: string; stage: string; owner: string; channel: string; cohort: string; industry: string; region: string; offer: string; outcome: string; q: string }
-export const filterKeys = ["playbook", "stage", "owner", "channel", "cohort", "industry", "region", "offer", "outcome", "q"] as const;
+export interface Filters { playbook: string; stage: string; owner: string; channel: string; cohort: string; industry: string; region: string; offer: string; outcome: string; q: string; city?: string; ward?: string }
+export const filterKeys = ["playbook", "stage", "owner", "channel", "cohort", "industry", "region", "offer", "outcome", "q", "city", "ward"] as const;
 
 export function readFilters(url: URL): Filters {
   const get = (key: string) => (url.searchParams.get(key) ?? "").trim().slice(0, 120);
-  return Object.fromEntries(filterKeys.map((key) => [key, get(key)])) as unknown as Filters;
+  const filters = Object.fromEntries(filterKeys.map((key) => [key, get(key)])) as unknown as Filters;
+  // Province and ward only from the official post-merger list.
+  return { ...filters, ...areaFilter(filters.city ?? "", filters.ward ?? "") };
 }
 
 export function filterSql(actor: CrmActor, filters: Filters, inactiveOwners: readonly string[] = []): { sql: string; args: unknown[] } {
@@ -432,6 +434,8 @@ export function filterSql(actor: CrmActor, filters: Filters, inactiveOwners: rea
   if (filters.cohort) add("o.cohort_key = ?", filters.cohort);
   if (filters.industry) add("a.industry = ? COLLATE NOCASE", filters.industry);
   if (filters.region) add("a.region = ? COLLATE NOCASE", filters.region);
+  if (filters.city) add("a.city = ?", filters.city);
+  if (filters.ward) add("a.ward = ?", filters.ward);
   if (filters.offer) add("(o.offer_id IN (SELECT id FROM crm_offers WHERE offer_key = ?) OR EXISTS (SELECT 1 FROM crm_quotes q JOIN crm_offers f ON f.id = q.offer_id WHERE q.opportunity_id = o.id AND f.offer_key = ?))", filters.offer, filters.offer);
   if (["open", "won", "lost", "paused"].includes(filters.outcome)) add("o.outcome = ?", filters.outcome);
   const search = searchSql(["o.title", "a.name"], filters.q);

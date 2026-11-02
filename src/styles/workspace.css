@@ -309,6 +309,8 @@ body.crm.ws { --ws-z: 1; --ws-max: 2560px; --ws-gut: 24px; min-height: calc(100v
 
 .ws-lv, .ws-rec, .ws-sheet-panel { background: var(--crm-sheet); border: 1px solid var(--crm-line); border-radius: 8px; box-shadow: 0 1px 2px rgba(16, 42, 67, .06); }
 .ws-lv { overflow: hidden; }
+/* An open filter or list menu may extend past a short (or empty) list. */
+.ws-lv:has(.ws-drop[open]) { overflow: visible; }
 .ws-oh { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 14px 20px 10px; }
 .ws-oh-id { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .ws-oh-id > div { min-width: 0; }
@@ -483,7 +485,7 @@ a.ws-card:hover { border-color: var(--crm-blue); background: #f7fbfe; text-decor
    ui2's crm-lists.css and ui3's record.css). */
 .ws-filters > summary { position: relative; }
 .ws-filter-n { position: absolute; top: -6px; right: -6px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--crm-blue); color: white; font-size: 10px; font-weight: 600; line-height: 16px; text-align: center; }
-.ws-filter-form { width: min(340px, calc(100vw - 32px)); gap: 10px; padding: 8px 12px 12px; }
+.ws-filter-form { width: min(340px, calc(100vw - 32px)); gap: 10px; padding: 8px 12px 12px; max-height: min(72vh, 640px); overflow: auto; }
 .ws-filter-form :is(label, .ws-fld-l) { color: #344054; font-size: 13px; font-weight: 500; }
 .ws-filter-form :is(input:not([type="checkbox"], [type="radio"]), select) { box-sizing: border-box; width: 100%; min-height: 36px; padding: 0 10px; border: 1px solid var(--crm-line-strong); border-radius: 6px; background: white; font: inherit; font-size: 14px; }
 .ws-filter-actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 4px; }

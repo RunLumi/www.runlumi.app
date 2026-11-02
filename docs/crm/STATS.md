@@ -1,6 +1,6 @@
 # CRM stats on the Reports page (`/crm/reports`, `/vi/crm/reports`)
 
-Owner decisions 2026-11-02: build in two steps; add ward/district/city fields;
+Owner decisions 2026-11-02: build in two steps; add structured area fields (later: post-merger province and ward only, see below);
 access follows CRM permissions; stats are part of Reports, not a separate
 page (`/crm/stats` redirects there).
 
@@ -27,16 +27,15 @@ team or finance. The sections below show figures only.
   permissions). Partners, Finance and Fulfillment keep the earlier Reports sections instead.
 - Every query uses the viewer's own scope: team-wide roles (`crm.team`) see
   everyone's leads and deals; others only what they own. Filter options
-  (cities, districts, wards, industries) come from records the viewer can see.
+  (industries) come from records the viewer can see; provinces and wards come from the official list.
 - Only team-wide roles may filter by owner.
 
 ## Filters and comparison
 
 - One period (`from`, `to`; at most 366 days, never past today) and one
   playbook for the funnel apply to every set.
-- Up to five filter sets (`n`, `s<i>_city|district|ward|industry|source|owner|label`).
-  A ward value carries its district and city (`Phường 13|Quận 4|TP. Hồ Chí Minh`)
-  so equally named wards in different districts never mix.
+- Up to five filter sets (`n`, `s<i>_city|ward|industry|source|owner|label`).
+  City and ward resolve to official post-merger names; anything else is ignored.
 - Area and industry match ignoring letter case, Vietnamese included.
 - Leads use their own area/industry; opportunities use their company's.
 - The page works without JavaScript (GET form; "Add a set" submits `n+1`).
@@ -53,25 +52,47 @@ team or finance. The sections below show figures only.
 | Funnel | Share of those opportunities that reached each open stage (stage history plus the current stage); skippable stages count only deals that went through them |
 | Open pipeline | Opportunities open today, any creation date, by current stage |
 | Trend | New leads, new opportunities or wins per day (per week from 63 days) |
-| Breakdown | For one set: by the area level below its own area filter, by industry and by source (replaces the old leads-by-source table) |
+| Breakdown | For one set: by ward when the set has a province, otherwise by province; by industry; and by source (replaces the old leads-by-source table) |
 
 A rate with nothing to divide by shows "—", not 0%.
 
-## Ward, district and city
+## Province/city and ward (post-merger map)
 
-- Columns `ward`, `district`, `city` on `crm_accounts` and `crm_lead_records`
-  (migration 0057, additive). `district` keeps the familiar name (“Quận 4”)
-  even after the 2025 merger removed the district tier.
-- Values are normalised on save (`Q4` → `Quận 4`, `p.12` → `Phường 12`,
-  `tp hcm` → `TP. Hồ Chí Minh`). Blank fields are filled from the address or
-  area text only where a part is explicitly marked (Phường/P., Quận/Q., Huyện,
-  Xã, a known city); unmarked text is never guessed. Numbered districts imply
-  TP. Hồ Chí Minh.
-- Older records: a CRM admin (`crm.configure`) can run “Fill areas from
-  addresses” on the Reports page. It changes only fully blank records, bumps
-  their version and writes one `crm_area_backfill` audit row.
-- The CRM API/MCP `create_company` and `update_company` accept and return
-  `ward`, `district`, `city`.
+Owner decisions 2026-11-02: use Vietnam's administrative map after the 2025
+merger (in force 1 July 2025: two tiers, 34 provinces/cities and 3,321 wards,
+communes and special zones, no district tier); input must be on that list;
+existing data is moved once.
+
+- Source: General Statistics Office unit list (QĐ 19/2025/QĐ-TTg), via
+  thanglequoc/VietnameseProvincesDatabase v5.2.0 (MIT), stored compactly in
+  `src/data/vn-admin-units.json` and served per province as
+  `/areas/<code>.json` for the ward picker.
+- Columns `city` and `ward` on `crm_accounts` and `crm_lead_records` hold the
+  official full names ("Thành phố Hồ Chí Minh", "Phường Khánh Hội").
+  `district` (migration 0057) stays in the schema and is always empty.
+- Forms pick the province from the list and the ward from that province's
+  list. The server accepts a value only when it is on the list (case, accents
+  and the Phường/Tỉnh/TP. prefix do not matter) and stores the official name;
+  pre-merger province names map to their new province (Nghị quyết
+  202/2025/QH15). Pre-merger wards and districts are refused, never guessed.
+  Left blank, both are read from the address only when it names a current
+  province and, with its Phường/Xã/Đặc khu marker, a ward of it.
+- Migration 0058 (one-off): every stored spelling of a current or pre-merger
+  province becomes the official name, anything else ''; a ward is kept only
+  when it is an official ward of that province; district ''. Changed rows get
+  a new version and one `crm_area_post_merger` audit row records the counts.
+- Older records: a CRM admin (`crm.configure`) can still run “Fill areas from
+  addresses” on the Reports page (blank records only, same rules).
+- Filters: Leads, Pipeline, Companies, Contacts and Reports all filter by
+  province and ward (a contact or opportunity uses its company's area). The
+  CRM API/MCP `create_company` and `update_company` take `city` and `ward`.
+
+## Filters
+
+List pages keep their filters in the toolbar pop-over; an open pop-over may
+extend past a short or empty list. Reports keeps every filter (period,
+playbook, compared sets, sales overview, cohort) in one panel behind the
+"Filters" button, with a one-line summary and the set legend left visible.
 
 ## Colours
 

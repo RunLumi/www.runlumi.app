@@ -8,7 +8,7 @@ import {
   ConflictError, Errors, ForbiddenError, NotFoundError, emailPattern, eventStatement, fail, newId, normalizePhone, nowIso, once, onceGuarded,
 } from "./core";
 import { searchSql } from "../search";
-import { readArea } from "./area";
+import { areaFilter, readArea } from "./area";
 import { isIsoDate } from "./playbook";
 import { type Account, type Contact, type SourceChannel, contactChannels, contactRoles, dealForecast, parseVersion, phoneSuppressed, sourceChannels } from "./records";
 
@@ -27,11 +27,11 @@ function like(q: string): string {
   return `%${q.replace(/[\\%_]/g, (match) => `\\${match}`)}%`;
 }
 
-export interface DirectoryFilters { q: string; owner: string }
+export interface DirectoryFilters { q: string; owner: string; city?: string; ward?: string }
 
 export function readDirectoryFilters(url: URL): DirectoryFilters {
   const get = (key: string) => (url.searchParams.get(key) ?? "").trim().slice(0, 120);
-  return { q: get("q"), owner: get("owner") };
+  return { q: get("q"), owner: get("owner"), ...areaFilter(get("city"), get("ward")) };
 }
 
 interface Paged<T> { rows: T[]; total: number; page: number; pages: number }
@@ -60,6 +60,8 @@ export async function listAccounts(db: D1Database, actor: CrmActor, filters: Dir
   if (owner) { parts.push(owner.sql); args.push(...owner.args); }
   const search = searchSql(["a.name", "a.industry", "a.region"], filters.q);
   if (search) { parts.push(search.sql); args.push(...search.args); }
+  if (filters.city) { parts.push("a.city = ?"); args.push(filters.city); }
+  if (filters.ward) { parts.push("a.ward = ?"); args.push(filters.ward); }
   const where = parts.join(" AND ");
   const contacts = contactScope(actor, "cc");
   const opportunities = readableScope(actor, "oo");
@@ -80,6 +82,9 @@ export async function listContacts(db: D1Database, actor: CrmActor, filters: Dir
   const args: unknown[] = [...scope.args];
   const owner = ownerFilter(actor, filters.owner, "c.owner_id");
   if (owner) { parts.push(owner.sql); args.push(...owner.args); }
+  // A contact's area is its company's.
+  if (filters.city) { parts.push("a.city = ?"); args.push(filters.city); }
+  if (filters.ward) { parts.push("a.ward = ?"); args.push(filters.ward); }
   if (filters.q) {
     const digits = normalizePhone(filters.q);
     const phone = digits.length >= 4 ? " OR c.phone_norm LIKE ? ESCAPE '\\'" : "";

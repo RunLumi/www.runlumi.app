@@ -6,7 +6,9 @@
 // table view. Rates with nothing to divide by show "—", never 0%.
 import { label } from "../../lib/crm/i18n";
 import { formatVnd } from "../../lib/crm/money";
-import { MAX_SETS, type StatsSet, rate, splitWard, statsSearch } from "../../lib/crm/stats";
+import { MAX_SETS, type StatsSet, rate, statsSearch } from "../../lib/crm/stats";
+import AreaFields from "./AreaFields.astro";
+import FilterPopover from "./FilterPopover.astro";
 import { sourceChannels } from "../../lib/crm/records";
 import type { Ctx } from "../../lib/crm/page";
 import type { ReportStats } from "../../lib/crm/routes/reports";
@@ -26,14 +28,16 @@ const ownerName = (id: string) => id === "unassigned" ? t("Unassigned", "Chưa p
 /** A set's name: what the person typed, else its filters, else "All". */
 function setName(set: StatsSet, index: number): string {
   if (set.label) return set.label;
-  const ward = splitWard(set.ward);
-  const parts = [ward.ward, set.district || ward.district, set.city || ward.city, set.industry, set.source ? label(lang, "channel", set.source) : "", set.owner ? ownerName(set.owner) : ""].filter(Boolean);
+  const parts = [set.ward, set.city, set.industry, set.source ? label(lang, "channel", set.source) : "", set.owner ? ownerName(set.owner) : ""].filter(Boolean);
   return parts.length ? parts.join(" · ") : n > 1 ? t(`Set ${index + 1}: everything`, `Bộ lọc ${index + 1}: tất cả`) : t("Everything you can see", "Tất cả số liệu bạn được xem");
 }
+const periodLabel = `${query.from.split("-").reverse().join("/")} – ${query.to.split("-").reverse().join("/")}`;
 const names = query.sets.map(setName);
+const activeFilters = query.sets.reduce((sum, set) => sum + [set.city, set.ward, set.industry, set.source, set.owner].filter(Boolean).length, 0)
+  + [query.keep.owner, query.keep.product].filter(Boolean).length;
+const filterSummary = [periodLabel, playbook ? (vi ? playbook.name_vi : playbook.name_en) : "", n > 1 ? t(`${n} sets compared`, `So sánh ${n} bộ lọc`) : (names[0] ?? "")].filter(Boolean).join(" · ");
 const stageName = (id: string) => id === "won" ? t("Won", "Thắng") : (() => { const stage = playbook?.def.stages.find((item) => item.id === id); return stage ? (vi ? stage.vi : stage.en) : id; })();
 const removeHref = (index: number) => `${self}${statsSearch(query, { sets: query.sets.filter((_, at) => at !== index), focus: 0 })}`;
-const periodLabel = `${query.from.split("-").reverse().join("/")} – ${query.to.split("-").reverse().join("/")}`;
 
 // Trend (one line per set) drawn into a fixed viewBox; text stays in HTML.
 const series = results.map((item) => item.stats.series);
@@ -60,7 +64,7 @@ const biggestDrop = results.map(({ stats }) => {
   return worst > 0 ? at : "";
 });
 const pipelineMax = Math.max(1, ...results.flatMap(({ stats }) => stats.pipeline.map((step) => step.count)));
-const levelName = { city: t("City / province", "Tỉnh / thành phố"), district: t("District / area", "Quận / khu vực"), ward: t("Ward", "Phường / xã"), industry: t("Industry", "Ngành"), source_channel: t("Source", "Nguồn") };
+const levelName = { city: t("Province / city", "Tỉnh / thành phố"), ward: t("Ward / commune", "Phường / xã"), industry: t("Industry", "Ngành"), source_channel: t("Source", "Nguồn") };
 // Conversion counts decided leads only (converted or disqualified): open leads are not failures.
 const decided = (converted: number, disqualified: number) => rate(converted, converted + disqualified);
 const metrics: { key: string; name: string; help?: string; value: (stats: typeof results[number]["stats"]) => string }[] = [
@@ -75,10 +79,11 @@ const metrics: { key: string; name: string; help?: string; value: (stats: typeof
 ];
 ---
 <div class="st-root" id="stats">
-  <form class="crm-sheet st-form" method="get" action={self} aria-labelledby="st-filters-h">
+  <FilterPopover vi={vi} id="st-filters" title={t("Reports", "Báo cáo theo bộ lọc")} summary={filterSummary} active={activeFilters}>
+  {n > 1 && <div slot="after" class="st-legend" aria-label={t("Filter sets", "Các bộ lọc")}>{names.map((name, index) => <span><i class={`st-key s${index + 1}`} aria-hidden="true"></i>{name}</span>)}</div>}
+  <form class="st-form" method="get" action={self} aria-label={t("Report filters", "Bộ lọc báo cáo")}>
     <div>
-      <h2 class="crm-h2" id="st-filters-h">{t("Report filters", "Bộ lọc báo cáo")}</h2>
-      <p class="crm-meta">{periodLabel}. {t(`Compare up to ${MAX_SETS} filter sets by area, industry, source and owner.`, `So sánh tối đa ${MAX_SETS} bộ lọc theo khu vực, ngành, nguồn và người phụ trách.`)}</p>
+      <p class="crm-meta">{t(`Compare up to ${MAX_SETS} filter sets by area, industry, source and owner.`, `So sánh tối đa ${MAX_SETS} bộ lọc theo khu vực, ngành, nguồn và người phụ trách.`)}</p>
     </div>
     <div class="st-global">
       <div class="crm-field"><label for="st-from">{t("From", "Từ ngày")}</label><input class="crm-input" type="date" id="st-from" name="from" value={query.from} max={query.to} required /></div>
@@ -91,12 +96,7 @@ const metrics: { key: string; name: string; help?: string; value: (stats: typeof
       {query.sets.map((set, index) => <fieldset class="st-set">
         <legend><i class={`st-key s${index + 1}`} aria-hidden="true"></i>{n > 1 ? t(`Filter set ${index + 1}`, `Bộ lọc ${index + 1}`) : t("Filters", "Bộ lọc")}</legend>
         <div class="st-set-grid">
-          <div class="crm-field"><label for={`s${index}-city`}>{t("City / province", "Tỉnh / thành phố")}</label>
-            <select class="crm-select" id={`s${index}-city`} name={`s${index}_city`}><option value="">{t("All", "Tất cả")}</option>{options.cities.map((value) => <option selected={value === set.city}>{value}</option>)}{set.city && !options.cities.includes(set.city) && <option selected>{set.city}</option>}</select></div>
-          <div class="crm-field"><label for={`s${index}-district`}>{t("District / area", "Quận / khu vực")}</label>
-            <select class="crm-select" id={`s${index}-district`} name={`s${index}_district`}><option value="">{t("All", "Tất cả")}</option>{options.districts.filter((item) => !set.city || !item.city || item.city === set.city).map((item) => <option value={item.value} selected={item.value === set.district}>{item.city && !set.city ? `${item.value} · ${item.city}` : item.value}</option>)}</select></div>
-          <div class="crm-field"><label for={`s${index}-ward`}>{t("Ward", "Phường / xã")}</label>
-            <select class="crm-select" id={`s${index}-ward`} name={`s${index}_ward`}><option value="">{t("All", "Tất cả")}</option>{options.wards.filter((item) => { const ward = splitWard(item.value); return (!set.city || ward.city === set.city) && (!set.district || ward.district === set.district); }).map((item) => <option value={item.value} selected={item.value === set.ward}>{item.label}</option>)}</select></div>
+          <AreaFields vi={vi} filter id={`s${index}-area`} cityName={`s${index}_city`} wardName={`s${index}_ward`} city={set.city} ward={set.ward} />
           <div class="crm-field"><label for={`s${index}-industry`}>{t("Industry", "Ngành / loại tiệm")}</label>
             <select class="crm-select" id={`s${index}-industry`} name={`s${index}_industry`}><option value="">{t("All", "Tất cả")}</option>{options.industries.map((value) => <option selected={value === set.industry}>{value}</option>)}</select></div>
           <div class="crm-field"><label for={`s${index}-source`}>{t("Source", "Nguồn")}</label>
@@ -115,10 +115,10 @@ const metrics: { key: string; name: string; help?: string; value: (stats: typeof
       {n < MAX_SETS && <button class="crm-button secondary" type="submit" name="n" value={n + 1}>{t(`Add a set to compare (${n}/${MAX_SETS})`, `Thêm bộ lọc để so sánh (${n}/${MAX_SETS})`)}</button>}
       <a class="crm-link" href={self}>{t("Reset", "Đặt lại")}</a>
     </div>
-    <p class="crm-help">{t("Ward options carry their district, so a ward is never matched in another district. Sellers see only leads and deals they own.", "Mỗi phường đi kèm quận của nó nên không bị lẫn với phường cùng tên ở quận khác. Nhân viên chỉ thấy Lead và cơ hội của mình.")}</p>
+    <p class="crm-help">{t("Areas follow the official list after the 2025 merger (province and ward). Sellers see only leads and deals they own.", "Khu vực theo danh mục sau sáp nhập 2025 (tỉnh/thành và phường/xã). Nhân viên chỉ thấy Lead và cơ hội của mình.")}</p>
   </form>
+  </FilterPopover>
 
-  {n > 1 && <div class="st-legend" aria-label={t("Filter sets", "Các bộ lọc")}>{names.map((name, index) => <span><i class={`st-key s${index + 1}`} aria-hidden="true"></i>{name}</span>)}</div>}
 
   <section class="crm-sheet st-sec" aria-labelledby="st-kpi-h">
     <h2 class="crm-h2" id="st-kpi-h">{t("Overview", "Tổng quan")}</h2>
