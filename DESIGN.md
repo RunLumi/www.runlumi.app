@@ -1,23 +1,29 @@
 # Lumi Landing Design System
 
 Revision: Civic Editorial Intelligence + restrained liquid glass · September 2026
+Narrative revision: RunLumi as the core product · 2026-11-06
 
 > Marketing adaptation of the canonical Lumi design language in
 > `RunLumi/lumi-agents/DESIGN.md`. The shared Lumi identity is authoritative.
 > This file narrows that system for `runlumi.app`; it does not invent a second brand.
+> Product facts come from the `runlumi-core` repository (README.md, vision.md, features.md,
+> DESIGN.md, docs/features). Where this file and that repository disagree on a product claim,
+> the repository wins and this file is corrected.
 
 ## 0. Purpose
 
 The landing page has one job:
 
-> Make a serious operator understand, in under a minute, that Lumi helps the tools
-> and work a company already has move together as one operating system.
+> Make a person who does client work on a computer understand, in under a minute, that
+> RunLumi keeps a private memory of that work on their own device, helps them find it,
+> resume it and account for it, and that they stay in control of what it captures.
 
-It must communicate **vision + system + evidence + a concrete next step** without becoming
-an AI spectacle, a four-product catalogue, or a consulting brochure.
+It must communicate **promise + how it works + privacy + a concrete next step (the
+design-partner pilot)** without becoming an AI spectacle, a surveillance product, a feature
+catalogue, or a developer-tool README.
 
-The page should feel closer to a beautifully edited operating manual, annual report,
-or systems map than a conventional startup template.
+The page should feel closer to a beautifully edited instrument manual or a trustworthy
+public-interest explainer than a conventional startup template.
 
 ---
 
@@ -41,43 +47,62 @@ robotic, gamified, crypto-like, or trend-chasing AI aesthetics.
 
 # 2. Positioning
 
-## 2.1 Company-level proposition
+## 2.1 Core proposition
 
-Lumi is not presented as four unrelated products.
+**RunLumi** is Lumi's core product: a local-first memory of the work on a person's computer.
 
-The system is:
+Promise: **Your work, remembered. Your AI, your choice. Your data, your control.**
+Vietnamese: **Việc đã làm, không còn trôi mất. AI do bạn chọn. Dữ liệu do bạn nắm.**
+
+The system the page explains:
 
 ```text
-People
+You, on your own computer
   ↕
-Lumi Assistant — one front door
+RunLumi — Recall · Timeline · Timesheet review
   ↕
-Workspace · Lumi BI · Lumi Agents
-coordinate · understand · act
+Local memory on the device (RunLumi Core engine)
   ↕
-Shared company context
-(memory · evidence · permissions · workflow state)
+Capture you control
+(opt-in sources · app allowlists · region masks · pause & schedule)
   ↕
-Controlled actions
-(permissions · approvals · verification)
-  ↕
-The systems the company already uses
+Signals you allow
+(app names · screen frames · accessibility text · microphone · browser tab title)
 ```
 
-The page therefore sells a **new operating model for the company**, not a collection of features.
+The page therefore sells **a private record of your own work that you control**, not
+productivity tracking, not an AI chatbot, and not a collection of features.
 
-## 2.2 Product roles
+## 2.2 Naming
 
-- **Lumi Assistant** — the universal front door: ask, delegate, follow through.
+- **RunLumi** — the product name in every user-facing surface, EN and VI.
+- **RunLumi Core** — only the engine underneath: the `runlumi-core` repository and crate,
+  the planned Apache-2.0 open-source core, the MCP server and the local API. Use it when
+  talking to developers ("RunLumi is built on RunLumi Core"). Never present Core as a tier.
+- **Lumi AI Workspace, Lumi BI, Lumi Agents** — Lumi's products for companies.
+
+## 2.3 Product roles
+
+- **RunLumi** — personal memory: recall what you saw, resume interrupted work, draft
+  timesheets you approve, give your own AI read-only context.
 - **Lumi AI Workspace** — coordinate decisions, commitments, risks, and operating work.
 - **Lumi BI** — understand what changed and trace conclusions to evidence.
 - **Lumi Agents** — carry out bounded digital jobs with tools, worklogs, approvals, and verification.
 
-**Customer taxonomy:** one way in, three core capabilities.
+**Separation rule:** personal memory belongs to the individual. RunLumi does not connect to
+the company products automatically, and the page must never imply that an employer can
+see a person's history. Sharing a reviewed timesheet or note into a company product is a
+separate, deliberate step. The company products appear on the landing page as one compact
+"For teams" section, not as equal chapters beside RunLumi.
 
-The Assistant is not a fourth equal product card. Shared context, permissions, model routing,
-tool access, approvals, verification, and audit are platform capabilities and should remain
-largely invisible until they explain trust or a buying requirement.
+## 2.4 Honesty boundary
+
+RunLumi is in early development and the call to action is a design-partner pilot. Describe
+the early build accurately, label direction as direction, and do not claim availability,
+release dates, benchmarks, customers, platform support beyond the pilot, or an open-source
+release that has not happened. Do not name or compare with competitors (including Screenpipe)
+without a published comparative benchmark. The first paid job is recovering legitimate,
+previously unlogged billable time; never imply that being active at a computer is billable.
 
 ---
 
@@ -112,16 +137,16 @@ Require:
 - repeated folded-L line geometry;
 - material states with a reason.
 
-## 3.3 The operator layer
+## 3.3 The practitioner layer
 
-A CEO or operator should understand:
+A freelancer, consultant or small-agency owner should understand:
 
-1. what Lumi is;
-2. where it sits in the company;
-3. what each product does;
-4. how work moves through the stack;
+1. what RunLumi is;
+2. what it captures, and that nothing is captured until they allow it;
+3. what it helps them do (recall, resume, account for time, give their AI context);
+4. where their data lives and who can see it;
 5. why it can be trusted;
-6. what to do next.
+6. how to join the pilot.
 
 Visual polish that does not improve one of those six outcomes is not completion.
 
@@ -359,64 +384,75 @@ animated distortion, pointer spotlights or extra accent colors.
 
 # 9. Landing-page composition
 
-The page is an edited explanation of how work moves, not a catalogue.
+The page is an edited explanation of a private work memory, not a catalogue.
 
-## 9.1 Hero — company first
+## 9.1 Hero — the person first
 
-A short two-part thesis: “Your company. Working as one.” / “Cả doanh nghiệp. Cùng một nhịp.”
-The supporting paragraph must name the AI operating layer and connect people, data and tools.
+A short two-part thesis: “Your work, remembered.” / “Việc đã làm, không còn trôi mất.”
+The supporting paragraph names what RunLumi keeps (a private, searchable memory of the work on
+your computer), what it helps with (find, resume, timesheet you approve) and the promise.
+A short note states the development stage, the pilot platform and that capture is off by default.
 A visitor must understand the proposition without interpreting the illustration.
 
-Use one question-led example on an opaque white sheet. Label it **Illustrative / Minh họa**.
-Assistant is the entry point; Workspace, BI and Agents appear as connected capabilities.
-The attached glass dock links to the workflow below. Never simulate a live run, chat input,
-completed job or verified result. No invented numbers or customer names.
+Use one recall example on an opaque white sheet. Label it **Illustrative / Minh họa**.
+It moves from a remembered phrase to a source with app and time, its context, and a draft
+time entry that is explicitly not yet approved. The attached glass dock links to the week below.
+Never simulate live capture, a recording indicator, a completed export or a verified result.
+No real customer, company or person names; use neutral project names such as “Sen”.
 
-## 9.2 The work between tools
+## 9.2 Where work goes missing
 
-A compact editorial bridge describes a recognizable cost: finding a number,
-repeating context, chasing the next step. Avoid a second manifesto or repeated feature grid.
+A compact editorial bridge describes a recognizable cost: work spread across tabs, meetings,
+chats and interruptions; rebuilding context; forgetting what was agreed; under-reporting time.
+Avoid a second manifesto or repeated feature grid.
 
-## 9.3 Follow one workflow
+## 9.3 Follow one working week
 
-Show a sales-review question moving through four stages: ask, trace, decide, act.
-The workflow is an illustration of the operating model, not a customer case study.
-Do not use invented timestamps to imply an observed execution or promise a completion time.
+Show a consultant's week moving through four stages: recall, resume, account, approve.
+It is an illustration of the intended workflow, not a customer case study. Make the billing
+boundary explicit: suggested time is never billable until the person approves it.
 
-## 9.4 Explain the system
+## 9.4 Explain how it works on the computer
 
-People → Assistant → Workspace / BI / Agents → company context → controlled actions → existing systems.
+RunLumi → Recall / Timeline / Timesheet → local memory (RunLumi Core engine) → capture controls → signals you allow.
 Use a quiet dotted document grid, thin connectors and legible sheets.
-State that deployment scope, features and connections are confirmed per use case.
-Software categories are not a list of verified integrations.
+State that this is the early build's architecture, that each source is off by default and needs
+its own operating-system permission, and that features are not yet verified for general release.
 
-## 9.5 Product chapters
+## 9.5 Three first jobs
 
-Three editorial chapters, each with a distinct job, a clear explanation and an inspectable,
-explicitly illustrative artifact. No four equal product cards. No fabricated dashboards.
-Retain sources, ownership, limits and approval as the vocabulary of real work.
+Three editorial chapters: recall & resume, billable time recovery, context for your AI.
+Each has a distinct job, a clear explanation and an inspectable, explicitly illustrative
+artifact (a recall result, a timesheet draft separating observed / suggested / approved, an
+agent request scope). Mark planned capabilities as planned. No fabricated dashboards.
 
-## 9.6 Company context
+## 9.6 Vietnam first
 
-One Civic Navy inversion explains why the next question should not start from zero.
-Use linked inputs and outputs; preserve readable contrast. No glass text panels in this section.
+One Civic Navy inversion explains the Vietnam-first design: Vietnamese and English in the same
+work, tone marks in names and searches, modest laptops, browser tabs, spreadsheets and chat.
+Treat these as design intent, not benchmark claims. Linked inputs (signals) flow into “your
+local memory” and out to recall, resume and account. No glass text panels in this section.
 
-## 9.7 Trust and the first workflow
+## 9.7 Privacy rules, teams and the pilot
 
-Present evidence, authority, human judgment and verification as design standards.
-Explain how to start: choose one recurring job, check fit, define the evaluation, review the result.
-Do not imply every roadmap capability is generally available.
+Present the privacy rules as design standards: visible opt-in capture, exclusions before storage,
+local by default, no surveillance and no false billing.
+Then one compact “For teams” section linking Lumi AI Workspace, BI and Agents, with the
+separation rule stated in plain words.
+Then the pilot: tell us how you work, install an early build on a machine you control,
+reconstruct one week with consent, compare the result.
 
 ## 9.8 A reason to begin
 
-The final question is specific: which recurring report, handoff or unresolved question
-will come around again next week? Invite the visitor to bring that work to Lumi.
-The CTA opens an email draft with prompts for workflow, systems, bottleneck and desired result.
-It must say that it opens email. No invisible form submission or invented response-time promise.
+The final question is specific and personal: what did you work on last Tuesday?
+Invite people who bill clients for their time to join the pilot.
+The CTA opens an email draft with prompts for role, how time is tracked and billed today,
+computer and operating system, and the apps used most. It must say that it opens email.
+No invisible form submission, waitlist counter or invented response-time promise.
 
-Desire comes from recognizing a better way to work. Urgency comes from a real recurring cost.
+Desire comes from recognizing lost work and lost time. Urgency comes from a real recurring cost.
 Never manufacture urgency with countdowns, limited places, competitive threats, fake adoption,
-unsupported ROI or claims about what “every leading company” is doing.
+unsupported time-recovered figures or claims about what “every freelancer” is doing.
 
 ---
 
@@ -531,19 +567,23 @@ Replace abstract technology language whenever ordinary language says the same th
 
 Prefer:
 
-> Keep the systems that work. Make them work together.
+> Find what you saw, with the source.
 
 Over:
 
-> Add an intelligent orchestration layer to your existing technology stack.
+> Unlock total recall with AI-powered continuous context capture.
 
 Prefer:
 
-> Hỏi doanh nghiệp. Lần theo bằng chứng.
+> Tìm lại được, kèm nguồn gốc.
 
 Over:
 
-> Khai thác dữ liệu bằng nền tảng AI thông minh đa tác tử.
+> Khai phá sức mạnh ghi nhớ toàn diện với nền tảng AI thông minh.
+
+Describe capture plainly and never euphemistically: say what is recorded, when, and where it is
+stored. Avoid “always on”, “sees everything”, “never forget anything” and other surveillance-
+or omniscience-flavoured phrasing.
 
 Product names may contain “AI”, “Agents”, or “Autonomous” where those are the actual names.
 Do not repeat those terms in surrounding copy merely to signal modernity.
@@ -552,7 +592,7 @@ Vietnamese should be chân phương, tự nhiên, mềm và chắc:
 
 - tránh dịch sát tiếng Anh;
 - tránh “tối ưu hóa”, “đột phá”, “nâng tầm”, “cách mạng hóa” nếu không có nghĩa cụ thể;
-- ưu tiên cách nói một người chủ doanh nghiệp có thể nói lại cho người khác ngay sau khi đọc.
+- ưu tiên cách nói một người làm nghề tự do hay chủ agency nhỏ có thể nói lại cho người khác ngay sau khi đọc.
 
 ---
 
@@ -628,11 +668,11 @@ Reviewed 2026-10-03. Technical references support implementation; trend material
 
 # 14. Copy
 
-Lumi speaks like:
+RunLumi speaks like:
 
-- a precise operating assistant;
-- a calm chief of staff;
-- a trustworthy analyst;
+- a careful archivist;
+- a calm, honest colleague who keeps good notes;
+- a precise instrument maker;
 - a clear editor.
 
 Use:
@@ -673,7 +713,9 @@ Never ship:
 - unexplained technical acronyms;
 - repeated equal feature cards;
 - unnecessary animation;
-- four products presented as four isolated companies.
+- capture or recording theatre (pulsing red dots, live screen previews, “watching” eyes);
+- productivity scores, activity heatmaps of a person or employee leaderboards;
+- RunLumi presented as part of, or a feed into, the company products.
 
 ---
 
@@ -704,11 +746,13 @@ Before merging a visual change:
 - [ ] Is blue used as authority rather than decoration?
 - [ ] Is Paper White still the dominant canvas?
 - [ ] Does each section answer one question?
-- [ ] Does the hero explain the operating model before listing products?
-- [ ] Does the stack read as one system?
-- [ ] Does Assistant read as the front door, with Workspace/BI/Agents as the three core capabilities?
+- [ ] Does the hero lead with RunLumi and its promise before any feature list?
+- [ ] Is “RunLumi Core” used only for the engine, never as the product or a tier?
+- [ ] Does the how-it-works diagram read as one system on the person's own computer?
+- [ ] Is capture clearly opt-in, visible and local, with the development stage stated?
+- [ ] Are Workspace/BI/Agents kept separate from personal memory, in one compact section?
 - [ ] Are product visuals inspectable work rather than fake screenshots?
-- [ ] Are evidence, permissions, approvals, and worklogs treated as product value?
+- [ ] Are sources, timestamps, exclusions and approval treated as product value?
 - [ ] Is the page strong without video?
 - [ ] Are EN and VI structurally synchronized?
 - [ ] Does mobile preserve the system story?
