@@ -6,7 +6,7 @@ Lumi is developed by Cloudjet Solutions. The public site is the primary source f
 
 ## Core product
 
-RunLumi is a local-first desktop memory of the work on a person's computer. Its promise: your work, remembered; your AI, your choice; your data, your control. It is in early development. Pilot builds run on macOS. The first job it aims to prove is recovering legitimate, previously unlogged billable time for freelancers and small agencies who bill clients by the hour. The longer-term direction is a complete personal computer-memory product, independently built, Vietnam-first and then Southeast Asia, built on RunLumi Core, an independently developed memory engine planned for open-source release after legal review.
+RunLumi is a local-first desktop memory of the work on a person's computer. It is in early development. Pilot builds run on macOS. The first job it aims to prove is recovering legitimate, previously unlogged billable time for freelancers and small agencies who bill clients by the hour. The longer-term direction is a complete personal computer-memory product, independently built, Vietnam-first and then Southeast Asia, built on RunLumi Core, an independently developed memory engine planned for open-source release after legal review.
 
 The early build includes local memories and full-text search, a day/week timeline, clients and projects, a user-started work timer with draft billing review, opt-in app-name intervals, reviewed JSON and approved-session CSV export, default-off screen capture of allowlisted windows, user-requested accessibility snapshots, on-device OCR and transcription, and a read-only MCP server. These features are not yet verified for general release.
 

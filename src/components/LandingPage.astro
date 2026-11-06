@@ -16,8 +16,8 @@ const contact = `mailto:${company.email}?subject=${encodeURIComponent(copy.mail.
         <img class="brand-mark" src="/brand/lumi-fulltext.svg" alt="Lumi" width="196" height="100" />
       </a>
       <nav class="main-nav" aria-label={vi ? "Điều hướng chính" : "Main navigation"}>
-        <a href="#products">{copy.nav.products}</a>
         <a href="#how">{copy.nav.how}</a>
+        <a href="#products">{copy.nav.products}</a>
         <a href="#trust">{copy.nav.trust}</a>
         <a href={vi ? "/vi/blog" : "/blog"}>{copy.nav.blog}</a>
       </nav>
@@ -29,8 +29,8 @@ const contact = `mailto:${company.email}?subject=${encodeURIComponent(copy.mail.
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18" /></svg>
           </summary>
           <nav class="mobile-nav" aria-label={vi ? "Điều hướng trên di động" : "Mobile navigation"}>
-            <a href="#products">{copy.nav.products}</a>
             <a href="#how">{copy.nav.how}</a>
+            <a href="#products">{copy.nav.products}</a>
             <a href="#trust">{copy.nav.trust}</a>
             <a href={vi ? "/vi/blog" : "/blog"}>{copy.nav.blog}</a>
             <a href={contact}>{copy.nav.contact}</a>
@@ -73,20 +73,16 @@ const contact = `mailto:${company.email}?subject=${encodeURIComponent(copy.mail.
         <p class="hero-note">{copy.hero.note}</p>
       </div>
       <aside class="hero-system" aria-label={copy.hero.systemLabel}>
-        <div class="hero-system-head"><span>{copy.hero.example.label}</span><span aria-hidden="true">L / 01</span></div>
         <div class="request-sheet sheet">
-          <div class="request-heading"><img src="/brand/lumi-logo.svg" alt="" width="28" height="28" /><span>RunLumi</span><span class="example-label">{copy.hero.example.tag}</span></div>
+          <div class="request-heading"><img src="/brand/lumi-logo.svg" alt="" width="28" height="28" /><span>{copy.hero.example.label}</span><span class="example-label">{copy.hero.example.tag}</span></div>
           <p class="request-question">{copy.hero.example.query}</p>
-          <div class="request-divider"><span>{copy.hero.example.divider}</span></div>
           <ol class="hero-system-list">
             {copy.hero.systemItems.map((item) => (
-              <li><span class="system-n">{item.n}</span><div><strong>{item.name}</strong><span class="system-detail">{item.detail}</span></div><span class="system-role">{item.role}</span></li>
+              <li><div><strong>{item.name}</strong><span class="system-detail">{item.detail}</span></div><span class="system-role">{item.role}</span></li>
             ))}
           </ol>
-          <div class="hero-system-foot"><span class="corner-mark" aria-hidden="true"></span><span>{copy.hero.systemFoot}</span></div>
+          <div class="hero-system-foot"><span>{copy.hero.systemFoot}</span></div>
         </div>
-        <a class="workflow-dock glass" href="#how"><span class="dock-mark" aria-hidden="true">↳</span><span>{copy.hero.example.dock}</span><span aria-hidden="true">↗</span></a>
-        <div class="system-caption">{copy.hero.example.caption}</div>
       </aside>
     </section>
 
@@ -108,12 +104,9 @@ const contact = `mailto:${company.email}?subject=${encodeURIComponent(copy.mail.
           <p class="section-intro">{copy.day.body}</p>
         </div>
         <ol class="day-timeline">
-          {copy.day.moments.map((moment, index) => (
+          {copy.day.moments.map((moment) => (
             <li class="day-moment">
-              <div class="timeline-time">
-                <span>{moment.time}</span>
-                <span class="timeline-index">0{index + 1}</span>
-              </div>
+              <div class="timeline-time">{moment.time}</div>
               <div class="timeline-copy">
                 <h3>{moment.title}</h3>
                 <p>{moment.body}</p>
@@ -121,60 +114,6 @@ const contact = `mailto:${company.email}?subject=${encodeURIComponent(copy.mail.
             </li>
           ))}
         </ol>
-      </div>
-    </section>
-
-    <section class="stack-section" id="stack">
-      <div class="shell">
-        <div class="section-heading">
-          <div class="section-label">{copy.stack.label}</div>
-          <h2>{copy.stack.title}</h2>
-        </div>
-
-        <p class="scope-note">{copy.stack.scopeNote}</p>
-        <div class="stack-map" aria-label={copy.stack.ariaLabel}>
-          <article class="stack-assistant sheet">
-            <div class="stack-node-meta">{copy.stack.assistantMeta}</div>
-            <h3>{copy.stack.assistant.name}</h3>
-            <strong>{copy.stack.assistant.role}</strong>
-            <p>{copy.stack.assistant.desc}</p>
-          </article>
-
-          <div class="stack-connector stack-connector-short" aria-hidden="true"></div>
-
-          <div class="stack-products">
-            {copy.stack.products.map((product, index) => (
-              <article class="stack-product sheet">
-                <div class="stack-node-meta">0{index + 1} / {product.role}</div>
-                <h3>{product.name}</h3>
-                <p>{product.desc}</p>
-              </article>
-            ))}
-          </div>
-
-          <div class="stack-connector" aria-hidden="true"></div>
-
-          <article class="stack-foundation">
-            <span>{copy.stack.foundationMeta}</span>
-            <h3>{copy.stack.foundationTitle}</h3>
-            <p>{copy.stack.foundation}</p>
-          </article>
-
-          <div class="stack-connector stack-connector-compact" aria-hidden="true"></div>
-
-          <article class="stack-gateway">
-            <span>{copy.stack.gatewayMeta}</span>
-            <h3>{copy.stack.gatewayTitle}</h3>
-            <p>{copy.stack.gateway}</p>
-          </article>
-
-          <div class="stack-connector stack-connector-compact" aria-hidden="true"></div>
-
-          <article class="stack-systems">
-            <span>{copy.stack.systems}</span>
-            <p>{copy.stack.systemsList}</p>
-          </article>
-        </div>
       </div>
     </section>
 
@@ -187,70 +126,16 @@ const contact = `mailto:${company.email}?subject=${encodeURIComponent(copy.mail.
         <div class="product-list">
           {copy.products.map((product) => (
             <article class="product-chapter">
-              <div class="product-number">{product.index}</div>
-              <div class="product-heading">
-                <div class="eyebrow">{product.kicker}</div>
-                <div class="product-name">{product.name}</div>
-              </div>
+              <div class="product-name">{product.name}</div>
               <div class="product-story">
                 <h3>{product.title}</h3>
                 <p>{product.body}</p>
+                <ul class="product-examples" aria-label={product.name + (vi ? " — năng lực" : " capabilities")}>
+                  {product.examples.map((item) => <li>{item}</li>)}
+                </ul>
               </div>
-              <div class="product-artifact sheet" aria-label={product.demo.label}>
-                <div class="artifact-head">
-                  <span>{product.demo.label}</span>
-                  <span class="artifact-source"><i></i> {copy.lang === "vi" ? "MINH HỌA" : "ILLUSTRATIVE"}</span>
-                </div>
-                <div class="artifact-rows">
-                  {product.demo.rows.map((row) => (
-                    <div class="artifact-row">
-                      <span class="artifact-key">{row.key}</span>
-                      <div>
-                        <strong>{row.value}</strong>
-                        <small>{row.meta}</small>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <ul class="product-examples" aria-label={product.name + (vi ? " — năng lực" : " capabilities")}>
-                {product.examples.map((item) => <li>{item}</li>)}
-              </ul>
             </article>
           ))}
-        </div>
-      </div>
-    </section>
-
-    <section class="context-section">
-      <div class="shell">
-        <div class="context-header">
-          <div class="section-label">{copy.context.label}</div>
-          <h2>{copy.context.title}</h2>
-          <p>{copy.context.body}</p>
-        </div>
-
-        <div class="context-graph" role="img" aria-label={copy.context.ariaLabel}>
-          <div class="context-inputs">
-            {copy.context.inputs.map((input) => <span class="context-chip">{input}</span>)}
-          </div>
-          <div class="context-flow" aria-hidden="true"><span></span><span></span><span></span></div>
-          <div class="context-center">
-            <img class="context-logo" src="/brand/lumi-logo.svg" alt="" width="84" height="84" aria-hidden="true" />
-            <strong>{copy.context.center}</strong>
-          </div>
-          <div class="context-flow context-flow-out" aria-hidden="true"><span></span><span></span><span></span></div>
-          <div class="context-outputs">
-            {copy.context.outputs.map((output) => <span class="context-output">{output}</span>)}
-          </div>
-        </div>
-
-        <div class="evidence-callout">
-          <span class="evidence-star" aria-hidden="true">✦</span>
-          <div>
-            <strong>{copy.context.proofTitle}</strong>
-            <p>{copy.context.proofBody}</p>
-          </div>
         </div>
       </div>
     </section>
@@ -261,10 +146,10 @@ const contact = `mailto:${company.email}?subject=${encodeURIComponent(copy.mail.
           <div class="section-label">{copy.trust.label}</div>
           <h2>{copy.trust.title}</h2>
         </div>
+        <p class="scope-note">{copy.trust.note}</p>
         <div class="trust-grid">
-          {copy.trust.items.map((item, index) => (
+          {copy.trust.items.map((item) => (
             <article>
-              <span>0{index + 1}</span>
               <h3>{item.title}</h3>
               <p>{item.body}</p>
             </article>
@@ -281,9 +166,9 @@ const contact = `mailto:${company.email}?subject=${encodeURIComponent(copy.mail.
         </div>
         <p class="scope-note">{copy.teams.body}</p>
         <div class="stack-products" aria-label={copy.teams.ariaLabel}>
-          {copy.teams.products.map((product, index) => (
+          {copy.teams.products.map((product) => (
             <article class="stack-product sheet">
-              <div class="stack-node-meta">0{index + 1} / {product.role}</div>
+              <div class="stack-node-meta">{product.role}</div>
               <h3>{product.name}</h3>
               <p>{product.desc}</p>
               <a class="stack-product-link" href={product.href}>
@@ -293,17 +178,6 @@ const contact = `mailto:${company.email}?subject=${encodeURIComponent(copy.mail.
             </article>
           ))}
         </div>
-      </div>
-    </section>
-
-    <section class="journal-section section-rule">
-      <div class="shell journal-section-inner">
-        <div>
-          <div class="section-label">{copy.blog.label}</div>
-          <h2>{copy.blog.title}</h2>
-          <p>{copy.blog.body}</p>
-        </div>
-        <a class="button button-lg" href={vi ? "/vi/blog" : "/blog"}>{copy.blog.cta} <span aria-hidden="true">↗</span></a>
       </div>
     </section>
 
@@ -327,7 +201,6 @@ const contact = `mailto:${company.email}?subject=${encodeURIComponent(copy.mail.
 
     <section class="cta-section" id="contact">
       <div class="shell cta-sheet">
-        <div class="section-label">{copy.cta.label}</div>
         <h2>{copy.cta.title}</h2>
         <p>{copy.cta.body}</p>
         <div class="cta-actions">

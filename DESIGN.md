@@ -163,9 +163,9 @@ Lumi is a **lit operating desk**.
 | Ink       | authority                  | Civic Navy / Ink, never pure black                                       |
 | Mark      | provenance/attention       | small blue rail, dot, bracket, clarity mark                              |
 | Lift      | interaction                | navy-tinted elevation only                                               |
-| Glass     | navigation above the work  | floating header and one workflow navigation dock; never reading surfaces |
+| Glass     | navigation above the work  | floating header only; never reading surfaces                             |
 | Seal      | authority                  | primary Lumi Blue CTA                                                    |
-| Inversion | one editorial interruption | Civic Navy context section only                                          |
+| Inversion | one editorial interruption | optional Civic Navy section; the current landing uses none               |
 
 Every visible material needs a physical reason. Remove decoration that does not explain
 hierarchy, state, affordance, provenance, or system structure.
@@ -309,7 +309,6 @@ If a section answers two unrelated questions, split it.
 8px  cards, buttons, inputs
 12px popovers
 12px large editorial sheet
-14px workflow navigation dock
 16–20px floating header only
 999px true chips only
 ```
@@ -349,9 +348,8 @@ This is a CSS interpretation of that hierarchy, not a claim to reproduce native 
 
 **Paper is the content. Glass is how you move through it.**
 
-Use glass only for the floating header and the link dock attached to the hero's example.
-Both must be genuine navigation, with keyboard focus and a meaningful destination.
-Keep the system diagram, evidence, body text and product chapters opaque.
+Use glass only for the floating header. It must be genuine navigation, with keyboard focus
+and meaningful destinations. Keep the hero example, body text and product chapters opaque.
 Never nest glass inside glass or blur a whole section.
 
 ```css
@@ -384,65 +382,54 @@ animated distortion, pointer spotlights or extra accent colors.
 
 # 9. Landing-page composition
 
-The page is an edited explanation of a private work memory, not a catalogue.
+The page is a short, plain explanation of a private work memory, not a catalogue.
+Each capability is explained once. If a section restates what another section already said,
+cut it.
 
 ## 9.1 Hero — the person first
 
 A short two-part thesis: “Your work, remembered.” / “Việc đã làm, không còn trôi mất.”
-The supporting paragraph names what RunLumi keeps (a private, searchable memory of the work on
-your computer), what it helps with (find, resume, timesheet you approve) and the promise.
+The supporting paragraph says in plain sentences what RunLumi records, where it is stored and
+what you can do with it (find, resume, draft a timesheet you approve). No slogan line.
 A short note states the development stage, the pilot platform and that capture is off by default.
 A visitor must understand the proposition without interpreting the illustration.
 
-Use one recall example on an opaque white sheet. Label it **Illustrative / Minh họa**.
-It moves from a remembered phrase to a source with app and time, its context, and a draft
-time entry that is explicitly not yet approved. The attached glass dock links to the week below.
+Use one search example on an opaque white sheet, labelled **Illustrative / Minh họa**: a query,
+then three results (the match with app and time, its context, and a draft time entry that is
+explicitly not approved). No docks, captions, dividers or corner marks around it.
 Never simulate live capture, a recording indicator, a completed export or a verified result.
 No real customer, company or person names; use neutral project names such as “Sen”.
 
-## 9.2 Where work goes missing
+## 9.2 The problem
 
-A compact editorial bridge describes a recognizable cost: work spread across tabs, meetings,
+A compact paragraph describes a recognizable cost: work spread across tabs, meetings,
 chats and interruptions; rebuilding context; forgetting what was agreed; under-reporting time.
-Avoid a second manifesto or repeated feature grid.
 
-## 9.3 Follow one working week
+## 9.3 How it works: one working week
 
 Show a consultant's week moving through four stages: recall, resume, account, approve.
 It is an illustration of the intended workflow, not a customer case study. Make the billing
 boundary explicit: suggested time is never billable until the person approves it.
 
-## 9.4 Explain how it works on the computer
+## 9.4 Three first jobs
 
-RunLumi → Recall / Timeline / Timesheet → local memory (RunLumi Core engine) → capture controls → signals you allow.
-Use a quiet dotted document grid, thin connectors and legible sheets.
-State that this is the early build's architecture, that each source is off by default and needs
-its own operating-system permission, and that features are not yet verified for general release.
+Recall & resume, billable time recovery, context for your AI. Each is a name, a one-line title,
+a paragraph and a short list of concrete capabilities. Mark planned capabilities as planned.
+No mock result cards here: the hero already carries the one illustration.
 
-## 9.5 Three first jobs
+## 9.5 Privacy
 
-Three editorial chapters: recall & resume, billable time recovery, context for your AI.
-Each has a distinct job, a clear explanation and an inspectable, explicitly illustrative
-artifact (a recall result, a timesheet draft separating observed / suggested / approved, an
-agent request scope). Mark planned capabilities as planned. No fabricated dashboards.
+Lead with what the early build can record (each source off until turned on) and that it is
+stored in a local SQLite database you can export. Then four rules: visible opt-in capture,
+exclusions before storage, local by default, not for monitoring staff.
 
-## 9.6 Vietnam first
+## 9.6 For companies and the pilot
 
-One Civic Navy inversion explains the Vietnam-first design: Vietnamese and English in the same
-work, tone marks in names and searches, modest laptops, browser tabs, spreadsheets and chat.
-Treat these as design intent, not benchmark claims. Linked inputs (signals) flow into “your
-local memory” and out to recall, resume and account. No glass text panels in this section.
+One compact section linking Lumi AI Workspace, BI and Agents, with the separation rule stated in
+plain words. Then the pilot: tell us how you work, install an early build on a machine you
+control, reconstruct one week with consent, compare the result.
 
-## 9.7 Privacy rules, teams and the pilot
-
-Present the privacy rules as design standards: visible opt-in capture, exclusions before storage,
-local by default, no surveillance and no false billing.
-Then one compact “For teams” section linking Lumi AI Workspace, BI and Agents, with the
-separation rule stated in plain words.
-Then the pilot: tell us how you work, install an early build on a machine you control,
-reconstruct one week with consent, compare the result.
-
-## 9.8 A reason to begin
+## 9.7 A reason to begin
 
 The final question is specific and personal: what did you work on last Tuesday?
 Invite people who bill clients for their time to join the pilot.
@@ -450,10 +437,17 @@ The CTA opens an email draft with prompts for role, how time is tracked and bill
 computer and operating system, and the apps used most. It must say that it opens email.
 No invisible form submission, waitlist counter or invented response-time promise.
 
-Desire comes from recognizing lost work and lost time. Urgency comes from a real recurring cost.
-Never manufacture urgency with countdowns, limited places, competitive threats, fake adoption,
-unsupported time-recovered figures or claims about what “every freelancer” is doing.
+## 9.8 What the page leaves out
 
+These read as generated filler and are not used:
+- Slogan triplets (“Remember. Recover. Prepare.”, “Your AI, your choice. Your data, your
+  control.”) and “X, not Y” taglines.
+- Decorative numbering on section labels, cards and list items. Number only real sequences,
+  such as the pilot steps.
+- Input → logo → output chip diagrams, sparkle callouts and architecture diagrams that repeat
+  the feature list.
+- More than one illustrative mock, and mock tables of invented values.
+- A journal teaser on the landing page; the header and footer already link to it.
 ---
 
 # 10. Iconography
