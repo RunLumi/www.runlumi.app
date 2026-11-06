@@ -2,19 +2,21 @@
 
 ## Entity
 
-Lumi is the AI operating layer for a company. The public site is the primary source for Lumi's positioning, product roles and editorial material. The canonical public host is `https://runlumi.app`; `https://www.runlumi.app` serves the same primary site, and `https://landing.runlumi.app` remains a compatibility alias.
+Lumi is developed by Cloudjet Solutions. The public site is the primary source for Lumi's positioning, product roles and editorial material. The canonical public host is `https://runlumi.app`; `https://www.runlumi.app` serves the same primary site, and `https://landing.runlumi.app` remains a compatibility alias.
 
-## Product model
+## Core product
 
-People ask Lumi in plain language. Lumi Assistant is the front door. Lumi AI Workspace coordinates priorities, decisions, commitments and risks. Lumi BI moves from a business question to a metric, its drivers and source records. Lumi Agents execute repeatable jobs within explicit scope, tools, permissions, approvals and verification.
+RunLumi is a local-first desktop memory of the work on a person's computer. Its promise: your work, remembered; your AI, your choice; your data, your control. It is in early development. Pilot builds run on macOS. The first job it aims to prove is recovering legitimate, previously unlogged billable time for freelancers and small agencies who bill clients by the hour. The longer-term direction is a complete personal computer-memory product, independently built, Vietnam-first and then Southeast Asia, built on RunLumi Core, an independently developed memory engine planned for open-source release after legal review.
 
-## Trust model
+The early build includes local memories and full-text search, a day/week timeline, clients and projects, a user-started work timer with draft billing review, opt-in app-name intervals, reviewed JSON and approved-session CSV export, default-off screen capture of allowlisted windows, user-requested accessibility snapshots, on-device OCR and transcription, and a read-only MCP server. These features are not yet verified for general release.
 
-Lumi treats evidence, authority, human judgment and verified work as product requirements. A planned action is not an attempted action. An attempted action is not a completed action. A completed action is not verified until the relevant check has happened.
+## Privacy model
 
-## Adoption model
+Every capture source is off until the person turns it on and is visible in the menu bar. Exclusions such as app allowlists, private browser windows and screen region masks apply before storage. History stays on the device; nothing is sent to RunLumi or an AI provider unless the person chooses. RunLumi is not an employee-monitoring tool, and suggested time is never billable until the person approves it.
 
-Start with one recurring workflow. Connect only the systems it needs. Agree on the useful result and the person who owns it. Review the output with the team. Expand only when the first workflow earns another boundary.
+## Company products
+
+Lumi AI Workspace coordinates priorities, decisions, commitments and risks. Lumi BI moves from a business question to a metric, its drivers and source records. Lumi Agents execute repeatable jobs within explicit scope, tools, permissions, approvals and verification. RunLumi does not connect to them automatically; sharing from personal memory into a company product is a separate, reviewable step.
 
 ## Sources
 

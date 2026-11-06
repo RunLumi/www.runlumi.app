@@ -2,21 +2,28 @@
 
 ## Mission
 
-Build runlumi.app into the clearest public expression of Lumi as an AI operating layer for real companies.
+Build runlumi.app into the clearest public expression of Lumi, whose core product is **RunLumi**: a local-first memory of the work on a person's computer (direction decided 2026-11-06; product source of truth is the `runlumi-core` repository: README.md, vision.md, features.md, docs/features).
 
-The site is not a catalogue of unrelated products. Every change should reinforce this system:
+Promise: your work, remembered; your AI, your choice; your data, your control. Every change should reinforce this system:
 
 ```text
-people
+you, on your own computer
   ↕
-Lumi Autonomous Assistant
+RunLumi: Recall · Timeline · Timesheet review
   ↕
-Workspace · BI · Agents
+local memory on the device / capture you control (opt-in, allowlists, masks, pause)
   ↕
-company context / evidence / permissions / workflows
-  ↕
-existing business software
+signals you allow (apps, screen, accessibility text, microphone, browser tab)
+
+separately, by deliberate and reviewable sharing only:
+Lumi AI Workspace · Lumi BI · Lumi Agents (products for companies)
 ```
+
+- Naming: the product is **RunLumi** in all user-facing copy. **RunLumi Core** names only the engine underneath (the `runlumi-core` repo and crate, the planned open-source core, MCP server and local API), e.g. "RunLumi is built on RunLumi Core". Do not present Core as a tier.
+- RunLumi is in early development. Describe the early build accurately, label direction as direction, and never claim availability, release dates, benchmarks, customers or an open-source release that has not happened.
+- The first paid job is recovering legitimate, unlogged billable time; the call to action is the design-partner pilot.
+- Do not name or compare with competitors (including Screenpipe) in public copy without a published comparative benchmark.
+- Personal memory and company products stay separate: never imply that RunLumi feeds Workspace, BI or Agents automatically, or that employers can see a person's history.
 
 ## Ambition with evidence
 

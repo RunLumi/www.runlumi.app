@@ -1,24 +1,26 @@
 # Lumi
 
-> Lumi is an AI operating layer for real companies. It connects company context, evidence, decisions and bounded work across the systems a company already uses.
+> Lumi's core product is RunLumi: a local-first memory of the work on your computer, built in Vietnam and in early development. It helps a person recall what they saw, resume interrupted work and draft timesheets they approve, with capture that is opt-in and data that stays on their device. Lumi AI Workspace, Lumi BI and Lumi Agents are separate products for companies.
 
 ## Start here
 
-- [Lumi home](https://runlumi.app/): what Lumi is and how the operating layer fits together.
-- [Lumi Journal](https://runlumi.app/blog): practical writing about AI operating layers, evidence-led business intelligence and bounded AI agents.
-- [Lumi Journal in Vietnamese](https://runlumi.app/vi/blog): Vietnamese articles for operators building with AI.
+- [Lumi home](https://runlumi.app/): what RunLumi does, how capture and privacy work, and the design-partner pilot.
+- [Lumi vision](https://runlumi.app/vision): the direction behind RunLumi.
+- [Lumi Journal](https://runlumi.app/blog): practical writing about evidence, bounded AI and people in control.
+- [Lumi Journal in Vietnamese](https://runlumi.app/vi/blog): Vietnamese articles.
 - [Lumi Journal RSS](https://runlumi.app/rss.xml): machine-readable updates from the editorial archive.
 - [Lumi jobs](https://runlumi.app/jobs): current roles and the candidate-first application flow.
 
 ## Products
 
+- RunLumi (early development, design-partner pilot on macOS): local work memory with recall, a day/week timeline and reviewed billable-time drafts.
 - [Lumi AI Workspace](https://workspace.runlumi.app): coordinate decisions, commitments, risks and operating work.
 - [Lumi BI](https://about.bi.runlumi.app): understand what changed and trace conclusions to evidence.
 - [Lumi Agents](https://agents.runlumi.app): carry out bounded digital jobs with tools, worklogs, approvals and verification.
 
 ## Editorial principles
 
-Lumi writes about practical adoption. We distinguish evidence from inference, keep people responsible for consequential decisions, and prefer a small workflow that can be judged over a broad promise that cannot.
+Lumi distinguishes evidence from inference, labels direction as direction, and does not claim capabilities, benchmarks or customers it cannot show.
 
 ## Full context
 

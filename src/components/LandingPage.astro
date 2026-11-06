@@ -7,7 +7,7 @@ import CompanyFooter from "./CompanyFooter.astro";
 interface Props { copy: (typeof content)[keyof typeof content]; }
 const { copy } = Astro.props;
 const vi = copy.lang === "vi";
-const contact = `mailto:${company.email}?subject=${encodeURIComponent(vi ? "Trao đổi về một quy trình cùng Lumi" : "One workflow to explore with Lumi")}&body=${encodeURIComponent(vi ? "Chào Lumi,\n\nCông việc chúng tôi muốn cải thiện:\nHệ thống đang dùng:\nĐiểm thường bị mắc:\nKết quả mong đợi:\n" : "Hello Lumi,\n\nThe workflow we want to improve:\nSystems we use:\nWhere work gets stuck:\nWhat a useful result looks like:\n")}`;
+const contact = `mailto:${company.email}?subject=${encodeURIComponent(copy.mail.subject)}&body=${encodeURIComponent(copy.mail.body)}`;
 ---
 <BaseLayout lang={copy.lang} title={copy.meta.title} description={copy.meta.description} canonicalPath={copy.path}>
   <header class="site-header">
@@ -73,20 +73,20 @@ const contact = `mailto:${company.email}?subject=${encodeURIComponent(vi ? "Trao
         <p class="hero-note">{copy.hero.note}</p>
       </div>
       <aside class="hero-system" aria-label={copy.hero.systemLabel}>
-        <div class="hero-system-head"><span>{vi ? "MỘT VÍ DỤ VỚI LUMI" : "AN EXAMPLE WITH LUMI"}</span><span aria-hidden="true">L / 01</span></div>
+        <div class="hero-system-head"><span>{copy.hero.example.label}</span><span aria-hidden="true">L / 01</span></div>
         <div class="request-sheet sheet">
-          <div class="request-heading"><img src="/brand/lumi-logo.svg" alt="" width="28" height="28" /><span>Lumi Assistant</span><span class="example-label">{vi ? "Minh họa" : "Illustrative"}</span></div>
-          <p class="request-question">{vi ? "“Doanh thu tăng. Vì sao biên lợi nhuận lại giảm?”" : "“Sales are up. Why is margin down?”"}</p>
-          <div class="request-divider"><span>{vi ? "TỪ CÂU HỎI ĐẾN CÔNG VIỆC" : "FROM QUESTION TO WORK"}</span></div>
+          <div class="request-heading"><img src="/brand/lumi-logo.svg" alt="" width="28" height="28" /><span>RunLumi</span><span class="example-label">{copy.hero.example.tag}</span></div>
+          <p class="request-question">{copy.hero.example.query}</p>
+          <div class="request-divider"><span>{copy.hero.example.divider}</span></div>
           <ol class="hero-system-list">
             {copy.hero.systemItems.map((item) => (
-              <li><span class="system-n">{item.n}</span><div><strong>{item.name}</strong><span class="system-detail">{item.n === "01" ? (vi ? "Quyết định và người phụ trách" : "The decision and its owner") : item.n === "02" ? (vi ? "Con số và dữ liệu gốc" : "The numbers and their source") : (vi ? "Phạm vi và bước thực hiện" : "The scope and the next step")}</span></div><span class="system-role">{item.role}</span></li>
+              <li><span class="system-n">{item.n}</span><div><strong>{item.name}</strong><span class="system-detail">{item.detail}</span></div><span class="system-role">{item.role}</span></li>
             ))}
           </ol>
           <div class="hero-system-foot"><span class="corner-mark" aria-hidden="true"></span><span>{copy.hero.systemFoot}</span></div>
         </div>
-        <a class="workflow-dock glass" href="#how"><span class="dock-mark" aria-hidden="true">↳</span><span>{vi ? "Theo dõi từng bước" : "Follow the workflow"}</span><span aria-hidden="true">↗</span></a>
-        <div class="system-caption">{vi ? "Con người → Assistant → Workspace · BI · Agents" : "People → Assistant → Workspace · BI · Agents"}</div>
+        <a class="workflow-dock glass" href="#how"><span class="dock-mark" aria-hidden="true">↳</span><span>{copy.hero.example.dock}</span><span aria-hidden="true">↗</span></a>
+        <div class="system-caption">{copy.hero.example.caption}</div>
       </aside>
     </section>
 
@@ -131,10 +131,10 @@ const contact = `mailto:${company.email}?subject=${encodeURIComponent(vi ? "Trao
           <h2>{copy.stack.title}</h2>
         </div>
 
-        <p class="scope-note">{vi ? "Sơ đồ kiến trúc và quy trình minh họa. Phạm vi triển khai, tính năng và khả năng kết nối cần được xác nhận cho từng trường hợp." : "Architecture and illustrative workflows. Deployment scope, features and connections are confirmed for each use case."}</p>
-        <div class="stack-map" aria-label={vi ? "Sơ đồ hệ thống Lumi" : "Lumi operating stack"}>
+        <p class="scope-note">{copy.stack.scopeNote}</p>
+        <div class="stack-map" aria-label={copy.stack.ariaLabel}>
           <article class="stack-assistant sheet">
-            <div class="stack-node-meta">{copy.lang === "vi" ? "CỬA VÀO" : "FRONT DOOR"}</div>
+            <div class="stack-node-meta">{copy.stack.assistantMeta}</div>
             <h3>{copy.stack.assistant.name}</h3>
             <strong>{copy.stack.assistant.role}</strong>
             <p>{copy.stack.assistant.desc}</p>
@@ -148,10 +148,6 @@ const contact = `mailto:${company.email}?subject=${encodeURIComponent(vi ? "Trao
                 <div class="stack-node-meta">0{index + 1} / {product.role}</div>
                 <h3>{product.name}</h3>
                 <p>{product.desc}</p>
-                <a class="stack-product-link" href={product.href}>
-                  <span>{vi ? `Mở ${product.name}` : `Visit ${product.name}`}</span>
-                  <span aria-hidden="true">↗</span>
-                </a>
               </article>
             ))}
           </div>
@@ -159,7 +155,7 @@ const contact = `mailto:${company.email}?subject=${encodeURIComponent(vi ? "Trao
           <div class="stack-connector" aria-hidden="true"></div>
 
           <article class="stack-foundation">
-            <span>{copy.lang === "vi" ? "NGỮ CẢNH CHUNG" : "SHARED CONTEXT"}</span>
+            <span>{copy.stack.foundationMeta}</span>
             <h3>{copy.stack.foundationTitle}</h3>
             <p>{copy.stack.foundation}</p>
           </article>
@@ -167,7 +163,7 @@ const contact = `mailto:${company.email}?subject=${encodeURIComponent(vi ? "Trao
           <div class="stack-connector stack-connector-compact" aria-hidden="true"></div>
 
           <article class="stack-gateway">
-            <span>{copy.lang === "vi" ? "HÀNH ĐỘNG" : "ACTIONS"}</span>
+            <span>{copy.stack.gatewayMeta}</span>
             <h3>{copy.stack.gatewayTitle}</h3>
             <p>{copy.stack.gateway}</p>
           </article>
@@ -195,10 +191,6 @@ const contact = `mailto:${company.email}?subject=${encodeURIComponent(vi ? "Trao
               <div class="product-heading">
                 <div class="eyebrow">{product.kicker}</div>
                 <div class="product-name">{product.name}</div>
-                <a class="product-link" href={product.href}>
-                  <span>{product.linkLabel}</span>
-                  <span aria-hidden="true">↗</span>
-                </a>
               </div>
               <div class="product-story">
                 <h3>{product.title}</h3>
@@ -238,7 +230,7 @@ const contact = `mailto:${company.email}?subject=${encodeURIComponent(vi ? "Trao
           <p>{copy.context.body}</p>
         </div>
 
-        <div class="context-graph" role="img" aria-label={vi ? "Dữ liệu doanh nghiệp tạo thành ngữ cảnh chung để hiểu, quyết định và hành động" : "Business inputs become shared company context used to understand, decide and act"}>
+        <div class="context-graph" role="img" aria-label={copy.context.ariaLabel}>
           <div class="context-inputs">
             {copy.context.inputs.map((input) => <span class="context-chip">{input}</span>)}
           </div>
@@ -281,6 +273,29 @@ const contact = `mailto:${company.email}?subject=${encodeURIComponent(vi ? "Trao
       </div>
     </section>
 
+    <section class="teams-section section-rule" id="teams">
+      <div class="shell">
+        <div class="section-heading">
+          <div class="section-label">{copy.teams.label}</div>
+          <h2>{copy.teams.title}</h2>
+        </div>
+        <p class="scope-note">{copy.teams.body}</p>
+        <div class="stack-products" aria-label={copy.teams.ariaLabel}>
+          {copy.teams.products.map((product, index) => (
+            <article class="stack-product sheet">
+              <div class="stack-node-meta">0{index + 1} / {product.role}</div>
+              <h3>{product.name}</h3>
+              <p>{product.desc}</p>
+              <a class="stack-product-link" href={product.href}>
+                <span>{vi ? `Mở ${product.name}` : `Visit ${product.name}`}</span>
+                <span aria-hidden="true">↗</span>
+              </a>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+
     <section class="journal-section section-rule">
       <div class="shell journal-section-inner">
         <div>
@@ -292,7 +307,7 @@ const contact = `mailto:${company.email}?subject=${encodeURIComponent(vi ? "Trao
       </div>
     </section>
 
-    <section class="existing-section">
+    <section class="existing-section" id="pilot">
       <div class="shell two-col-section">
         <div>
           <div class="section-label">{copy.existing.label}</div>
